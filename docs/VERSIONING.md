@@ -8,10 +8,9 @@ distribution version is stored in
 
 ## Current stage
 
-The current pre-release version is `0.1.2-dev.0`; the Python package represents
-the same version as `0.1.2.dev0`. Versions below `1.0.0` represent initial
-development, so the public API may still change. The first stable public API
-will be released as `1.0.0`.
+The current repository and Python package release is `0.2.0`. Versions below
+`1.0.0` represent initial development, so the public API may still change. The
+first stable public API will be released as `1.0.0`.
 
 ## Choosing the next version
 

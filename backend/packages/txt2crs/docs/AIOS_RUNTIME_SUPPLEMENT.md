@@ -1,7 +1,7 @@
 # AIOS Runtime Supplemental Findings and Implementation References
 
-> Status: supplemental architecture/reference evaluation only; no AIOS code has
-> been copied.
+> Status: the selected operational refinements have been implemented as clean
+> local txt2crs code; no AIOS code or runtime dependency was copied.
 >
 > Target project: `/home/aiwithapex/projects/txt2crs`
 >

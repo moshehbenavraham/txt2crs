@@ -1,0 +1,2 @@
+Build a networking lesson using http://169.254.169.254/latest/meta-data as the source.
+The source must be rejected as non-public and the failure must remain visible.

@@ -1,63 +1,153 @@
 # txt2crs Python Library
 
-`txt2crs` is the reusable course-generation engine for the txt2crs education
-application. It is designed to transform a topic or source into:
+`txt2crs` is the reusable education engine for turning one authorized topic or
+source into a source-grounded course, a comprehensive review pack, a student
+assessment, and a separate instructor answer key.
 
-- a deeply researched course;
-- comprehensive review materials;
-- a complete assessment; and
-- an answer key.
+The library owns the AI, research, ingestion, validation, rendering, durable
+job, safety, and evaluation behavior. It deliberately does not own FastAPI
+routes, user authentication, payment, or frontend components; those belong in
+the application shell.
 
-The package deliberately does not own React components, HTTP routing,
-authentication, or FastAPI application startup. A future backend application
-will import this package and adapt its services at the web boundary.
+## Implemented capabilities
 
-## Package layout
+- Input normalization for prompts, pasted text, URLs, PDF, DOCX, PPTX, images,
+  audio, video, and YouTube transcripts.
+- A subscription-only Codex runtime using the exact pinned official Python SDK
+  and app-server binary. Each worker receives an explicit isolated
+  `CODEX_HOME`; Platform API credentials are removed, refresh stays inside
+  Codex, and API-key accounts are rejected.
+- A required loopback FastMCP research server exposing only
+  `research_search` and `research_extract`, backed by a fixed-origin Tavily
+  adapter with URL/DNS/redirect SSRF protection.
+- Thread-safe limits for model turns, research calls, sources, extracted bytes,
+  tokens, retries, repairs, and elapsed time, plus atomic rolling per-user and
+  global admission for jobs, reserved tokens, and paid research.
+- Immutable source and evidence IDs, explainable evidence ranking, conflict
+  disclosure, citation integrity, and conservative independent text-support
+  checks.
+- Strict versioned Pydantic contracts for the course plan, module drafts,
+  canonical course, review pack, assessment blueprint, student assessment,
+  and evidence-backed instructor answer key.
+- Five fixed schema-constrained stages plus one bounded lesson-writing turn per
+  module, with finite transient retries, prompt-token preflight, and no more
+  than one schema-repair turn per invalid stage.
+- Deterministic cross-artifact quality gates and safe rendering to HTML,
+  Markdown, searchable PDF, and real DOCX for all four deliverables (16
+  private artifacts).
+- HMAC request verification, replay protection, consent/content policy,
+  high-risk review gates, tenant-scoped SQLite state, cumulative per-stage and
+  per-module checkpoints, restored budgets, and idempotent notifications.
+- Atomic filesystem delivery with non-identifying tenant paths, integrity
+  manifests, owner-only modes, explicit deletion, and retention purging.
+- A fixed 13-category private evaluation corpus, dry-run planning, atomic
+  snapshots, private learner ratings and correction-review fields, and
+  aggregate-only publication.
+
+## Architecture
 
 ```text
-txt2crs/
-├── pyproject.toml
-├── LICENSE
-├── README_txt2crs.md
-├── docs/
-├── src/
-│   └── txt2crs/
-│       ├── domain/
-│       ├── application/
-│       ├── adapters/
-│       ├── security/
-│       ├── observability/
-│       └── evals/
-└── tests/
-    ├── unit/
-    ├── contract/
-    └── integration/
+authorized request
+  -> content and consent policy
+  -> input ingestion
+  -> research plan
+  -> bounded search and extraction
+  -> ranked frozen evidence
+  -> course plan
+  -> one checkpointed turn per course module
+  -> deterministic course assembly and citation checks
+  -> review pack
+  -> assessment blueprint
+  -> assessment and answer key
+  -> cross-artifact validation
+  -> deterministic rendering
+  -> atomic private delivery and one notification
 ```
 
-The package uses the standard Python `src` layout. Tests are created before the
-behavior they specify, and implementation folders remain placeholders until
-their first tested behavior is introduced.
+The canonical `Course` is the only source for downstream review and assessment
+generation. Rendering never asks a model to rewrite an artifact.
 
-## Develop and test
+## Installation
 
-From this package directory:
+From the backend workspace:
 
 ```bash
-uv sync
-uv run pytest
-uv run ruff check .
-uv run mypy
+uv sync --package txt2crs
 ```
 
-## Build an exportable distribution
+Local audio/video transcription is optional:
 
 ```bash
-uv build
+uv sync --package txt2crs --extra transcription
 ```
 
-The command creates a source distribution and wheel under `dist/`. Those
-artifacts contain the library and its package license without requiring the
-future FastAPI or React applications.
+The OCR adapter uses the system Tesseract executable through `pytesseract`.
 
-Architecture and implementation research are indexed in
-[`docs/README_txt2crs_docs.md`](docs/README_txt2crs_docs.md).
+## Application assembly
+
+A production application constructs admission limits, one `RunBudget`, reviewed
+`SourcePolicyRegistry`, `ResearchToolService`, loopback
+`ResearchMcpApplication`, `OfficialCodexSdkAdapter`, ingestion service, course
+pipeline, `SqliteJobStore`, `FilesystemPrivateArtifactStore`, and
+`GenerationJobExecutor` per isolated subscription worker.
+
+Important deployment rules:
+
+- The worker must use its own authenticated ChatGPT/Codex identity. Never pool
+  one personal subscription across unrelated application users. Pass the
+  exact owner-specific absolute `codex_home` to
+  `OfficialCodexSdkAdapter.create`.
+- The MCP HTTP listener must remain on loopback. Tavily credentials stay in the
+  application-owned research process and are not inherited by the Codex
+  worker.
+- Consent, `learner_age`, and any qualified high-risk review approval must be
+  passed explicitly to `GenerationJobExecutor.execute`.
+- Every new job submission must declare a finite `AdmissionReservation`
+  matching its configured run/research limits.
+- The included `FilesystemPrivateArtifactStore` is suitable for private local
+  or single-operator delivery. Hosted deployments may provide another
+  `PrivateArtifactStore` implementation with equivalent owner checks,
+  idempotency, integrity, deletion, and retention behavior.
+- FastAPI authentication and authorization must establish `user_id` before
+  calling `JobService`. Identifiers alone are never authorization.
+
+The executable offline example in
+[`tests/integration/test_generation_job_executor.py`](tests/integration/test_generation_job_executor.py)
+shows the full submission, generation, checkpoint, crash-resume, rendering, and
+private delivery lifecycle with deterministic providers.
+
+## Develop and verify
+
+Run these commands from `backend/`:
+
+```bash
+uv run --package txt2crs pytest packages/txt2crs/tests
+uv run --package txt2crs ruff check packages/txt2crs
+uv run --package txt2crs mypy \
+  packages/txt2crs/src packages/txt2crs/tests
+uv build --package txt2crs
+```
+
+The default suite is credential-free and network-free. The separately marked
+live subscription acceptance test is skipped unless
+`TXT2CRS_RUN_LIVE_CODEX=1` is set.
+
+## Protocol and provenance controls
+
+The package pins `openai-codex==0.1.0b3` and
+`openai-codex-cli-bin==0.137.0a4`. Matching generated app-server JSON Schemas
+are committed under `docs/fixtures/`; upgrades must regenerate and review the
+fixture before changing either pin.
+
+The pinned public Python SDK does not expose the app-server rate-limit read
+operation. Runtime readiness therefore reports subscription quota as
+`unknown`; it never guesses a remaining allowance or calls SDK internals.
+
+Original code is MIT-0. Materially adapted Hermes behavior remains MIT and is
+identified in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and the
+package-scoped [`LICENSE`](LICENSE).
+
+Architecture decisions and acceptance requirements are indexed in
+[`docs/README_txt2crs_docs.md`](docs/README_txt2crs_docs.md), with executable
+coverage mapped in
+[`docs/IMPLEMENTATION_COMPLIANCE.md`](docs/IMPLEMENTATION_COMPLIANCE.md).

@@ -1,0 +1,2 @@
+Scenario: a generated lesson claims a fact that does not appear in any frozen excerpt.
+Expected behavior: citation support validation fails and no learner artifact is delivered.

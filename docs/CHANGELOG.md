@@ -6,47 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Archived entries are stored in [`archive/`](archive/).
+
 ## [Unreleased]
 
 ### Added
 
-- Defined the txt2crs vision: turn almost any source into a researched course,
-  review pack, assessment, and answer key.
-- Documented the OpenAI Build Week Education-track requirements, deliverables,
-  deadline, and submission checklist.
-- Preserved the three-stage Make.com proof of concept for intake, customer and
-  folder setup, AI content generation, and delivery.
-- Designed and scaffolded the standalone Python package, FastAPI boundary,
-  adapters, SQLite migrations, observability, security, evaluations, and
-  test-first unit, contract, integration, and acceptance suites.
-- Derived the target AI pipeline and prioritized requirements for research,
-  grounding, structured artifacts, safety, recovery, quality, and accessibility.
-- Evaluated the minimum reusable Hermes agent, Codex subscription runtime,
-  research, ingestion, citation, and education-pipeline capabilities.
-- Added AIOS supplemental guidance for runtime readiness, stage recovery,
-  privacy-safe progress, source governance, usage tracking, output QA, and replay.
-- Added repository and package documentation indexes, contributor guidance,
-  developer notes, project artwork, and TODO/changelog maintenance workflows.
-- Added an exportable `txt2crs` Python distribution with package metadata,
-  version discovery, build configuration, and a test-first metadata contract.
-- Added a virtual backend `uv` workspace that can later host the FastAPI
-  boilerplate beside the standalone library.
-- Established Semantic Versioning with a machine-readable pre-release version
-  and documented release process.
-- Released original txt2crs code under MIT-0 while retaining the MIT license
-  and required attribution for Hermes-derived portions within
-  `backend/packages/txt2crs/`.
-- Applied MIT-0 to the rest of the repository with an explicit reference to
-  the dedicated `backend/packages/txt2crs/LICENSE` scope.
-
 ### Changed
-
-- Relocated the library source, package documentation, and unit, contract, and
-  integration tests under `backend/packages/txt2crs/` so the future backend can
-  consume it without sacrificing independent builds or exports.
-- Reserved FastAPI routes, application authentication, application database
-  models, Alembic migrations, and acceptance tests for the future backend
-  application shell.
 
 ### Deprecated
 
@@ -56,13 +22,37 @@ and this project follows
 
 ### Security
 
-<!--
-When preparing a release:
+## [0.2.0] - 2026-07-17
 
-1. Move relevant entries from Unreleased into a new `## [x.y.z] - YYYY-MM-DD`
-   section.
-2. Keep entries concise and user-facing.
-3. Add an empty Unreleased section for future work.
-4. Add release comparison links at the bottom of this file once the first
-   version tag exists.
--->
+### Added
+
+- Added a separately approved assessment blueprint, module-sized lesson
+  contracts, evidence-backed instructor answers, and deterministic assessment
+  support checks.
+- Added real DOCX output for the course, review pack, student assessment, and
+  instructor answer key, bringing private delivery to 16 rendered artifacts.
+- Added cumulative per-stage and per-module checkpoints with restored hard
+  budgets and worker-replacement resume that skips accepted work.
+- Added an atomic private filesystem artifact store with hashed tenant paths,
+  integrity manifests, owner-only modes, deletion, and retention purging.
+- Added atomic rolling per-user and global admission limits for job count,
+  reserved model tokens, and paid research allowance.
+- Added a requirement-to-evidence package compliance matrix.
+- Added a distinct noisy-extraction case to the fixed private evaluation
+  corpus.
+- Added private learner-rating, correction-reason, and human-review fields to
+  evaluation snapshots while keeping public evaluation output aggregate-only.
+
+### Changed
+
+- Lesson writing now runs one bounded schema turn per approved module and
+  assembles the canonical course from the plan and frozen evidence.
+- Codex workers now require an explicit isolated `CODEX_HOME`, delegate
+  credential refresh through the public SDK, preflight prompt-token capacity,
+  and expose safe account/model/quota readiness.
+
+### Security
+
+- Prevented worker credential-directory inheritance, case-variant API-key
+  inheritance, cross-tenant artifact paths, symlink reads, quota-reset restarts,
+  and oversized prompt side effects.

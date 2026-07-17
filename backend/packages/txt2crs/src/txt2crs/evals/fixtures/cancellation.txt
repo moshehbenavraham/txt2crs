@@ -1,0 +1,2 @@
+Scenario: cancel the job while a schema-constrained model turn is active.
+Expected behavior: interrupt the turn and settle the stage and job as cancelled.

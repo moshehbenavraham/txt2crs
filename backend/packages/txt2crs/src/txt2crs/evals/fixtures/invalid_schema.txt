@@ -1,0 +1,2 @@
+Scenario: the model returns an unknown field and omits the schema_version.
+Expected behavior: local strict validation rejects the output before checkpointing.

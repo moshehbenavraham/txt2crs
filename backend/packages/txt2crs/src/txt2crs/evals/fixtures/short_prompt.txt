@@ -1,0 +1,1 @@
+Teach a beginner how a Python variable binds a name to a value.

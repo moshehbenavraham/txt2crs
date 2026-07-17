@@ -1,0 +1,6 @@
+OCR warning: low confidence, skewed scan, and damaged page boundaries.
+
+Pyth0n var1ab1es b1nd narnes t0 va1ues.
+[PAGE 2?] asslgnrnent uses = but several glyphs were misread.
+The extractor must preserve this uncertainty and must not silently invent or
+truncate the missing source text.

@@ -1,11 +1,11 @@
 [project]
 name = "txt2crs"
-version = "0.1.2.dev0"
+version = "0.2.0"
 description = "Turn source material into researched courses, review packs, and assessments."
 readme = "README_txt2crs.md"
 requires-python = ">=3.12,<3.15"
 license = "MIT-0 AND MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 keywords = [
     "assessment",
     "course-generation",
@@ -21,7 +21,26 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = []
+dependencies = [
+    "httpx>=0.28,<1",
+    "mcp>=1.28,<2",
+    "openai-codex==0.1.0b3",
+    "openai-codex-cli-bin==0.137.0a4",
+    "pillow>=11,<13",
+    "pydantic>=2.12,<3",
+    "pymupdf>=1.26,<2",
+    "pytesseract>=0.3.13,<1",
+    "python-docx>=1.2,<2",
+    "python-pptx>=1.0,<2",
+    "youtube-transcript-api>=1.2,<2",
+]
+
+[project.optional-dependencies]
+# Local audio/video transcription is intentionally optional because the
+# maintained runtime includes large native model dependencies.
+transcription = [
+    "faster-whisper>=1.2,<2",
+]
 
 [project.urls]
 Documentation = "https://github.com/moshehbenavraham/txt2crs/tree/main/backend/packages/txt2crs/docs"
@@ -52,6 +71,7 @@ include = [
     "/tests",
     "/LICENSE",
     "/README_txt2crs.md",
+    "/THIRD_PARTY_NOTICES.md",
     "/pyproject.toml",
 ]
 
@@ -61,6 +81,9 @@ packages = ["src/txt2crs"]
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib", "-ra"]
 testpaths = ["tests"]
+markers = [
+    "live: explicitly enabled tests using an authenticated external provider",
+]
 
 [tool.mypy]
 strict = true

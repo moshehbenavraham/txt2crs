@@ -1,10 +1,22 @@
 # Hermes Minimum Code-Pull Evaluation
 
-> Status: architecture and extraction evaluation only; no Hermes code has been copied yet.
+> Status: implemented as a bounded local package. Materially adapted Hermes
+> behavior retains MIT provenance in `THIRD_PARTY_NOTICES.md`; the donor
+> checkout is not a build or runtime dependency.
 >
 > Evaluated target: `txt2crs`
 >
 > Evaluated donor: Hermes at commit `0f102fa4dc04b7dfdab048169aaaa640d09d7523`
+
+## Implementation result
+
+The selected boundary is now implemented under `src/txt2crs/` with strict
+contracts, shared budgets, two research tools, the official pinned Codex SDK,
+immutable evidence, deterministic education validation and rendering, durable
+SQLite jobs, private evaluation replay, and donor-absence tests. Generated
+protocol fixtures for Codex app-server `0.137.0a4` are committed under
+`docs/fixtures/`. A default credential-free suite and an explicitly enabled
+live ChatGPT/MCP acceptance test cover the final architecture.
 >
 > Review date: 2026-07-17
 

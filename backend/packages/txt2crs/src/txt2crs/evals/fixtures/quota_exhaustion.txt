@@ -1,0 +1,2 @@
+Scenario: the subscription runtime reports an exhausted usage window before lesson writing.
+Expected behavior: expose a truthful quota state and deliver no partial course artifacts.

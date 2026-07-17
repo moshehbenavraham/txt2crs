@@ -25,15 +25,20 @@ and delivers polished learning artifacts through a clear, accessible interface.
 
 ## Current Status
 
-The independently installable Python library is scaffolded under
-[`backend/packages/txt2crs/`](backend/packages/txt2crs/). It uses a standard
-`src` layout and can be developed, tested, and exported without a FastAPI or
-React application.
+The independently installable Python library under
+[`backend/packages/txt2crs/`](backend/packages/txt2crs/) now implements the
+complete reusable education engine: bounded multi-input ingestion, deep
+research and evidence, subscription-only Codex execution, per-module course
+generation, aligned review and assessment artifacts, deterministic
+HTML/Markdown/PDF/DOCX rendering, durable resume, private storage, spend
+admission, and offline evaluation.
 
 The repository also contains the original
 [Make.com proof-of-concept workflows](make-scenarios/) and the
-[product and architecture documentation](docs/). The production library
-behavior and application shell are the next stages of development.
+[product and architecture documentation](docs/). The FastAPI/frontend
+application shell remains a separate next stage. It will provide browser
+authentication, payment/entitlement checks, HTTP routes, and the user
+interface while calling the completed package boundary.
 
 ## Repository Layout
 
@@ -42,7 +47,7 @@ txt2crs/
 ├── backend/
 │   ├── packages/
 │   │   └── txt2crs/          # Independently installable Python library
-│   └── tests/                # Future product-level acceptance tests
+│   └── tests/                # Future application-shell acceptance tests
 ├── docs/                     # Project documentation
 ├── make-scenarios/           # Original Make.com proof of concept
 ├── VERSION
@@ -60,6 +65,6 @@ Library development and build commands are documented in
 ## Versioning
 
 txt2crs follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
-The current pre-release version is stored in [`VERSION`](VERSION), and the
-release process is documented in
+The current version is stored in [`VERSION`](VERSION), and the release process
+is documented in
 [`docs/VERSIONING.md`](docs/VERSIONING.md).

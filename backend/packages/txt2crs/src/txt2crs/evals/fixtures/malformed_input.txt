@@ -1,0 +1,3 @@
+%PDF-1.7
+This fixture intentionally stops mid-object and represents a corrupt document.
+4 0 obj << /Length 999999
