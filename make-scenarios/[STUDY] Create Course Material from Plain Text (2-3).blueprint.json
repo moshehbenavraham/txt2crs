@@ -1,0 +1,2306 @@
+{
+    "name": "[STUDY] Create Course Material from Plain Text (2/3)",
+    "flow": [
+        {
+            "id": 26,
+            "module": "gateway:CustomWebHook",
+            "version": 1,
+            "parameters": {
+                "hook": 3412657,
+                "maxResults": 1
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 450,
+                    "name": "From Form Intake"
+                },
+                "restore": {
+                    "parameters": {
+                        "hook": {
+                            "data": {
+                                "editable": "true"
+                            },
+                            "label": "Text to Course - Onboarding"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "hook",
+                        "type": "hook:gateway-webhook",
+                        "label": "Webhook",
+                        "required": true
+                    },
+                    {
+                        "name": "maxResults",
+                        "type": "number",
+                        "label": "Maximum number of results"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 27,
+            "module": "airtable:ActionGetRecord",
+            "version": 3,
+            "parameters": {
+                "__IMTCONN__": 8204710
+            },
+            "mapper": {
+                "id": "{{26.clientID}}",
+                "base": "appbzixfBe1xpUrfr",
+                "table": "tblfpQGzU39wlepZN",
+                "useColumnId": false
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 450,
+                    "name": "Submission - Retrieve"
+                },
+                "restore": {
+                    "expect": {
+                        "base": {
+                            "mode": "chose",
+                            "label": "Study"
+                        },
+                        "table": {
+                            "mode": "chose",
+                            "label": "Submission"
+                        },
+                        "useColumnId": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "airtable3"
+                            },
+                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:airtable3,airtable2",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "base",
+                        "type": "select",
+                        "label": "Base",
+                        "required": true
+                    },
+                    {
+                        "name": "useColumnId",
+                        "type": "boolean",
+                        "label": "Use Column ID",
+                        "required": true
+                    },
+                    {
+                        "name": "table",
+                        "type": "select",
+                        "label": "Table",
+                        "required": true
+                    },
+                    {
+                        "name": "id",
+                        "type": "text",
+                        "label": "Record ID",
+                        "required": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "id",
+                        "type": "text",
+                        "label": "ID"
+                    },
+                    {
+                        "name": "createdTime",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Name",
+                        "type": "text",
+                        "label": "Name"
+                    },
+                    {
+                        "name": "Email",
+                        "type": "text",
+                        "label": "Email"
+                    },
+                    {
+                        "name": "Text Input",
+                        "type": "text",
+                        "label": "Text Input",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Service",
+                        "type": "text",
+                        "label": "Service"
+                    },
+                    {
+                        "name": "Product Summary",
+                        "type": "text",
+                        "label": "Product Summary"
+                    },
+                    {
+                        "name": "Coupon",
+                        "type": "text",
+                        "label": "Coupon"
+                    },
+                    {
+                        "name": "Created Time",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Record ID",
+                        "type": "text",
+                        "label": "Record ID"
+                    },
+                    {
+                        "name": "Onboarding",
+                        "spec": {
+                            "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Onboarding"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 28,
+            "module": "airtable:ActionSearchRecords",
+            "version": 3,
+            "parameters": {
+                "__IMTCONN__": 8204710
+            },
+            "mapper": {
+                "base": "appbzixfBe1xpUrfr",
+                "view": "viwzcmGga1bgZSjOo",
+                "table": "tblHpU23PlR0sM1LF",
+                "fields": [
+                    "Email",
+                    "Name",
+                    "Last Text Input",
+                    "Service",
+                    "Product Summary",
+                    "Coupon",
+                    "Created Time",
+                    "Record ID",
+                    "Link Submission",
+                    "Courses",
+                    "Folder ID",
+                    "Folder Link"
+                ],
+                "formula": "{Email} = \"{{lower(27.Email)}}\"",
+                "maxRecords": "1",
+                "useColumnId": false
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 450,
+                    "name": "Onboarding: Check for Record"
+                },
+                "restore": {
+                    "expect": {
+                        "base": {
+                            "mode": "chose",
+                            "label": "Study"
+                        },
+                        "sort": {
+                            "mode": "chose"
+                        },
+                        "view": {
+                            "mode": "chose",
+                            "label": "Grid view"
+                        },
+                        "table": {
+                            "mode": "chose",
+                            "label": "Onboarding"
+                        },
+                        "fields": {
+                            "mode": "chose",
+                            "label": [
+                                "Email",
+                                "Name",
+                                "Last Text Input",
+                                "Service",
+                                "Product Summary",
+                                "Coupon",
+                                "Created Time",
+                                "Record ID",
+                                "Link Submission",
+                                "Courses",
+                                "Folder ID",
+                                "Folder Link"
+                            ]
+                        },
+                        "useColumnId": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "airtable3"
+                            },
+                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:airtable3,airtable2",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "base",
+                        "type": "select",
+                        "label": "Base",
+                        "required": true
+                    },
+                    {
+                        "name": "useColumnId",
+                        "type": "boolean",
+                        "label": "Use Column ID",
+                        "required": true
+                    },
+                    {
+                        "name": "table",
+                        "type": "select",
+                        "label": "Table",
+                        "required": true
+                    },
+                    {
+                        "name": "formula",
+                        "type": "text",
+                        "label": "Formula"
+                    },
+                    {
+                        "name": "maxRecords",
+                        "type": "integer",
+                        "label": "Limit"
+                    },
+                    {
+                        "name": "sort",
+                        "spec": [
+                            {
+                                "name": "field",
+                                "type": "select",
+                                "label": "Field",
+                                "dynamic": true,
+                                "options": []
+                            },
+                            {
+                                "name": "direction",
+                                "type": "select",
+                                "label": "Direction",
+                                "options": [
+                                    {
+                                        "label": "Descending",
+                                        "value": "desc"
+                                    },
+                                    {
+                                        "label": "Ascending",
+                                        "value": "asc"
+                                    }
+                                ]
+                            }
+                        ],
+                        "type": "array",
+                        "label": "Sort"
+                    },
+                    {
+                        "name": "view",
+                        "type": "select",
+                        "label": "View"
+                    },
+                    {
+                        "name": "fields",
+                        "type": "select",
+                        "label": "Output Fields",
+                        "multiple": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "__IMTLENGTH__",
+                        "type": "uinteger",
+                        "label": "Total number of bundles"
+                    },
+                    {
+                        "name": "__IMTINDEX__",
+                        "type": "uinteger",
+                        "label": "Bundle order position"
+                    },
+                    {
+                        "name": "id",
+                        "type": "text",
+                        "label": "ID"
+                    },
+                    {
+                        "name": "createdTime",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Email",
+                        "type": "text",
+                        "label": "Email"
+                    },
+                    {
+                        "name": "Name",
+                        "type": "text",
+                        "label": "Name"
+                    },
+                    {
+                        "name": "Last Text Input",
+                        "type": "text",
+                        "label": "Last Text Input",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Service",
+                        "type": "text",
+                        "label": "Service",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Product Summary",
+                        "type": "text",
+                        "label": "Product Summary",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Coupon",
+                        "type": "text",
+                        "label": "Coupon",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Created Time",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Record ID",
+                        "type": "text",
+                        "label": "Record ID"
+                    },
+                    {
+                        "name": "Link Submission",
+                        "spec": {
+                            "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Link Submission"
+                    },
+                    {
+                        "name": "Courses",
+                        "spec": {
+                            "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Courses"
+                    },
+                    {
+                        "name": "Folder ID",
+                        "type": "text",
+                        "label": "Folder ID"
+                    },
+                    {
+                        "name": "Folder Link",
+                        "type": "text",
+                        "label": "Folder Link"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 29,
+            "module": "builtin:BasicRouter",
+            "version": 1,
+            "mapper": null,
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 450
+                }
+            },
+            "routes": [
+                {
+                    "flow": [
+                        {
+                            "id": 30,
+                            "module": "airtable:ActionCreateRecord",
+                            "version": 3,
+                            "parameters": {
+                                "__IMTCONN__": 8204710
+                            },
+                            "filter": {
+                                "name": "No Record",
+                                "conditions": [
+                                    [
+                                        {
+                                            "a": "{{28.`__IMTLENGTH__`}}",
+                                            "b": "0",
+                                            "o": "number:equal"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "mapper": {
+                                "base": "appbzixfBe1xpUrfr",
+                                "table": "tblHpU23PlR0sM1LF",
+                                "record": {
+                                    "fld0pPueup2oiZF8o": "{{27.`Text Input`}}",
+                                    "fld4vCzmK5NAwP1Nb": "{{27.Coupon}}",
+                                    "fldMMZE1AecOob3iX": "{{27.`Product Summary`}}",
+                                    "fldN1drqZAmzVuqqP": "{{27.Name}}",
+                                    "fldbEQi3Xukz1Qwjd": [
+                                        "{{27.id}}"
+                                    ],
+                                    "fldf4DjMxKzJdqBng": "{{27.Service}}",
+                                    "fldo5jfkwRfqmKwJ7": "{{27.Email}}"
+                                },
+                                "typecast": false,
+                                "useColumnId": false
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 0,
+                                    "name": "Onboarding: Create New Entry"
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "base": {
+                                            "label": "Study"
+                                        },
+                                        "table": {
+                                            "label": "Onboarding",
+                                            "nested": [
+                                                {
+                                                    "name": "record",
+                                                    "spec": [
+                                                        {
+                                                            "name": "fldN1drqZAmzVuqqP",
+                                                            "type": "text",
+                                                            "label": "Name"
+                                                        },
+                                                        {
+                                                            "name": "fldo5jfkwRfqmKwJ7",
+                                                            "type": "text",
+                                                            "label": "Email"
+                                                        },
+                                                        {
+                                                            "name": "fld0pPueup2oiZF8o",
+                                                            "type": "text",
+                                                            "label": "Text Input",
+                                                            "multiline": true
+                                                        },
+                                                        {
+                                                            "name": "fldf4DjMxKzJdqBng",
+                                                            "type": "text",
+                                                            "label": "Service"
+                                                        },
+                                                        {
+                                                            "name": "fldMMZE1AecOob3iX",
+                                                            "type": "text",
+                                                            "label": "Product Summary"
+                                                        },
+                                                        {
+                                                            "name": "fld4vCzmK5NAwP1Nb",
+                                                            "type": "text",
+                                                            "label": "Coupon"
+                                                        },
+                                                        {
+                                                            "name": "fldbEQi3Xukz1Qwjd",
+                                                            "spec": {
+                                                                "label": "Record ID"
+                                                            },
+                                                            "type": "array",
+                                                            "label": "Link Submission"
+                                                        }
+                                                    ],
+                                                    "type": "collection",
+                                                    "label": "Record"
+                                                }
+                                            ]
+                                        },
+                                        "record": {
+                                            "nested": {
+                                                "fldbEQi3Xukz1Qwjd": {
+                                                    "mode": "chose",
+                                                    "items": [
+                                                        null
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "typecast": {
+                                            "mode": "chose"
+                                        },
+                                        "useColumnId": {
+                                            "mode": "chose"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "airtable3"
+                                            },
+                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:airtable3,airtable2",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "base",
+                                        "type": "select",
+                                        "label": "Base",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "typecast",
+                                        "type": "boolean",
+                                        "label": "Smart links",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "useColumnId",
+                                        "type": "boolean",
+                                        "label": "Use Column ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "table",
+                                        "type": "select",
+                                        "label": "Table",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "record",
+                                        "spec": [
+                                            {
+                                                "name": "fldN1drqZAmzVuqqP",
+                                                "type": "text",
+                                                "label": "Name"
+                                            },
+                                            {
+                                                "name": "fldo5jfkwRfqmKwJ7",
+                                                "type": "text",
+                                                "label": "Email"
+                                            },
+                                            {
+                                                "name": "fld0pPueup2oiZF8o",
+                                                "type": "text",
+                                                "label": "Text Input"
+                                            },
+                                            {
+                                                "name": "fldf4DjMxKzJdqBng",
+                                                "type": "text",
+                                                "label": "Service"
+                                            },
+                                            {
+                                                "name": "fldMMZE1AecOob3iX",
+                                                "type": "text",
+                                                "label": "Product Summary"
+                                            },
+                                            {
+                                                "name": "fld4vCzmK5NAwP1Nb",
+                                                "type": "text",
+                                                "label": "Coupon"
+                                            },
+                                            {
+                                                "name": "fldbEQi3Xukz1Qwjd",
+                                                "spec": {
+                                                    "name": "value",
+                                                    "label": "Record ID"
+                                                },
+                                                "type": "array",
+                                                "label": "Link Submission"
+                                            }
+                                        ],
+                                        "type": "collection",
+                                        "label": "Record"
+                                    }
+                                ],
+                                "interface": [
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "ID"
+                                    },
+                                    {
+                                        "name": "createdTime",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Email",
+                                        "type": "text",
+                                        "label": "Email"
+                                    },
+                                    {
+                                        "name": "Name",
+                                        "type": "text",
+                                        "label": "Name"
+                                    },
+                                    {
+                                        "name": "Last Text Input",
+                                        "type": "text",
+                                        "label": "Last Text Input",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Service",
+                                        "type": "text",
+                                        "label": "Service",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Product Summary",
+                                        "type": "text",
+                                        "label": "Product Summary",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Coupon",
+                                        "type": "text",
+                                        "label": "Coupon",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Created Time",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Record ID",
+                                        "type": "text",
+                                        "label": "Record ID"
+                                    },
+                                    {
+                                        "name": "Link Submission",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Link Submission"
+                                    },
+                                    {
+                                        "name": "Courses",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Courses"
+                                    },
+                                    {
+                                        "name": "Folder ID",
+                                        "type": "text",
+                                        "label": "Folder ID"
+                                    },
+                                    {
+                                        "name": "Folder Link",
+                                        "type": "text",
+                                        "label": "Folder Link"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "flow": [
+                        {
+                            "id": 32,
+                            "module": "airtable:ActionUpdateRecords",
+                            "version": 3,
+                            "parameters": {
+                                "__IMTCONN__": 8204710
+                            },
+                            "filter": {
+                                "name": "Returning Client",
+                                "conditions": [
+                                    [
+                                        {
+                                            "a": "{{28.`__IMTLENGTH__`}}",
+                                            "b": "0",
+                                            "o": "number:greater"
+                                        }
+                                    ]
+                                ]
+                            },
+                            "mapper": {
+                                "id": "{{28.id}}",
+                                "base": "appbzixfBe1xpUrfr",
+                                "table": "tblHpU23PlR0sM1LF",
+                                "record": {
+                                    "fld0pPueup2oiZF8o": "{{27.`Text Input`}}",
+                                    "fld4vCzmK5NAwP1Nb": "{{27.Coupon}}",
+                                    "fldMMZE1AecOob3iX": "{{27.`Product Summary`}}",
+                                    "fldbEQi3Xukz1Qwjd": [
+                                        "{{27.id}}"
+                                    ],
+                                    "fldf4DjMxKzJdqBng": "{{27.Service}}"
+                                },
+                                "typecast": false,
+                                "useColumnId": false
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 300,
+                                    "name": "Onboarding: Update Record"
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "base": {
+                                            "label": "Study"
+                                        },
+                                        "table": {
+                                            "label": "Onboarding"
+                                        },
+                                        "record": {
+                                            "nested": {
+                                                "fld83TL6WhXJhhtbM": {
+                                                    "collapsed": true
+                                                },
+                                                "fldESDtn1F81nVTTE": {
+                                                    "mode": "chose",
+                                                    "collapsed": true
+                                                },
+                                                "fldN1drqZAmzVuqqP": {
+                                                    "collapsed": true
+                                                },
+                                                "fldbEQi3Xukz1Qwjd": {
+                                                    "mode": "chose",
+                                                    "items": [
+                                                        null
+                                                    ]
+                                                },
+                                                "fldcxWTXU8bY3tKBB": {
+                                                    "collapsed": true
+                                                },
+                                                "fldo5jfkwRfqmKwJ7": {
+                                                    "collapsed": true
+                                                }
+                                            }
+                                        },
+                                        "typecast": {
+                                            "mode": "chose"
+                                        },
+                                        "useColumnId": {
+                                            "mode": "chose"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "airtable3"
+                                            },
+                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:airtable3,airtable2",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "base",
+                                        "type": "select",
+                                        "label": "Base",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "typecast",
+                                        "type": "boolean",
+                                        "label": "Smart links",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "useColumnId",
+                                        "type": "boolean",
+                                        "label": "Use Column ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "table",
+                                        "type": "select",
+                                        "label": "Table",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "Record ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "record",
+                                        "spec": [
+                                            {
+                                                "name": "fldo5jfkwRfqmKwJ7",
+                                                "type": "text",
+                                                "label": "Email"
+                                            },
+                                            {
+                                                "name": "fldN1drqZAmzVuqqP",
+                                                "type": "text",
+                                                "label": "Name"
+                                            },
+                                            {
+                                                "name": "fld0pPueup2oiZF8o",
+                                                "type": "text",
+                                                "label": "Last Text Input"
+                                            },
+                                            {
+                                                "name": "fldf4DjMxKzJdqBng",
+                                                "type": "text",
+                                                "label": "Service"
+                                            },
+                                            {
+                                                "name": "fldMMZE1AecOob3iX",
+                                                "type": "text",
+                                                "label": "Product Summary"
+                                            },
+                                            {
+                                                "name": "fld4vCzmK5NAwP1Nb",
+                                                "type": "text",
+                                                "label": "Coupon"
+                                            },
+                                            {
+                                                "name": "fldbEQi3Xukz1Qwjd",
+                                                "spec": {
+                                                    "name": "value",
+                                                    "label": "Record ID"
+                                                },
+                                                "type": "array",
+                                                "label": "Link Submission"
+                                            },
+                                            {
+                                                "name": "fldESDtn1F81nVTTE",
+                                                "spec": {
+                                                    "name": "value",
+                                                    "label": "Record ID"
+                                                },
+                                                "type": "array",
+                                                "label": "Courses"
+                                            },
+                                            {
+                                                "name": "fldcxWTXU8bY3tKBB",
+                                                "type": "text",
+                                                "label": "Folder ID"
+                                            },
+                                            {
+                                                "name": "fld83TL6WhXJhhtbM",
+                                                "type": "text",
+                                                "label": "Folder Link"
+                                            }
+                                        ],
+                                        "type": "collection",
+                                        "label": "Record"
+                                    }
+                                ],
+                                "interface": [
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "ID"
+                                    },
+                                    {
+                                        "name": "createdTime",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Email",
+                                        "type": "text",
+                                        "label": "Email"
+                                    },
+                                    {
+                                        "name": "Name",
+                                        "type": "text",
+                                        "label": "Name"
+                                    },
+                                    {
+                                        "name": "Last Text Input",
+                                        "type": "text",
+                                        "label": "Last Text Input",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Service",
+                                        "type": "text",
+                                        "label": "Service",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Product Summary",
+                                        "type": "text",
+                                        "label": "Product Summary",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Coupon",
+                                        "type": "text",
+                                        "label": "Coupon",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Created Time",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Record ID",
+                                        "type": "text",
+                                        "label": "Record ID"
+                                    },
+                                    {
+                                        "name": "Link Submission",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Link Submission"
+                                    },
+                                    {
+                                        "name": "Courses",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Courses"
+                                    },
+                                    {
+                                        "name": "Folder ID",
+                                        "type": "text",
+                                        "label": "Folder ID"
+                                    },
+                                    {
+                                        "name": "Folder Link",
+                                        "type": "text",
+                                        "label": "Folder Link"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "flow": [
+                        {
+                            "id": 34,
+                            "module": "airtable:ActionGetRecord",
+                            "version": 3,
+                            "parameters": {
+                                "__IMTCONN__": 8204710
+                            },
+                            "mapper": {
+                                "id": "{{27.id}}",
+                                "base": "appbzixfBe1xpUrfr",
+                                "table": "tblfpQGzU39wlepZN",
+                                "useColumnId": false
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1200,
+                                    "y": 750,
+                                    "name": "Submission: Re-Load"
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "base": {
+                                            "mode": "chose",
+                                            "label": "Study"
+                                        },
+                                        "table": {
+                                            "mode": "chose",
+                                            "label": "Submission"
+                                        },
+                                        "useColumnId": {
+                                            "mode": "chose"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "airtable3"
+                                            },
+                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:airtable3,airtable2",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "base",
+                                        "type": "select",
+                                        "label": "Base",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "useColumnId",
+                                        "type": "boolean",
+                                        "label": "Use Column ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "table",
+                                        "type": "select",
+                                        "label": "Table",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "Record ID",
+                                        "required": true
+                                    }
+                                ],
+                                "interface": [
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "ID"
+                                    },
+                                    {
+                                        "name": "createdTime",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Name",
+                                        "type": "text",
+                                        "label": "Name"
+                                    },
+                                    {
+                                        "name": "Email",
+                                        "type": "text",
+                                        "label": "Email"
+                                    },
+                                    {
+                                        "name": "Text Input",
+                                        "type": "text",
+                                        "label": "Text Input",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Service",
+                                        "type": "text",
+                                        "label": "Service"
+                                    },
+                                    {
+                                        "name": "Product Summary",
+                                        "type": "text",
+                                        "label": "Product Summary"
+                                    },
+                                    {
+                                        "name": "Coupon",
+                                        "type": "text",
+                                        "label": "Coupon"
+                                    },
+                                    {
+                                        "name": "Created Time",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Record ID",
+                                        "type": "text",
+                                        "label": "Record ID"
+                                    },
+                                    {
+                                        "name": "Onboarding",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Onboarding"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "id": 35,
+                            "module": "airtable:ActionGetRecord",
+                            "version": 3,
+                            "parameters": {
+                                "__IMTCONN__": 8204710
+                            },
+                            "mapper": {
+                                "id": "{{34.Onboarding[]}}",
+                                "base": "appbzixfBe1xpUrfr",
+                                "table": "tblHpU23PlR0sM1LF",
+                                "useColumnId": false
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1500,
+                                    "y": 750,
+                                    "name": "Onboarding: Re-Load"
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "base": {
+                                            "mode": "chose",
+                                            "label": "Study"
+                                        },
+                                        "table": {
+                                            "mode": "chose",
+                                            "label": "Onboarding"
+                                        },
+                                        "useColumnId": {
+                                            "mode": "chose"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "airtable3"
+                                            },
+                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:airtable3,airtable2",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "base",
+                                        "type": "select",
+                                        "label": "Base",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "useColumnId",
+                                        "type": "boolean",
+                                        "label": "Use Column ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "table",
+                                        "type": "select",
+                                        "label": "Table",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "Record ID",
+                                        "required": true
+                                    }
+                                ],
+                                "interface": [
+                                    {
+                                        "name": "id",
+                                        "type": "text",
+                                        "label": "ID"
+                                    },
+                                    {
+                                        "name": "createdTime",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Email",
+                                        "type": "text",
+                                        "label": "Email"
+                                    },
+                                    {
+                                        "name": "Name",
+                                        "type": "text",
+                                        "label": "Name"
+                                    },
+                                    {
+                                        "name": "Last Text Input",
+                                        "type": "text",
+                                        "label": "Last Text Input",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Service",
+                                        "type": "text",
+                                        "label": "Service",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Product Summary",
+                                        "type": "text",
+                                        "label": "Product Summary",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Coupon",
+                                        "type": "text",
+                                        "label": "Coupon",
+                                        "multiline": true
+                                    },
+                                    {
+                                        "name": "Created Time",
+                                        "type": "date",
+                                        "label": "Created Time"
+                                    },
+                                    {
+                                        "name": "Record ID",
+                                        "type": "text",
+                                        "label": "Record ID"
+                                    },
+                                    {
+                                        "name": "Link Submission",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Link Submission"
+                                    },
+                                    {
+                                        "name": "Courses",
+                                        "spec": {
+                                            "label": "Record ID"
+                                        },
+                                        "type": "array",
+                                        "label": "Courses"
+                                    },
+                                    {
+                                        "name": "Folder ID",
+                                        "type": "text",
+                                        "label": "Folder ID"
+                                    },
+                                    {
+                                        "name": "Folder Link",
+                                        "type": "text",
+                                        "label": "Folder Link"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "id": 37,
+                            "module": "builtin:BasicRouter",
+                            "version": 1,
+                            "mapper": null,
+                            "metadata": {
+                                "designer": {
+                                    "x": 1800,
+                                    "y": 750
+                                }
+                            },
+                            "routes": [
+                                {
+                                    "flow": [
+                                        {
+                                            "id": 38,
+                                            "module": "google-drive:createAFolder",
+                                            "version": 4,
+                                            "parameters": {
+                                                "__IMTCONN__": 2388448
+                                            },
+                                            "filter": {
+                                                "name": "",
+                                                "conditions": [
+                                                    [
+                                                        {
+                                                            "a": "{{35.`Folder ID`}}",
+                                                            "o": "notexist"
+                                                        }
+                                                    ]
+                                                ]
+                                            },
+                                            "mapper": {
+                                                "name": "Course Material - {{35.Name}}",
+                                                "role": "commenter",
+                                                "type": "anyone",
+                                                "shared": true,
+                                                "folderId": "/19ouVI9J88yJGx5Es-HtOTlvX5sztLeQm/1oK_09CaidPoTrWrG1HM1sYMeYwu_uzMc",
+                                                "destination": "drive"
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 2100,
+                                                    "y": 600
+                                                },
+                                                "restore": {
+                                                    "expect": {
+                                                        "role": {
+                                                            "mode": "chose",
+                                                            "label": "Commenter"
+                                                        },
+                                                        "type": {
+                                                            "mode": "chose",
+                                                            "label": "Anyone"
+                                                        },
+                                                        "folderId": {
+                                                            "mode": "chose",
+                                                            "path": [
+                                                                "COURSES",
+                                                                "zzz - Unsorted Material"
+                                                            ]
+                                                        },
+                                                        "destination": {
+                                                            "label": "My Drive"
+                                                        }
+                                                    },
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "google-restricted"
+                                                            },
+                                                            "label": "My Google Restricted connection (max@apexwebservices.com)"
+                                                        }
+                                                    }
+                                                },
+                                                "parameters": [
+                                                    {
+                                                        "name": "__IMTCONN__",
+                                                        "type": "account:google-restricted",
+                                                        "label": "Connection",
+                                                        "required": true
+                                                    }
+                                                ],
+                                                "expect": [
+                                                    {
+                                                        "type": "hidden"
+                                                    },
+                                                    {
+                                                        "name": "destination",
+                                                        "type": "select",
+                                                        "label": "New Drive Location",
+                                                        "required": true,
+                                                        "validate": {
+                                                            "enum": [
+                                                                "drive",
+                                                                "share",
+                                                                "team"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "folderId",
+                                                        "type": "folder",
+                                                        "label": "New Folder Location",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "name",
+                                                        "type": "text",
+                                                        "label": "New Folder's Name"
+                                                    },
+                                                    {
+                                                        "name": "shared",
+                                                        "type": "boolean",
+                                                        "label": "Share Folder",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "role",
+                                                        "type": "select",
+                                                        "label": "Role",
+                                                        "required": true,
+                                                        "validate": {
+                                                            "enum": [
+                                                                "owner",
+                                                                "writer",
+                                                                "commenter",
+                                                                "reader"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "type",
+                                                        "type": "select",
+                                                        "label": "Type",
+                                                        "required": true,
+                                                        "validate": {
+                                                            "enum": [
+                                                                "user",
+                                                                "group",
+                                                                "domain",
+                                                                "anyone"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "id": 39,
+                                            "module": "airtable:ActionUpdateRecords",
+                                            "version": 3,
+                                            "parameters": {
+                                                "__IMTCONN__": 8204710
+                                            },
+                                            "mapper": {
+                                                "id": "{{35.id}}",
+                                                "base": "appbzixfBe1xpUrfr",
+                                                "table": "tblHpU23PlR0sM1LF",
+                                                "record": {
+                                                    "fld83TL6WhXJhhtbM": "{{38.webViewLink}}",
+                                                    "fldbEQi3Xukz1Qwjd": [
+                                                        "{{34.id}}"
+                                                    ],
+                                                    "fldcxWTXU8bY3tKBB": "{{38.id}}"
+                                                },
+                                                "typecast": false,
+                                                "useColumnId": false
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 2400,
+                                                    "y": 600,
+                                                    "name": "Onboarding: Folder ID"
+                                                },
+                                                "restore": {
+                                                    "expect": {
+                                                        "base": {
+                                                            "label": "Study"
+                                                        },
+                                                        "table": {
+                                                            "label": "Onboarding"
+                                                        },
+                                                        "record": {
+                                                            "nested": {
+                                                                "fld0pPueup2oiZF8o": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fld4vCzmK5NAwP1Nb": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldESDtn1F81nVTTE": {
+                                                                    "mode": "chose",
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldMMZE1AecOob3iX": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldN1drqZAmzVuqqP": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldbEQi3Xukz1Qwjd": {
+                                                                    "mode": "chose",
+                                                                    "items": [
+                                                                        null
+                                                                    ]
+                                                                },
+                                                                "fldf4DjMxKzJdqBng": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldo5jfkwRfqmKwJ7": {
+                                                                    "collapsed": true
+                                                                }
+                                                            }
+                                                        },
+                                                        "typecast": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "useColumnId": {
+                                                            "mode": "chose"
+                                                        }
+                                                    },
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "airtable3"
+                                                            },
+                                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                                        }
+                                                    }
+                                                },
+                                                "parameters": [
+                                                    {
+                                                        "name": "__IMTCONN__",
+                                                        "type": "account:airtable3,airtable2",
+                                                        "label": "Connection",
+                                                        "required": true
+                                                    }
+                                                ],
+                                                "expect": [
+                                                    {
+                                                        "name": "base",
+                                                        "type": "select",
+                                                        "label": "Base",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "typecast",
+                                                        "type": "boolean",
+                                                        "label": "Smart links",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "useColumnId",
+                                                        "type": "boolean",
+                                                        "label": "Use Column ID",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "table",
+                                                        "type": "select",
+                                                        "label": "Table",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "id",
+                                                        "type": "text",
+                                                        "label": "Record ID",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "record",
+                                                        "spec": [
+                                                            {
+                                                                "name": "fldo5jfkwRfqmKwJ7",
+                                                                "type": "text",
+                                                                "label": "Email"
+                                                            },
+                                                            {
+                                                                "name": "fldN1drqZAmzVuqqP",
+                                                                "type": "text",
+                                                                "label": "Name"
+                                                            },
+                                                            {
+                                                                "name": "fld0pPueup2oiZF8o",
+                                                                "type": "text",
+                                                                "label": "Last Text Input"
+                                                            },
+                                                            {
+                                                                "name": "fldf4DjMxKzJdqBng",
+                                                                "type": "text",
+                                                                "label": "Service"
+                                                            },
+                                                            {
+                                                                "name": "fldMMZE1AecOob3iX",
+                                                                "type": "text",
+                                                                "label": "Product Summary"
+                                                            },
+                                                            {
+                                                                "name": "fld4vCzmK5NAwP1Nb",
+                                                                "type": "text",
+                                                                "label": "Coupon"
+                                                            },
+                                                            {
+                                                                "name": "fldbEQi3Xukz1Qwjd",
+                                                                "spec": {
+                                                                    "name": "value",
+                                                                    "label": "Record ID"
+                                                                },
+                                                                "type": "array",
+                                                                "label": "Link Submission"
+                                                            },
+                                                            {
+                                                                "name": "fldESDtn1F81nVTTE",
+                                                                "spec": {
+                                                                    "name": "value",
+                                                                    "label": "Record ID"
+                                                                },
+                                                                "type": "array",
+                                                                "label": "Courses"
+                                                            },
+                                                            {
+                                                                "name": "fldcxWTXU8bY3tKBB",
+                                                                "type": "text",
+                                                                "label": "Folder ID"
+                                                            },
+                                                            {
+                                                                "name": "fld83TL6WhXJhhtbM",
+                                                                "type": "text",
+                                                                "label": "Folder Link"
+                                                            }
+                                                        ],
+                                                        "type": "collection",
+                                                        "label": "Record"
+                                                    }
+                                                ],
+                                                "interface": [
+                                                    {
+                                                        "name": "id",
+                                                        "type": "text",
+                                                        "label": "ID"
+                                                    },
+                                                    {
+                                                        "name": "createdTime",
+                                                        "type": "date",
+                                                        "label": "Created Time"
+                                                    },
+                                                    {
+                                                        "name": "Email",
+                                                        "type": "text",
+                                                        "label": "Email"
+                                                    },
+                                                    {
+                                                        "name": "Name",
+                                                        "type": "text",
+                                                        "label": "Name"
+                                                    },
+                                                    {
+                                                        "name": "Last Text Input",
+                                                        "type": "text",
+                                                        "label": "Last Text Input",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Service",
+                                                        "type": "text",
+                                                        "label": "Service",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Product Summary",
+                                                        "type": "text",
+                                                        "label": "Product Summary",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Coupon",
+                                                        "type": "text",
+                                                        "label": "Coupon",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Created Time",
+                                                        "type": "date",
+                                                        "label": "Created Time"
+                                                    },
+                                                    {
+                                                        "name": "Record ID",
+                                                        "type": "text",
+                                                        "label": "Record ID"
+                                                    },
+                                                    {
+                                                        "name": "Link Submission",
+                                                        "spec": {
+                                                            "label": "Record ID"
+                                                        },
+                                                        "type": "array",
+                                                        "label": "Link Submission"
+                                                    },
+                                                    {
+                                                        "name": "Courses",
+                                                        "spec": {
+                                                            "label": "Record ID"
+                                                        },
+                                                        "type": "array",
+                                                        "label": "Courses"
+                                                    },
+                                                    {
+                                                        "name": "Folder ID",
+                                                        "type": "text",
+                                                        "label": "Folder ID"
+                                                    },
+                                                    {
+                                                        "name": "Folder Link",
+                                                        "type": "text",
+                                                        "label": "Folder Link"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "flow": [
+                                        {
+                                            "id": 36,
+                                            "module": "airtable:ActionUpdateRecords",
+                                            "version": 3,
+                                            "parameters": {
+                                                "__IMTCONN__": 8204710
+                                            },
+                                            "mapper": {
+                                                "id": "{{35.id}}",
+                                                "base": "appbzixfBe1xpUrfr",
+                                                "table": "tblHpU23PlR0sM1LF",
+                                                "record": {
+                                                    "fldbEQi3Xukz1Qwjd": [
+                                                        "{{34.id}}"
+                                                    ]
+                                                },
+                                                "typecast": false,
+                                                "useColumnId": false
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 2100,
+                                                    "y": 900,
+                                                    "name": "Onboarding: Link Submission"
+                                                },
+                                                "restore": {
+                                                    "expect": {
+                                                        "base": {
+                                                            "label": "Study"
+                                                        },
+                                                        "table": {
+                                                            "label": "Onboarding"
+                                                        },
+                                                        "record": {
+                                                            "nested": {
+                                                                "fld0pPueup2oiZF8o": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fld4vCzmK5NAwP1Nb": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fld83TL6WhXJhhtbM": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldESDtn1F81nVTTE": {
+                                                                    "mode": "chose",
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldMMZE1AecOob3iX": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldN1drqZAmzVuqqP": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldbEQi3Xukz1Qwjd": {
+                                                                    "mode": "chose",
+                                                                    "items": [
+                                                                        null
+                                                                    ]
+                                                                },
+                                                                "fldcxWTXU8bY3tKBB": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldf4DjMxKzJdqBng": {
+                                                                    "collapsed": true
+                                                                },
+                                                                "fldo5jfkwRfqmKwJ7": {
+                                                                    "collapsed": true
+                                                                }
+                                                            }
+                                                        },
+                                                        "typecast": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "useColumnId": {
+                                                            "mode": "chose"
+                                                        }
+                                                    },
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "airtable3"
+                                                            },
+                                                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                                                        }
+                                                    }
+                                                },
+                                                "parameters": [
+                                                    {
+                                                        "name": "__IMTCONN__",
+                                                        "type": "account:airtable3,airtable2",
+                                                        "label": "Connection",
+                                                        "required": true
+                                                    }
+                                                ],
+                                                "expect": [
+                                                    {
+                                                        "name": "base",
+                                                        "type": "select",
+                                                        "label": "Base",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "typecast",
+                                                        "type": "boolean",
+                                                        "label": "Smart links",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "useColumnId",
+                                                        "type": "boolean",
+                                                        "label": "Use Column ID",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "table",
+                                                        "type": "select",
+                                                        "label": "Table",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "id",
+                                                        "type": "text",
+                                                        "label": "Record ID",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "record",
+                                                        "spec": [
+                                                            {
+                                                                "name": "fldo5jfkwRfqmKwJ7",
+                                                                "type": "text",
+                                                                "label": "Email"
+                                                            },
+                                                            {
+                                                                "name": "fldN1drqZAmzVuqqP",
+                                                                "type": "text",
+                                                                "label": "Name"
+                                                            },
+                                                            {
+                                                                "name": "fld0pPueup2oiZF8o",
+                                                                "type": "text",
+                                                                "label": "Last Text Input"
+                                                            },
+                                                            {
+                                                                "name": "fldf4DjMxKzJdqBng",
+                                                                "type": "text",
+                                                                "label": "Service"
+                                                            },
+                                                            {
+                                                                "name": "fldMMZE1AecOob3iX",
+                                                                "type": "text",
+                                                                "label": "Product Summary"
+                                                            },
+                                                            {
+                                                                "name": "fld4vCzmK5NAwP1Nb",
+                                                                "type": "text",
+                                                                "label": "Coupon"
+                                                            },
+                                                            {
+                                                                "name": "fldbEQi3Xukz1Qwjd",
+                                                                "spec": {
+                                                                    "name": "value",
+                                                                    "label": "Record ID"
+                                                                },
+                                                                "type": "array",
+                                                                "label": "Link Submission"
+                                                            },
+                                                            {
+                                                                "name": "fldESDtn1F81nVTTE",
+                                                                "spec": {
+                                                                    "name": "value",
+                                                                    "label": "Record ID"
+                                                                },
+                                                                "type": "array",
+                                                                "label": "Courses"
+                                                            },
+                                                            {
+                                                                "name": "fldcxWTXU8bY3tKBB",
+                                                                "type": "text",
+                                                                "label": "Folder ID"
+                                                            },
+                                                            {
+                                                                "name": "fld83TL6WhXJhhtbM",
+                                                                "type": "text",
+                                                                "label": "Folder Link"
+                                                            }
+                                                        ],
+                                                        "type": "collection",
+                                                        "label": "Record"
+                                                    }
+                                                ],
+                                                "interface": [
+                                                    {
+                                                        "name": "id",
+                                                        "type": "text",
+                                                        "label": "ID"
+                                                    },
+                                                    {
+                                                        "name": "createdTime",
+                                                        "type": "date",
+                                                        "label": "Created Time"
+                                                    },
+                                                    {
+                                                        "name": "Email",
+                                                        "type": "text",
+                                                        "label": "Email"
+                                                    },
+                                                    {
+                                                        "name": "Name",
+                                                        "type": "text",
+                                                        "label": "Name"
+                                                    },
+                                                    {
+                                                        "name": "Last Text Input",
+                                                        "type": "text",
+                                                        "label": "Last Text Input",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Service",
+                                                        "type": "text",
+                                                        "label": "Service",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Product Summary",
+                                                        "type": "text",
+                                                        "label": "Product Summary",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Coupon",
+                                                        "type": "text",
+                                                        "label": "Coupon",
+                                                        "multiline": true
+                                                    },
+                                                    {
+                                                        "name": "Created Time",
+                                                        "type": "date",
+                                                        "label": "Created Time"
+                                                    },
+                                                    {
+                                                        "name": "Record ID",
+                                                        "type": "text",
+                                                        "label": "Record ID"
+                                                    },
+                                                    {
+                                                        "name": "Link Submission",
+                                                        "spec": {
+                                                            "label": "Record ID"
+                                                        },
+                                                        "type": "array",
+                                                        "label": "Link Submission"
+                                                    },
+                                                    {
+                                                        "name": "Courses",
+                                                        "spec": {
+                                                            "label": "Record ID"
+                                                        },
+                                                        "type": "array",
+                                                        "label": "Courses"
+                                                    },
+                                                    {
+                                                        "name": "Folder ID",
+                                                        "type": "text",
+                                                        "label": "Folder ID"
+                                                    },
+                                                    {
+                                                        "name": "Folder Link",
+                                                        "type": "text",
+                                                        "label": "Folder Link"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "id": 33,
+                                            "module": "http:ActionSendData",
+                                            "version": 3,
+                                            "parameters": {
+                                                "handleErrors": true,
+                                                "useNewZLibDeCompress": true
+                                            },
+                                            "mapper": {
+                                                "ca": "",
+                                                "qs": [],
+                                                "url": "https://hook.eu2.make.com/e7axbnbfr7ay4a39e3uqy65mbwrsstk3",
+                                                "data": "{\n  \"clientID\": \"{{36.id}}\"\n}",
+                                                "gzip": true,
+                                                "method": "post",
+                                                "headers": [],
+                                                "timeout": "",
+                                                "useMtls": false,
+                                                "authPass": "",
+                                                "authUser": "",
+                                                "bodyType": "raw",
+                                                "contentType": "application/json",
+                                                "serializeUrl": false,
+                                                "shareCookies": false,
+                                                "parseResponse": true,
+                                                "followRedirect": true,
+                                                "useQuerystring": false,
+                                                "followAllRedirects": false,
+                                                "rejectUnauthorized": true
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 2400,
+                                                    "y": 900,
+                                                    "name": "Go to 3rd Scenario"
+                                                },
+                                                "restore": {
+                                                    "expect": {
+                                                        "qs": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "method": {
+                                                            "mode": "chose",
+                                                            "label": "POST"
+                                                        },
+                                                        "headers": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "bodyType": {
+                                                            "label": "Raw"
+                                                        },
+                                                        "contentType": {
+                                                            "label": "JSON (application/json)"
+                                                        }
+                                                    }
+                                                },
+                                                "parameters": [
+                                                    {
+                                                        "name": "handleErrors",
+                                                        "type": "boolean",
+                                                        "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "useNewZLibDeCompress",
+                                                        "type": "hidden"
+                                                    }
+                                                ],
+                                                "expect": [
+                                                    {
+                                                        "name": "url",
+                                                        "type": "url",
+                                                        "label": "URL",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "serializeUrl",
+                                                        "type": "boolean",
+                                                        "label": "Serialize URL",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "method",
+                                                        "type": "select",
+                                                        "label": "Method",
+                                                        "required": true,
+                                                        "validate": {
+                                                            "enum": [
+                                                                "get",
+                                                                "head",
+                                                                "post",
+                                                                "put",
+                                                                "patch",
+                                                                "delete",
+                                                                "options"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "headers",
+                                                        "spec": [
+                                                            {
+                                                                "name": "name",
+                                                                "type": "text",
+                                                                "label": "Name",
+                                                                "required": true
+                                                            },
+                                                            {
+                                                                "name": "value",
+                                                                "type": "text",
+                                                                "label": "Value"
+                                                            }
+                                                        ],
+                                                        "type": "array",
+                                                        "label": "Headers"
+                                                    },
+                                                    {
+                                                        "name": "qs",
+                                                        "spec": [
+                                                            {
+                                                                "name": "name",
+                                                                "type": "text",
+                                                                "label": "Name",
+                                                                "required": true
+                                                            },
+                                                            {
+                                                                "name": "value",
+                                                                "type": "text",
+                                                                "label": "Value"
+                                                            }
+                                                        ],
+                                                        "type": "array",
+                                                        "label": "Query String"
+                                                    },
+                                                    {
+                                                        "name": "bodyType",
+                                                        "type": "select",
+                                                        "label": "Body type",
+                                                        "validate": {
+                                                            "enum": [
+                                                                "raw",
+                                                                "x_www_form_urlencoded",
+                                                                "multipart_form_data"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "parseResponse",
+                                                        "type": "boolean",
+                                                        "label": "Parse response",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "authUser",
+                                                        "type": "text",
+                                                        "label": "User name"
+                                                    },
+                                                    {
+                                                        "name": "authPass",
+                                                        "type": "password",
+                                                        "label": "Password"
+                                                    },
+                                                    {
+                                                        "name": "timeout",
+                                                        "type": "uinteger",
+                                                        "label": "Timeout",
+                                                        "validate": {
+                                                            "max": 300,
+                                                            "min": 1
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "shareCookies",
+                                                        "type": "boolean",
+                                                        "label": "Share cookies with other HTTP modules",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "ca",
+                                                        "type": "cert",
+                                                        "label": "Self-signed certificate"
+                                                    },
+                                                    {
+                                                        "name": "rejectUnauthorized",
+                                                        "type": "boolean",
+                                                        "label": "Reject connections that are using unverified (self-signed) certificates",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "followRedirect",
+                                                        "type": "boolean",
+                                                        "label": "Follow redirect",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "useQuerystring",
+                                                        "type": "boolean",
+                                                        "label": "Disable serialization of multiple same query string keys as arrays",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "gzip",
+                                                        "type": "boolean",
+                                                        "label": "Request compressed content",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "useMtls",
+                                                        "type": "boolean",
+                                                        "label": "Use Mutual TLS",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "contentType",
+                                                        "type": "select",
+                                                        "label": "Content type",
+                                                        "validate": {
+                                                            "enum": [
+                                                                "text/plain",
+                                                                "application/json",
+                                                                "application/xml",
+                                                                "text/xml",
+                                                                "text/html",
+                                                                "custom"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "data",
+                                                        "type": "buffer",
+                                                        "label": "Request content"
+                                                    },
+                                                    {
+                                                        "name": "followAllRedirects",
+                                                        "type": "boolean",
+                                                        "label": "Follow all redirect",
+                                                        "required": true
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu2.make.com",
+        "notes": []
+    }
+}

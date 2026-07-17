@@ -1,0 +1,551 @@
+{
+    "name": "[STUDY] Create Course Material from Plain Text (1/3)",
+    "flow": [
+        {
+            "id": 23,
+            "module": "paperform:submission",
+            "version": 1,
+            "parameters": {
+                "__IMTHOOK__": 3412607
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTHOOK__": {
+                            "data": {
+                                "editable": "false"
+                            },
+                            "label": "Text to Course"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTHOOK__",
+                        "type": "hook:paperform",
+                        "label": "Webhook",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 27,
+            "module": "airtable:ActionCreateRecord",
+            "version": 3,
+            "parameters": {
+                "__IMTCONN__": 8204710
+            },
+            "mapper": {
+                "base": "appbzixfBe1xpUrfr",
+                "table": "tblfpQGzU39wlepZN",
+                "record": {
+                    "fldCvydSPN56php1j": "{{23.data.coupon.value}}",
+                    "fldN4zXiCsRf6SZBo": "{{23.data.`9886n`.value}}",
+                    "fldW5fTQBzxWfcUXf": "{{lower(23.data.efnrp.value)}}",
+                    "fldkMVixFWukhDrw5": "{{23.charge.summary}}",
+                    "fldl195W4iE5OWOEX": "{{23.data.e23ki.value}}",
+                    "fldypL8Kz7kUbr3mw": "{{23.data.e9mqr.value}}"
+                },
+                "typecast": false,
+                "useColumnId": false
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0,
+                    "name": "Submission: Create Entry"
+                },
+                "restore": {
+                    "expect": {
+                        "base": {
+                            "label": "Study"
+                        },
+                        "table": {
+                            "label": "Submission",
+                            "nested": [
+                                {
+                                    "name": "record",
+                                    "spec": [
+                                        {
+                                            "name": "fldl195W4iE5OWOEX",
+                                            "type": "text",
+                                            "label": "Name"
+                                        },
+                                        {
+                                            "name": "fldW5fTQBzxWfcUXf",
+                                            "type": "text",
+                                            "label": "Email"
+                                        },
+                                        {
+                                            "name": "fldypL8Kz7kUbr3mw",
+                                            "type": "text",
+                                            "label": "Text Input",
+                                            "multiline": true
+                                        },
+                                        {
+                                            "name": "fldN4zXiCsRf6SZBo",
+                                            "type": "text",
+                                            "label": "Service"
+                                        },
+                                        {
+                                            "name": "fldkMVixFWukhDrw5",
+                                            "type": "text",
+                                            "label": "Product Summary"
+                                        },
+                                        {
+                                            "name": "fldCvydSPN56php1j",
+                                            "type": "text",
+                                            "label": "Coupon"
+                                        },
+                                        {
+                                            "name": "fld33m7RXQ19r9GRx",
+                                            "spec": {
+                                                "label": "Record ID"
+                                            },
+                                            "type": "array",
+                                            "label": "Onboarding"
+                                        }
+                                    ],
+                                    "type": "collection",
+                                    "label": "Record"
+                                }
+                            ]
+                        },
+                        "record": {
+                            "nested": {
+                                "fld33m7RXQ19r9GRx": {
+                                    "mode": "chose",
+                                    "collapsed": true
+                                }
+                            }
+                        },
+                        "typecast": {
+                            "mode": "chose"
+                        },
+                        "useColumnId": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "airtable3"
+                            },
+                            "label": "Airtable OAuth AWS_LLC (User ID: usrA3Qhx2u9lrmgvj)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:airtable3,airtable2",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "base",
+                        "type": "select",
+                        "label": "Base",
+                        "required": true
+                    },
+                    {
+                        "name": "typecast",
+                        "type": "boolean",
+                        "label": "Smart links",
+                        "required": true
+                    },
+                    {
+                        "name": "useColumnId",
+                        "type": "boolean",
+                        "label": "Use Column ID",
+                        "required": true
+                    },
+                    {
+                        "name": "table",
+                        "type": "select",
+                        "label": "Table",
+                        "required": true
+                    },
+                    {
+                        "name": "record",
+                        "spec": [
+                            {
+                                "name": "fldl195W4iE5OWOEX",
+                                "type": "text",
+                                "label": "Name"
+                            },
+                            {
+                                "name": "fldW5fTQBzxWfcUXf",
+                                "type": "text",
+                                "label": "Email"
+                            },
+                            {
+                                "name": "fldypL8Kz7kUbr3mw",
+                                "type": "text",
+                                "label": "Text Input"
+                            },
+                            {
+                                "name": "fldN4zXiCsRf6SZBo",
+                                "type": "text",
+                                "label": "Service"
+                            },
+                            {
+                                "name": "fldkMVixFWukhDrw5",
+                                "type": "text",
+                                "label": "Product Summary"
+                            },
+                            {
+                                "name": "fldCvydSPN56php1j",
+                                "type": "text",
+                                "label": "Coupon"
+                            },
+                            {
+                                "name": "fld33m7RXQ19r9GRx",
+                                "spec": {
+                                    "name": "value",
+                                    "label": "Record ID"
+                                },
+                                "type": "array",
+                                "label": "Onboarding"
+                            }
+                        ],
+                        "type": "collection",
+                        "label": "Record"
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "id",
+                        "type": "text",
+                        "label": "ID"
+                    },
+                    {
+                        "name": "createdTime",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Name",
+                        "type": "text",
+                        "label": "Name"
+                    },
+                    {
+                        "name": "Email",
+                        "type": "text",
+                        "label": "Email"
+                    },
+                    {
+                        "name": "Text Input",
+                        "type": "text",
+                        "label": "Text Input",
+                        "multiline": true
+                    },
+                    {
+                        "name": "Service",
+                        "type": "text",
+                        "label": "Service"
+                    },
+                    {
+                        "name": "Product Summary",
+                        "type": "text",
+                        "label": "Product Summary"
+                    },
+                    {
+                        "name": "Coupon",
+                        "type": "text",
+                        "label": "Coupon"
+                    },
+                    {
+                        "name": "Created Time",
+                        "type": "date",
+                        "label": "Created Time"
+                    },
+                    {
+                        "name": "Record ID",
+                        "type": "text",
+                        "label": "Record ID"
+                    },
+                    {
+                        "name": "Onboarding",
+                        "spec": {
+                            "label": "Record ID"
+                        },
+                        "type": "array",
+                        "label": "Onboarding"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 26,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+            },
+            "mapper": {
+                "ca": "",
+                "qs": [],
+                "url": "https://hook.eu2.make.com/mu6oovv3mh2ru51nhkawyomgtamjm55e",
+                "data": "{\n  \"clientID\": \"{{27.id}}\"\n}",
+                "gzip": true,
+                "method": "post",
+                "headers": [],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 0,
+                    "name": "Onboarding"
+                },
+                "restore": {
+                    "expect": {
+                        "qs": {
+                            "mode": "chose"
+                        },
+                        "method": {
+                            "mode": "chose",
+                            "label": "POST"
+                        },
+                        "headers": {
+                            "mode": "chose"
+                        },
+                        "bodyType": {
+                            "label": "Raw"
+                        },
+                        "contentType": {
+                            "label": "JSON (application/json)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "handleErrors",
+                        "type": "boolean",
+                        "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                        "required": true
+                    },
+                    {
+                        "name": "useNewZLibDeCompress",
+                        "type": "hidden"
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "url",
+                        "type": "url",
+                        "label": "URL",
+                        "required": true
+                    },
+                    {
+                        "name": "serializeUrl",
+                        "type": "boolean",
+                        "label": "Serialize URL",
+                        "required": true
+                    },
+                    {
+                        "name": "method",
+                        "type": "select",
+                        "label": "Method",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "get",
+                                "head",
+                                "post",
+                                "put",
+                                "patch",
+                                "delete",
+                                "options"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "headers",
+                        "spec": [
+                            {
+                                "name": "name",
+                                "type": "text",
+                                "label": "Name",
+                                "required": true
+                            },
+                            {
+                                "name": "value",
+                                "type": "text",
+                                "label": "Value"
+                            }
+                        ],
+                        "type": "array",
+                        "label": "Headers"
+                    },
+                    {
+                        "name": "qs",
+                        "spec": [
+                            {
+                                "name": "name",
+                                "type": "text",
+                                "label": "Name",
+                                "required": true
+                            },
+                            {
+                                "name": "value",
+                                "type": "text",
+                                "label": "Value"
+                            }
+                        ],
+                        "type": "array",
+                        "label": "Query String"
+                    },
+                    {
+                        "name": "bodyType",
+                        "type": "select",
+                        "label": "Body type",
+                        "validate": {
+                            "enum": [
+                                "raw",
+                                "x_www_form_urlencoded",
+                                "multipart_form_data"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "parseResponse",
+                        "type": "boolean",
+                        "label": "Parse response",
+                        "required": true
+                    },
+                    {
+                        "name": "authUser",
+                        "type": "text",
+                        "label": "User name"
+                    },
+                    {
+                        "name": "authPass",
+                        "type": "password",
+                        "label": "Password"
+                    },
+                    {
+                        "name": "timeout",
+                        "type": "uinteger",
+                        "label": "Timeout",
+                        "validate": {
+                            "max": 300,
+                            "min": 1
+                        }
+                    },
+                    {
+                        "name": "shareCookies",
+                        "type": "boolean",
+                        "label": "Share cookies with other HTTP modules",
+                        "required": true
+                    },
+                    {
+                        "name": "ca",
+                        "type": "cert",
+                        "label": "Self-signed certificate"
+                    },
+                    {
+                        "name": "rejectUnauthorized",
+                        "type": "boolean",
+                        "label": "Reject connections that are using unverified (self-signed) certificates",
+                        "required": true
+                    },
+                    {
+                        "name": "followRedirect",
+                        "type": "boolean",
+                        "label": "Follow redirect",
+                        "required": true
+                    },
+                    {
+                        "name": "useQuerystring",
+                        "type": "boolean",
+                        "label": "Disable serialization of multiple same query string keys as arrays",
+                        "required": true
+                    },
+                    {
+                        "name": "gzip",
+                        "type": "boolean",
+                        "label": "Request compressed content",
+                        "required": true
+                    },
+                    {
+                        "name": "useMtls",
+                        "type": "boolean",
+                        "label": "Use Mutual TLS",
+                        "required": true
+                    },
+                    {
+                        "name": "contentType",
+                        "type": "select",
+                        "label": "Content type",
+                        "validate": {
+                            "enum": [
+                                "text/plain",
+                                "application/json",
+                                "application/xml",
+                                "text/xml",
+                                "text/html",
+                                "custom"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "data",
+                        "type": "buffer",
+                        "label": "Request content"
+                    },
+                    {
+                        "name": "followAllRedirects",
+                        "type": "boolean",
+                        "label": "Follow all redirect",
+                        "required": true
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu2.make.com",
+        "notes": []
+    }
+}
