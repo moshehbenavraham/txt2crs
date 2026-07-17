@@ -29,3 +29,10 @@ This repository currently contains the original
 [Make.com proof-of-concept workflows](make-scenarios/) and the
 [product and architecture documentation](docs/). The production application is the
 next stage of development.
+
+## Versioning
+
+txt2crs follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+The current pre-release version is stored in [`VERSION`](VERSION), and the
+release process is documented in
+[`docs/VERSIONING.md`](docs/VERSIONING.md).

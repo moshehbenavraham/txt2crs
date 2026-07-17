@@ -13,6 +13,9 @@ In no particular order.
 - README.me filename is reserved for root README file. All other appropriate / relevant project folders should have a README named in the form of README_<appropriate-name>.md - example docs/ folder should have a README file named README_docs.md
 - Avoid over-engineering while still following best practices and industry standards.
 - Create the tests before the code
+- After completing an item from `docs/TODO.md`, move it to `docs/CHANGELOG.md`
+- Once `docs/CHANGELOG.md` gets roughly 20+ entries, archive it to `docs/archive/CHANGELOG_YYYYMMDD.md` and create a new empty `docs/CHANGELOG.md`
+- Follow `docs/VERSIONING.md` and keep `VERSION` synchronized with each release.
 
 ## Tech Stack
 

@@ -5,6 +5,11 @@ implementation documents stored with the txt2crs package.
 
 ## Documents
 
+- [TODO](TODO.md) — prioritized current work, backlog, and blocked items.
+- [Changelog](CHANGELOG.md) — notable changes organized using Keep a Changelog
+  categories.
+- [Versioning](VERSIONING.md) — Semantic Versioning policy, version-bump rules,
+  and release checklist.
 - [AI usage needs derived from the Make.com scenarios](../src/txt2crs/docs/AI_USAGE_NEEDS.md) — current
   workflow inventory, evidence-backed gaps, prioritized requirements, target pipeline,
   and acceptance criteria.
