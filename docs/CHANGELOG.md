@@ -12,6 +12,11 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added a comprehensive, module-complete reconstruction of the original
+  Make.com “Text to Course” system, including its architecture, data contracts,
+  prompts, integrations, risks, migration decisions, and a prioritized
+  hackathon feature/submission plan.
+
 ### Changed
 
 ### Deprecated

@@ -36,8 +36,9 @@ device-code authentication service and temporary bootstrap entry point, so the
 dedicated hackathon identity can be connected through the bundled runtime
 without installing or configuring Codex separately.
 
-The repository also contains the original
-[Make.com proof-of-concept workflows](make-scenarios/) and the
+The repository also contains the original Make.com proof-of-concept workflows
+and their
+[complete legacy-system reconstruction](make-scenarios/README_make.md), plus the
 [product and architecture documentation](docs/). The FastAPI/frontend
 application shell remains a separate next stage. It will provide browser
 authentication, payment/entitlement checks, HTTP routes, and the user
