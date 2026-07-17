@@ -83,6 +83,36 @@ uv sync --package txt2crs --extra transcription
 
 The OCR adapter uses the system Tesseract executable through `pytesseract`.
 
+## Temporary standalone system authentication
+
+The package does **not** require a separately installed Codex CLI and does not
+expect an end user to prepare `~/.codex`. The official Codex app-server binary
+is already pinned as a Python dependency. Until the FastAPI setup screen exists,
+the packaged bootstrap command starts the same app-owned device-code flow that
+the finished frontend will render:
+
+```bash
+uv run --package txt2crs txt2crs-system-auth
+```
+
+The command opens OpenAI's device verification page, displays the short code,
+waits for the dedicated ChatGPT account to approve it, and stores Codex-managed
+credentials under `./.txt2crs-system/codex-home`. Set
+`TXT2CRS_SYSTEM_STATE_DIRECTORY` when that private state must live on a
+persistent mounted volume. No OAuth access or refresh token is returned to
+txt2crs.
+
+The framework-independent integration point is
+`DedicatedSystemAuthenticator`. A future setup route calls
+`start_device_code_login()`, returns its browser-safe snapshot, and polls
+`current_status()`; the frontend owns the URL/code ceremony. This follows the
+official
+[Codex app-server device-code contract](https://learn.chatgpt.com/docs/app-server#3b-log-in-with-chatgpt-device-code-flow).
+
+This dedicated identity is a temporary, operator-controlled hackathon/demo
+configuration. It must not become an unreviewed multi-tenant pool of one
+personal ChatGPT subscription.
+
 ## Application assembly
 
 A production application constructs admission limits, one `RunBudget`, reviewed
@@ -93,9 +123,10 @@ pipeline, `SqliteJobStore`, `FilesystemPrivateArtifactStore`, and
 
 Important deployment rules:
 
-- The worker must use its own authenticated ChatGPT/Codex identity. Never pool
-  one personal subscription across unrelated application users. Pass the
-  exact owner-specific absolute `codex_home` to
+- The worker must use an explicitly selected ChatGPT/Codex identity. The
+  temporary hackathon bootstrap owns one dedicated demo identity; a production
+  multi-tenant policy must not pool one personal subscription across unrelated
+  users. Pass the exact absolute `codex_home` selected by the application to
   `OfficialCodexSdkAdapter.create`.
 - The MCP HTTP listener must remain on loopback. Tavily credentials stay in the
   application-owned research process and are not inherited by the Codex

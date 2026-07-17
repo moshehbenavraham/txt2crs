@@ -23,6 +23,9 @@ dist/
 .env.*
 !.env.example
 
+# Temporary standalone authentication state contains Codex OAuth credentials.
+.txt2crs-system/
+
 # Common operating-system and editor files
 .DS_Store
 .idea/

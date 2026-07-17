@@ -16,6 +16,17 @@ backend/
 The library lives in [`packages/txt2crs/`](packages/txt2crs/) so it can be
 built, tested, and exported without the future web application.
 
+## Interim dedicated-system authentication
+
+The library now exposes a framework-independent Codex device-code
+authentication service and a temporary `txt2crs-system-auth` entry point. Both
+launch the app-server binary bundled by the Python dependency; neither requires
+a developer or end user to install/configure Codex.
+
+The temporary entry point exists only because `backend/app/` has not been
+adopted yet. The future FastAPI setup route will call the same service and the
+frontend will display the verification URL, user code, and safe status.
+
 ## Future FastAPI integration
 
 If the selected React/FastAPI boilerplate is adopted, its `backend/app/`

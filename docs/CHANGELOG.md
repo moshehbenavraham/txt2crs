@@ -22,6 +22,23 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.2.1] - 2026-07-17
+
+### Added
+
+- Added app-owned ChatGPT device-code authentication for one dedicated
+  hackathon system identity, backed by the packaged official Codex SDK/runtime
+  rather than a preinstalled CLI, plus a temporary `txt2crs-system-auth`
+  bootstrap entry point for use before the FastAPI setup screen exists.
+
+### Security
+
+- Isolated dedicated-system credentials under an explicit owner-only
+  `CODEX_HOME`, forced ChatGPT/file-store authentication, blanked inherited
+  API/research keys at the SDK process boundary, validated the OpenAI
+  verification origin, and kept provider errors and token material out of
+  frontend status.
+
 ## [0.2.0] - 2026-07-17
 
 ### Added

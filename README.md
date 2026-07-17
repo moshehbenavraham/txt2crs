@@ -31,7 +31,10 @@ complete reusable education engine: bounded multi-input ingestion, deep
 research and evidence, subscription-only Codex execution, per-module course
 generation, aligned review and assessment artifacts, deterministic
 HTML/Markdown/PDF/DOCX rendering, durable resume, private storage, spend
-admission, and offline evaluation.
+admission, and offline evaluation. It also includes an app-owned ChatGPT
+device-code authentication service and temporary bootstrap entry point, so the
+dedicated hackathon identity can be connected through the bundled runtime
+without installing or configuring Codex separately.
 
 The repository also contains the original
 [Make.com proof-of-concept workflows](make-scenarios/) and the

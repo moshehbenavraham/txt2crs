@@ -97,6 +97,31 @@ txt2crs adapters implement application ports
 - Live-provider tests remain explicitly gated; default tests use deterministic
   fakes.
 
+## Interim authentication boundary
+
+The full FastAPI/frontend shell does not exist yet, but subscription
+authentication cannot depend on a developer's preinstalled Codex environment.
+The adopted interim boundary is therefore:
+
+```text
+temporary packaged bootstrap (future: FastAPI setup page)
+        ↓ URL + user code + safe status
+txt2crs DedicatedSystemAuthenticator
+        ↓ public Python SDK
+bundled Codex app-server
+        ↓ device-code authentication
+dedicated ChatGPT hackathon identity
+```
+
+- The app starts `chatgptDeviceCode`; it never implements OpenAI token exchange.
+- The UI receives only the verification URL, short user code, and safe state.
+- Codex alone stores and refreshes credentials in an application-owned
+  `CODEX_HOME`.
+- ChatGPT login is forced, API-key environment values are blanked for the child,
+  and the credential store is pinned to the isolated filesystem directory.
+- The temporary console entry point is replaced by setup routes/UI when
+  `backend/app/` is adopted; the library service remains reusable.
+
 ## Future boilerplate integration
 
 When `python-react-boilerplate` is selected:
@@ -106,8 +131,9 @@ When `python-react-boilerplate` is selected:
 2. Declare `txt2crs` as a workspace dependency of the backend application.
 3. Add the boilerplate's FastAPI code under `backend/app/`.
 4. Register course-generation routes from `backend/app/api/main.py`.
-5. Keep authentication, SQLModel application tables, and Alembic migrations
-   under the application shell.
+5. Keep user authentication, system-authentication HTTP routes, SQLModel
+   application tables, and Alembic migrations under the application shell;
+   those routes call the framework-independent `DedicatedSystemAuthenticator`.
 6. Update the backend Dockerfile to copy `packages/` before workspace
    installation. Its existing `./backend` build context can remain unchanged.
 7. Add the React application under the repository-root `frontend/` directory
@@ -150,7 +176,7 @@ uv build --package txt2crs
 
 The root `VERSION` remains the repository's Semantic Versioning source. The
 package metadata uses the equivalent normalized PEP 440 spelling. The current
-repository and package release is `0.2.0`.
+repository and package release is `0.2.1`.
 
 An immutable annotated Git tag plus the built wheel and source distribution
 preserve a standalone-library milestone before full-stack integration begins.

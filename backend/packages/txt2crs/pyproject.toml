@@ -1,6 +1,6 @@
 [project]
 name = "txt2crs"
-version = "0.2.0"
+version = "0.2.1"
 description = "Turn source material into researched courses, review packs, and assessments."
 readme = "README_txt2crs.md"
 requires-python = ">=3.12,<3.15"
@@ -34,6 +34,11 @@ dependencies = [
     "python-pptx>=1.0,<2",
     "youtube-transcript-api>=1.2,<2",
 ]
+
+[project.scripts]
+# Temporary operator bootstrap. The finished FastAPI setup screen will call
+# the same SDK-backed service directly and this entry point can then be removed.
+txt2crs-system-auth = "txt2crs.ai.system_authentication_cli:main"
 
 [project.optional-dependencies]
 # Local audio/video transcription is intentionally optional because the
