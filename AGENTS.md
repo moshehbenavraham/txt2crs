@@ -22,4 +22,4 @@ In no particular order.
 - Python (backend)
 - FastAPI
 - OpenAI Subscription
-- SQLite
+- Postgres / SQLite

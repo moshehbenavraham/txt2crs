@@ -5,9 +5,9 @@ The current version is stored in the root `VERSION` file.
 
 ## Current stage
 
-The project starts at `0.1.0-dev.0`. Versions below `1.0.0` represent initial
-development, so the public API may still change. The first stable public API will
-be released as `1.0.0`.
+The current pre-release version is `0.1.1-dev.0`. Versions below `1.0.0`
+represent initial development, so the public API may still change. The first
+stable public API will be released as `1.0.0`.
 
 ## Choosing the next version
 

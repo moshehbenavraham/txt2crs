@@ -1,0 +1,40 @@
+txt2crs Repository Licensing
+============================
+
+Licensing Scope
+---------------
+
+Except for `src/txt2crs/` and its subdirectories, all original code and other
+copyrightable material in this repository is licensed under the MIT No
+Attribution License (MIT-0) below.
+
+The `src/txt2crs/` directory tree is governed exclusively by its dedicated
+license:
+
+    src/txt2crs/LICENSE
+
+This root license does not grant, replace, restrict, or otherwise modify the
+terms that apply within that directory tree. A more specific license in any
+other subdirectory likewise takes precedence for the files within its stated
+scope.
+
+
+MIT No Attribution
+------------------
+
+Copyright (c) 2026 txt2crs contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

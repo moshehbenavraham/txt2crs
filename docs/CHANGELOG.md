@@ -29,6 +29,10 @@ and this project follows
   developer notes, project artwork, and TODO/changelog maintenance workflows.
 - Established Semantic Versioning with a machine-readable pre-release version
   and documented release process.
+- Released original txt2crs code under MIT-0 while retaining the MIT license
+  and required attribution for Hermes-derived portions within `src/txt2crs/`.
+- Applied MIT-0 to the rest of the repository with an explicit reference to
+  the dedicated `src/txt2crs/LICENSE` scope.
 
 ### Changed
 

@@ -1,0 +1,98 @@
+txt2crs Subsystem Licensing
+===========================
+
+Licensing Scope
+---------------
+
+This license applies only to the directory containing this file
+(`src/txt2crs/`) and its subdirectories. It does not grant, replace, restrict,
+or otherwise modify the license of any file outside that directory tree.
+A more specific license within a subdirectory takes precedence for the files
+within its stated scope.
+
+Except where a source file or portion is explicitly identified as derived from
+Hermes Agent, all original txt2crs code is licensed under the MIT No
+Attribution License (MIT-0) below.
+
+Code copied or materially adapted from Hermes Agent remains licensed under the
+MIT License and must retain the Nous Research copyright and license notice
+included later in this file.
+
+As a repository boundary, any code copied, adapted, or explicitly documented
+as inspired by Hermes Agent must live within `src/txt2crs/` or one of its
+subdirectories.
+
+
+MIT No Attribution
+------------------
+
+Copyright (c) 2026 txt2crs contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Hermes Agent Attribution
+========================
+
+Hermes Agent by Nous Research
+-----------------------------
+
+Source: https://github.com/NousResearch/hermes-agent
+
+Revision evaluated:
+0f102fa4dc04b7dfdab048169aaaa640d09d7523
+
+Hermes Agent is licensed under the MIT License. Its required copyright and
+license notice follows:
+
+MIT License
+
+Copyright (c) 2025 Nous Research
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Provenance Requirements
+=======================
+
+Original source files should use:
+
+    SPDX-License-Identifier: MIT-0
+
+Files containing code copied or materially adapted from Hermes Agent must use:
+
+    SPDX-License-Identifier: MIT
+
+Hermes-derived files must also identify the donor project, original relative
+path, evaluated revision, and substantial local modifications in a short
+source comment. Existing Hermes copyright, license, and attribution notices
+must be preserved.
