@@ -1,0 +1,29 @@
+# Python bytecode and interpreter caches
+__pycache__/
+*.py[cod]
+
+# Python tooling caches and reports
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+
+# Local virtual environments
+.venv/
+venv/
+
+# Python package build output
+build/
+dist/
+*.egg-info/
+
+# Local environment files may contain credentials.
+.env
+.env.*
+!.env.example
+
+# Common operating-system and editor files
+.DS_Store
+.idea/
+.vscode/

@@ -25,10 +25,37 @@ and delivers polished learning artifacts through a clear, accessible interface.
 
 ## Current Status
 
-This repository currently contains the original
+The independently installable Python library is scaffolded under
+[`backend/packages/txt2crs/`](backend/packages/txt2crs/). It uses a standard
+`src` layout and can be developed, tested, and exported without a FastAPI or
+React application.
+
+The repository also contains the original
 [Make.com proof-of-concept workflows](make-scenarios/) and the
-[product and architecture documentation](docs/). The production application is the
-next stage of development.
+[product and architecture documentation](docs/). The production library
+behavior and application shell are the next stages of development.
+
+## Repository Layout
+
+```text
+txt2crs/
+├── backend/
+│   ├── packages/
+│   │   └── txt2crs/          # Independently installable Python library
+│   └── tests/                # Future product-level acceptance tests
+├── docs/                     # Project documentation
+├── make-scenarios/           # Original Make.com proof of concept
+├── VERSION
+└── README.md
+```
+
+If the selected React/FastAPI boilerplate is adopted, its backend application
+will be added beside the library under `backend/app/`, and its frontend will be
+added at the repository root under `frontend/`. The library will not need to
+move.
+
+Library development and build commands are documented in
+[`backend/packages/txt2crs/README_txt2crs.md`](backend/packages/txt2crs/README_txt2crs.md).
 
 ## Versioning
 

@@ -1,0 +1,82 @@
+[project]
+name = "txt2crs"
+version = "0.1.2.dev0"
+description = "Turn source material into researched courses, review packs, and assessments."
+readme = "README_txt2crs.md"
+requires-python = ">=3.12,<3.15"
+license = "MIT-0 AND MIT"
+license-files = ["LICENSE"]
+keywords = [
+    "assessment",
+    "course-generation",
+    "education",
+    "openai",
+    "study-materials",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Education",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/moshehbenavraham/txt2crs/tree/main/backend/packages/txt2crs/docs"
+Issues = "https://github.com/moshehbenavraham/txt2crs/issues"
+Repository = "https://github.com/moshehbenavraham/txt2crs"
+
+[dependency-groups]
+dev = [
+    "build>=1.2,<2",
+    "mypy>=1.14,<3",
+    "pytest>=8.3,<10",
+    "ruff>=0.9,<1",
+]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+# Placeholder files keep the planned responsibility folders visible in Git,
+# but they are development scaffolding and should not ship to library users.
+exclude = ["/.gitignore", "**/.gitkeep"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/docs",
+    "/src",
+    "/tests",
+    "/LICENSE",
+    "/README_txt2crs.md",
+    "/pyproject.toml",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/txt2crs"]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib", "-ra"]
+testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["dist"]
+
+[tool.ruff.lint]
+select = [
+    "B",   # flake8-bugbear catches likely logic errors.
+    "C4",  # flake8-comprehensions encourages readable comprehensions.
+    "E",   # pycodestyle errors.
+    "F",   # pyflakes detects broken and unused imports.
+    "I",   # isort keeps imports deterministic.
+    "UP",  # pyupgrade keeps syntax aligned with supported Python versions.
+    "W",   # pycodestyle warnings.
+]

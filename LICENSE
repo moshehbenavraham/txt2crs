@@ -4,14 +4,14 @@ txt2crs Repository Licensing
 Licensing Scope
 ---------------
 
-Except for `src/txt2crs/` and its subdirectories, all original code and other
-copyrightable material in this repository is licensed under the MIT No
-Attribution License (MIT-0) below.
+Except for `backend/packages/txt2crs/` and its subdirectories, all original code
+and other copyrightable material in this repository is licensed under the MIT
+No Attribution License (MIT-0) below.
 
-The `src/txt2crs/` directory tree is governed exclusively by its dedicated
-license:
+The `backend/packages/txt2crs/` directory tree is governed exclusively by its
+dedicated license:
 
-    src/txt2crs/LICENSE
+    backend/packages/txt2crs/LICENSE
 
 This root license does not grant, replace, restrict, or otherwise modify the
 terms that apply within that directory tree. A more specific license in any

@@ -1,0 +1,6 @@
+# This file is intentionally a virtual uv workspace today. When the FastAPI
+# boilerplate is adopted, its existing [project] configuration can be merged
+# into this file while retaining the workspace membership below.
+
+[tool.uv.workspace]
+members = ["packages/txt2crs"]
