@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/exception_handlers.py
-# hypothesis_version: 6.151.2
-
-[422, 500, '.', 'Validation Error', 'detail', 'error_code', 'error_count', 'errors', 'exception_message', 'exception_type', 'field', 'loc', 'message', 'method', 'msg', 'path', 'status', 'type']

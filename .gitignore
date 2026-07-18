@@ -7,6 +7,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.hypothesis/
 htmlcov/
 
 # Local virtual environments
@@ -17,6 +18,13 @@ venv/
 build/
 dist/
 *.egg-info/
+
+# Node dependencies and frontend test output
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # Local environment files may contain credentials.
 .env
@@ -29,7 +37,12 @@ dist/
 # Local snapshot of python-react-boilerplate; reference only, never committed.
 boilerplate/
 
+# Scratch/example working directories
+EXAMPLE/
+EXAMPLE_CODE/
+
 # Common operating-system and editor files
 .DS_Store
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json

@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/api/routes/login.py
-# hypothesis_version: 6.151.2
-
-[200, 400, 401, 403, 404, 422, 429, '/login/access-token', '/login/test-token', '/reset-password/', 'Inactive user', 'Invalid token', 'John Doe', 'Not authenticated', 'Rate limit exceeded', 'Reset password', 'Test access token', 'User not found', 'access_token', 'application/json', 'bearer', 'content', 'description', 'detail', 'email', 'example', 'examples', 'full_name', 'id', 'inactive_user', 'invalid_credentials', 'invalid_token', 'is_active', 'is_superuser', 'login', 'message', 'subject:', 'summary', 'text/html', 'token_type', 'user@example.com', 'value']

@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/utils.py
-# hypothesis_version: 6.151.2
-
-['build', 'email', 'email-templates', 'exp', 'host', 'link', 'nbf', 'new_account.html', 'password', 'port', 'project_name', 'reset_password.html', 'ssl', 'sub', 'test_email.html', 'tls', 'user', 'username', 'valid_hours']

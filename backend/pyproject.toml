@@ -1,6 +1,129 @@
-# This file is intentionally a virtual uv workspace today. When the FastAPI
-# boilerplate is adopted, its existing [project] configuration can be merged
-# into this file while retaining the workspace membership below.
+# The backend is both the FastAPI application-shell project ("app") and the
+# uv workspace root. The independently installable txt2crs education engine
+# lives in packages/txt2crs and is consumed as a workspace dependency.
+
+[project]
+name = "app"
+version = "0.3.0"
+description = "txt2crs FastAPI application shell"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi[standard]>=0.139.2,<1.0.0",
+    "starlette>=1.3.1,<2.0.0",
+    "python-multipart>=0.0.32,<1.0.0",
+    "email-validator>=2.3.0,<3.0.0",
+    "pwdlib[argon2,bcrypt]>=0.3.0,<1.0.0",
+    "tenacity>=9.1.4,<10.0.0",
+    "pydantic>=2.13.4,<3.0.0",
+    "emails>=1.1.2,<2.0.0",
+    "jinja2>=3.1.6,<4.0.0",
+    "alembic>=1.18.5,<2.0.0",
+    "httpx>=0.28.1,<1.0.0",
+    "psycopg[binary]>=3.3.4,<4.0.0",
+    "sqlmodel>=0.0.39,<1.0.0",
+    "pydantic-settings>=2.14.2,<3.0.0",
+    "sentry-sdk[fastapi]>=2.66.0,<3.0.0",
+    "pyjwt>=2.13.0,<3.0.0",
+    "slowapi>=0.1.10,<1.0.0",
+    # OpenTelemetry for distributed tracing (all packages must use same version)
+    "opentelemetry-api>=1.44.0,<2.0.0",
+    "opentelemetry-sdk>=1.44.0,<2.0.0",
+    "opentelemetry-exporter-otlp>=1.44.0,<2.0.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0,<1.0.0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.65b0,<1.0.0",
+    "opentelemetry-instrumentation-httpx>=0.65b0,<1.0.0",
+    # MCP (Model Context Protocol) for AI agent tool access
+    "mcp>=1.28.1,<2.0.0",
+    # The txt2crs education engine (workspace package)
+    "txt2crs",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.7.0,<3.0.0",
+    "pytest>=9.1.1,<10.0.0",
+    "pytest-cov>=7.1.0,<8.0.0",
+    "mypy>=2.3.0,<3.0.0",
+    "ty>=0.0.25,<1.0.0",
+    "ruff>=0.15.22,<1.0.0",
+    "pre-commit>=4.6.0,<5.0.0",
+    "coverage>=7.15.2,<8.0.0",
+    "hypothesis>=6.156.6,<7.0.0",
+    "zizmor>=1.25.2,<2.0.0",
+]
 
 [tool.uv.workspace]
 members = ["packages/txt2crs"]
+
+[tool.uv.sources]
+txt2crs = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.31.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+strict = true
+exclude = ["venv", ".venv", "alembic", "packages"]
+
+[tool.ruff]
+target-version = "py314"
+exclude = ["alembic", "packages"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG001", # unused arguments in functions
+    "T201",   # print statements are not allowed
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.coverage.run]
+source = ["app"]
+dynamic_context = "test_function"
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests that require external API access (deselect with '-m \"not integration\"')",
+    "hypothesis: marks tests as property-based tests using Hypothesis",
+]
+filterwarnings = [
+    # Third-party library warnings that cannot be fixed in this project
+    "ignore:Please use `import python_multipart`:PendingDeprecationWarning:starlette",
+    "ignore:.*iscoroutinefunction.*deprecated.*:DeprecationWarning:slowapi.extension",
+]
+
+[tool.hypothesis]
+# Property-based testing configuration
+# See: https://hypothesis.readthedocs.io/en/latest/settings.html
+deadline = 500  # ms - allow slower tests in CI
+max_examples = 100  # Balance thoroughness with speed
+suppress_health_check = ["too_slow", "filter_too_much"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.fastapi]
+entrypoint = "app.main:app"

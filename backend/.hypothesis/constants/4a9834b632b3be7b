@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/security.py
-# hypothesis_version: 6.151.2
-
-['HS256', 'auto', 'bcrypt', 'exp', 'sub']

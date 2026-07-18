@@ -29,6 +29,14 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Changed
 
+- Merged the remaining boilerplate conflict files: `backend/pyproject.toml`
+  is now the application-shell project ("app") and uv workspace root with
+  `txt2crs` as a workspace dependency (lockfile regenerated); the root
+  README, AGENTS.md, backend README, `.gitignore`, and scoped LICENSE (now
+  including boilerplate 0BSD and upstream FastAPI Full Stack Template MIT
+  provenance) were combined; root `CLAUDE.md`/`GEMINI.md` symlinks to
+  `AGENTS.md` were restored.
+
 ### Deprecated
 
 ### Removed

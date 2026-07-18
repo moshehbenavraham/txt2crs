@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/models.py
-# hypothesis_version: 6.151.2
-
-[128, 255, 2048, 'CASCADE', 'Item', 'bearer', 'forbid', 'general', 'items', 'owner', 'user.id']

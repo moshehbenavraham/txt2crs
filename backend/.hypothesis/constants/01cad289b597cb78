@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/middleware.py
-# hypothesis_version: 6.151.2
-
-[400, 1000, 'X-Trace-ID', 'client_ip', 'duration_ms', 'info', 'method', 'path', 'query', 'status_code', 'warning']

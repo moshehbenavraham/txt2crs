@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/rate_limit.py
-# hypothesis_version: 6.151.2
-
-['10/minute', '100/minute', '5/minute', 'local']

@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/telemetry.py
-# hypothesis_version: 6.151.2
-
-['0.1.29', '032x', 'FastAPI', 'already_initialized', 'app_title', 'disabled', 'endpoint', 'environment', 'error', 'error_type', 'hint', 'missing_dependencies', 'otel_enabled', 'otlp_endpoint_set', 'reason', 'sampling_rate', 'service.name', 'service.version', 'service_name']

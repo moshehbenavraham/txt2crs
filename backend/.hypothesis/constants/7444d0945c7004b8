@@ -1,4 +1,0 @@
-# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/config.py
-# hypothesis_version: 6.151.2
-
-[1.0, 587, 5441, ',', '.env', '/', '/api/v1', 'POSTGRES_PASSWORD', 'SECRET_KEY', '[', 'after', 'changethis', 'ignore', 'local', 'postgresql+psycopg', 'production', 'staging', 'test@example.com']
