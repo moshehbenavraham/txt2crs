@@ -1,0 +1,406 @@
+# Context Profiles for AI Agent Context Management
+#
+# Purpose: Reduce token overhead by loading only task-relevant context.
+# This addresses the "lost-in-the-middle" problem where critical rules
+# get buried when context files exceed a few thousand tokens.
+#
+# Usage (Claude Code):
+#   claude --profile backend-api "Add a new endpoint for product search"
+#   claude --profile frontend-feature "Create a product list component"
+#
+# Usage (Other tools):
+#   Reference this file in your AI tool's configuration to scope context.
+#
+# Profile Selection Guide:
+#   - Working on React components/pages? Use: frontend-feature
+#   - Adding/modifying API endpoints? Use: backend-api
+#   - Database schema changes? Use: database-migration
+#   - Writing backend tests? Use: testing-backend
+#   - Writing frontend tests? Use: testing-frontend
+#   - Full-stack feature (BE + FE)? Use: full-stack
+#   - Quick bug fix? Use: bug-fix (minimal context)
+#   - Documentation/ADRs? Use: documentation
+#
+# Note: Profiles are composable. For complex tasks, start with a focused
+# profile and expand context as needed rather than loading everything upfront.
+
+profiles:
+  # ============================================================================
+  # FRONTEND PROFILES
+  # ============================================================================
+
+  frontend-feature:
+    description: "React component/page development with routing and hooks"
+    use_when:
+      - Adding new pages or routes
+      - Creating React components
+      - Implementing custom hooks
+      - Working with TanStack Router/Query
+    include:
+      - AGENTS.md
+      - frontend/AGENTS.md
+      - frontend/src/routes/
+      - frontend/src/components/
+      - frontend/src/hooks/
+      - frontend/src/lib/schemas/
+      - frontend/src/lib/types/
+      - frontend/src/main.tsx  # Global error handling
+      - frontend/package.json
+      - frontend/tsconfig.json
+    exclude:
+      - backend/
+      - docs/adr/
+      - frontend/src/client/  # Auto-generated, never edit
+      - examples/backend/
+      - "**/*.test.tsx"
+      - "**/__tests__/"
+    max_tokens: 40000
+    validation_commands:
+      - "cd frontend && npm run lint"
+      - "cd frontend && npm run typecheck"
+
+  frontend-styling:
+    description: "Tailwind CSS and shadcn/ui component styling"
+    use_when:
+      - Styling existing components
+      - Adding shadcn/ui components
+      - Tailwind configuration changes
+    include:
+      - AGENTS.md
+      - frontend/AGENTS.md
+      - frontend/src/components/ui/
+      - frontend/src/components/Common/
+      - frontend/tailwind.config.js
+      - frontend/src/index.css
+    exclude:
+      - backend/
+      - docs/
+      - frontend/src/routes/
+      - frontend/src/client/
+    max_tokens: 25000
+    validation_commands:
+      - "cd frontend && npm run lint"
+
+  frontend-api-integration:
+    description: "Connecting frontend to backend API"
+    use_when:
+      - Integrating API calls in components
+      - Updating API client usage
+      - Handling API errors in UI
+    include:
+      - AGENTS.md
+      - frontend/AGENTS.md
+      - frontend/src/client/  # Read-only reference
+      - frontend/src/hooks/
+      - frontend/src/main.tsx  # Global error handling
+      - frontend/src/lib/schemas/
+      - backend/app/api/routes/  # API contracts
+      - backend/app/models.py     # Response shapes
+    exclude:
+      - docs/adr/
+      - backend/tests/
+      - backend/alembic/
+      - examples/
+    max_tokens: 35000
+    validation_commands:
+      - "cd frontend && npm run lint"
+      - "cd frontend && npm run typecheck"
+
+  # ============================================================================
+  # BACKEND PROFILES
+  # ============================================================================
+
+  backend-api:
+    description: "FastAPI endpoint development"
+    use_when:
+      - Adding new API endpoints
+      - Modifying existing routes
+      - Updating request/response models
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/app/api/routes/
+      - backend/app/api/deps.py
+      - backend/app/api/main.py
+      - backend/app/models.py
+      - backend/app/crud.py
+      - backend/app/core/constants.py
+      - backend/app/core/exceptions.py
+      - backend/app/core/config.py
+      - examples/backend/api/
+    exclude:
+      - frontend/
+      - docs/adr/
+      - backend/alembic/versions/
+      - backend/tests/
+      - backend/app/mcp/
+    max_tokens: 40000
+    validation_commands:
+      - "cd backend && uv run ruff check app"
+      - "cd backend && uv run mypy app --strict"
+
+  backend-crud:
+    description: "Database CRUD operations"
+    use_when:
+      - Adding database operations
+      - Modifying queries
+      - Working with SQLModel
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/app/crud.py
+      - backend/app/models.py
+      - backend/app/core/db.py
+      - examples/backend/crud/
+    exclude:
+      - frontend/
+      - docs/
+      - backend/app/api/routes/
+      - backend/alembic/
+    max_tokens: 25000
+    validation_commands:
+      - "cd backend && uv run ruff check app"
+      - "cd backend && uv run mypy app --strict"
+
+  backend-core:
+    description: "Core infrastructure (config, security, logging)"
+    use_when:
+      - Modifying configuration
+      - Security-related changes
+      - Logging infrastructure
+      - Exception handling
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/app/core/
+      - backend/app/main.py
+      - docs/adr/0003-structured-json-logging.md
+      - docs/adr/0004-rfc9457-error-format.md
+    exclude:
+      - frontend/
+      - backend/tests/
+      - backend/alembic/
+      - examples/
+    max_tokens: 30000
+    validation_commands:
+      - "cd backend && uv run ruff check app"
+      - "cd backend && uv run mypy app --strict"
+
+  database-migration:
+    description: "Database schema changes and Alembic migrations"
+    use_when:
+      - Adding/modifying database tables
+      - Creating Alembic migrations
+      - Schema refactoring
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/app/models.py
+      - backend/alembic/
+      - backend/app/core/db.py
+      - docs/database/
+    exclude:
+      - frontend/
+      - backend/app/api/
+      - backend/tests/
+      - examples/
+    max_tokens: 25000
+    validation_commands:
+      - "cd backend && uv run ruff check app"
+      - "cd backend && uv run mypy app --strict"
+      - "cd backend && uv run alembic check"
+
+  # ============================================================================
+  # TESTING PROFILES
+  # ============================================================================
+
+  testing-backend:
+    description: "Writing backend unit and integration tests"
+    use_when:
+      - Adding pytest tests
+      - Property-based testing with Hypothesis
+      - Test fixtures and conftest
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/tests/
+      - backend/app/models.py
+      - backend/app/crud.py
+      - backend/app/api/routes/
+      - backend/pyproject.toml  # pytest config
+      - examples/backend/testing/
+    exclude:
+      - frontend/
+      - docs/adr/
+      - backend/alembic/versions/
+    max_tokens: 40000
+    validation_commands:
+      - "cd backend && uv run pytest tests/ -v"
+
+  testing-frontend:
+    description: "Writing frontend tests (Playwright, component tests)"
+    use_when:
+      - E2E tests with Playwright
+      - Component testing
+      - Test utilities
+    include:
+      - AGENTS.md
+      - frontend/AGENTS.md
+      - frontend/tests/
+      - frontend/playwright.config.ts
+      - frontend/src/components/
+      - frontend/src/routes/
+    exclude:
+      - backend/
+      - docs/
+      - frontend/src/client/
+    max_tokens: 35000
+    validation_commands:
+      - "cd frontend && npx playwright test"
+
+  # ============================================================================
+  # FULL-STACK PROFILES
+  # ============================================================================
+
+  full-stack:
+    description: "Changes spanning backend and frontend"
+    use_when:
+      - Features requiring both BE and FE changes
+      - API contract changes
+      - End-to-end feature implementation
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - frontend/AGENTS.md
+      - backend/app/api/routes/
+      - backend/app/models.py
+      - backend/app/crud.py
+      - frontend/src/routes/
+      - frontend/src/components/
+      - frontend/src/hooks/
+      - frontend/src/lib/schemas/
+    exclude:
+      - docs/adr/
+      - backend/alembic/versions/
+      - backend/tests/
+      - frontend/src/client/
+      - examples/
+    max_tokens: 60000
+    validation_commands:
+      - "./scripts/validate-changes.sh"
+
+  # ============================================================================
+  # UTILITY PROFILES
+  # ============================================================================
+
+  bug-fix:
+    description: "Quick bug fixes with minimal context"
+    use_when:
+      - Small, focused bug fixes
+      - Single-file changes
+      - Quick patches
+    include:
+      - AGENTS.md
+      # No other includes - let the agent request specific files
+    exclude:
+      - docs/adr/
+      - examples/
+      - backend/alembic/versions/
+      - "**/__pycache__/"
+      - "**/node_modules/"
+    max_tokens: 15000
+    validation_commands:
+      - "./scripts/validate-changes.sh"
+
+  documentation:
+    description: "Writing documentation and ADRs"
+    use_when:
+      - Creating/updating documentation
+      - Writing Architecture Decision Records
+      - README updates
+    include:
+      - AGENTS.md
+      - docs/
+      - examples/README.md
+      - llms.txt
+    exclude:
+      - backend/app/
+      - frontend/src/
+      - backend/tests/
+      - "**/*.py"
+      - "**/*.ts"
+      - "**/*.tsx"
+    max_tokens: 30000
+    validation_commands: []
+
+  mcp-development:
+    description: "MCP server development and tools"
+    use_when:
+      - Adding MCP tools
+      - Modifying MCP server
+      - AI agent integrations
+    include:
+      - AGENTS.md
+      - backend/AGENTS.md
+      - backend/app/mcp/
+      - backend/app/core/config.py
+      - docs/adr/0006-mcp-integration.md
+    exclude:
+      - frontend/
+      - backend/tests/
+      - backend/alembic/
+      - examples/frontend/
+    max_tokens: 25000
+    validation_commands:
+      - "cd backend && uv run ruff check app"
+      - "cd backend && uv run mypy app --strict"
+
+  ci-cd:
+    description: "CI/CD and workflow configuration"
+    use_when:
+      - GitHub Actions changes
+      - Pre-commit configuration
+      - Build/deployment scripts
+    include:
+      - AGENTS.md
+      - .github/workflows/
+      - .pre-commit-config.yaml
+      - scripts/
+      - docker-compose.yml
+      - docker-compose.override.yml
+    exclude:
+      - backend/app/
+      - frontend/src/
+      - docs/adr/
+      - examples/
+    max_tokens: 20000
+    validation_commands: []
+
+# ============================================================================
+# PROFILE METADATA
+# ============================================================================
+
+metadata:
+  version: "1.0.0"
+  last_updated: "2026-01-27"
+  documentation: "AGENTS.md"
+
+# ============================================================================
+# CUSTOM PROFILE TEMPLATE
+# ============================================================================
+# Copy this template to create custom profiles for specific tasks:
+#
+#   custom-profile-name:
+#     description: "Brief description of what this profile is for"
+#     use_when:
+#       - Condition 1 when this profile applies
+#       - Condition 2 when this profile applies
+#     include:
+#       - path/to/include/
+#       - specific/file.py
+#     exclude:
+#       - path/to/exclude/
+#       - "**/*.pattern"
+#     max_tokens: 30000
+#     validation_commands:
+#       - "command to validate changes"

@@ -1,0 +1,17 @@
+FROM node:26.5.0 AS node-runtime
+
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
+
+COPY --from=node-runtime /usr/local/ /usr/local/
+
+WORKDIR /app
+
+RUN npm install --global npm@12.0.1
+
+COPY package*.json /app/
+
+RUN npm ci
+
+COPY ./ /app/
+
+ARG VITE_API_URL=${VITE_API_URL}

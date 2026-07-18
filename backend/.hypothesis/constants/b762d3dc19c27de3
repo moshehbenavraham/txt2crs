@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/api/deps.py
+# hypothesis_version: 6.151.2
+
+[400, 403, 404, 'Inactive user', 'User not found']

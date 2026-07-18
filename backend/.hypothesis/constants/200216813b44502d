@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/logging.py
+# hypothesis_version: 6.151.2
+
+[' | ', '%Y-%m-%d %H:%M:%S', 'INFO', 'args', 'created', 'exc_info', 'exc_text', 'exception', 'extra', 'file', 'filename', 'funcName', 'function', 'json', 'level', 'levelname', 'levelno', 'line', 'lineno', 'location', 'logger', 'message', 'module', 'msecs', 'msg', 'name', 'pathname', 'process', 'processName', 'relativeCreated', 'sqlalchemy.engine', 'stack_info', 'taskName', 'thread', 'threadName', 'timestamp', 'trace_id', 'type', 'uvicorn', 'uvicorn.access']

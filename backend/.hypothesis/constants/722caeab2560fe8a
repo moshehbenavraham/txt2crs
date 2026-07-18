@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/.venv/bin/pytest
+# hypothesis_version: 6.151.2
+
+['-script.pyw', '.exe', '__main__']

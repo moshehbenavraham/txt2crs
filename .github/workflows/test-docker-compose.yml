@@ -1,0 +1,35 @@
+name: Test Docker Compose
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+permissions: {}
+
+jobs:
+
+  test-docker-compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - run: docker compose build
+      - run: docker compose down -v --remove-orphans
+      - run: docker compose up -d --wait backend frontend adminer
+      - name: Test backend is up
+        run: curl http://localhost:8012/api/v1/utils/health-check
+      - name: Test frontend is up
+        run: curl http://localhost:5181
+      - if: always()
+        run: docker compose down -v --remove-orphans

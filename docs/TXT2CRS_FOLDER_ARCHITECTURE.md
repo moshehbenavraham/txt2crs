@@ -176,7 +176,7 @@ uv build --package txt2crs
 
 The root `VERSION` remains the repository's Semantic Versioning source. The
 package metadata uses the equivalent normalized PEP 440 spelling. The current
-repository and package release is `0.2.1`.
+repository and package release is `0.2.2`.
 
 An immutable annotated Git tag plus the built wheel and source distribution
 preserve a standalone-library milestone before full-stack integration begins.

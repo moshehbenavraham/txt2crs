@@ -1,0 +1,542 @@
+"""
+MCP server exposing tools for AI agent access.
+
+This module implements an MCP server using FastMCP that provides:
+- Database introspection tools (read-only)
+- Code validation tools (linting, type checking)
+- Schema discovery tools (OpenAPI, endpoints)
+
+The server is designed to be run as a standalone process with stdio transport
+for integration with AI coding assistants like Claude Code, Cursor, etc.
+
+Example:
+    Run the MCP server:
+        uv run python -m app.mcp.server
+
+    Configure in claude_desktop_config.json:
+        {
+            "mcpServers": {
+                "python-react-boilerplate": {
+                    "command": "uv",
+                    "args": ["--directory", "/path/to/backend", "run", "python", "-m", "app.mcp.server"]
+                }
+            }
+        }
+"""
+
+import subprocess
+from typing import Any
+from uuid import UUID
+
+from mcp.server.fastmcp import FastMCP
+from sqlmodel import Session, func, select
+
+from app.core.config import settings
+from app.core.db import engine
+from app.models import Item, User
+
+# Initialize MCP server
+mcp = FastMCP(name="python-react-boilerplate")
+
+
+# =============================================================================
+# Database Introspection Tools (Read-Only)
+# =============================================================================
+
+
+@mcp.tool()
+def list_users(
+    skip: int = 0,
+    limit: int = 20,
+    include_inactive: bool = False,
+) -> dict[str, Any]:
+    """
+    List users in the database with pagination.
+
+    Returns a paginated list of users with their public information.
+    Sensitive fields (password hashes) are never returned.
+
+    Args:
+        skip: Number of records to skip for pagination. Defaults to 0.
+        limit: Maximum number of users to return. Defaults to 20, max 100.
+        include_inactive: If True, includes inactive users. Defaults to False.
+
+    Returns:
+        Dictionary with 'users' list and 'total_count' integer.
+
+    Example:
+        list_users(skip=0, limit=10)
+        # Returns: {"users": [...], "total_count": 42}
+    """
+    limit = min(limit, 100)  # Cap at 100
+
+    with Session(engine) as session:
+        # Build query
+        query = select(User)
+        if not include_inactive:
+            query = query.where(User.is_active == True)  # noqa: E712
+
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_count = session.exec(count_query).one()
+
+        # Get paginated results
+        query = query.offset(skip).limit(limit)
+        users = session.exec(query).all()
+
+        return {
+            "users": [
+                {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "is_active": user.is_active,
+                    "is_superuser": user.is_superuser,
+                }
+                for user in users
+            ],
+            "total_count": total_count,
+            "skip": skip,
+            "limit": limit,
+        }
+
+
+@mcp.tool()
+def get_user_by_email(email: str) -> dict[str, Any] | None:
+    """
+    Get a user by their email address.
+
+    Performs a case-sensitive email lookup and returns public user information.
+    Returns None if no user is found with the given email.
+
+    Args:
+        email: Email address to search for (case-sensitive).
+
+    Returns:
+        User data dictionary if found, None otherwise.
+
+    Example:
+        get_user_by_email("admin@example.com")
+        # Returns: {"id": "...", "email": "...", "full_name": "...", ...}
+    """
+    with Session(engine) as session:
+        statement = select(User).where(User.email == email)
+        user = session.exec(statement).first()
+
+        if not user:
+            return None
+
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_active": user.is_active,
+            "is_superuser": user.is_superuser,
+            "item_count": len(user.items) if user.items else 0,
+        }
+
+
+@mcp.tool()
+def list_items(
+    skip: int = 0,
+    limit: int = 20,
+    owner_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    List items in the database with pagination.
+
+    Returns a paginated list of items. Optionally filter by owner.
+
+    Args:
+        skip: Number of records to skip for pagination. Defaults to 0.
+        limit: Maximum number of items to return. Defaults to 20, max 100.
+        owner_id: Optional UUID string to filter items by owner.
+
+    Returns:
+        Dictionary with 'items' list and 'total_count' integer.
+
+    Example:
+        list_items(skip=0, limit=10)
+        # Returns: {"items": [...], "total_count": 15}
+
+        list_items(owner_id="550e8400-e29b-41d4-a716-446655440000")
+        # Returns items owned by the specified user
+    """
+    limit = min(limit, 100)  # Cap at 100
+
+    with Session(engine) as session:
+        # Build query
+        query = select(Item)
+
+        if owner_id:
+            try:
+                owner_uuid = UUID(owner_id)
+                query = query.where(Item.owner_id == owner_uuid)
+            except ValueError:
+                return {"error": f"Invalid UUID format: {owner_id}"}
+
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_count = session.exec(count_query).one()
+
+        # Get paginated results
+        query = query.offset(skip).limit(limit)
+        items = session.exec(query).all()
+
+        return {
+            "items": [
+                {
+                    "id": str(item.id),
+                    "title": item.title,
+                    "description": item.description,
+                    "content_type": item.content_type,
+                    "owner_id": str(item.owner_id),
+                }
+                for item in items
+            ],
+            "total_count": total_count,
+            "skip": skip,
+            "limit": limit,
+        }
+
+
+@mcp.tool()
+def get_item(item_id: str) -> dict[str, Any] | None:
+    """
+    Get a specific item by ID.
+
+    Retrieves complete item information including content and metadata.
+
+    Args:
+        item_id: UUID string of the item to retrieve.
+
+    Returns:
+        Item data dictionary if found, None otherwise.
+
+    Example:
+        get_item("550e8400-e29b-41d4-a716-446655440000")
+        # Returns: {"id": "...", "title": "...", "content": "...", ...}
+    """
+    try:
+        item_uuid = UUID(item_id)
+    except ValueError:
+        return {"error": f"Invalid UUID format: {item_id}"}
+
+    with Session(engine) as session:
+        item = session.get(Item, item_uuid)
+
+        if not item:
+            return None
+
+        return {
+            "id": str(item.id),
+            "title": item.title,
+            "description": item.description,
+            "content": item.content,
+            "content_type": item.content_type,
+            "source_url": item.source_url,
+            "item_metadata": item.item_metadata,
+            "owner_id": str(item.owner_id),
+        }
+
+
+@mcp.tool()
+def get_database_stats() -> dict[str, Any]:
+    """
+    Get database statistics and table information.
+
+    Returns counts and basic statistics for all tables in the database.
+    Useful for understanding the current state of the database.
+
+    Returns:
+        Dictionary with table names and their record counts.
+
+    Example:
+        get_database_stats()
+        # Returns: {"user_count": 10, "item_count": 42, ...}
+    """
+    with Session(engine) as session:
+        user_count = session.exec(select(func.count()).select_from(User)).one()
+        active_user_count = session.exec(
+            select(func.count()).select_from(User).where(User.is_active == True)  # noqa: E712
+        ).one()
+        superuser_count = session.exec(
+            select(func.count()).select_from(User).where(User.is_superuser == True)  # noqa: E712
+        ).one()
+        item_count = session.exec(select(func.count()).select_from(Item)).one()
+
+        # Extract host/db from URI (hide credentials)
+        db_uri = settings.SQLALCHEMY_DATABASE_URI
+        if db_uri:
+            # Convert to string and extract host part (after @)
+            uri_str = str(db_uri)
+            db_host = uri_str.split("@")[-1] if "@" in uri_str else "configured"
+        else:
+            db_host = "Not configured"
+
+        return {
+            "user_count": user_count,
+            "active_user_count": active_user_count,
+            "superuser_count": superuser_count,
+            "item_count": item_count,
+            "database_url": db_host,
+        }
+
+
+# =============================================================================
+# Code Validation Tools
+# =============================================================================
+
+
+def _run_command(cmd: list[str], cwd: str | None = None) -> dict[str, Any]:
+    """Run a command and return structured output."""
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "success": result.returncode == 0,
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "returncode": -1,
+            "stdout": "",
+            "stderr": "Command timed out after 120 seconds",
+        }
+    except FileNotFoundError as e:
+        return {
+            "success": False,
+            "returncode": -1,
+            "stdout": "",
+            "stderr": f"Command not found: {e}",
+        }
+
+
+@mcp.tool()
+def run_ruff_check(fix: bool = False) -> dict[str, Any]:
+    """
+    Run ruff linting on the backend code.
+
+    Executes ruff to check for style and code quality issues.
+
+    Args:
+        fix: If True, automatically fix fixable issues. Defaults to False.
+
+    Returns:
+        Dictionary with 'success' boolean and 'output' string.
+
+    Example:
+        run_ruff_check()
+        # Returns: {"success": True, "output": "All checks passed!"}
+
+        run_ruff_check(fix=True)
+        # Returns: {"success": True, "output": "Fixed 3 issues"}
+    """
+    cmd = ["uv", "run", "ruff", "check", "app"]
+    if fix:
+        cmd.append("--fix")
+
+    return _run_command(
+        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
+    )
+
+
+@mcp.tool()
+def run_mypy_check() -> dict[str, Any]:
+    """
+    Run mypy type checking on the backend code.
+
+    Executes mypy in strict mode to verify type annotations.
+
+    Returns:
+        Dictionary with 'success' boolean and 'output' string.
+
+    Example:
+        run_mypy_check()
+        # Returns: {"success": True, "output": "Success: no issues found in 33 source files"}
+    """
+    cmd = ["uv", "run", "mypy", "app", "--strict"]
+    return _run_command(
+        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
+    )
+
+
+@mcp.tool()
+def run_tests(
+    test_path: str = "tests/",
+    verbose: bool = True,
+    markers: str | None = None,
+) -> dict[str, Any]:
+    """
+    Run pytest tests on the backend code.
+
+    Executes pytest with configurable options for test selection.
+
+    Args:
+        test_path: Path to test directory or specific test file. Defaults to "tests/".
+        verbose: If True, run with verbose output. Defaults to True.
+        markers: Optional pytest marker expression (e.g., "not integration").
+
+    Returns:
+        Dictionary with 'success' boolean and test output.
+
+    Example:
+        run_tests()
+        # Returns: {"success": True, "output": "...passed..."}
+
+        run_tests(test_path="tests/models/", markers="hypothesis")
+        # Returns property-based test results
+    """
+    cmd = ["uv", "run", "pytest", test_path]
+    if verbose:
+        cmd.append("-v")
+    if markers:
+        cmd.extend(["-m", markers])
+    cmd.append("--tb=short")
+
+    return _run_command(
+        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
+    )
+
+
+@mcp.tool()
+def run_full_validation() -> dict[str, Any]:
+    """
+    Run complete validation suite (ruff, mypy, tests).
+
+    Executes all validation steps in order and reports aggregate results.
+    This is equivalent to running the pre-commit checks.
+
+    Returns:
+        Dictionary with results for each validation step and overall success.
+
+    Example:
+        run_full_validation()
+        # Returns: {"overall_success": True, "ruff": {...}, "mypy": {...}, "tests": {...}}
+    """
+    backend_path = "/home/aiwithapex/projects/python-react-boilerplate/backend"
+
+    results: dict[str, Any] = {
+        "overall_success": True,
+        "steps": [],
+    }
+
+    # Run ruff
+    ruff_result = _run_command(["uv", "run", "ruff", "check", "app"], cwd=backend_path)
+    results["steps"].append({"name": "ruff", **ruff_result})
+    if not ruff_result["success"]:
+        results["overall_success"] = False
+
+    # Run ruff format check
+    format_result = _run_command(
+        ["uv", "run", "ruff", "format", "--check", "app"], cwd=backend_path
+    )
+    results["steps"].append({"name": "ruff-format", **format_result})
+    if not format_result["success"]:
+        results["overall_success"] = False
+
+    # Run mypy
+    mypy_result = _run_command(
+        ["uv", "run", "mypy", "app", "--strict"], cwd=backend_path
+    )
+    results["steps"].append({"name": "mypy", **mypy_result})
+    if not mypy_result["success"]:
+        results["overall_success"] = False
+
+    # Run unit tests (without database dependency)
+    test_result = _run_command(
+        ["uv", "run", "pytest", "tests/models/", "-v", "--tb=short"],
+        cwd=backend_path,
+    )
+    results["steps"].append({"name": "tests-unit", **test_result})
+    if not test_result["success"]:
+        results["overall_success"] = False
+
+    return results
+
+
+# =============================================================================
+# Schema Discovery Tools
+# =============================================================================
+
+
+@mcp.tool()
+def get_api_endpoints() -> dict[str, Any]:
+    """
+    List all API endpoints with their methods and paths.
+
+    Returns a structured list of all routes registered in the FastAPI application.
+
+    Returns:
+        Dictionary with 'endpoints' list containing route information.
+
+    Example:
+        get_api_endpoints()
+        # Returns: {"endpoints": [{"path": "/api/v1/users/", "methods": ["GET", "POST"], ...}]}
+    """
+    # Import here to avoid circular imports
+    from app.main import app
+
+    endpoints = []
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if isinstance(path, str) and isinstance(methods, set):
+            endpoints.append(
+                {
+                    "path": path,
+                    "methods": sorted(methods),
+                    "name": getattr(route, "name", None),
+                }
+            )
+
+    return {"endpoints": endpoints, "count": len(endpoints)}
+
+
+@mcp.tool()
+def get_project_info() -> dict[str, Any]:
+    """
+    Get project configuration and environment information.
+
+    Returns non-sensitive configuration values useful for understanding
+    the project setup.
+
+    Returns:
+        Dictionary with project name, version, environment, and settings.
+
+    Example:
+        get_project_info()
+        # Returns: {"project_name": "...", "environment": "local", ...}
+    """
+    return {
+        "project_name": settings.PROJECT_NAME,
+        "api_version": settings.API_V1_STR,
+        "environment": settings.ENVIRONMENT,
+        "debug": settings.ENVIRONMENT == "local",
+        "cors_origins": settings.all_cors_origins,
+        "emails_enabled": settings.emails_enabled,
+        "sentry_enabled": bool(settings.SENTRY_DSN),
+        "otel_enabled": settings.OTEL_ENABLED,
+    }
+
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
+
+
+def main() -> None:
+    """Run the MCP server with stdio transport."""
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

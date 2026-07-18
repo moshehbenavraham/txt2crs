@@ -26,6 +26,9 @@ dist/
 # Temporary standalone authentication state contains Codex OAuth credentials.
 .txt2crs-system/
 
+# Local snapshot of python-react-boilerplate; reference only, never committed.
+boilerplate/
+
 # Common operating-system and editor files
 .DS_Store
 .idea/

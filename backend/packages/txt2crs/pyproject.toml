@@ -1,6 +1,6 @@
 [project]
 name = "txt2crs"
-version = "0.2.1"
+version = "0.2.2"
 description = "Turn source material into researched courses, review packs, and assessments."
 readme = "README_txt2crs.md"
 requires-python = ">=3.12,<3.15"

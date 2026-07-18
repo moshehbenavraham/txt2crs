@@ -16,6 +16,16 @@ Archived entries are stored in [`archive/`](archive/).
   Make.com “Text to Course” system, including its architecture, data contracts,
   prompts, integrations, risks, migration decisions, and a prioritized
   hackathon feature/submission plan.
+- Added the input-to-course system plan
+  (`docs/INPUT_TO_COURSE_SYSTEM_PLAN.md`): phased adoption of a custom
+  python-react-boilerplate shell, engine wiring, the P0 learner journey with
+  a required idempotent completion email and first-class visual-experience
+  requirements, and P1 delivery polish.
+- Imported the conflict-free application-shell files from
+  python-react-boilerplate v0.1.41 (`backend/app/`, `frontend/`, Docker
+  Compose files, CI/tooling configuration, examples, scripts, and reference
+  docs). Files conflicting with existing repository paths remain unmerged in
+  the gitignored `boilerplate/` snapshot.
 
 ### Changed
 

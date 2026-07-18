@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/crud.py
+# hypothesis_version: 6.151.2
+
+['hashed_password', 'owner_id', 'password']

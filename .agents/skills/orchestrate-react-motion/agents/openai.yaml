@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Motion Direction"
+  short_description: "Art-direct performant React interface motion"
+  default_prompt: "Use $orchestrate-react-motion to design and implement purposeful motion for this React interaction."

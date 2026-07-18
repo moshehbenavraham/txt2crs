@@ -1,0 +1,69 @@
+name: Guard Dependencies
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] -- Reads event metadata only and never checks out pull request code.
+    branches:
+      - main
+      - master
+    paths:
+      - backend/pyproject.toml
+      - backend/uv.lock
+      - frontend/package.json
+      - frontend/package-lock.json
+
+permissions: {}
+
+jobs:
+  check-author:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Restrict dependency changes to trusted authors
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request
+            const author = pullRequest.user.login
+            const association = pullRequest.author_association
+            const allowedBots = new Set(["dependabot[bot]"])
+            const trustedAssociations = new Set([
+              "COLLABORATOR",
+              "MEMBER",
+              "OWNER",
+            ])
+            const allowed =
+              allowedBots.has(author) ||
+              (association != null && trustedAssociations.has(association))
+
+            if (allowed) {
+              core.info(
+                `Author ${author} (${association}) may change dependency files.`,
+              )
+              return
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              body: [
+                "This pull request changes dependency manifests or lockfiles.",
+                "For supply-chain safety, those changes are restricted to repository members and approved dependency bots.",
+                "Please open an issue describing the dependency change and its justification.",
+              ].join("\n\n"),
+            })
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+              state: "closed",
+            })
+
+            core.setFailed(
+              "Dependency changes are restricted to trusted authors.",
+            )

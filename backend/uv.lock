@@ -1465,7 +1465,7 @@ wheels = [
 
 [[package]]
 name = "txt2crs"
-version = "0.2.1"
+version = "0.2.2"
 source = { editable = "packages/txt2crs" }
 dependencies = [
     { name = "httpx" },

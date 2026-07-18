@@ -1,0 +1,100 @@
+# See https://pre-commit.com for more information.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+            frontend/src/client/.*|
+            backend/app/email-templates/build/.*|
+            backend/\.hypothesis/.*
+          )$
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            frontend/src/client/.*|
+            backend/\.hypothesis/.*
+          )$
+
+  - repo: https://github.com/crate-ci/typos
+    rev: bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1.48.0
+    hooks:
+      - id: typos
+        args:
+          - --force-exclude
+        exclude: |
+          (?x)^(
+            EXAMPLE/.*|
+            frontend/src/client/.*|
+            frontend/package-lock\.json|
+            backend/uv\.lock|
+            backend/app/email-templates/build/.*
+          )$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 2700fd5671c633760d912769c041bfcde2b9a01b # v0.15.22
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy-backend
+        name: mypy (backend)
+        entry: bash -c 'cd backend && uv run mypy app'
+        language: system
+        types: [python]
+        files: ^backend/
+        pass_filenames: false
+
+      - id: ty-backend
+        name: ty (backend)
+        entry: bash -c 'cd backend && uv run ty check app'
+        language: system
+        types: [python]
+        files: ^backend/
+        pass_filenames: false
+
+      - id: biome-frontend
+        name: Biome (frontend)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: typescript-frontend
+        name: TypeScript (frontend)
+        entry: bash -c 'cd frontend && npm run typecheck'
+        language: system
+        types_or: [ts, tsx]
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: generate-frontend-client
+        name: Generate frontend client
+        entry: bash scripts/generate-client.sh
+        language: system
+        files: >-
+          ^(backend/|scripts/generate-client\.sh$|frontend/openapi-ts\.config\.ts$|frontend/package(?:-lock)?\.json$|frontend/scripts/generate-client\.mjs$)
+        pass_filenames: false
+
+      - id: zizmor
+        name: Zizmor
+        entry: bash -c 'cd backend && uv run zizmor ../.github/workflows'
+        language: system
+        files: ^\.github/workflows/
+        require_serial: true
+        pass_filenames: false
+
+ci:
+  autofix_commit_msg: "[pre-commit.ci] Auto-format hook fixes"
+  autoupdate_commit_msg: "[pre-commit.ci] Update hook revisions"

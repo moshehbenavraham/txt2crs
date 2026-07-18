@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/api/routes/utils.py
+# hypothesis_version: 6.151.2
+
+[201, '/health-check/', '/health/', '/test-email/', '/utils', '1.0.0', 'SELECT 1', 'Test email sent', 'healthy', 'unhealthy', 'utils']

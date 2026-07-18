@@ -1,0 +1,78 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    labels: [dependencies, internal]
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Python uv
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    labels: [dependencies, internal]
+    groups:
+      python-packages:
+        patterns:
+          - "*"
+
+  # npm
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    labels: [dependencies, internal]
+    groups:
+      npm-packages:
+        patterns:
+          - "*"
+
+  # Docker
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /frontend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    labels: [dependencies, internal]
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+
+  # Docker Compose
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps
+    labels: [dependencies, internal]
+    groups:
+      compose-images:
+        patterns:
+          - "*"

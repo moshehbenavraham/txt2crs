@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/api/routes/users.py
+# hypothesis_version: 6.151.2
+
+[100, 200, 201, 400, 401, 403, 404, 409, 422, 429, '/', '/me', '/me/password', '/signup', '/users', '/{user_id}', 'Create user (Admin)', 'Current user profile', 'Delete user (Admin)', 'Get user by ID', 'Incorrect password', 'Jane Doe', 'John Doe', 'List users (Admin)', 'New User', 'Not authenticated', 'Rate limit exceeded', 'Update user (Admin)', 'Updated Name', 'User not found', 'application/json', 'content', 'count', 'data', 'description', 'email', 'example', 'full_name', 'id', 'is_active', 'is_superuser', 'message', 'newuser@example.com', 'updated@example.com', 'user@example.com', 'users']

@@ -1,0 +1,4 @@
+# file: /home/aiwithapex/projects/python-react-boilerplate/backend/app/core/constants.py
+# hypothesis_version: 6.151.2
+
+[100, 128, 200, 201, 202, 204, 301, 302, 304, 400, 401, 403, 404, 405, 409, 410, 422, 429, 500, 501, 502, 503, 1000, 'AUTH_1001', 'AUTH_1002', 'AUTH_1003', 'AUTH_1004', 'AUTH_1005', 'AUTH_1006', 'HS256', 'ITEM_3001', 'ITEM_3002', 'ITEM_3003', 'Inactive user', 'Invalid email format', 'Item not found', 'RATE_5001', 'SERVER_9001', 'SERVER_9002', 'SERVER_9003', 'SERVER_9004', 'Token has expired', 'USER_2001', 'USER_2002', 'USER_2003', 'USER_2004', 'USER_2005', 'USER_2006', 'User not found', 'VALIDATION_4001', 'VALIDATION_4002', 'VALIDATION_4003', 'VALIDATION_4004', 'application/json', 'bearer', 'general', 'multipart/form-data', 'text/html', 'text/plain']

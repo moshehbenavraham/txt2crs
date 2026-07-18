@@ -7,6 +7,10 @@ package.
 ## Documents
 
 - [TODO](TODO.md) — prioritized current work, backlog, and blocked items.
+- [Input-to-course system plan](INPUT_TO_COURSE_SYSTEM_PLAN.md) — phased plan
+  for adopting a custom form of the python-react-boilerplate shell, wiring the
+  txt2crs engine, and rebuilding the legacy Make.com workflow as the
+  input-to-course application.
 - [Changelog](CHANGELOG.md) — notable changes organized using Keep a Changelog
   categories.
 - [Versioning](VERSIONING.md) — Semantic Versioning policy, version-bump rules,

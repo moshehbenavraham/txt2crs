@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Visual Experience"
+  short_description: "Design and implement a cohesive React UI"
+  default_prompt: "Use $upgrade-react-visual-experience to redesign this frontend flow as a cohesive, accessible visual system."
