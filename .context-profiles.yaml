@@ -321,7 +321,7 @@ profiles:
     include:
       - AGENTS.md
       - docs/
-      - examples/README.md
+      - examples/README_examples.md
       - llms.txt
     exclude:
       - backend/app/

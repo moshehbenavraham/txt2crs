@@ -44,7 +44,7 @@ under [`frontend/`](frontend/), and Docker Compose for local development. The
 shell currently provides authentication, user management, and the boilerplate
 demo domain; wiring the engine into course-generation routes and the learner
 experience follows the
-[input-to-course system plan](docs/INPUT_TO_COURSE_SYSTEM_PLAN.md).
+[input-to-course system plan](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md).
 
 The repository also contains the original Make.com proof-of-concept workflows
 and their

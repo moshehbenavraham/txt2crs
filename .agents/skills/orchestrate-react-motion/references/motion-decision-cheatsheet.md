@@ -65,6 +65,8 @@ Keep an effect only if it provides at least one:
 
 - Existing default: CSS tokens, keyframes, `tw-animate-css`, and Radix data states.
 - Route transitions: installed TanStack Router integration, not Astro or experimental React APIs.
+  The scoped Dashboard→Items `library-surface` transition already exists as the app's one
+  signature moment — extend or protect it; do not add a global cross-fade.
 - Rich React choreography: add `motion` only when the brief needs its strengths.
 - Smooth scroll: avoid by default in this dashboard/data application.
 - Complex cinematic timeline: GSAP only with an explicit performance and reduced-motion plan.

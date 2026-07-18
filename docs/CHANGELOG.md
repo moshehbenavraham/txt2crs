@@ -12,12 +12,46 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.3.1] - 2026-07-19
+
+### Changed
+
+- Consolidated the implemented dashboard design system into
+  `docs/dashboard-design.md` and refreshed the repository-local React visual
+  and motion guidance to match the shipped workspace-index interface,
+  responsive layouts, semantic motion roles, and reduced-motion behavior.
+- Renamed the examples guide to `examples/README_examples.md`, updated its
+  context-profile and directory-tree references, clarified root agent
+  guidance, and recorded the completed boilerplate adoption decision.
+- Organized active planning material, Build Week requirements, the TODO list,
+  and the project image under `docs/ongoing-projects/`, updating repository,
+  backend, documentation-index, and Make.com plan links to their new paths.
+
+### Removed
+
+- Removed the superseded dashboard design plan and the seven unreferenced
+  FastAPI template images from the repository root.
+
+## [0.3.0] - 2026-07-18
+
+### Added
+
 - Added a comprehensive, module-complete reconstruction of the original
   Make.com “Text to Course” system, including its architecture, data contracts,
   prompts, integrations, risks, migration decisions, and a prioritized
   hackathon feature/submission plan.
 - Added the input-to-course system plan
-  (`docs/INPUT_TO_COURSE_SYSTEM_PLAN.md`): phased adoption of a custom
+  (`docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md`): phased adoption of a custom
   python-react-boilerplate shell, engine wiring, the P0 learner journey with
   a required idempotent completion email and first-class visual-experience
   requirements, and P1 delivery polish.
@@ -36,14 +70,6 @@ Archived entries are stored in [`archive/`](archive/).
   including boilerplate 0BSD and upstream FastAPI Full Stack Template MIT
   provenance) were combined; root `CLAUDE.md`/`GEMINI.md` symlinks to
   `AGENTS.md` were restored.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
 
 ## [0.2.1] - 2026-07-17
 

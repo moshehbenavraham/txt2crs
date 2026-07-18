@@ -37,11 +37,14 @@ motion:
 
 @media (prefers-reduced-motion: no-preference) {
   .content-enter {
-    animation: content-enter var(--motion-duration-reveal)
-      var(--motion-ease-out) both;
+    animation: content-enter var(--motion-duration-overlay)
+      var(--ease-out-quart) both;
   }
 }
 ```
+
+This project already implements this pattern as `.reveal-group` / `.reveal-delay-1..3` in
+`frontend/src/index.css` (used by the dashboard); reuse those utilities before minting new ones.
 
 Do not apply a stagger to arbitrary DOM children. Mark semantic groups explicitly:
 
@@ -70,58 +73,27 @@ Verify that disabling the exit animation does not interfere with focus return or
 Test dialog, dropdown, sheet, select, and tooltip separately; they have different interaction
 contracts.
 
-For a project-wide safety net, a reduced-motion clamp may be appropriate:
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  html:focus-within {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
+This project already ships a project-wide reduced-motion clamp in `frontend/src/index.css` — it
+resolves every animation, transition, and `::view-transition-*` pseudo-element to its final
+state. Do not add a second clamp.
 
 Do not assume the clamp is sufficient. JavaScript motion, video, canvas, autoplay, parallax, and
 smooth-scroll code still require explicit gating. Verify complete final states.
 
 ## Reduced-motion hook
 
-Use `useSyncExternalStore` for a dependency-free reactive media-query hook:
+The project already ships a dependency-free `useSyncExternalStore`-based hook — import it instead
+of re-creating it:
 
 ```tsx
-import { useSyncExternalStore } from "react"
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion"
 
-const reducedMotionQuery = "(prefers-reduced-motion: reduce)"
-
-function subscribeReducedMotion(onStoreChange: () => void) {
-  const media = window.matchMedia(reducedMotionQuery)
-  media.addEventListener("change", onStoreChange)
-  return () => media.removeEventListener("change", onStoreChange)
-}
-
-function getReducedMotionSnapshot() {
-  return window.matchMedia(reducedMotionQuery).matches
-}
-
-export function usePrefersReducedMotion() {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    getReducedMotionSnapshot,
-    () => true,
-  )
-}
+const prefersReducedMotion = usePrefersReducedMotion()
 ```
 
-This app renders client-side, but the server snapshot remains conservative for tests or future
-rendering changes.
+See `frontend/src/hooks/usePrefersReducedMotion.ts` for the implementation. Use it only where
+JavaScript must decide (e.g. opting into a view transition); CSS handles everything else through
+the global clamp.
 
 ## TanStack Router view transitions
 
@@ -148,11 +120,17 @@ Prefer per-navigation or carefully scoped defaults until the direction proves th
 transition benefits. Keep persistent shell regions stable and assign view-transition names only to
 unique, meaningful shared surfaces.
 
+This project already implements the scoped pattern: the Dashboard→Items "Open library" link opts
+in with `viewTransition`, the dashboard preview and Items table share
+`view-transition-name: library-surface`, the shell claims `app-sidebar` and `command-strip`, and
+`usePrefersReducedMotion()` gates the transition in JavaScript. Follow that shape for new
+continuity work instead of enabling a global default.
+
 ```css
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: var(--motion-duration-route);
-  animation-timing-function: var(--motion-ease-out);
+  animation-timing-function: var(--ease-out-quart);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -237,7 +215,8 @@ requestAnimationFrame work. Also gate startup with the reduced-motion preference
 
 ## Playwright reduced-motion coverage
 
-Use a focused test:
+`frontend/tests/dashboard.spec.ts` already emulates reduced motion — extend it or follow its
+shape. Use a focused test:
 
 ```ts
 import { expect, test } from "@playwright/test"

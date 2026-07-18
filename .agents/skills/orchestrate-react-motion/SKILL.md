@@ -152,7 +152,7 @@ correct render—not a blank element, frozen midway, or missing status.
 - Disable non-essential transforms, parallax, smooth scrolling, large zooms, and repeated loops.
 - Replace spatial continuity with an instant update or restrained opacity change only when that is
   comfortable and useful.
-- Test Radix/`tw-animate-css` overlays as well as custom `.page-enter` utilities.
+- Test Radix/`tw-animate-css` overlays as well as custom utilities such as `.reveal-group`.
 - Use Motion's `useReducedMotion()` or GSAP media-query scoping when those tools are present.
 
 ## Verification workflow

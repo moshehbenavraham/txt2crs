@@ -25,7 +25,7 @@ follow its motion brief, complexity ladder, and reduced-motion gates.
 ## Non-negotiable project rules
 
 - Work in `frontend/`; do not introduce Astro, Astro islands, or Astro packages.
-- Treat the current source as behavior truth. Treat `docs/frontend-ui-design.md` as design intent
+- Treat the current source as behavior truth. Treat `docs/dashboard-design.md` as design intent
   that may be stale, and update it when the implemented design system materially changes.
 - Never edit `frontend/src/client/` or `frontend/src/routeTree.gen.ts`.
 - Treat `frontend/src/components/ui/` as protected project primitives. Prefer token changes,
@@ -147,7 +147,7 @@ Work in this order:
 4. Update the shell, route composition, and responsive structure.
 5. Apply the new system to all in-scope states and adjacent flow steps.
 6. Add purpose-built assets only when they serve the direction.
-7. Update `docs/frontend-ui-design.md` when the system changes materially.
+7. Update `docs/dashboard-design.md` when the system changes materially.
 
 Prefer semantic token classes (`bg-background`, `text-muted-foreground`, `border-border`) over
 repeated raw OKLCH values. Allow route-specific art direction, but keep shared roles centralized.

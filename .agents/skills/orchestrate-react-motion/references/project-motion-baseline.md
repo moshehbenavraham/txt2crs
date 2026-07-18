@@ -8,7 +8,7 @@ inspected in July 2026.
 - Existing capabilities
 - Current choreography
 - Router capability
-- Coverage gaps
+- Resolved gaps and watch items
 - High-leverage files
 - Protected contracts
 
@@ -19,9 +19,12 @@ The frontend already includes:
 - Tailwind CSS 4 through `@tailwindcss/vite`;
 - `tw-animate-css`;
 - Radix primitives with `data-[state=open|closed]` animation classes;
-- global duration and easing custom properties in `frontend/src/index.css`;
+- semantic motion role tokens and easing custom properties in `frontend/src/index.css`;
+- a dependency-free `usePrefersReducedMotion()` hook in
+  `frontend/src/hooks/usePrefersReducedMotion.ts`;
 - React 19, TanStack Router, TanStack Query, and strict TypeScript;
-- Playwright browser tests.
+- Playwright browser tests, including reduced-motion emulation in
+  `frontend/tests/dashboard.spec.ts`.
 
 It does not currently declare `motion`, `gsap`, or `lenis` in `frontend/package.json`.
 
@@ -29,27 +32,31 @@ It does not currently declare `motion`, `gsap`, or `lenis` in `frontend/package.
 
 `frontend/src/index.css` defines:
 
-- `fadeInUp`, `fadeInScale`, `fadeIn`;
-- `slideInFromRight`, `slideInFromLeft`;
-- `shimmer` and `luxuryShimmer`;
-- `pulseSubtle`, `float`, and `scaleIn`;
-- `.page-enter` and `.page-enter-child`;
-- fixed `nth-child` entrance delays through child 8;
-- `.card-hover`, `.button-press`, and skeleton utilities;
-- timing/easing variables in both `@theme inline` and `:root`.
+- semantic motion role tokens in `:root`: `--motion-duration-feedback` (120ms), `-state` (180ms),
+  `-overlay` (260ms), `-route` (320ms), `--motion-distance-sm/md`, and easing curves
+  (`--ease-out-expo`, `--ease-out-quart`, `--ease-in-out-quart`, `--ease-spring`); legacy
+  `--duration-*` names remain as compatibility aliases;
+- exactly four keyframes, all with live consumers: `fadeInUp` (auth-shell entrance),
+  `luxuryShimmer` (skeleton), `riseIn` (dashboard section settle), and `rowHighlight` (brief
+  emphasis on a newly created preview row);
+- `.reveal-group` / `.reveal-delay-1..3` utilities inside
+  `@media (prefers-reduced-motion: no-preference)` — the dashboard settles in explicit reading
+  order, capped at three groups; there is no `nth-child` stagger and no outlet-level entrance;
+- scoped view-transition styling for the `library-surface`, `app-sidebar`, and `command-strip`
+  names.
 
 Current consumers include:
 
-- a `.page-enter` wrapper around the protected route outlet;
-- independent auth-shell entrance animation;
-- dialog/menu/sheet state animation through `tw-animate-css`;
-- sidebar width, icon, hover, and collapse transitions;
-- theme icon rotation/scale;
-- logo hover/press and route/component hover transitions.
+- auth-shell entrance in `AuthLayout`;
+- dashboard reveal groups and `rowHighlight` in `frontend/src/components/Dashboard/`;
+- dialog/menu/sheet state animation through Radix + `tw-animate-css`;
+- sidebar width, icon, hover, and collapse transitions, plus theme-icon transitions;
+- the signature Dashboard→Items "Open library" view transition (TanStack Router `viewTransition`,
+  gated in JavaScript by `usePrefersReducedMotion()`).
 
-This is useful infrastructure, but motion language is mostly generic fade/translate/scale and
-repeated global entrance behavior. Treat that as a baseline to rationalize, not a mandate to add
-more effects.
+Routine query refetches do not replay entrances. Treat this as a rationalized baseline in which
+every effect has a semantic role and the one signature moment is already claimed — not an
+invitation to add more effects.
 
 ## Router capability
 
@@ -69,27 +76,32 @@ rg -n "defaultViewTransition|viewTransition" \
 The stable React type entrypoint in this project does not expose React's canary
 `<ViewTransition>`. Do not add canary types or experimental imports as a shortcut.
 
-## Coverage gaps
+## Resolved gaps and watch items
 
-At the inspected revision:
+The July 2026 motion rationalization closed the gaps this file previously recorded:
 
-- the reduced-motion block in `index.css` targets `.page-enter`, `.page-enter-child`,
-  `.card-hover`, and `.skeleton-luxury`, not every Radix/`tw-animate-css` state animation;
-- `AuthLayout` uses direct animation utility strings outside that targeted list;
-- page entrance can replay generically regardless of route meaning;
-- fixed `nth-child` staggering encodes DOM order rather than intentional information hierarchy;
-- CSS variables are duplicated between `@theme inline` and `:root`;
-- no dedicated hook exists for JavaScript reduced-motion decisions;
-- no Playwright test explicitly emulates reduced motion or captures motion state.
+- a project-wide clamp under `prefers-reduced-motion: reduce` resolves every animation,
+  transition, and `::view-transition-*` pseudo-element to its complete final state;
+- the outlet-level `.page-enter` replay, `nth-child` staggering, and unused keyframes
+  (`fadeInScale`, `slideInFrom*`, `shimmer`, `pulseSubtle`, `float`, `scaleIn`) were removed;
+- timing variables are consolidated in `:root` (no `@theme inline` duplication);
+- `usePrefersReducedMotion()` exists for JavaScript gating;
+- `frontend/tests/dashboard.spec.ts` emulates reduced motion.
 
-Treat these as audit prompts, not automatic scope. Fix what the user request and rendered evidence
-support.
+Watch items when adding motion:
+
+- keep the legacy `--duration-*` aliases working until their consumers migrate;
+- new overlays and effects must render a complete final state under the clamp — verify, don't
+  assume;
+- do not dilute the single signature Dashboard→Items transition into a global route cross-fade.
 
 ## High-leverage files
 
 - `frontend/src/index.css`
 - `frontend/src/main.tsx`
 - `frontend/src/routes/_layout.tsx`
+- `frontend/src/hooks/usePrefersReducedMotion.ts`
+- `frontend/src/components/Dashboard/` (reveal groups, row highlight, view-transition trigger)
 - `frontend/src/components/Common/AuthLayout.tsx`
 - `frontend/src/components/Common/Appearance.tsx`
 - `frontend/src/components/Sidebar/`

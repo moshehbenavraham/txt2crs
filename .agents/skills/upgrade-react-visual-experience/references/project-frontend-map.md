@@ -25,8 +25,8 @@ authoritative when they differ.
 - UI: shadcn configuration in `frontend/components.json`, Radix primitives, CVA variants,
   Lucide icons, and Sonner toasts.
 - Forms: React Hook Form plus centralized Zod schemas.
-- Themes: custom provider in `frontend/src/components/theme-provider.tsx`; `main.tsx` currently
-  supplies `defaultTheme="dark"`.
+- Themes: custom provider in `frontend/src/components/theme-provider.tsx`; `main.tsx` supplies
+  `defaultTheme="system"`.
 - Fonts: Playfair Display, Outfit, and JetBrains Mono loaded from Google Fonts in
   `frontend/index.html`.
 - Browser tests: Playwright in `frontend/tests/`; unit tests use Vitest.
@@ -36,16 +36,21 @@ new library API.
 
 ## Current visual language
 
-The existing system calls itself **Refined Editorial Luxury**:
+The existing system calls itself **Refined Editorial Luxury**, applied to the product as an
+*editorial workspace index* (canonical description: `docs/dashboard-design.md`):
 
 - warm cream and charcoal foundations;
 - deep forest green primary and champagne-gold accent;
 - OKLCH light/dark tokens with three surface levels;
 - Playfair Display for display type, Outfit for UI/body, JetBrains Mono for technical values;
 - large rounded corners, restrained borders, layered shadows, and occasional mesh/noise;
-- CSS timing/easing tokens plus fade, scale, slide, shimmer, pulse, and float keyframes;
+- semantic motion role tokens (`--motion-duration-*`, easing curves) with four live keyframes
+  (`fadeInUp`, `luxuryShimmer`, `riseIn`, `rowHighlight`) and one scoped Dashboard→Items view
+  transition;
 - a two-panel atmospheric auth layout;
-- a collapsible application sidebar and centered content shell.
+- a collapsible application sidebar, sticky command strip, and centered content shell;
+- an editorial workspace-index dashboard: numbered library sections, exact counts, and role-aware
+  actions.
 
 Treat this as an existing direction to evaluate, not an immutable house style. Preserve it when it
 fits the product brief; evolve or replace it coherently when the user requests a new direction.
@@ -57,8 +62,9 @@ Avoid mixing a new visual language into a few routes while leaving the shell and
 
 - `frontend/src/main.tsx`: providers, theme default, global query errors.
 - `frontend/src/routes/__root.tsx`: root outlet, errors, not-found, devtools.
-- `frontend/src/routes/_layout.tsx`: protected shell, sticky header, sidebar, content width,
-  footer, page entrance.
+- `frontend/src/routes/_layout.tsx`: protected shell — sticky command strip (sidebar trigger,
+  compact brand mark below `md`, section label), sidebar, content width, and shell
+  `view-transition-name`s. No footer and no outlet entrance animation.
 - `frontend/src/components/Common/AuthLayout.tsx`: public auth shell.
 - `frontend/src/components/Sidebar/`: navigation and user controls.
 
@@ -74,7 +80,9 @@ the first page.
 
 ### Protected product screens
 
-- `frontend/src/routes/_layout/index.tsx`: currently a sparse greeting dashboard.
+- `frontend/src/routes/_layout/index.tsx`: workspace-overview dashboard composed from
+  `frontend/src/components/Dashboard/` (numbered library index, preview, empty/error states,
+  role-aware actions).
 - `frontend/src/routes/_layout/items.tsx`: filter, add action, suspense state, empty state,
   TanStack table.
 - `frontend/src/routes/_layout/admin.tsx`: permission-gated user table and create action.
@@ -83,7 +91,10 @@ the first page.
 
 ### Shared patterns
 
-- `frontend/src/components/Common/DataTable.tsx`: dense tabular layout and pagination.
+- `frontend/src/components/Common/PageHeader.tsx`: shared page identity (eyebrow, `h1`,
+  description, wrapping actions) used by all product routes.
+- `frontend/src/components/Common/DataTable.tsx`: dense tabular layout and pagination; optional
+  `renderMobileRow` renders a feature-specific mobile record list from the same row model.
 - `frontend/src/components/Pending/`: page-level skeleton states.
 - `frontend/src/components/Items/`, `Admin/`, and `UserSettings/`: dialogs, forms, menus, rich
   cells, empty states, and destructive actions.
@@ -122,19 +133,11 @@ rg -n "getByRole|getByText|getByTestId|toHaveURL" frontend/tests
 
 ## Documentation drift
 
-`docs/frontend-ui-design.md` is valuable design intent but was last labeled December 2025 and has
-known differences from current code. Examples at the time of inspection:
-
-- the doc describes a system theme default, while `main.tsx` passes dark;
-- the documented protected shell uses different header height, padding, and max width from the
-  current `_layout.tsx`;
-- the documented page-header pattern is not consistently implemented on product routes;
-- the doc describes a universal reduced-motion clamp, while current `index.css` disables only
-  selected custom utility classes;
-- inventory counts and package versions can drift.
-
-Use source and rendered UI as truth. If a visual-system change is implemented, update the doc so it
-becomes trustworthy again.
+`docs/dashboard-design.md` is the consolidated design system and design-intent document (it
+replaced `docs/frontend-ui-design.md` and the dashboard upgrade plan in July 2026). It was
+reconciled against source at that time, but inventory counts, package versions, and token values
+can still drift. Use source and rendered UI as truth. If a visual-system change is implemented,
+update the doc so it stays trustworthy.
 
 ## High-leverage inspection targets
 
@@ -148,20 +151,14 @@ Before a broad upgrade, inspect these together:
 6. representative primitives in `frontend/src/components/ui/`
 7. the target route and all of its feature components
 8. pending, empty, error, success, disabled, and destructive states
-9. `docs/frontend-ui-design.md`
+9. `docs/dashboard-design.md`
 10. relevant Playwright tests
 
-Common opportunities visible in the inspected source—not automatic requirements—include:
-
-- strengthening the sparse dashboard information hierarchy;
-- making page-header/action layouts robust on narrow screens;
-- aligning route headings with the declared typography system;
-- validating dense tables and dialogs on mobile;
-- replacing generic repeated entrance motion with semantic choreography;
-- ensuring reduced motion covers Radix and `tw-animate-css` state animations;
-- reconciling design documentation with actual tokens and layouts.
-
-Choose only opportunities supported by the requested task and rendered evidence.
+The July 2026 dashboard upgrade already landed the opportunities this map previously listed: the
+workspace-index dashboard, the shared responsive page header, mobile record lists for dense
+tables, semantic reveal choreography, the global reduced-motion clamp, and design-doc
+reconciliation. Do not redo them by default — derive new opportunities from the requested task and
+fresh rendered evidence.
 
 ## Useful audit commands
 

@@ -8,8 +8,8 @@ that accepts any input and will deliver: 1) A full deep-researched course
 based on the input, 2) Create comprehensive review materials on that generated
 course, and 3) Generate a full test with answer sheet.
 
-The build plan is [`docs/INPUT_TO_COURSE_SYSTEM_PLAN.md`](docs/INPUT_TO_COURSE_SYSTEM_PLAN.md).
-The reusable education engine lives in `backend/packages/txt2crs/`; the
+The build plan is [`docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md`](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md).
+The reusable AI engine lives in `backend/packages/txt2crs/`; the
 FastAPI/React application shell (adapted from the AIwithApex
 `python-react-boilerplate`) composes it and must not duplicate its logic.
 
@@ -27,14 +27,12 @@ In no particular order.
 - Avoid over-engineering while still following best practices and industry
   standards.
 - Create the tests before the code.
-- After completing an item from `docs/TODO.md`, move it to `docs/CHANGELOG.md`.
+- After completing an item from `docs/ongoing-projects/TODO.md`, move it to
+  `docs/CHANGELOG.md`.
 - Once `docs/CHANGELOG.md` gets roughly 20+ entries, archive it to
   `docs/archive/CHANGELOG_YYYYMMDD.md` and create a new empty
   `docs/CHANGELOG.md`.
 - Follow `docs/VERSIONING.md` and keep `VERSION` synchronized with each release.
-- **NEVER** edit `frontend/src/client/` - run `npm run generate-client` instead.
-- **ALWAYS** run `uv run mypy app` before committing backend changes.
-- **ALWAYS** run `npm run lint` before committing frontend changes.
 - Application database changes require Alembic migrations.
 - Environment variables go in `.env` (never commit secrets).
 - Use error codes from `app.core.constants.ErrorCode` for all shell errors.

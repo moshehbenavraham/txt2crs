@@ -31,7 +31,7 @@ examples/
 │   │   └── use_query_with_suspense.ts
 │   └── components/              # React components
 │       └── form_with_validation.tsx
-└── README.md
+└── README_examples.md
 ```
 
 ## Example Format

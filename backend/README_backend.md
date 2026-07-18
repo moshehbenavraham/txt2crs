@@ -53,7 +53,7 @@ All endpoints require JWT authentication (except login/signup).
 
 The `items` routes are the boilerplate demo domain kept as the donor for the
 course-generation `jobs` domain; see
-[`../docs/INPUT_TO_COURSE_SYSTEM_PLAN.md`](../docs/INPUT_TO_COURSE_SYSTEM_PLAN.md).
+[`../docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md`](../docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md).
 
 ## Key files
 

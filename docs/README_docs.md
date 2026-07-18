@@ -6,8 +6,9 @@ package.
 
 ## Documents
 
-- [TODO](TODO.md) — prioritized current work, backlog, and blocked items.
-- [Input-to-course system plan](INPUT_TO_COURSE_SYSTEM_PLAN.md) — phased plan
+- [TODO](ongoing-projects/TODO.md) — prioritized current work, backlog, and
+  blocked items.
+- [Input-to-course system plan](ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md) — phased plan
   for adopting a custom form of the python-react-boilerplate shell, wiring the
   txt2crs engine, and rebuilding the legacy Make.com workflow as the
   input-to-course application.
@@ -29,6 +30,6 @@ package.
 - [txt2crs folder architecture](TXT2CRS_FOLDER_ARCHITECTURE.md) — adopted
   library-first backend workspace, dependency rules, test placement, export
   workflow, and future FastAPI/React boilerplate integration points.
-- [OpenAI Build Week requirements](OPENAI_BUILD_WEEK_REQUIREMENTS.md) — build
+- [OpenAI Build Week requirements](ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md) — build
   requirements, submission deliverables, deadline, and project delivery checklist.
-- `txt2crs-01.png` — existing project image.
+- `ongoing-projects/txt2crs-01.png` — existing project image.
