@@ -13,18 +13,18 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0201]` session 
 
 ## Setup (2 tasks)
 
-- [ ] T001 [S0201] Verify the Phase 01 public application exports and record the backend baseline checks (`backend/packages/txt2crs/src/txt2crs/application/__init__.py`, `backend/pyproject.toml`)
-- [ ] T002 [S0201] Create the service-test package before adding composition cases (`backend/tests/services/__init__.py`)
+- [x] T001 [S0201] Verify the Phase 01 public application exports and record the backend baseline checks (`backend/packages/txt2crs/src/txt2crs/application/__init__.py`, `backend/pyproject.toml`)
+- [x] T002 [S0201] Create the service-test package before adding composition cases (`backend/tests/services/__init__.py`)
 
 ---
 
 ## Tests First (5 tasks)
 
-- [ ] T003 [S0201] [P] Extend settings tests for exact P0 defaults, bounded overrides, GPT-5.6 rejection, optional Tavily absence, and cleared inherited environment (`backend/tests/core/test_txt2crs_settings.py`)
-- [ ] T004 [S0201] [P] Write exact public configuration translation and public-import boundary tests (`backend/tests/services/test_txt2crs_application.py`)
-- [ ] T005 [S0201] Add recording-factory tests for configured creation, unconfigured no-op, idempotent close, factory failure, and close failure with cleanup on scope exit for all acquired resources (`backend/tests/services/test_txt2crs_application.py`)
-- [ ] T006 [S0201] Write FastAPI lifespan tests for configured, unconfigured, sequential, and partial-startup states while preserving existing route behavior with cleanup on scope exit for all acquired resources (`backend/tests/test_txt2crs_lifespan.py`)
-- [ ] T007 [S0201] Run the new focused tests and record the expected pre-implementation failures (`backend/tests/core/test_txt2crs_settings.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
+- [x] T003 [S0201] [P] Extend settings tests for exact P0 defaults, bounded overrides, GPT-5.6 rejection, optional Tavily absence, and cleared inherited environment (`backend/tests/core/test_txt2crs_settings.py`)
+- [x] T004 [S0201] [P] Write exact public configuration translation and public-import boundary tests (`backend/tests/services/test_txt2crs_application.py`)
+- [x] T005 [S0201] Add recording-factory tests for configured creation, unconfigured no-op, idempotent close, factory failure, and close failure with cleanup on scope exit for all acquired resources (`backend/tests/services/test_txt2crs_application.py`)
+- [x] T006 [S0201] Write FastAPI lifespan tests for configured, unconfigured, sequential, and partial-startup states while preserving existing route behavior with cleanup on scope exit for all acquired resources (`backend/tests/test_txt2crs_lifespan.py`)
+- [x] T007 [S0201] Run the new focused tests and record the expected pre-implementation failures (`backend/tests/core/test_txt2crs_settings.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
 
 ---
 

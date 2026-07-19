@@ -15,6 +15,45 @@ TXT2CRS_PATH_ENVIRONMENT_NAMES = (
     "TXT2CRS_WORKER_ROOT",
 )
 
+TXT2CRS_COMPOSITION_ENVIRONMENT_NAMES = (
+    "TXT2CRS_MODEL_ID",
+    "TXT2CRS_RESEARCH_ENABLED",
+    "TXT2CRS_RESEARCH_MCP_HOST",
+    "TXT2CRS_RESEARCH_MCP_PORT",
+    "TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS",
+    "TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS",
+    "TXT2CRS_MAX_INPUT_BYTES",
+    "TXT2CRS_MAX_METADATA_BYTES",
+    "TXT2CRS_MAX_NORMALIZED_CHARACTERS",
+    "TXT2CRS_MAX_PDF_PAGES",
+    "TXT2CRS_ARTIFACT_MAX_JOB_BYTES",
+    "TXT2CRS_HTML_PREVIEW_MAX_BYTES",
+    "TXT2CRS_RETRY_MAXIMUM_ATTEMPTS",
+    "TXT2CRS_RETRY_BASE_SECONDS",
+    "TXT2CRS_RETRY_MAXIMUM_SECONDS",
+    "TXT2CRS_RETRY_JITTER_RATIO",
+    "TXT2CRS_RUN_MAXIMUM_TURNS",
+    "TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS",
+    "TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS",
+    "TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS",
+    "TXT2CRS_RUN_MAXIMUM_SOURCES",
+    "TXT2CRS_RUN_MAXIMUM_EXTRACTED_BYTES",
+    "TXT2CRS_RUN_MAXIMUM_INPUT_TOKENS",
+    "TXT2CRS_RUN_MAXIMUM_OUTPUT_TOKENS",
+    "TXT2CRS_RUN_MAXIMUM_RETRIES",
+    "TXT2CRS_RUN_MAXIMUM_REPAIRS",
+    "TXT2CRS_RUN_MAXIMUM_ELAPSED_SECONDS",
+    "TXT2CRS_ADMISSION_WINDOW_SECONDS",
+    "TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER",
+    "TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL",
+    "TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER",
+    "TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL",
+    "TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER",
+    "TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL",
+    "TAVILY_API_KEY",
+    "TAVILY_TIMEOUT_SECONDS",
+)
+
 
 @pytest.fixture(autouse=True)
 def _clear_inherited_txt2crs_path_environment(
@@ -28,7 +67,10 @@ def _clear_inherited_txt2crs_path_environment(
     prevents a developer's local or CI path configuration from changing the
     expected defaults and custom-root scenarios.
     """
-    for environment_name in TXT2CRS_PATH_ENVIRONMENT_NAMES:
+    for environment_name in (
+        *TXT2CRS_PATH_ENVIRONMENT_NAMES,
+        *TXT2CRS_COMPOSITION_ENVIRONMENT_NAMES,
+    ):
         monkeypatch.delenv(environment_name, raising=False)
 
 
@@ -55,6 +97,157 @@ def test_txt2crs_paths_use_private_container_defaults() -> None:
     assert settings.TXT2CRS_ARTIFACT_ROOT == Path("/var/lib/txt2crs/artifacts")
     assert settings.TXT2CRS_CODEX_HOME == Path("/var/lib/txt2crs/codex-home")
     assert settings.TXT2CRS_WORKER_ROOT == Path("/tmp/txt2crs-worker")
+
+
+def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
+    """Finite settings match the reviewed implementation-plan profile."""
+
+    settings = Settings(_env_file=None, **_base_settings_payload())
+
+    assert settings.TXT2CRS_MODEL_ID == "gpt-5.6"
+    assert settings.TXT2CRS_RESEARCH_ENABLED is True
+    assert settings.TXT2CRS_RESEARCH_MCP_HOST == "127.0.0.1"
+    assert settings.TXT2CRS_RESEARCH_MCP_PORT == 8765
+    assert settings.TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS == 10
+    assert settings.TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS == 10
+    assert settings.TXT2CRS_MAX_INPUT_BYTES == 20_971_520
+    assert settings.TXT2CRS_MAX_METADATA_BYTES == 262_144
+    assert settings.TXT2CRS_MAX_NORMALIZED_CHARACTERS == 200_000
+    assert settings.TXT2CRS_MAX_PDF_PAGES == 200
+    assert settings.TXT2CRS_ARTIFACT_MAX_JOB_BYTES == 104_857_600
+    assert settings.TXT2CRS_HTML_PREVIEW_MAX_BYTES == 5_242_880
+    assert settings.TXT2CRS_RETRY_MAXIMUM_ATTEMPTS == 3
+    assert settings.TXT2CRS_RETRY_BASE_SECONDS == 1
+    assert settings.TXT2CRS_RETRY_MAXIMUM_SECONDS == 15
+    assert settings.TXT2CRS_RETRY_JITTER_RATIO == 0.2
+    assert settings.TXT2CRS_RUN_MAXIMUM_TURNS == 20
+    assert settings.TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS == 12
+    assert settings.TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS == 6
+    assert settings.TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS == 6
+    assert settings.TXT2CRS_RUN_MAXIMUM_SOURCES == 12
+    assert settings.TXT2CRS_RUN_MAXIMUM_EXTRACTED_BYTES == 2_000_000
+    assert settings.TXT2CRS_RUN_MAXIMUM_INPUT_TOKENS == 600_000
+    assert settings.TXT2CRS_RUN_MAXIMUM_OUTPUT_TOKENS == 150_000
+    assert settings.TXT2CRS_RUN_MAXIMUM_RETRIES == 3
+    assert settings.TXT2CRS_RUN_MAXIMUM_REPAIRS == 3
+    assert settings.TXT2CRS_RUN_MAXIMUM_ELAPSED_SECONDS == 2_700
+    assert settings.TXT2CRS_ADMISSION_WINDOW_SECONDS == 86_400
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER == 2
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL == 5
+    assert (
+        settings.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER == 1_500_000
+    )
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL == 3_750_000
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER == 2_000_000
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL == 5_000_000
+    assert settings.TAVILY_TIMEOUT_SECONDS == 20
+    assert settings.TAVILY_API_KEY is None
+
+
+@pytest.mark.parametrize(
+    "model_id",
+    ["gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+)
+def test_txt2crs_model_accepts_only_reviewed_gpt56_family(model_id: str) -> None:
+    settings = Settings(
+        _env_file=None,
+        **_base_settings_payload(),
+        TXT2CRS_MODEL_ID=model_id,
+    )
+
+    assert settings.TXT2CRS_MODEL_ID == model_id
+
+
+def test_txt2crs_model_rejects_non_gpt56_identifier() -> None:
+    with pytest.raises(ValidationError, match="TXT2CRS_MODEL_ID"):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            TXT2CRS_MODEL_ID="gpt-5.4",
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "unsafe_value"),
+    [
+        ("TXT2CRS_RESEARCH_MCP_PORT", 65_536),
+        ("TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS", 0),
+        ("TXT2CRS_MAX_INPUT_BYTES", 0),
+        ("TXT2CRS_MAX_PDF_PAGES", 0),
+        ("TXT2CRS_ARTIFACT_MAX_JOB_BYTES", 1_000_000_001),
+        ("TXT2CRS_RETRY_MAXIMUM_ATTEMPTS", 1),
+        ("TXT2CRS_RETRY_JITTER_RATIO", 1.1),
+        ("TXT2CRS_RUN_MAXIMUM_TURNS", 0),
+        ("TXT2CRS_RUN_MAXIMUM_ELAPSED_SECONDS", 0),
+        ("TXT2CRS_ADMISSION_WINDOW_SECONDS", 0),
+        ("TAVILY_TIMEOUT_SECONDS", 61),
+    ],
+)
+def test_txt2crs_composition_rejects_unsafe_finite_bounds(
+    field_name: str,
+    unsafe_value: int | float,
+) -> None:
+    with pytest.raises(ValidationError, match=field_name):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            **{field_name: unsafe_value},
+        )
+
+
+@pytest.mark.parametrize(
+    "unsafe_host",
+    ["0.0.0.0", "localhost", "192.0.2.10"],
+)
+def test_txt2crs_research_mcp_requires_numeric_loopback(
+    unsafe_host: str,
+) -> None:
+    with pytest.raises(ValidationError, match="TXT2CRS_RESEARCH_MCP_HOST"):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            TXT2CRS_RESEARCH_MCP_HOST=unsafe_host,
+        )
+
+
+def test_txt2crs_cross_field_budgets_reject_impossible_profiles() -> None:
+    with pytest.raises(ValidationError, match="search and extract"):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS=4,
+            TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS=3,
+            TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS=2,
+        )
+
+    with pytest.raises(ValidationError, match="reserved tokens"):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER=4_000_000,
+            TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL=3_750_000,
+        )
+
+
+def test_tavily_secret_is_optional_trimmed_and_hidden() -> None:
+    whitespace_settings = Settings(
+        _env_file=None,
+        **_base_settings_payload(),
+        TAVILY_API_KEY="   ",
+    )
+    configured_settings = Settings(
+        _env_file=None,
+        **_base_settings_payload(),
+        TAVILY_API_KEY="private-tavily-key",
+    )
+
+    assert whitespace_settings.TAVILY_API_KEY is None
+    assert configured_settings.TAVILY_API_KEY is not None
+    assert (
+        configured_settings.TAVILY_API_KEY.get_secret_value()
+        == "private-tavily-key"
+    )
+    assert "private-tavily-key" not in repr(configured_settings)
 
 
 def test_custom_state_root_derives_omitted_persistent_children(
