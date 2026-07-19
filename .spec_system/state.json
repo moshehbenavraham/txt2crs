@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 2,
-  "current_session": "phase02-session01-engine-composition-lifecycle",
+  "current_session": null,
   "monorepo": true,
   "packages": [
     {
@@ -38,7 +38,7 @@
     "2": {
       "name": "Composition and Readiness",
       "description": "Compose one FastAPI-owned engine lifecycle, serial worker, safe readiness and authentication API, and operator setup experience.",
-      "status": "not_started",
+      "status": "in_progress",
       "session_count": 5
     }
   },
@@ -66,14 +66,13 @@
     {
       "id": "phase01-session05-public-facade-and-owner-lifecycle",
       "package": "backend/packages/txt2crs"
+    },
+    {
+      "id": "phase02-session01-engine-composition-lifecycle",
+      "package": "backend"
     }
   ],
   "next_session_history": [
-    {
-      "date": "2026-07-19",
-      "session": "phase00-session01-baseline-container-and-state",
-      "status": "planned"
-    },
     {
       "date": "2026-07-19",
       "session": "phase00-session01-baseline-container-and-state",
@@ -186,6 +185,12 @@
       "session": "phase02-session01-engine-composition-lifecycle",
       "package": "backend",
       "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session01-engine-composition-lifecycle",
+      "package": "backend",
+      "status": "completed"
     }
   ]
 }

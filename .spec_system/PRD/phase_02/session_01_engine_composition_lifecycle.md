@@ -2,8 +2,8 @@
 
 **Session ID**: `phase02-session01-engine-composition-lifecycle`
 **Package**: backend
-**Status**: Not Started
-**Estimated Tasks**: ~12-25
+**Status**: Complete
+**Estimated Tasks**: 24
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -38,8 +38,8 @@ the application lifespan, and closes it safely on every startup outcome.
 
 ## Prerequisites
 
-- [ ] Phase 01 public facade and real/test factory contracts are available.
-- [ ] Single-process backend topology remains enforced.
+- [x] Phase 01 public facade and real/test factory contracts are available.
+- [x] Single-process backend topology remains enforced.
 
 ---
 
@@ -55,10 +55,10 @@ the application lifespan, and closes it safely on every startup outcome.
 
 ## Success Criteria
 
-- [ ] One facade is created per FastAPI lifespan from typed settings.
-- [ ] Shell code imports no private engine modules or generation internals.
-- [ ] Missing external credentials still allow OpenAPI and setup surfaces to
+- [x] One facade is created per FastAPI lifespan from typed settings.
+- [x] Shell code imports no private engine modules or generation internals.
+- [x] Missing external credentials still allow OpenAPI and setup surfaces to
   start in a truthful unconfigured state.
-- [ ] Partial startup and normal shutdown close all created resources exactly
+- [x] Partial startup and normal shutdown close all created resources exactly
   once.
-- [ ] Backend unit, type, lint, and focused lifecycle tests pass.
+- [x] Backend unit, type, lint, and focused lifecycle tests pass.

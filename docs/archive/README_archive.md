@@ -7,5 +7,5 @@ date on which the snapshot was created.
 ## Snapshots
 
 - `CHANGELOG_20260717.md` - initial engine and repository foundation history.
-- `CHANGELOG_20260719.md` - releases through 0.3.4 and application-shell
-  adoption history.
+- `CHANGELOG_20260719.md` - releases through 0.5.1, including application
+  composition, engine-boundary, recovery, and application-shell history.
