@@ -1,0 +1,57 @@
+{
+  "version": "2.0",
+  "project_name": "txt2crs",
+  "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
+  "current_phase": 0,
+  "current_session": null,
+  "monorepo": true,
+  "packages": [
+    {
+      "name": "backend-shell",
+      "path": "backend",
+      "stack_hint": "Python 3.14, FastAPI, SQLModel, PostgreSQL"
+    },
+    {
+      "name": "txt2crs-engine",
+      "path": "backend/packages/txt2crs",
+      "stack_hint": "Python 3.14, Pydantic v2, SQLite"
+    },
+    {
+      "name": "frontend",
+      "path": "frontend",
+      "stack_hint": "React 19, TypeScript, Vite, Tailwind CSS"
+    }
+  ],
+  "phases": {
+    "0": {
+      "name": "Application Baseline",
+      "description": "Make the application shell a reproducible single-process base with workspace engine installation and confined persistent private state.",
+      "status": "complete",
+      "session_count": 1
+    }
+  },
+  "completed_sessions": [
+    {
+      "id": "phase00-session01-baseline-container-and-state",
+      "package": null
+    }
+  ],
+  "next_session_history": [
+    {
+      "date": "2026-07-19",
+      "session": "phase00-session01-baseline-container-and-state",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase00-session01-baseline-container-and-state",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase00-session01-baseline-container-and-state",
+      "package": null,
+      "status": "completed"
+    }
+  ]
+}

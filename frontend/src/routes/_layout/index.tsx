@@ -8,13 +8,14 @@ import { WorkspaceHeader } from "@/components/Dashboard/WorkspaceHeader"
 import PendingDashboard from "@/components/Pending/PendingDashboard"
 import { Button } from "@/components/ui/button"
 import useAuth from "@/hooks/useAuth"
+import { buildPageTitle } from "@/lib/branding"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
   head: () => ({
     meta: [
       {
-        title: "Dashboard - AIwithApex.com",
+        title: buildPageTitle("Dashboard"),
       },
     ],
   }),

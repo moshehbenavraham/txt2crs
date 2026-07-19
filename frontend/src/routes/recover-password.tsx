@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
+import { buildPageTitle } from "@/lib/branding"
 import {
   type RecoverPasswordFormData,
   recoverPasswordSchema,
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/recover-password")({
   head: () => ({
     meta: [
       {
-        title: "Recover Password - AIwithApex.com",
+        title: buildPageTitle("Recover password"),
       },
     ],
   }),

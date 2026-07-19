@@ -27,6 +27,11 @@ ENV PYTHONPATH=/app
 
 COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
 
+# The backend project declares txt2crs as a uv workspace dependency. uv must
+# see the workspace member before the first sync; otherwise a host install can
+# work while the production image fails because `packages/txt2crs` is absent.
+COPY ./packages /app/packages
+
 # =============================================================================
 # Stage 2: production - optimized for Coolify deployment
 # Target with: docker build --target production
@@ -47,9 +52,16 @@ COPY ./app /app/app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev
 
-# Create non-root user for security
+# Create the same fixed-UID runtime identity used by local Compose. The private
+# mount points are seeded with owner-only permissions so a fresh named volume
+# keeps the correct ownership when Docker initializes it from the image.
 RUN groupadd --gid 1001 appuser && \
     useradd --uid 1001 --gid appuser --no-create-home --shell /usr/sbin/nologin appuser && \
+    install -d -m 0700 -o appuser -g appuser \
+        /var/lib/txt2crs \
+        /var/lib/txt2crs/artifacts \
+        /var/lib/txt2crs/codex-home \
+        /tmp/txt2crs-worker && \
     chown -R appuser:appuser /app
 
 USER appuser
@@ -60,7 +72,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import json, urllib.request; response = urllib.request.urlopen('http://localhost:8000/api/v1/utils/health/', timeout=5); data = json.load(response); raise SystemExit(0 if data.get('status') == 'healthy' else 1)" || exit 1
 
-CMD ["fastapi", "run", "--workers", "4"]
+# P0 owns one serial engine worker in-process, so the ASGI server must also
+# remain a single process. Horizontal scaling requires a future queue design.
+CMD ["fastapi", "run", "app/main.py"]
 
 # =============================================================================
 # Stage 3: development - local dev with tests (default when no target specified)
@@ -84,4 +98,18 @@ COPY ./tests /app/tests
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync
 
-CMD ["fastapi", "run", "--workers", "4"]
+# Development runs application code as the same non-root identity as
+# production. Tests that truly need another identity must use a dedicated test
+# target instead of weakening the application image.
+RUN groupadd --gid 1001 appuser && \
+    useradd --uid 1001 --gid appuser --no-create-home --shell /usr/sbin/nologin appuser && \
+    install -d -m 0700 -o appuser -g appuser \
+        /var/lib/txt2crs \
+        /var/lib/txt2crs/artifacts \
+        /var/lib/txt2crs/codex-home \
+        /tmp/txt2crs-worker && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+CMD ["fastapi", "run", "app/main.py"]

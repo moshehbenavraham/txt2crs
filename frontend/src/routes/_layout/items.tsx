@@ -15,6 +15,7 @@ import {
 import { columns } from "@/components/Items/columns"
 import { ItemRecordCard } from "@/components/Items/ItemRecordCard"
 import PendingItems from "@/components/Pending/PendingItems"
+import { buildPageTitle } from "@/lib/branding"
 
 const itemsSearchSchema = z.object({
   type: z.enum(["all", "general"]).optional().default("all"),
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/_layout/items")({
   head: () => ({
     meta: [
       {
-        title: "Items - AIwithApex.com",
+        title: buildPageTitle("Items"),
       },
     ],
   }),

@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 
 import { Button } from "@/components/ui/button"
+import { buildPageTitle } from "@/lib/branding"
 
 export const Route = createFileRoute("/_layout/forbidden")({
   component: ForbiddenPage,
   head: () => ({
     meta: [
       {
-        title: "Not Authorized - AIwithApex.com",
+        title: buildPageTitle("Not authorized"),
       },
     ],
   }),

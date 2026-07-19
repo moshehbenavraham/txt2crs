@@ -71,6 +71,8 @@ services:
       - "8012:8000"
     build:
       context: ./backend
+    # The development image already declares USER appuser. Keeping the user
+    # out of this override preserves the same non-root identity as production.
     # command: sleep infinity  # Infinite loop to keep container alive doing nothing
     command:
       - fastapi
@@ -101,7 +103,7 @@ services:
       # Traces viewable at http://localhost:16686 (Jaeger UI)
       OTEL_ENABLED: "${OTEL_ENABLED:-false}"
       OTLP_ENDPOINT: "http://jaeger:4317"
-      OTEL_SERVICE_NAME: "${PROJECT_NAME:-python-react-boilerplate}"
+      OTEL_SERVICE_NAME: "${PROJECT_NAME:-txt2crs}"
       # Test-only user creation endpoint; config rejects this outside local mode.
       ENABLE_PRIVATE_DEV_ROUTES: "true"
 

@@ -51,6 +51,14 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      # Prestart imports the same validated shell settings as the API process.
+      # Keep its view of private engine paths identical without mounting or
+      # writing the runtime state volume during database migrations.
+      - TXT2CRS_STATE_ROOT=/var/lib/txt2crs
+      - TXT2CRS_JOB_DB_PATH=/var/lib/txt2crs/jobs.sqlite3
+      - TXT2CRS_ARTIFACT_ROOT=/var/lib/txt2crs/artifacts
+      - TXT2CRS_CODEX_HOME=/var/lib/txt2crs/codex-home
+      - TXT2CRS_WORKER_ROOT=/tmp/txt2crs-worker
 
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
@@ -84,6 +92,19 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      # These paths match the owner-only directories baked into the image.
+      # Host-only runs may override Settings, but a container mount target must
+      # not move without rebuilding the image with matching ownership.
+      - TXT2CRS_STATE_ROOT=/var/lib/txt2crs
+      - TXT2CRS_JOB_DB_PATH=/var/lib/txt2crs/jobs.sqlite3
+      - TXT2CRS_ARTIFACT_ROOT=/var/lib/txt2crs/artifacts
+      - TXT2CRS_CODEX_HOME=/var/lib/txt2crs/codex-home
+      - TXT2CRS_WORKER_ROOT=/tmp/txt2crs-worker
+
+    # One application-owned volume preserves SQLite/WAL files, artifacts, and
+    # Codex-managed credentials together across container replacement.
+    volumes:
+      - txt2crs-state:/var/lib/txt2crs
 
     healthcheck:
       test:
@@ -147,6 +168,7 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect
 volumes:
   app-db-data:
+  txt2crs-state:
 
 networks:
   traefik-public:

@@ -54,7 +54,7 @@ wheels = [
 
 [[package]]
 name = "app"
-version = "0.3.2"
+version = "0.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -2398,7 +2398,7 @@ wheels = [
 
 [[package]]
 name = "txt2crs"
-version = "0.3.2"
+version = "0.3.3"
 source = { editable = "packages/txt2crs" }
 dependencies = [
     { name = "httpx" },

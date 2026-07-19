@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
 import { useTheme } from "@/components/theme-provider"
+import { PRODUCT_NAME } from "@/lib/branding"
 import { cn } from "@/lib/utils"
 import icon from "/assets/images/apex-icon.svg"
 import iconLight from "/assets/images/apex-icon-light.svg"
@@ -34,7 +35,7 @@ export function Logo({
       <div className={cn("relative", baseTransition, hoverEffect)}>
         <img
           src={fullLogo}
-          alt="AIwithApex.com"
+          alt={PRODUCT_NAME}
           className={cn(
             "h-7 w-auto group-data-[collapsible=icon]:hidden",
             baseTransition,
@@ -43,7 +44,7 @@ export function Logo({
         />
         <img
           src={iconLogo}
-          alt="AIwithApex.com"
+          alt={PRODUCT_NAME}
           className={cn(
             "size-6 hidden group-data-[collapsible=icon]:block",
             baseTransition,
@@ -54,7 +55,7 @@ export function Logo({
     ) : (
       <img
         src={variant === "full" ? fullLogo : iconLogo}
-        alt="AIwithApex.com"
+        alt={PRODUCT_NAME}
         className={cn(
           variant === "full" ? "h-7 w-auto" : "size-6",
           baseTransition,

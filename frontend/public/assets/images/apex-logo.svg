@@ -1,11 +1,10 @@
-<svg width="210" height="40" viewBox="0 0 210 40" xmlns="http://www.w3.org/2000/svg">
-  <title>AIwithApex.com</title>
+<svg width="132" height="40" viewBox="0 0 132 40" xmlns="http://www.w3.org/2000/svg">
+  <title>txt2crs</title>
   <defs>
     <linearGradient id="forest-primary" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#1a5038"/>
       <stop offset="100%" stop-color="#2d6b4a"/>
     </linearGradient>
   </defs>
-  <text x="0" y="29" font-family="'Playfair Display', Georgia, serif" font-size="26" font-weight="600" fill="url(#forest-primary)">AIwithApex</text>
-  <text x="158" y="29" font-family="'Outfit', system-ui, sans-serif" font-size="22" font-weight="400" fill="#2b2825">.com</text>
+  <text x="0" y="29" font-family="'Playfair Display', Georgia, serif" font-size="28" font-weight="600" fill="url(#forest-primary)">txt2crs</text>
 </svg>

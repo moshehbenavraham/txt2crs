@@ -23,6 +23,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
+import { buildPageTitle } from "@/lib/branding"
 import { type ResetPasswordFormData, resetPasswordSchema } from "@/lib/schemas"
 import { handleError } from "@/utils"
 
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       {
-        title: "Reset Password - AIwithApex.com",
+        title: buildPageTitle("Reset password"),
       },
     ],
   }),

@@ -10,6 +10,7 @@ import { DataTable } from "@/components/Common/DataTable"
 import { PageHeader } from "@/components/Common/PageHeader"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import useAuth from "@/hooks/useAuth"
+import { buildPageTitle } from "@/lib/branding"
 import { CURRENT_USER_QUERY_KEY } from "@/lib/session"
 
 function getUsersQueryOptions() {
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_layout/admin")({
   head: () => ({
     meta: [
       {
-        title: "Admin - AIwithApex.com",
+        title: buildPageTitle("Admin"),
       },
     ],
   }),

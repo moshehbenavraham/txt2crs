@@ -1,5 +1,7 @@
 import { FaGithub, FaLinkedinIn, FaYoutube } from "react-icons/fa"
 
+import { PRODUCT_NAME } from "@/lib/branding"
+
 const socialLinks = [
   {
     icon: FaGithub,
@@ -26,9 +28,9 @@ export function Footer() {
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
         <p className="text-muted-foreground/70 text-[13px] tracking-wide">
           <span className="font-medium text-muted-foreground">
-            AIwithApex.com
+            {PRODUCT_NAME}
           </span>
-          <span className="mx-2 text-border">·</span>
+          <span className="mx-2 text-border">|</span>
           {currentYear}
         </p>
         <div className="flex items-center gap-1">

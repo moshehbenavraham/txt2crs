@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import { buildPageTitle } from "@/lib/branding"
 import { type SignupFormData, signupSchema } from "@/lib/schemas"
 
 export const Route = createFileRoute("/signup")({
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       {
-        title: "Sign Up - AIwithApex.com",
+        title: buildPageTitle("Sign up"),
       },
     ],
   }),

@@ -46,6 +46,7 @@ Note:
 """
 
 import secrets
+from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
@@ -91,6 +92,23 @@ def parse_cors(v: Any) -> list[str] | str:
     elif isinstance(v, list | str):
         return v
     raise ValueError(v)
+
+
+def _path_uses_existing_symlink(path: Path) -> bool:
+    """
+    Return whether an absolute path traverses an existing symbolic link.
+
+    `Path.resolve()` follows symlinks, which is useful for normalization but
+    would erase the evidence needed for this startup safety check. Walking the
+    original path first lets configuration fail closed when either the final
+    path or an existing parent redirects storage somewhere unexpected.
+    """
+    current_path = Path(path.anchor)
+    for path_part in path.parts[1:]:
+        current_path /= path_part
+        if current_path.is_symlink():
+            return True
+    return False
 
 
 class Settings(BaseSettings):
@@ -230,6 +248,133 @@ class Settings(BaseSettings):
     Restrict MCP database access to read-only operations. Default: True.
     NEVER disable this in production environments.
     """
+
+    # === txt2crs Private Filesystem Configuration ===
+    TXT2CRS_STATE_ROOT: Path = Path("/var/lib/txt2crs")
+    """
+    Application-owned persistent root for engine state.
+
+    SQLite state, rendered artifacts, and Codex-managed credentials must stay
+    below this boundary so one private volume can preserve them together.
+    """
+
+    TXT2CRS_JOB_DB_PATH: Path = Path("/var/lib/txt2crs/jobs.sqlite3")
+    """Tenant-scoped SQLite job and checkpoint database file."""
+
+    TXT2CRS_ARTIFACT_ROOT: Path = Path("/var/lib/txt2crs/artifacts")
+    """Private root for integrity-checked rendered artifacts."""
+
+    TXT2CRS_CODEX_HOME: Path = Path("/var/lib/txt2crs/codex-home")
+    """Isolated persistent CODEX_HOME for the dedicated application identity."""
+
+    TXT2CRS_WORKER_ROOT: Path = Path("/tmp/txt2crs-worker")
+    """Empty ephemeral working directory used by the read-only Codex sandbox."""
+
+    @model_validator(mode="after")
+    def _derive_txt2crs_persistent_path_defaults(self) -> Self:
+        """
+        Keep omitted persistent children attached to a custom state root.
+
+        Pydantic field defaults are independent values. Without this small
+        derivation step, changing only TXT2CRS_STATE_ROOT would silently leave
+        the database, artifacts, and credentials under `/var/lib/txt2crs`.
+        Explicit child overrides are preserved for deployments that need a
+        deeper directory layout inside the same private root.
+        """
+        persistent_child_defaults = {
+            "TXT2CRS_JOB_DB_PATH": self.TXT2CRS_STATE_ROOT / "jobs.sqlite3",
+            "TXT2CRS_ARTIFACT_ROOT": self.TXT2CRS_STATE_ROOT / "artifacts",
+            "TXT2CRS_CODEX_HOME": self.TXT2CRS_STATE_ROOT / "codex-home",
+        }
+        for field_name, derived_path in persistent_child_defaults.items():
+            if field_name not in self.model_fields_set:
+                setattr(self, field_name, derived_path)
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_txt2crs_path_boundaries(self) -> Self:
+        """
+        Normalize engine paths and reject layouts that escape private storage.
+
+        Persistent children must be strict descendants of the state root.
+        Artifacts, credentials, and the SQLite file also receive distinct
+        boundaries so one subsystem cannot overwrite another. The worker
+        directory is deliberately outside persistent storage because Codex
+        uses it only as an empty, isolated working directory.
+        """
+        configured_paths = {
+            "TXT2CRS_STATE_ROOT": self.TXT2CRS_STATE_ROOT,
+            "TXT2CRS_JOB_DB_PATH": self.TXT2CRS_JOB_DB_PATH,
+            "TXT2CRS_ARTIFACT_ROOT": self.TXT2CRS_ARTIFACT_ROOT,
+            "TXT2CRS_CODEX_HOME": self.TXT2CRS_CODEX_HOME,
+            "TXT2CRS_WORKER_ROOT": self.TXT2CRS_WORKER_ROOT,
+        }
+
+        normalized_paths: dict[str, Path] = {}
+        for field_name, configured_path in configured_paths.items():
+            if not configured_path.is_absolute():
+                raise ValueError(f"{field_name} must be an absolute path.")
+            if _path_uses_existing_symlink(configured_path):
+                raise ValueError(
+                    f"{field_name} must not use an existing symlink endpoint or parent."
+                )
+
+            normalized_paths[field_name] = configured_path.resolve(strict=False)
+
+        state_root = normalized_paths["TXT2CRS_STATE_ROOT"]
+        persistent_child_names = (
+            "TXT2CRS_JOB_DB_PATH",
+            "TXT2CRS_ARTIFACT_ROOT",
+            "TXT2CRS_CODEX_HOME",
+        )
+        for field_name in persistent_child_names:
+            child_path = normalized_paths[field_name]
+            if child_path == state_root or not child_path.is_relative_to(state_root):
+                raise ValueError(
+                    f"{field_name} must be a strict child of TXT2CRS_STATE_ROOT."
+                )
+
+        job_database_path = normalized_paths["TXT2CRS_JOB_DB_PATH"]
+        artifact_root = normalized_paths["TXT2CRS_ARTIFACT_ROOT"]
+        codex_home = normalized_paths["TXT2CRS_CODEX_HOME"]
+        worker_root = normalized_paths["TXT2CRS_WORKER_ROOT"]
+
+        directory_boundaries_overlap = (
+            artifact_root == codex_home
+            or artifact_root.is_relative_to(codex_home)
+            or codex_home.is_relative_to(artifact_root)
+        )
+        if directory_boundaries_overlap:
+            raise ValueError(
+                "TXT2CRS_ARTIFACT_ROOT and TXT2CRS_CODEX_HOME must not overlap."
+            )
+
+        database_overlaps_directory = (
+            job_database_path == artifact_root
+            or job_database_path == codex_home
+            or job_database_path.is_relative_to(artifact_root)
+            or job_database_path.is_relative_to(codex_home)
+            or artifact_root.is_relative_to(job_database_path)
+            or codex_home.is_relative_to(job_database_path)
+        )
+        if database_overlaps_directory:
+            raise ValueError(
+                "TXT2CRS_JOB_DB_PATH must not overlap an engine directory."
+            )
+
+        if worker_root == state_root or worker_root.is_relative_to(state_root):
+            raise ValueError(
+                "TXT2CRS_WORKER_ROOT must remain outside TXT2CRS_STATE_ROOT."
+            )
+
+        # Expose the normalized values everywhere else in the shell. Package
+        # factories can now consume one canonical representation instead of
+        # repeating path cleanup at each call site.
+        for field_name, normalized_path in normalized_paths.items():
+            setattr(self, field_name, normalized_path)
+
+        return self
 
     # === Database Configuration ===
     POSTGRES_SERVER: str
