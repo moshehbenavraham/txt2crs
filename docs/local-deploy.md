@@ -1,518 +1,95 @@
-# Python React Boilerplate Local Deployment Guide
+# Local Deployment and Rebuilds
 
-Complete guide for taking down, cleaning, rebuilding, and restarting the Python React Boilerplate app locally.
+The supported local deployment is the repository-root Docker Compose stack.
+For service URLs and direct development commands, see
+[Development](development.md).
 
----
+## Start or Rebuild
 
-## TL;DR - Use the Script
-
-```bash
-# Safe rebuild (preserves your database)
-./scripts/deploy-local-clean.sh
-
-# Quick rebuild (skip cache cleaning)
-./scripts/deploy-local-clean.sh --skip-cache
-
-# Nuclear rebuild (DESTROYS ALL DATA - use with caution!)
-./scripts/deploy-local-clean.sh --nuclear
-```
-
----
-
-## CRITICAL: Data Preservation Warning
-
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║   STOP! READ THIS BEFORE RUNNING ANY COMMANDS                                ║
-║                                                                              ║
-║   The "-v" flag DESTROYS ALL DATABASE DATA permanently.                      ║
-║                                                                              ║
-║   docker compose down -v    <-- DESTROYS all users, records, everything      ║
-║   docker compose down       <-- SAFE: preserves your database                ║
-║                                                                              ║
-║   There is NO UNDO. There is NO BACKUP created automatically.                ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
-
----
-
-## Choose Your Rebuild Type
-
-Before proceeding, decide which type of rebuild you need:
-
-| Scenario | Rebuild Type | Data Preserved? | Use When |
-|----------|--------------|-----------------|----------|
-| Code changes not working | **Safe Rebuild** | YES | Most common - fixes code/image issues |
-| Weird state, want fresh start | **Safe Rebuild** | YES | Clears containers but keeps DB |
-| Database schema corrupted | **Nuclear Rebuild** | NO | Last resort - destroys everything |
-| Starting completely fresh | **Nuclear Rebuild** | NO | New project setup or total reset |
-| Disk space issues | **Nuclear Rebuild** | NO | Reclaims maximum space |
-
-**Rule of thumb:** If you're not sure, use **Safe Rebuild**. You can always go nuclear later.
-
----
-
-## Quick Reference: Safe Rebuild (PRESERVES DATA)
-
-Use this 99% of the time. Rebuilds all code/images but keeps your database intact.
+Create `.env` from the tracked example if it does not exist:
 
 ```bash
-# Stop everything (keeps volumes/data)
-docker compose down --remove-orphans
-
-# Remove old images to force fresh build
-docker rmi python-react-boilerplate-backend:latest python-react-boilerplate-frontend:latest python-react-boilerplate-playwright:latest 2>/dev/null || true
-
-# Clean build cache (optional, for thorough rebuild)
-docker builder prune -af
-docker image prune -f
-
-# Rebuild from scratch
-docker compose build --no-cache --pull
-
-# Start fresh
-docker compose up -d
+cp .env.example .env
+docker compose up --detach --build --wait
 ```
 
-**What this preserves:**
-- All database tables and data
-- All user accounts
-- All application records
-- Volume: `python-react-boilerplate_app-db-data`
-
-**What this rebuilds:**
-- All Docker images (backend, frontend, playwright)
-- All containers
-- Networks
-
----
-
-## Quick Reference: Nuclear Rebuild (DESTROYS ALL DATA)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  WARNING: This permanently deletes ALL database data!                       │
-│                                                                             │
-│  - All user accounts will be deleted                                        │
-│  - All application data will be deleted                                     │
-│  - All search history, crawl results, extractions will be deleted           │
-│  - The database will be completely empty after this                         │
-│                                                                             │
-│  Consider backing up first:                                                 │
-│  docker compose exec db pg_dump -U postgres app > backup.sql                │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-Only use when you truly need a completely fresh start:
+Docker reports the database, backend, and frontend as healthy before the
+command succeeds. Verify the public local probes:
 
 ```bash
-# DANGER: The -v flag destroys all database data!
-docker compose down --remove-orphans -v
-
-# Remove all images
-docker rmi python-react-boilerplate-backend:latest python-react-boilerplate-frontend:latest python-react-boilerplate-playwright:latest 2>/dev/null || true
-
-# Clean everything
-docker builder prune -af
-docker image prune -f
-
-# Rebuild from scratch
-docker compose build --no-cache --pull
-
-# Start fresh (database will be empty, migrations will create fresh tables)
-docker compose up -d
+curl --fail http://localhost:8012/health
+curl --fail http://localhost:5183/health
 ```
 
----
+The backend response includes application, version, and database status. The
+frontend response is:
 
-## Command Reference: What Destroys Data vs What's Safe
-
-### SAFE Commands (preserve data)
-
-```bash
-docker compose down                    # Stop containers, keep volumes
-docker compose down --remove-orphans   # Stop + remove orphan containers
-docker compose stop                    # Stop without removing
-docker compose restart                 # Restart services
-docker compose build                   # Rebuild images
-docker compose build --no-cache        # Rebuild without cache
-docker rmi <image>                     # Remove images (not volumes)
-docker builder prune                   # Clean build cache
-docker image prune                     # Remove dangling images
+```json
+{"status":"healthy","service":"frontend"}
 ```
 
-### DANGEROUS Commands (destroy data)
-
-```bash
-docker compose down -v                 # DESTROYS database volume
-docker compose down --volumes          # DESTROYS database volume (same as -v)
-docker volume rm python-react-boilerplate_app-db-data  # DESTROYS database volume directly
-docker system prune --volumes          # DESTROYS ALL unused volumes system-wide
-docker volume prune                    # DESTROYS ALL unused volumes
-```
-
----
-
-## Architecture Overview
-
-The Python React Boilerplate app consists of the following services:
-
-| Service      | Image                    | Port(s)              | Purpose                    |
-|--------------|--------------------------|----------------------|----------------------------|
-| db           | postgres:18.4            | 5447:5432            | PostgreSQL database        |
-| backend      | python-react-boilerplate-backend:latest    | 8012:8000            | FastAPI backend            |
-| frontend     | python-react-boilerplate-frontend:latest   | 5183:80              | Nginx serving React app    |
-| proxy        | traefik:3.7.8            | 82, 8095:8080        | Reverse proxy (disabled)   |
-| adminer      | adminer:5.4.2            | 8096:8080            | Database admin UI          |
-| mailcatcher  | sj26/mailcatcher:v0.10.0 | 1081, 1026           | Email testing              |
-| playwright   | python-react-boilerplate-playwright    | 9324                 | E2E testing (runs once)    |
-| prestart     | python-react-boilerplate-backend:latest    | -                    | DB migrations (runs once)  |
-
-**Data Storage:**
-- Database data lives in Docker volume: `python-react-boilerplate_app-db-data`
-- This volume persists across container restarts
-- This volume is ONLY deleted when using `-v` flag
-
-## Docker Compose Files
-
-- `docker-compose.yml` - Base production configuration
-- `docker-compose.override.yml` - Local development overrides (auto-loaded)
-- `docker-compose.traefik.yml` - Traefik-specific configuration
-
----
-
-## Detailed Process: Safe Rebuild (Preserves Data)
-
-### Step 1: Survey Current State
-
-```bash
-# Check running containers
-docker compose ps -a
-
-# Check volumes (this is where your data lives!)
-docker volume ls --filter "name=python-react-boilerplate"
-# Expected: python-react-boilerplate_app-db-data
-
-# Check images
-docker images --filter "reference=python-react-boilerplate*"
-```
-
-### Step 2: Stop All Services (Data Safe)
+## Stop Without Deleting Data
 
 ```bash
 docker compose down --remove-orphans
 ```
 
-**This removes:**
-- All containers
-- Networks
+This removes containers and the Compose network but preserves named volumes.
+The application currently persists:
 
-**This KEEPS:**
-- Volume `python-react-boilerplate_app-db-data` (your database!)
+- PostgreSQL data in the `app-db-data` volume;
+- private engine jobs, artifacts, and Codex credentials in the
+  `txt2crs-state` volume.
 
-### Step 3: Remove Old Images
-
-```bash
-docker rmi python-react-boilerplate-backend:latest python-react-boilerplate-frontend:latest python-react-boilerplate-playwright:latest 2>/dev/null || true
-```
-
-### Step 4: Clean Build Cache (Optional)
+Volume names are prefixed by the active Compose project name. Inspect the exact
+names instead of assuming a hard-coded prefix:
 
 ```bash
-docker builder prune -af
-docker image prune -f
+docker compose config --volumes
+docker volume ls
 ```
 
-### Step 5: Verify Volume Still Exists
+## Destructive Reset
+
+The following command permanently deletes both named volumes:
 
 ```bash
-docker volume ls --filter "name=python-react-boilerplate"
-# Should show: python-react-boilerplate_app-db-data
+docker compose down --remove-orphans --volumes
 ```
 
-If you see the volume, your data is safe!
+Use it only when a disposable local environment is intended. It deletes users,
+application records, engine jobs, rendered artifacts, and locally stored Codex
+credentials. The command does not create a backup.
 
-### Step 6: Rebuild All Images
+## Targeted Rebuilds
+
+Rebuild only the affected deployable unit:
 
 ```bash
-docker compose build --no-cache --pull
+docker compose up --detach --build --wait backend
+docker compose up --detach --build --wait frontend
 ```
 
-### Step 7: Start Services
+Inspect failures with:
 
 ```bash
-docker compose up -d
-```
-
-### Step 8: Verify Data Preserved
-
-```bash
-# Check services are up
-docker compose ps -a
-
-# Your existing data should still be there
-# Log in with your existing user accounts
-```
-
----
-
-## Detailed Process: Nuclear Rebuild (Destroys Data)
-
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  FINAL WARNING: Everything below this line DESTROYS ALL DATA                 ║
-║  Make sure you actually need this. Consider Safe Rebuild first.              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
-
-### Step 0: Backup (If You Have Data Worth Saving)
-
-```bash
-# Create SQL backup before destroying
-docker compose exec db pg_dump -U postgres app > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Verify backup was created
-ls -la backup_*.sql
-```
-
-### Step 1: Survey Current State
-
-```bash
-docker compose ps -a
-docker volume ls --filter "name=python-react-boilerplate"
-docker images --filter "reference=python-react-boilerplate*"
-```
-
-**Expected resources:**
-- Containers: 8
-- Networks: 2 (python-react-boilerplate_default, python-react-boilerplate_traefik-public)
-- Volumes: 1 (python-react-boilerplate_app-db-data) - **WILL BE DESTROYED**
-- Images: 3 (python-react-boilerplate-backend, python-react-boilerplate-frontend, python-react-boilerplate-playwright)
-
-### Step 2: Take Down Everything Including Volumes
-
-```bash
-# THE -v FLAG DESTROYS YOUR DATABASE
-docker compose down --remove-orphans -v
-```
-
-**This removes:**
-- All 8 containers
-- Networks
-- **Volume python-react-boilerplate_app-db-data (ALL YOUR DATA)**
-
-### Step 3: Remove Docker Images
-
-```bash
-docker rmi python-react-boilerplate-backend:latest python-react-boilerplate-frontend:latest python-react-boilerplate-playwright:latest
-```
-
-### Step 4: Clean Build Cache
-
-```bash
-docker builder prune -af
-docker image prune -f
-```
-
-### Step 5: Verify Complete Cleanup
-
-```bash
-# All should return empty
-docker ps -a --filter "name=python-react-boilerplate"
-docker network ls --filter "name=python-react-boilerplate"
-docker volume ls --filter "name=python-react-boilerplate"    # <-- Should be EMPTY now
-docker images --filter "reference=python-react-boilerplate*"
-
-# Verify ports are free
-lsof -i :5179 -i :8009 -i :8088 -i :5439 -i :1080 -i :1026 -i :8090
-```
-
-### Step 6: Force Rebuild All Images
-
-```bash
-docker compose build --no-cache --pull
-```
-
-**Flags:**
-- `--no-cache`: Don't use any cached layers
-- `--pull`: Pull latest base images
-
-Build time: ~4-5 minutes
-
-### Step 7: Start All Services
-
-```bash
-docker compose up -d
-```
-
-**Startup order (automatic):**
-1. `db` - PostgreSQL starts fresh, empty database
-2. `prestart` - Runs migrations, creates empty tables
-3. `backend` - Starts after migrations complete
-4. Other services start independently
-
-### Step 8: Verify Services
-
-```bash
-docker compose ps -a
-
-# Expected:
-# - db: Up (healthy)
-# - backend: Up (healthy)
-# - frontend: Up
-# - prestart: Exited (0) - normal
-# - playwright: Exited (0) - normal
-```
-
-**Test endpoints:**
-
-```bash
-curl http://localhost:8012/api/v1/utils/health-check/   # Should return: true
-curl -I http://localhost:5183                            # Should return: 200 OK
-curl -I http://localhost:8096                            # Should return: 200 OK
-```
-
-### Step 9: Restore Backup (If Applicable)
-
-```bash
-# If you made a backup earlier
-cat backup_YYYYMMDD_HHMMSS.sql | docker compose exec -T db psql -U postgres app
-```
-
----
-
-## Standard Operations
-
-```bash
-# Start services
-docker compose up -d
-
-# Stop services (SAFE - preserves data)
-docker compose down
-
-# View logs
-docker compose logs -f              # All services
-docker compose logs -f backend      # Specific service
-
-# Rebuild single service (SAFE)
-docker compose build --no-cache backend
-docker compose up -d backend
-
-# Check service status
-docker compose ps -a
-
-# Access database directly
-docker compose exec db psql -U postgres -d app
-```
-
----
-
-## Troubleshooting
-
-### Backend won't start
-
-```bash
+docker compose ps
 docker compose logs backend
-docker compose logs prestart
-```
-
-### Database connection issues
-
-```bash
-docker compose ps db
-docker compose exec db psql -U postgres -d app
+docker compose logs frontend
 docker compose logs db
 ```
 
-### Port already in use
+Avoid global Docker prune commands in routine project work because they can
+remove unrelated projects' cache, images, or volumes.
+
+## Full Validation
+
+Run the repository gate after a rebuild:
 
 ```bash
-lsof -i :8009
-docker rm -f python-react-boilerplate-backend-1
+./scripts/validate-changes.sh
 ```
 
-### Image build fails
-
-```bash
-df -h  # Check disk space
-docker system prune -af  # Clean up (careful: --volumes would destroy data!)
-```
-
-### CI Variable Warning
-
-The warning `The "CI" variable is not set` is normal for local development.
-
----
-
-## Service Access URLs
-
-| Service          | URL                           | Credentials              |
-|------------------|-------------------------------|--------------------------|
-| Frontend         | http://localhost:5183         | Login with app users     |
-| Backend API      | http://localhost:8012/docs    | Swagger UI               |
-| Adminer          | http://localhost:8096         | Use .env DB credentials  |
-| Mailcatcher      | http://localhost:1081         | No auth required         |
-| Traefik Dashboard| http://localhost:8095         | No auth required         |
-| PostgreSQL       | localhost:5447                | Check .env file          |
-
----
-
-## Notes
-
-### Volume Persistence (Important!)
-
-```
-Database data location: Docker volume "python-react-boilerplate_app-db-data"
-
-This volume:
-- Persists across: docker compose down, docker compose restart, container rebuilds
-- Is DESTROYED by: docker compose down -v, docker volume rm, docker volume prune
-
-To check if your data is safe:
-docker volume ls --filter "name=python-react-boilerplate"
-
-If you see "python-react-boilerplate_app-db-data" listed, your data exists.
-```
-
-### Prestart Service
-Runs database migrations via `scripts/prestart.sh`. Expected to exit with code 0.
-
-### Playwright Service
-For E2E tests. Run manually:
-```bash
-docker compose run --rm playwright npx playwright test
-```
-
-### Traefik Proxy
-Docker provider disabled for local dev. Access services directly via exposed ports.
-
----
-
-## Process Log: 2025-12-22
-
-**Type:** Nuclear Rebuild (destroyed all data)
-
-**Duration:** ~5 minutes
-
-**What was destroyed:**
-- Volume: python-react-boilerplate_app-db-data (all database data)
-- All user accounts
-- All application data
-
-**What was rebuilt:**
-- All 3 Docker images from scratch
-- Fresh empty database with schema from migrations
-- All containers and networks
-
-**Space reclaimed:**
-- Images: ~4.5GB
-- Build cache: ~1.7GB
-- Dangling images: ~8.7GB
-- **Total: ~15GB**
-
-**Final state:**
-- All services running and healthy
-- Fresh empty database
-- Ready for new data
+This local workflow is the complete deployment scope. See
+[Deployment](deployment.md) and
+[deployment policy](deployment-policy.md) for the release contract.

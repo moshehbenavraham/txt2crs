@@ -1,41 +1,50 @@
 # txt2crs Documentation
 
-This directory contains project-level documentation and links to the
-implementation documents stored with the independently installable txt2crs
-package.
+This directory contains product, engineering, operations, and planning
+documentation for the txt2crs application. Package-specific engine documents
+live under `backend/packages/txt2crs/docs/`.
 
-## Documents
+## Start Here
 
-- [TODO](ongoing-projects/TODO.md) — prioritized current work, backlog, and
-  blocked items.
-- [Input-to-course system plan](ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md) — phased plan
-  for adopting a custom form of the python-react-boilerplate shell, wiring the
-  txt2crs engine, and rebuilding the legacy Make.com workflow as the
-  input-to-course application.
-- [Changelog](CHANGELOG.md) — notable changes organized using Keep a Changelog
-  categories.
-- [Versioning](VERSIONING.md) — Semantic Versioning policy, version-bump rules,
-  and release checklist.
-- [Configuration](CONFIGURATION.md) — environment-variable catalog, runtime
-  defaults, deployment settings, and validation rules.
-- [Environment-specific behavior](ENVIRONMENTS.md) — source-backed differences
+- [Architecture](ARCHITECTURE.md) explains the FastAPI shell, reusable engine,
+  React client, databases, and deployment boundaries.
+- [Onboarding](onboarding.md) provides the shortest verified local setup.
+- [Development](development.md) lists local endpoints, commands, and validation.
+- [Configuration](CONFIGURATION.md) catalogs environment variables and
+  validation rules.
+- [Environment behavior](environments.md) describes source-backed differences
   between local, staging, and production.
-- [Development](development.md) — local Docker workflow and authoritative
-  service endpoint table.
-- [AI usage needs derived from the Make.com scenarios](../backend/packages/txt2crs/docs/AI_USAGE_NEEDS.md) — current
-  workflow inventory, evidence-backed gaps, prioritized requirements, target pipeline,
-  and acceptance criteria.
-- [Minimum Hermes code-pull evaluation](../backend/packages/txt2crs/docs/HERMES_MINIMUM_CODE_PULL_EVALUATION.md) —
-  smallest reusable Hermes slices, dependency and license boundaries, capability
-  coverage, full-path donor implementation/test references, exclusions, and a
-  test-first integration sequence.
-- [AIOS runtime supplemental findings](../backend/packages/txt2crs/docs/AIOS_RUNTIME_SUPPLEMENT.md) — additional
-  runtime-governance, recovery, observability, source-policy, evidence-quality,
-  output-QA, and evaluation patterns with full-path AIOS source/test references
-  and technical pull/adapt/inspiration boundaries.
-- [txt2crs folder architecture](TXT2CRS_FOLDER_ARCHITECTURE.md) — adopted
-  library-first backend workspace, dependency rules, test placement, export
-  workflow, and future FastAPI/React boilerplate integration points.
-- [OpenAI Build Week requirements](ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md) — build
-  requirements, submission deliverables, deadline, and project delivery checklist.
-- `ongoing-projects/txt2crs-01.png` — existing project image.
+- [API](api/README_api.md) documents the currently exposed HTTP contract.
+- [Deployment](deployment.md) and
+  [deployment policy](deployment-policy.md) define supported release paths.
+- [Incident response](runbooks/incident-response.md) is the operational
+  response runbook.
+- [Security](SECURITY.md) states the reporting policy and known gaps.
+
+## Planning and Project History
+
+- [Input-to-course system plan](ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)
+  is the phased end-to-end build plan.
+- [TODO](ongoing-projects/TODO.md) contains prioritized current work.
+- [Changelog](CHANGELOG.md) records completed user-visible and engineering
+  changes.
+- [Versioning](VERSIONING.md) defines release and version synchronization
+  rules.
+- [ADR index](adr/README_adr.md) records accepted architectural decisions.
+- [File organization](FILE_ORGANIZATION.md) maps repository ownership.
+- [Folder architecture](TXT2CRS_FOLDER_ARCHITECTURE.md) explains the
+  library-first workspace and dependency rules.
+
+## Engine Research and Design
+
+- [AI usage needs](../backend/packages/txt2crs/docs/AI_USAGE_NEEDS.md)
+- [Hermes reuse evaluation](../backend/packages/txt2crs/docs/HERMES_MINIMUM_CODE_PULL_EVALUATION.md)
+- [AIOS runtime findings](../backend/packages/txt2crs/docs/AIOS_RUNTIME_SUPPLEMENT.md)
+- [Engine implementation compliance](../backend/packages/txt2crs/docs/IMPLEMENTATION_COMPLIANCE.md)
+
+## Documentation Rules
+
+`README.md` is reserved for the repository root. Directory indexes use a
+descriptive filename such as `README_docs.md` or `README_api.md`. Update
+documentation in the same change that alters a public interface, command,
+environment variable, runtime boundary, or operational procedure.

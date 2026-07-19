@@ -14,9 +14,9 @@ subscription-only Codex execution, a two-tool local research MCP service,
 source/evidence provenance, strict educational contracts, 16-artifact
 multi-format rendering, per-stage durable resume, private retained storage,
 spend admission, safety gates, private evaluations, and donor-independent
-builds. The future FastAPI application remains responsible for browser
+builds. The FastAPI application shell remains responsible for browser
 authentication, HTTP routes, payment, provider-specific notifications, and
-user experience.
+user experience. Course-generation routes are not composed into the shell yet.
 
 Project-level documentation remains in the repository's
 [`docs/` folder](https://github.com/moshehbenavraham/txt2crs/tree/main/docs).

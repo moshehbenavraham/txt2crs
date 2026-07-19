@@ -41,7 +41,7 @@ production require an explicit non-blank `SECRET_KEY`, and reject
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DOMAIN` | `localhost` | Domain for cookie settings and URLs |
-| `STACK_NAME` | `python-react-boilerplate` | Docker stack identifier |
+| `STACK_NAME` | `.env.example`: `txt2crs` | Docker Compose stack identifier |
 | `ENABLE_PRIVATE_DEV_ROUTES` | `False` | Register `/private/*` routes; accepted only in `local` |
 
 #### Frontend Configuration
@@ -109,8 +109,8 @@ Effective defaults when override values are empty:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOCKER_IMAGE_BACKEND` | `python-react-boilerplate-backend` | Backend Docker image name |
-| `DOCKER_IMAGE_FRONTEND` | `python-react-boilerplate-frontend` | Frontend Docker image name |
+| `DOCKER_IMAGE_BACKEND` | `.env.example`: `txt2crs-backend` | Backend Docker image name |
+| `DOCKER_IMAGE_FRONTEND` | `.env.example`: `txt2crs-frontend` | Frontend Docker image name |
 | `TAG` | `latest` | Docker image tag |
 
 #### Observability
@@ -127,18 +127,12 @@ Sentry is disabled locally and is enabled in staging or production only when a
 DSN is set. OpenTelemetry is independent of `ENVIRONMENT` and starts only when
 both `OTEL_ENABLED=true` and `OTLP_ENDPOINT` are configured.
 
-#### Deployment (Coolify)
+#### Deployment Scope
 
-| Variable | Description |
-|----------|-------------|
-| `COOLIFY_API_TOKEN` | API token for Coolify deployment |
-| `COOLIFY_API_URL` | Coolify API base URL |
-| `GITHUB_REPO` | GitHub repository URL |
-| `GITHUB_BRANCH` | Branch to deploy |
-| `APP_NAME` | Application name in Coolify |
-| `APP_DOMAIN` | Production domain |
-| `BACKEND_APP_UUID` | Backend app UUID (set after `coolify-deploy.sh --create`) |
-| `FRONTEND_APP_UUID` | Frontend app UUID (set after `coolify-deploy.sh --create`) |
+No hosted-platform environment variables are supported in the current project
+scope. Repository-root Docker Compose reads the local variables above.
+`ENVIRONMENT=staging` and `ENVIRONMENT=production` select application runtime
+validation behavior; they do not configure or imply a hosted deployment.
 
 ## Environment-Specific Settings
 
@@ -163,13 +157,13 @@ Behaviors in local:
 - Logs use level `INFO` and human-readable text.
 - Local Docker Compose routes email to Mailcatcher.
 
-### Staging
+### Staging Runtime Profile (Not Deployed)
 
 ```env
 ENVIRONMENT=staging
-DOMAIN=staging.example.com
-FRONTEND_HOST=https://staging.example.com
-POSTGRES_SERVER=staging-db.example.com
+DOMAIN=localhost
+FRONTEND_HOST=http://localhost:5183
+POSTGRES_SERVER=localhost
 SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx
 ```
@@ -183,13 +177,13 @@ Behaviors in staging:
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
 
-### Production
+### Production Runtime Profile (Not Deployed)
 
 ```env
 ENVIRONMENT=production
-DOMAIN=example.com
-FRONTEND_HOST=https://example.com
-POSTGRES_SERVER=prod-db.example.com
+DOMAIN=localhost
+FRONTEND_HOST=http://localhost:5183
+POSTGRES_SERVER=localhost
 SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx
 ```
@@ -203,7 +197,7 @@ Behaviors in production:
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
 
-See [Environment-specific behavior](ENVIRONMENTS.md) for the source-backed
+See [Environment-specific behavior](environments.md) for the source-backed
 runtime matrix.
 
 ## Security Notes
@@ -213,22 +207,21 @@ runtime matrix.
 - **Must be unique per environment**
 - Generate with: `openssl rand -hex 32`
 - Never reuse between environments
-- Rotate periodically in production
+- Rotate according to the operator's local secret policy
 - If compromised, all JWTs become invalid
 
 ### Database Credentials
 
 - Use different credentials per environment
-- Use managed database services in production
-- Enable SSL for database connections in production
-- Restrict database network access
+- Keep the published local database port bound only where needed
+- If a future hosted scope is approved, define TLS and network controls before
+  selecting a database service
 
 ### CORS Origins
 
 - Only include necessary origins
-- Never use `*` in production
-- Include both HTTP and HTTPS if supporting both
-- Include all frontend deployment URLs
+- Never use `*` with credentials
+- Include only the local frontend origins actually used
 
 ## Validation
 

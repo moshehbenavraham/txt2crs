@@ -135,10 +135,10 @@ Important deployment rules:
   passed explicitly to `GenerationJobExecutor.execute`.
 - Every new job submission must declare a finite `AdmissionReservation`
   matching its configured run/research limits.
-- The included `FilesystemPrivateArtifactStore` is suitable for private local
-  or single-operator delivery. Hosted deployments may provide another
-  `PrivateArtifactStore` implementation with equivalent owner checks,
-  idempotency, integrity, deletion, and retention behavior.
+- The included `FilesystemPrivateArtifactStore` is suitable for the current
+  private local, single-operator scope. If the owner explicitly approves a
+  future hosted scope, any replacement `PrivateArtifactStore` must preserve
+  owner checks, idempotency, integrity, deletion, and retention behavior.
 - FastAPI authentication and authorization must establish `user_id` before
   calling `JobService`. Identifiers alone are never authorization.
 

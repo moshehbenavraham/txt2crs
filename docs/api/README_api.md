@@ -1,105 +1,104 @@
-# API Documentation
+# txt2crs API
 
-## Overview
+The current FastAPI shell exposes authentication, user administration,
+temporary item CRUD, email testing, and health. Course-generation and jobs
+routes are not implemented yet.
 
-python-react-boilerplate provides REST API endpoints for authentication, user management, and item CRUD operations.
+## OpenAPI
 
-All endpoints except login require JWT authentication via Bearer token.
+- Swagger UI: <http://localhost:8012/docs>
+- ReDoc: <http://localhost:8012/redoc>
+- JSON: <http://localhost:8012/api/v1/openapi.json>
 
-## OpenAPI Specification
-
-Interactive API documentation is available at:
-- **Swagger UI**: http://localhost:8012/docs
-- **ReDoc**: http://localhost:8012/redoc
-- **OpenAPI JSON**: http://localhost:8012/api/v1/openapi.json
+The OpenAPI document is the endpoint source of truth and generates the
+frontend client through `./scripts/generate-client.sh`.
 
 ## Authentication
 
-All protected endpoints require a valid JWT token in the Authorization header:
+Protected endpoints require:
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
-Obtain a token via POST `/api/v1/login/access-token`.
+Obtain a token with `POST /api/v1/login/access-token`. Login, signup, password
+recovery/reset, OpenAPI, and health are public; administration and test-email
+operations enforce their route-specific authorization.
 
-## Endpoints
+## Endpoint Groups
 
-### Login
+### Authentication
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/login/access-token` | POST | Get JWT access token |
-| `/api/v1/login/test-token` | POST | Test token validity |
-| `/api/v1/password-recovery/{email}` | POST | Request password reset |
-| `/api/v1/reset-password/` | POST | Reset password with token |
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/v1/login/access-token` | Exchange credentials for an access token |
+| POST | `/api/v1/login/test-token` | Validate the current token |
+| POST | `/api/v1/password-recovery` | Request password recovery |
+| POST | `/api/v1/password-recovery-html-content/{email}` | Superuser recovery-email preview |
+| POST | `/api/v1/reset-password/` | Reset a password with a recovery token |
 
 ### Users
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/users/` | GET | List users (admin only) |
-| `/api/v1/users/` | POST | Create user (admin only) |
-| `/api/v1/users/me` | GET | Get current user |
-| `/api/v1/users/me` | PATCH | Update current user |
-| `/api/v1/users/me` | DELETE | Delete current user |
-| `/api/v1/users/signup` | POST | Register new user |
-| `/api/v1/users/{user_id}` | GET | Get user by ID |
-| `/api/v1/users/{user_id}` | PATCH | Update user (admin only) |
-| `/api/v1/users/{user_id}` | DELETE | Delete user (admin only) |
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET, POST | `/api/v1/users/` | List/create users as a superuser |
+| GET, PATCH, DELETE | `/api/v1/users/me` | Read/update/delete the current account |
+| PATCH | `/api/v1/users/me/password` | Change the current password |
+| POST | `/api/v1/users/signup` | Register a user when public signup is enabled |
+| GET, PATCH, DELETE | `/api/v1/users/{user_id}` | Superuser user administration |
 
-### Items
+### Temporary Items
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/items/` | GET | List current user's items |
-| `/api/v1/items/` | POST | Create item |
-| `/api/v1/items/{id}` | GET | Get item by ID |
-| `/api/v1/items/{id}` | PUT | Update item |
-| `/api/v1/items/{id}` | DELETE | Delete item |
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET, POST | `/api/v1/items/` | List/create current-user items |
+| GET, PUT, DELETE | `/api/v1/items/{id}` | Read/update/delete one owned item |
 
-### Utils
+The donor domain remains only until durable jobs acceptance coverage protects
+its Phase 03 replacement.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/utils/health-check/` | GET | Health check endpoint |
-| `/api/v1/utils/test-email/` | POST | Test email sending (dev) |
+### Operations
 
-## Error Responses
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/v1/utils/health/` | Readiness with PostgreSQL status and version |
+| GET | `/api/v1/utils/health-check/` | Process liveness |
+| POST | `/api/v1/utils/test-email/` | Superuser email-delivery test |
 
-All API errors follow the standard FastAPI structure:
+The separately deployed frontend exposes Nginx `GET /health`; it is not part
+of FastAPI OpenAPI.
+
+## Error Contract
+
+Application errors use RFC 9457 Problem Details with content type
+`application/problem+json`. Stable fields include:
 
 ```json
 {
-  "detail": "Error message"
+  "type": "https://txt2crs.dev/problems/example",
+  "title": "Example error",
+  "status": 400,
+  "detail": "Safe user-facing detail",
+  "code": "STABLE_ERROR_CODE",
+  "trace_id": "correlation-id"
 }
 ```
 
-### HTTP Status Codes
+Route code raises `AppException` with an `app.core.constants.ErrorCode`.
+Validation failures and rate-limit failures are normalized through the same
+central handler family. Do not expose provider payloads, stack traces, source
+content, tokens, or filesystem paths in errors.
 
-| Code | Meaning |
-|------|---------|
-| 200 | Success |
-| 201 | Created |
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | Not Found |
-| 422 | Validation Error |
-| 500 | Server Error |
+Common HTTP statuses include 200/201/202 success, 400 invalid request, 401
+authentication required, 403 authorization denied, 404 missing or
+owner-hidden resource, 409 conflict, 422 validation failure, 429 rate limit,
+and 500 safe internal failure.
 
-## Client Generation
-
-Frontend TypeScript client is auto-generated from OpenAPI spec:
+## Generate the Frontend Client
 
 ```bash
-# From project root
 ./scripts/generate-client.sh
-
-# Or manually
-cd frontend && npm run generate-client
+git diff -- frontend/openapi.json frontend/src/client
 ```
 
-Generated files:
-- `frontend/src/client/sdk.gen.ts` - Service methods
-- `frontend/src/client/types.gen.ts` - TypeScript types
+Generated files are formatter-owned and must not be edited manually.

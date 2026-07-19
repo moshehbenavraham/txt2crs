@@ -139,8 +139,10 @@ Do not implement the following before the submission gate:
 - multiple concurrent Codex workers or a queue platform;
 - broad analytics dashboards;
 - a generalized model/provider selector; or
-- a hosted deployment if local Docker is reliable and hosting threatens the
-  deadline. A hosted URL is optional under the event rules.
+- hosted deployment, platform-specific CD, domains, or TLS automation. Local
+  Docker is the only deployment target in this project scope; any later
+  production-hosting decision requires an explicit owner-approved scope change
+  and a new ADR.
 
 ## 3. Verified repository state
 
@@ -877,12 +879,12 @@ service.
 - Apply iframe `sandbox` with no script, form, popup, navigation, or
   same-origin privileges, plus a restrictive CSP inside the preview document.
 
-P0 trusts the single host/container boundary, not other OS users. Local state
-is protected by owner-only permissions; a hosted deployment must use a
-private encrypted volume and must not export that volume into repository
-backups. Application-level per-owner encryption is a future multi-tenant
-storage decision, not a substitute for the P0 authorization and confinement
-checks.
+P0 trusts the single local host/container boundary, not other OS users. Local
+state is protected by owner-only permissions. Hosted storage is outside this
+project scope; if the owner later approves it, storage and backup requirements
+must be defined before implementation. Application-level per-owner encryption
+is a future multi-tenant storage decision, not a substitute for the P0
+authorization and confinement checks.
 
 ### Logging and privacy
 
@@ -921,12 +923,12 @@ fails; the remaining user can retry.
 
 ### Demo access policy
 
-The submission deployment is not an open public generation service backed by
-one ChatGPT subscription. Public signup remains available only in local
-development. The hosted/judge profile sets `ENABLE_PUBLIC_SIGNUP=false`; an
-operator provisions a bounded judge account and shares access through the
-allowed submission channel. The public landing and sign-in pages remain
-viewable without authentication.
+The local judge/demo deployment is not an open generation service backed by
+one ChatGPT subscription. Public signup remains available only in developer
+mode. The local judge/demo mode sets `ENABLE_PUBLIC_SIGNUP=false`; an operator
+provisions a bounded judge account and shares access through the allowed
+submission channel. The landing and sign-in pages remain viewable without
+authentication.
 
 ## 8. Frontend experience
 
@@ -936,7 +938,7 @@ viewable without authentication.
 |---|---|---|
 | `/` | Public | Product story, four deliverables, sample transformation, and sign-in/create CTA |
 | `/login` | Public | Branded sign-in that preserves a drafted prompt when practical |
-| `/signup` | Local public; hosted invite-only | Registration form locally, clear operator-provisioned access message in judge mode |
+| `/signup` | Developer public; judge/demo invite-only | Registration form in developer mode; operator-provisioned access message in local judge mode |
 | `/create` | Authenticated | Focused multimode intake |
 | `/jobs/$jobId` | Owner | Progress that transforms into results on the same durable URL |
 | `/setup` | Superuser | Dedicated ChatGPT and system readiness |
@@ -1074,10 +1076,10 @@ Add strict settings and `.env.example` placeholders for:
 | `TXT2CRS_ADMISSION_*` limits | Rolling per-user/global job, token, and research reservations |
 | `TAVILY_API_KEY` | Research provider secret |
 | `TAVILY_TIMEOUT_SECONDS` | Bounded provider timeout |
-| `ENABLE_PUBLIC_SIGNUP` | Local-only registration switch; false for judge/hosted profiles |
+| `ENABLE_PUBLIC_SIGNUP` | Local mode switch; false for the judge/demo profile |
 
 All finite defaults live in typed settings and are documented. Secrets stay in
-`.env` or the deployment secret store and are never committed.
+the local `.env` and are never committed.
 Paths, bounds, and topology errors fail application startup. External
 credentials may be absent so OpenAPI generation and the operator setup screen
 still load; absence makes readiness unavailable and submissions return
@@ -1139,7 +1141,7 @@ Before the shell phase can be called complete:
 7. Pass all required engine settings and Tavily secret to the backend service.
 8. Apply the same upload-body cap at proxy and application ingress.
 9. Do not publish the research MCP port.
-10. Disable the administrative MCP in production/hosted profiles.
+10. Disable the administrative MCP in the local judge/demo profile.
 11. Keep the existing PostgreSQL volume separate.
 12. Preserve Codex credentials, SQLite/WAL files, and artifacts across backend
    container replacement.
@@ -1179,8 +1181,9 @@ Deadline control for the 2026-07-22 03:00 Jerusalem submission:
 - Feature-freeze P0 at T-12 hours (2026-07-21 15:00 Jerusalem).
 - Finish the live proof, README, release tag, and video at T-6 hours.
 - Submit by T-2 hours and use the remaining buffer only for submission fixes.
-- If schedule slips, drop hosting, extra sample content, and nonessential
-  motion first. Do not cut durable commit/recovery, explicit GPT-5.6,
+- If schedule slips, drop extra sample content and nonessential motion first.
+  Hosting is already outside scope. Do not cut durable commit/recovery,
+  explicit GPT-5.6,
   post-ingestion policy, owner authorization, private artifact integrity, the
   four-deliverable result, or required submission evidence.
 
@@ -1354,7 +1357,7 @@ Work:
 9. Build sandboxed HTML previews.
 10. Build source/conflict disclosure.
 11. Restyle login/signup and remove the generic dashboard appearance.
-12. Hide signup in hosted/judge mode and present the operator-provided account
+12. Hide signup in local judge/demo mode and present the operator-provided account
     path without revealing credentials.
 13. Remove item navigation/components/schemas after generated jobs client is
     available.
@@ -1519,7 +1522,7 @@ uv run --package txt2crs pytest \
 - HTML preview cannot execute scripts or navigate the parent.
 - Account deletion removes request, checkpoints, and artifacts.
 - Four-worker or second-worker configuration is rejected by deployment tests.
-- Hosted/judge configuration refuses public registration.
+- Local judge/demo configuration refuses public registration.
 - No test except the explicit live gate requires network or credentials.
 
 ## 12. Definition of done
@@ -1593,7 +1596,7 @@ There are no implementation-blocking open decisions.
 | P0 inputs | Prompt/text, URL/YouTube, PDF/DOCX/PPTX | Capability-gated modes pass deployment tests |
 | Artifact storage | Private local filesystem on persistent volume | Multi-replica/object storage is required |
 | Queue platform | None | Horizontal scaling or concurrent workers are required |
-| Hosted URL | Optional | Local submission is complete and hosting is low risk |
+| Hosted URL | Out of scope | Only after an explicit owner-approved future scope and new ADR |
 | Admin MCP | Read-only and disabled in deployment; separate from research MCP | Never cross-wire the two boundaries |
 | Commerce/public sharing/LMS | Deferred | A post-hackathon product milestone funds them |
 

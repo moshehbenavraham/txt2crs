@@ -28,10 +28,6 @@ exempt and when it was added. Remove entries that no longer apply.
 
 | Workflow | Reason | Added |
 |----------|--------|-------|
-| `backup-db.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and action pins were validated locally, but no backup was requested or run. | 2026-07-19 |
-| `deploy-coolify.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and action pins were validated locally. | 2026-07-19 |
-| `deploy-production.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and action pins were validated locally, but no production deployment was requested or run. | 2026-07-19 |
-| `deploy-staging.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and action pins were validated locally. | 2026-07-19 |
 | `detect-conflicts.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax, immutable action pin, and current no-PR state were validated locally. | 2026-07-19 |
 | `generate-client.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; deterministic generation and a clean generated-client diff were validated locally. | 2026-07-19 |
 | `guard-dependencies.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and immutable action pin were validated locally. | 2026-07-19 |
@@ -44,5 +40,5 @@ exempt and when it was added. Remove entries that no longer apply.
 
 ## Skipped Infra
 
-| Item | Reason | Added |
-|------|--------|-------|
+None. Repository-root Docker Compose is the complete deployment scope, and
+both deployable images passed isolated local health validation on 2026-07-19.

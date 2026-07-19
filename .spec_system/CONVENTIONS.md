@@ -135,6 +135,35 @@
 - Link relevant tickets or specifications
 - Review changes locally before requesting review
 
+## Infrastructure
+
+### Deployment Topology
+
+| Package | Path | Role | Local image | Platform |
+|---------|------|------|-------------|----------|
+| backend-shell | `backend` | FastAPI API and engine host | Backend image | Repository-root Docker Compose |
+| txt2crs-engine | `backend/packages/txt2crs` | Reusable library and job runtime | Built into backend | Repository-root Docker Compose |
+| frontend | `frontend` | React static application | Frontend image | Repository-root Docker Compose |
+
+Shared infrastructure is PostgreSQL for shell-owned application data and the
+backend's private `txt2crs-state` volume for tenant-scoped SQLite job state,
+artifacts, and Codex-managed credentials.
+
+### Configured Components
+
+| Component | Package | Provider | Details |
+|-----------|---------|----------|---------|
+| Local runtime | backend-shell | Docker Compose | Non-root image, port 8000, persistent engine state volume |
+| Local runtime | frontend | Docker Compose | Nginx static image, port 80 |
+| Health | backend-shell | FastAPI + Docker | `/api/v1/utils/health/` readiness checks PostgreSQL; `/api/v1/utils/health-check/` is liveness |
+| Health | frontend | Nginx + Docker | `/health` returns stable JSON; image probe runs every 30 seconds |
+| Database | backend-shell | PostgreSQL 18 | Compose-managed persistent volume; Alembic migrations |
+| Persistent state | txt2crs-engine | SQLite + filesystem | One backend-mounted `txt2crs-state` volume; not deployed independently |
+
+Local Docker is the only deployment target in scope. The authoritative probe
+paths and operator commands live in `docs/deployment-policy.md`; adding any
+hosted platform requires explicit owner approval and a new ADR.
+
 ## CI/CD
 
 Platform: GitHub Actions. Workflows use least-privilege job permissions,
@@ -144,23 +173,19 @@ concurrency cancellation for repeated branch validation.
 | Bundle | Status | Workflows | Strategy |
 |--------|--------|-----------|----------|
 | Code Quality | Configured | `quality.yml` | Ruff, mypy, ty, Biome, TypeScript, backend tests, and the reusable engine suite feed one required quality gate. |
-| Build & Test | Configured | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | Test the shell, engine, generated contract, production Compose topology, and browser behavior. |
+| Build & Test | Configured | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | Test the shell, engine, generated contract, production-like local Compose topology, and browser behavior. |
 | Security | Configured | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | Scan Git history, CodeQL languages, pull-request dependencies, Python/JavaScript advisories, and workflow supply-chain safety. |
 | Integration | Configured | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | Exercise service boundaries and browser flows, then flag merge conflicts without checking out untrusted pull-request code. |
-| Operations | Configured | `deploy-coolify.yml`, `deploy-staging.yml`, `deploy-production.yml`, `backup-db.yml` | Separate environment deployments from scheduled/manual PostgreSQL backups. |
+| Operations | Local only | No deployment workflows | GitHub Actions validates code and images but does not deploy an environment. |
 
 ### CI Secrets
 
 No secret values belong in source control. The repository currently has no
 configured Actions secrets; operators provision only the names required by
-the workflow they enable.
+validation workflows they intentionally enable.
 
 | Workflow | Required secret names |
 |----------|-----------------------|
-| `backup-db.yml` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
-| `deploy-coolify.yml` | `COOLIFY_API_TOKEN`, `COOLIFY_API_URL`, `BACKEND_APP_UUID`, `FRONTEND_APP_UUID` |
-| `deploy-staging.yml` | `DOMAIN_STAGING`, `STACK_NAME_STAGING`, `SECRET_KEY`, `FIRST_SUPERUSER`, `FIRST_SUPERUSER_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAILS_FROM_EMAIL`, `POSTGRES_PASSWORD`, `SENTRY_DSN` |
-| `deploy-production.yml` | `DOMAIN_PRODUCTION`, `STACK_NAME_PRODUCTION`, `SECRET_KEY`, `FIRST_SUPERUSER`, `FIRST_SUPERUSER_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAILS_FROM_EMAIL`, `POSTGRES_PASSWORD`, `SENTRY_DSN` |
 | `generate-client.yml` | `FULL_STACK_FASTAPI_TEMPLATE_REPO_TOKEN` for its optional upstream-template push |
 
 `GITHUB_TOKEN` in `security.yml` is the automatic per-run token and is not a

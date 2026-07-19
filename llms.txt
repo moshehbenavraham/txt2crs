@@ -1,86 +1,46 @@
-# Python React Boilerplate
+# txt2crs
 
-> Full-stack boilerplate: FastAPI (Python) backend + React 19 (TypeScript) frontend
+> An OpenAI-powered education application that turns supported input into a
+> researched course, review pack, assessment, and answer key.
 
-## Quick Links
+## Primary Context
 
-- [AGENTS.md](./AGENTS.md): AI agent instructions and coding conventions
-- [CLAUDE.md](./CLAUDE.md): Symlink to AGENTS.md for Claude Code compatibility
-- [.context-profiles.yaml](./.context-profiles.yaml): Task-specific context profiles (reduces token overhead)
-- [docs/](./docs/): Project documentation
-- [backend/](./backend/): FastAPI Python backend
-- [frontend/](./frontend/): React TypeScript frontend
+- [Agent instructions](./AGENTS.md): Repository rules and build commands
+- [Project overview](./README.md): Product status and quick start
+- [System plan](./docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md):
+  Phased end-to-end delivery plan
+- [Documentation index](./docs/README_docs.md): Engineering and product docs
+- [Architecture](./docs/ARCHITECTURE.md): Shell, engine, state, and deployment
+  boundaries
+- [Folder architecture](./docs/TXT2CRS_FOLDER_ARCHITECTURE.md): Workspace
+  dependency rules
 
-## Documentation
+## Implementation Areas
 
-- [Architecture Decision Records](./docs/adr/): Key architectural decisions
-- [Security Policy](./docs/SECURITY.md): Security implementation and reporting
-- [Configuration Guide](./docs/CONFIGURATION.md): Environment variable documentation
-- [File Organization](./docs/FILE_ORGANIZATION.md): Directory structure and naming conventions
-- [Database Schema](./docs/database/SCHEMA.md): ERD and schema documentation
-- [Anti-Patterns](./docs/ANTI_PATTERNS.md): What NOT to do
-- [Environment Configuration](./docs/ENVIRONMENTS.md): Environment-specific behavior
+- [Backend](./backend/README_backend.md): FastAPI application shell
+- [Engine](./backend/packages/txt2crs/README_txt2crs.md): Reusable education
+  engine
+- [Frontend](./frontend/README_frontend.md): React product shell
+- [API](./docs/api/README_api.md): Current HTTP contract
 
-## Tech Stack
+## Operations and Security
 
-### Backend
-- Python 3.14
-- FastAPI 0.139+
-- SQLModel (SQLAlchemy + Pydantic)
-- PostgreSQL 18
-- Alembic (migrations)
-- pytest (testing)
+- [Configuration](./docs/CONFIGURATION.md): Environment variables
+- [Environment behavior](./docs/environments.md): Runtime differences
+- [Development](./docs/development.md): Local commands and endpoints
+- [Deployment](./docs/deployment.md): Local-only Docker delivery workflow
+- [Security](./docs/SECURITY.md): Reporting policy and known gaps
+- [Incident response](./docs/runbooks/incident-response.md): Operational
+  runbook
 
-### Frontend
-- React 19
-- TypeScript 7
-- TanStack Router/Query
-- Tailwind CSS 4
-- Zod (validation)
-- Playwright (E2E testing)
+## Core Conventions
 
-### Infrastructure
-- Docker Compose
-- Traefik (reverse proxy)
-- Sentry (error tracking)
+- Route handlers call the public `txt2crs` package boundary.
+- Tests are created before implementation.
+- Backend errors use RFC 9457 Problem Details and stable `ErrorCode` values.
+- Logs use `{domain}.{action}_{state}` events and trace IDs.
+- `frontend/src/client/` is generated and must not be edited manually.
+- PostgreSQL stores shell data; tenant-scoped engine jobs use private SQLite
+  state under `/var/lib/txt2crs`.
 
-## Key Patterns
-
-- **Type Safety**: Strict mypy + TypeScript strict mode
-- **API Generation**: OpenAPI-to-TypeScript client generation
-- **Validation**: Pydantic v2 (backend) + Zod (frontend)
-- **Error Handling**: RFC 9457 Problem Details format
-- **Logging**: Structured JSON with trace ID correlation
-
-## Getting Started
-
-```bash
-# Clone and start
-docker compose up -d
-
-# Backend tests
-docker compose exec backend bash scripts/test.sh
-
-# Frontend development
-cd frontend && npm install && npm run dev
-```
-
-## For AI Agents
-
-See [AGENTS.md](./AGENTS.md) for:
-- Build and test commands
-- Coding conventions
-- Critical rules
-- Directory structure
-- Error handling patterns
-- Context profiles (token-efficient task loading)
-
-**Context Profiles**: Use `.context-profiles.yaml` to load only relevant files for your task:
-- `backend-api`: FastAPI endpoint development
-- `frontend-feature`: React components and pages
-- `full-stack`: Changes spanning BE + FE
-- `bug-fix`: Minimal context for quick fixes
-
-## Contact
-
-- [GitHub Issues](https://github.com/moshehbenavraham/python-react-boilerplate/issues)
+Repository: https://github.com/moshehbenavraham/txt2crs

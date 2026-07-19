@@ -1,98 +1,104 @@
 # Incident Response
 
-Primary deployment path: Coolify (`.github/workflows/deploy-coolify.yml`).
-Legacy compose workflows are break-glass fallback only (see `docs/deployment-policy.md`).
+Repository-root Docker Compose is the only deployment topology in scope.
+Record the incident start time, source revision, symptoms, and operator actions
+before changing local state.
 
-## Severity Levels
+## Severity
 
-| Level | Description | Response |
-|-------|-------------|----------|
-| P0 | Complete outage | Immediate |
-| P1 | Major feature broken | < 1 hour |
-| P2 | Minor feature broken | < 4 hours |
-| P3 | Cosmetic/minor | Next business day |
+| Level | Description | Initial response |
+|-------|-------------|------------------|
+| P0 | Complete outage, data loss, or credential exposure | Immediate |
+| P1 | Authentication, generation, or artifact delivery unavailable | Within 1 hour |
+| P2 | Degraded non-critical behavior | Within 4 hours |
+| P3 | Cosmetic or documentation issue | Next working session |
 
-## Common Incidents
-
-### Database Connection Refused
-
-**Symptoms**: 500 errors on all authenticated endpoints
-
-**Resolution**:
-1. Check PostgreSQL container status: `docker compose ps db`
-2. View logs: `docker compose logs db`
-3. Restart if needed: `docker compose restart db`
-4. Verify connection string in `.env`
-
-### Frontend Build Failure
-
-**Symptoms**: Blank page or old version showing
-
-**Resolution**:
-1. Clear browser cache
-2. Check frontend container: `docker compose logs frontend`
-3. Verify OpenAPI client is in sync: `./scripts/generate-client.sh`
-4. Rebuild: `docker compose up -d --build frontend`
-
-### JWT Authentication Failures
-
-**Symptoms**: Users cannot log in, 401 errors
-
-**Resolution**:
-1. Verify SECRET_KEY is set in environment
-2. Check token expiration settings
-3. Clear user's browser session (`sessionStorage`) and retry
-4. Check backend logs for specific error
-
-### Alembic Migration Failed
-
-**Symptoms**: Backend won't start, database schema errors
-
-**Resolution**:
-1. Check migration status: `docker compose exec backend alembic current`
-2. View history: `docker compose exec backend alembic history`
-3. If stuck, downgrade: `docker compose exec backend alembic downgrade -1`
-4. Fix migration file and retry: `docker compose exec backend alembic upgrade head`
-
-## Rollback Procedures
-
-### 1) Primary path rollback (Coolify)
-
-Use this for normal incident recovery when Coolify is available.
-
-1. Identify the last known-good ref (release tag or commit SHA).
-2. Re-run `Deploy via Coolify` from GitHub Actions on that ref (workflow dispatch, target `all` or scoped component).
-3. Confirm Coolify shows both apps as healthy.
-4. Run verification checks from the checklist below.
-
-### 2) Legacy fallback rollback (compose workflows)
-
-Use only when primary-path automation is unavailable/degraded.
+## First Checks
 
 ```bash
-# Export values captured by deployment workflow logs
-export STACK_NAME=<stack-name>
-export BACKEND_PREV_IMAGE_ID=<previous-backend-image-id>
-export FRONTEND_PREV_IMAGE_ID=<previous-frontend-image-id>
-
-# Run deterministic compose rollback to previous backend/frontend images
-bash scripts/deploy-rollback.sh
+docker compose ps
+curl --fail http://localhost:8012/api/v1/utils/health/
+curl --fail http://localhost:5183/health
+docker compose logs --tail=200 backend
+docker compose logs --tail=200 frontend
+docker compose logs --tail=200 db
 ```
 
-### 3) Database rollback
+Preserve trace IDs from API responses and logs. Logs can contain request
+paths, query strings, and client IP addresses, so treat exports as personal
+data and restrict access.
+
+## Database Readiness Failure
+
+1. Inspect `docker compose ps db` and `docker compose logs db`.
+2. Verify the local PostgreSQL values in `.env`.
+3. Restart only PostgreSQL: `docker compose restart db`.
+4. Re-run backend readiness.
+5. Do not delete volumes as a recovery step.
+
+## Frontend Health or Stale Build
+
+1. Check `curl --fail http://localhost:5183/health`.
+2. Inspect `docker compose logs frontend`.
+3. Regenerate the API client only when backend routes changed:
+   `./scripts/generate-client.sh`.
+4. Rebuild with
+   `docker compose up --detach --build --wait frontend`.
+
+## Authentication Failures
+
+1. Confirm `.env` has a non-placeholder `SECRET_KEY`.
+2. Inspect the correlated backend error without copying bearer tokens.
+3. Retry with a new browser session after configuration is corrected.
+4. Treat an unexpected secret change as a security incident because existing
+   JWTs become invalid.
+
+## Migration Failure
+
+With the backend running, inspect status without modifying data:
 
 ```bash
-# Downgrade one migration
-docker compose exec backend alembic downgrade -1
-
-# Or downgrade to specific revision
-docker compose exec backend alembic downgrade <revision_id>
+docker compose exec backend alembic current
+docker compose exec backend alembic history
 ```
 
-## Monitoring Checklist
+Correct the migration or configuration and rerun
+`docker compose exec backend alembic upgrade head`. A downgrade can destroy or
+reinterpret data; use it only after reviewing the target migration and
+capturing a restorable backup.
 
-- [ ] Backend readiness is healthy: `curl -fsS http://localhost:8012/api/v1/utils/health/`
-- [ ] Backend liveness responds: `curl -fsS http://localhost:8012/api/v1/utils/health-check/`
-- [ ] Frontend loading: `curl http://localhost:5183`
-- [ ] Database connected: Check backend logs for connection success
-- [ ] API docs accessible: http://localhost:8012/docs
+## Private Engine State Failure
+
+The `txt2crs-state` volume contains engine SQLite jobs, artifacts, and the
+isolated Codex credential store.
+
+1. Stop admission of new work before repairing state.
+2. Inspect backend logs and volume ownership without printing credentials or
+   artifact contents.
+3. Keep exactly one backend process and one serial generation worker.
+4. Never copy the SQLite database while it is being written.
+5. Never use `docker compose down --volumes` as a repair step.
+
+Course-generation routes are not composed yet, so Phase 00 proves state
+topology but not product job recovery. Complete backup and restore validation
+for both PostgreSQL and engine state remains open.
+
+## Local Rollback
+
+1. Record the current source revision and local image IDs.
+2. Stop containers without deleting volumes.
+3. Restore the intended source revision through normal version control.
+4. Review Alembic compatibility before rebuilding.
+5. Run `docker compose up --detach --build --wait`.
+6. Verify both health endpoints and the backend version.
+
+`scripts/deploy-rollback.sh` may recreate containers from previously captured
+local image IDs, but it does not roll back either database.
+
+## Escalation Gaps
+
+The repository does not yet contain a verified private security-reporting
+address, valid CODEOWNERS identity, or a proven backup covering both local data
+stores. Those are owner/operator decisions recorded in
+[`../../.spec_system/docs-audit.md`](../../.spec_system/docs-audit.md) and the
+[deployment guide](../deployment.md).

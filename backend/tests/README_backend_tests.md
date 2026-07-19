@@ -1,9 +1,11 @@
 # Backend Application Tests
 
-This directory is reserved for product-level tests of the future FastAPI
-application shell.
+This directory contains tests for the FastAPI application shell and
+product-level acceptance behavior.
 
-The `acceptance/` suite will exercise authenticated API flows, resumable
-course-generation jobs, delivery, and frontend-facing behavior. Library unit,
-contract, and adapter integration tests remain under
+Core tests cover authentication, users, items, configuration, middleware,
+health, migrations, and application services. The `acceptance/` suite is the
+home for authenticated end-to-end generation, recovery, delivery, and
+frontend-facing behavior as those routes are composed. Engine unit, contract,
+acceptance, and adapter integration tests remain under
 `backend/packages/txt2crs/tests/`.

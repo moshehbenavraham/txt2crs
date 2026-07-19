@@ -2,80 +2,110 @@
 
 ## System Overview
 
-`python-react-boilerplate` is a FastAPI + React monorepo with JWT auth, role-based access control, and user-owned item CRUD.
+txt2crs is a three-package FastAPI/React monorepo. The reusable engine owns
+education-domain behavior; the application shell owns transport and identity.
+Phase 00 makes that boundary reproducible in containers, but the shell does
+not yet expose course-generation routes.
 
+```text
+React SPA
+    |
+    | generated OpenAPI client / HTTPS
+    v
+FastAPI shell
+    |-- PostgreSQL: users and temporary donor items
+    |-- private state volume: engine SQLite, artifacts, Codex home
+    `-- public txt2crs package facade (application boundary arrives in P01)
+            |-- bounded ingestion and policy
+            |-- loopback research MCP
+            |-- Codex subscription runtime
+            `-- generation, recovery, rendering, and private delivery
 ```
-React SPA (TanStack Router/Query)
-        |
-        | HTTPS / REST
-        v
-FastAPI API (auth, users, items, utils)
-        |
-        v
-PostgreSQL (SQLModel/Alembic)
-```
+
+The research MCP server is package-owned and loopback-only. The separate admin
+MCP server under `backend/app/mcp/` is a disabled-by-default coding/admin
+surface; the two boundaries must never be merged.
+
+## Components
+
+| Component | Location | Technology | Current responsibility |
+|-----------|----------|------------|------------------------|
+| Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, health, errors, and observability |
+| Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Ingestion, research, generation, policy, jobs, recovery, artifacts, rendering, and evaluation |
+| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, temporary items, and current shell UI |
+| Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
+
+## Ownership Boundaries
+
+- Route handlers call the public `txt2crs` boundary; they never reimplement
+  generation, research, policy, persistence, validation, or rendering.
+- PostgreSQL is authoritative for application users. Tenant-scoped engine
+  SQLite is authoritative for generation jobs.
+- The backend image runs exactly one non-root FastAPI process while the serial
+  worker and SQLite topology remain in use.
+- `/var/lib/txt2crs` is the image-owned persistent mount containing the job
+  database, artifact tree, and isolated Codex home. Worker scratch data stays
+  under `/tmp/txt2crs-worker`.
+- The generated OpenAPI client is the frontend contract and is changed only by
+  `scripts/generate-client.sh`.
 
 ## Deployment Topology
 
-- **Primary deployment path (source of truth)**: Coolify, defined by ADR-0007 and `.github/workflows/deploy-coolify.yml`.
-- **Legacy fallback path**: `.github/workflows/deploy-staging.yml` and `.github/workflows/deploy-production.yml` remain break-glass options for incident response only.
-- **Policy reference**: see `docs/deployment-policy.md`.
+Repository-root Docker Compose is the only deployment target in the current
+project scope. The backend and frontend remain separate images inside one
+local topology; no hosted platform is selected.
 
-## Backend Architecture (`backend/app`)
+| Deployable | Image | Health |
+|------------|-------|--------|
+| Backend | `backend/Dockerfile` | Readiness: `/api/v1/utils/health/`; liveness: `/api/v1/utils/health-check/` |
+| Frontend | `frontend/Dockerfile` | Nginx JSON health: `/health` |
 
-| Area | Path | Responsibility |
-|---|---|---|
-| API routing | `api/main.py`, `api/routes/` | Route registration and endpoint handlers |
-| Auth dependencies | `api/deps.py`, `core/security.py` | Bearer token validation and role checks |
-| Domain/data layer | `models.py`, `crud.py` | SQLModel entities and persistence logic |
-| Runtime config | `core/config.py` | Environment policy, fail-closed defaults, pool tuning |
-| Error contract | `core/exceptions.py`, `core/exception_handlers.py` | RFC 9457 Problem Details responses |
-| Observability | `core/logging.py`, `core/telemetry.py` | Structured logs + optional OpenTelemetry |
-
-## Frontend Architecture (`frontend/src`)
-
-| Area | Path | Responsibility |
-|---|---|---|
-| App bootstrap | `main.tsx` | Query client, global error handling, router setup |
-| Routing | `routes/` | File-based route tree and guard layout |
-| Auth/session | `hooks/useAuth.ts`, `lib/session.ts` | Login/logout, token/session lifecycle, cache reset |
-| API integration | `client/` (generated), component hooks | Typed SDK calls and mutation/query orchestration |
-| Validation | `lib/schemas/` | Centralized Zod schemas aligned to backend constraints |
+See [deployment policy](deployment-policy.md) for the local source of truth
+and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
 
 ## Runtime Flows
 
-### Authentication and Session Flow
+### Authentication
 
-1. Client calls `POST /api/v1/login/access-token`.
-2. Backend validates credentials and returns an access token.
-3. Frontend stores token in **session storage** (`sessionStorage`), with one-time migration cleanup for legacy `localStorage` tokens.
-4. Authenticated requests include `Authorization: Bearer <token>`.
-5. Frontend clears auth state only on confirmed authn invalidation (`401` and stale `/users/me` session lookup), not on generic `403` authorization failures.
+1. The client posts credentials to `/api/v1/login/access-token`.
+2. The backend validates the user and returns a bearer token.
+3. The frontend stores the token in `sessionStorage`.
+4. Protected requests send `Authorization: Bearer <token>`.
+5. Confirmed `401` session invalidation clears state; an authorization `403`
+   does not log the user out.
 
-### Health and Probes
+### Health
 
-- Readiness endpoint: `GET /api/v1/utils/health/` (returns `503` when dependencies are unhealthy).
-- Liveness endpoint: `GET /api/v1/utils/health-check/`.
-- Deployment smoke checks and operational runbooks should treat readiness and liveness distinctly.
+- Backend readiness executes `SELECT 1` against PostgreSQL and returns `503`
+  when unavailable.
+- Backend liveness proves the HTTP process is responsive.
+- Frontend health is served directly by Nginx without loading React.
+- Phase 02 must extend readiness to engine storage, worker, research, model,
+  and capability status before generation admission exists.
 
 ### Error Contract
 
-Backend negative-path responses are normalized to RFC 9457 Problem Details (`application/problem+json`) with stable semantic fields:
+Backend failures use RFC 9457 Problem Details with stable application error
+codes and trace IDs. Shell errors use `AppException` and
+`app.core.constants.ErrorCode`.
 
-- `type`
-- `status`
-- `code`
-- `trace_id`
-- `detail`
+## Observability and Security
 
-## Observability and Versioning
+Structured logging, optional OpenTelemetry, rate limiting outside local mode,
+private filesystem modes, and non-root containers are implemented. The
+cumulative security record currently flags raw request path/query/IP logging
+for remediation before public source submission.
 
-- Structured JSON logs include trace correlation metadata.
-- OpenTelemetry is opt-in via `OTEL_ENABLED`.
-- `service.version` is derived from backend package metadata at runtime (project version source of truth), preventing drift from `backend/pyproject.toml`.
+See
+[`../.spec_system/SECURITY-COMPLIANCE.md`](../.spec_system/SECURITY-COMPLIANCE.md)
+for current findings.
 
 ## Decision References
 
-- ADR index: `docs/adr/README.md`
-- Deployment decision: `docs/adr/0007-coolify-deployment-platform.md`
-- Tracing decision: `docs/adr/0005-opentelemetry-distributed-tracing.md`
+- [ADR index](adr/README_adr.md)
+- [Local-only deployment](adr/0008-local-only-deployment-scope.md)
+- [Superseded Coolify history](adr/0007-coolify-deployment-platform.md)
+- [Structured logging](adr/0003-structured-json-logging.md)
+- [RFC 9457 errors](adr/0004-rfc9457-error-format.md)
+- [OpenTelemetry](adr/0005-opentelemetry-distributed-tracing.md)
+- [MCP boundaries](adr/0006-mcp-integration.md)

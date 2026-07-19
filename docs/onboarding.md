@@ -1,128 +1,143 @@
 # Onboarding
 
-Zero-to-hero checklist for new developers.
+Use this checklist for a clean local setup.
 
 ## Prerequisites
 
-- [ ] Docker and Docker Compose installed
-- [ ] Python 3.14 installed
-- [ ] [uv](https://docs.astral.sh/uv/) installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- [ ] Node.js 26.5+ and npm 12 installed (via nvm or fnm)
-- [ ] Git configured with SSH key
+- [ ] Git with SSH access to the repository
+- [ ] Docker Engine/Desktop with Compose v2
+- [ ] Python 3.14 and [uv](https://docs.astral.sh/uv/)
+- [ ] Node.js 26.5+ and npm 12
 
-## Setup Steps
+## Setup
 
-### 1. Clone Repository
+### 1. Clone
 
 ```bash
-git clone git@github.com:moshehbenavraham/python-react-boilerplate.git
-cd python-react-boilerplate
+git clone git@github.com:moshehbenavraham/txt2crs.git
+cd txt2crs
 ```
 
-### 2. Configure Environment
+### 2. Configure local secrets
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Replace at least `SECRET_KEY`, `POSTGRES_PASSWORD`, and
+`FIRST_SUPERUSER_PASSWORD`. Generate independent values:
 
-| Variable | Where to Get | Description |
-|----------|--------------|-------------|
-| `SECRET_KEY` | Generate with Python | JWT signing key |
-| `POSTGRES_PASSWORD` | Create your own | Database password |
-| `FIRST_SUPERUSER_PASSWORD` | Create your own | Initial admin account |
-
-Generate a secret key:
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-### 3. Start with Docker (Recommended)
+Never commit `.env`.
+
+### 3. Start the full stack
 
 ```bash
-docker compose up -d
+docker compose up -d --wait
 ```
 
-This starts:
-- PostgreSQL database on port 5447
-- Backend API on http://localhost:8012
-- Frontend on http://localhost:5183
-- Mailcatcher on http://localhost:1081
+The command starts PostgreSQL, database migrations/seed, one backend process,
+the Nginx frontend, Mailcatcher, and local support services.
 
-### 4. Or Start Manually
+### 4. Verify
 
-**Backend:**
+```bash
+curl --fail http://localhost:8012/api/v1/utils/health/
+curl --fail http://localhost:5183/health
+```
+
+- Frontend: <http://localhost:5183>
+- Backend docs: <http://localhost:8012/docs>
+- Mailcatcher: <http://localhost:1081>
+- PostgreSQL for host tools: `localhost:5447`
+
+Log in with `FIRST_SUPERUSER` and the configured
+`FIRST_SUPERUSER_PASSWORD`.
+
+## Manual Development
+
+Keep PostgreSQL and Mailcatcher in Docker:
+
+```bash
+docker compose up -d db mailcatcher
+```
+
+Run the backend:
+
 ```bash
 cd backend
-uv sync
-source .venv/bin/activate
-fastapi dev app/main.py
+uv sync --all-packages
+uv run alembic upgrade head
+uv run fastapi dev app/main.py
 ```
 
-**Frontend:**
+Run the frontend in another terminal:
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-**Database:**
-```bash
-docker compose up -d db
-```
-
-### 5. Run Database Migrations
+## Validate the Checkout
 
 ```bash
-# If using Docker
-docker compose exec backend alembic upgrade head
-
-# If running locally
-cd backend && alembic upgrade head
+./scripts/validate-changes.sh
 ```
 
-### 6. Verify Setup
+For the PostgreSQL-backed shell suite:
 
-- [ ] App runs at http://localhost:5183
-- [ ] Can log in with `admin@example.com` / your superuser password
-- [ ] API docs available at http://localhost:8012/docs
-- [ ] Backend tests pass: `cd backend && bash scripts/test.sh`
-
-## Development Workflow
-
-1. Create feature branch: `git checkout -b feature/my-feature`
-2. Make changes
-3. Run tests: `cd backend && bash scripts/test.sh`
-4. Run linting: `cd backend && uv run ruff check && uv run mypy app`
-5. Commit with conventional format: `git commit -m "feat: add feature"`
-6. Push and create PR
-
-## Common Issues
-
-### Port Already in Use
-**Solution**: Check for existing containers or processes:
 ```bash
-docker compose down
-lsof -i :5179  # Check frontend port
-lsof -i :8009  # Check backend port
+cd backend
+uv run pytest tests/ -v
 ```
 
-### Database Connection Refused
-**Solution**: Ensure PostgreSQL container is running:
+For browser tests against the running stack:
+
+```bash
+cd frontend
+npx playwright test
+```
+
+## Common Problems
+
+### A published port is already in use
+
+```bash
+docker compose ps
+lsof -i :5183
+lsof -i :8012
+lsof -i :5447
+```
+
+Stop only the conflicting project or change the local published port. Do not
+delete unrelated containers or volumes.
+
+### PostgreSQL is unavailable
+
 ```bash
 docker compose up -d db
 docker compose logs db
 ```
 
-### Frontend Client Out of Sync
-**Solution**: Regenerate the OpenAPI client:
+Containers use `db:5432`; the host-only port `5447` must not be passed to
+container services.
+
+### The generated client is stale
+
 ```bash
 ./scripts/generate-client.sh
+git diff -- frontend/openapi.json frontend/src/client
 ```
 
-## Next Steps
+Generation owns those files. Do not edit `frontend/src/client/` manually.
 
-- Read [ARCHITECTURE.md](ARCHITECTURE.md) to understand the system
-- Review [development.md](development.md) for Docker workflow
-- Check [PRD](../.spec_system/PRD/PRD.md) for project roadmap
+## Next Reading
+
+- [Development commands](development.md)
+- [Architecture](ARCHITECTURE.md)
+- [Environment behavior](environments.md)
+- [Product requirements](../.spec_system/PRD/PRD.md)

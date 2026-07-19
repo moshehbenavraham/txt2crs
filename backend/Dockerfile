@@ -33,9 +33,8 @@ COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
 COPY ./packages /app/packages
 
 # =============================================================================
-# Stage 2: production - optimized for Coolify deployment
+# Stage 2: production-like image used by local release validation
 # Target with: docker build --target production
-# Coolify uses: dockerfile_target_build = "production"
 # =============================================================================
 FROM base AS production
 

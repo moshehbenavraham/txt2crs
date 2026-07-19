@@ -16,7 +16,7 @@ The independently installable `txt2crs` package owns:
   retention, and idempotent delivery;
 - deterministic evaluation, progress, security, and provenance contracts.
 
-The future FastAPI application shell owns browser sessions, user
+The FastAPI application shell owns browser sessions, user
 authentication, payment/entitlement lookup, HTTP routes, UI approval/editing,
 deployment-specific email, and any Google Drive or Google Docs integration.
 Those responsibilities consume the package's signed-request, owner-scoped job,

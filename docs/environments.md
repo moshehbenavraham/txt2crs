@@ -3,7 +3,10 @@
 > Runtime differences selected by the required `ENVIRONMENT` setting.
 
 This page documents behavior that actually changes in application code when
-`ENVIRONMENT` is `local`, `staging`, or `production`. For the complete
+`ENVIRONMENT` is `local`, `staging`, or `production`. Only the `local` profile
+is deployed in the current project scope; the other values are hardened
+runtime profiles retained for validation and possible future requirements.
+For the complete
 environment-variable catalog, see [Configuration](CONFIGURATION.md). For local
 service addresses and Docker workflow, see [Development](development.md). For
 deployment ownership and supported paths, see
@@ -33,11 +36,13 @@ authoritative references:
 ENVIRONMENT=local
 ```
 
-Use one value per deployment:
+Use one value per application process:
 
-- `local` for developer workstations and local Docker Compose.
-- `staging` for pre-production validation.
-- `production` for the live deployment.
+- `local` for the supported developer, demonstration, and judge Docker stack.
+- `staging` to exercise non-local validation behavior in tests.
+- `production` to exercise the strictest current validation behavior in tests.
+
+The latter two values do not create or imply remote environments.
 
 Private development routes are a separate, opt-in local setting:
 
@@ -84,8 +89,8 @@ ephemeral value. Staging and production must provide a non-blank
 - `POSTGRES_PASSWORD`
 - `FIRST_SUPERUSER_PASSWORD`
 
-Use unique secrets for every deployed environment. Do not rely on local
-defaults outside local development.
+Use explicit unique secrets whenever exercising a non-local profile. Do not
+reuse the local placeholders.
 
 ### Rate Limiting
 
@@ -153,12 +158,42 @@ Database host, port, credentials, TLS, and managed-service choices come from
 deployment configuration. `ENVIRONMENT` does not select or enforce a database
 provider or SSL mode.
 
+### Private Engine State
+
+The engine uses one application-owned persistent root in every environment.
+The local container deployment intentionally fixes the topology so a
+host-provided path
+cannot redirect a named volume:
+
+| Purpose | Container path |
+|---------|----------------|
+| Persistent root | `/var/lib/txt2crs` |
+| Tenant job database | `/var/lib/txt2crs/jobs.sqlite3` |
+| Rendered artifacts | `/var/lib/txt2crs/artifacts` |
+| Isolated Codex credentials | `/var/lib/txt2crs/codex-home` |
+| Disposable worker files | `/tmp/txt2crs-worker` |
+
+The job database, artifacts, and Codex home must remain strict children of the
+persistent root. The worker root must remain outside it. Docker Compose mounts
+the `txt2crs-state` volume only at `/var/lib/txt2crs`. A complete local backup
+must protect that volume while no process is writing to it.
+
 ### CORS
 
 Allowed origins are the configured `FRONTEND_HOST` plus
 `BACKEND_CORS_ORIGINS`. There is no separate hard-coded local, staging, or
 production allowlist. Set only the origins needed by each deployment and never
 use wildcard origins with credentials.
+
+### Request Metadata and Privacy
+
+The current request middleware records the request path, query string, and
+client IP address. That metadata can contain personal information, including
+an email address in the password-recovery HTML route. Treat application logs
+as personal data, restrict access, and do not enable long retention by
+default. Redaction and a documented retention policy remain required before a
+production privacy review can pass; see
+[Security](SECURITY.md#known-security-and-compliance-gaps).
 
 ## Local Docker Addresses
 
@@ -173,17 +208,17 @@ development guide.
 ## Deployment Responsibilities
 
 Changing `ENVIRONMENT` activates only the application branches documented
-above. It does not automatically configure:
+above. It does not create a deployment or configure:
 
 - Public domains or frontend URLs
-- Database hosting, credentials, backups, or TLS
+- Remote database hosting, credentials, backups, or TLS
 - SMTP credentials
 - Sentry or OpenTelemetry destinations
 - CORS origins
-- CI/CD secrets or deployment approvals
+- Deployment credentials or approvals
 
-Set those values in the deployment platform and follow
-[Deployment policy](deployment-policy.md).
+The current project does not use a deployment platform. Follow the local-only
+[deployment policy](deployment-policy.md).
 
 ## Targeted Validation
 

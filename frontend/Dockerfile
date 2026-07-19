@@ -11,7 +11,9 @@ RUN npm ci
 
 COPY ./ /app/
 
-ARG VITE_API_URL=${VITE_API_URL}
+# Docker Compose or a direct local build supplies this argument. Unset is valid
+# for relative/local API configurations and avoids an undefined self-default.
+ARG VITE_API_URL
 
 RUN npm run build
 
@@ -23,3 +25,8 @@ COPY --from=build-stage /app/dist/ /usr/share/nginx/html
 
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 COPY ./nginx-backend-not-found.conf /etc/nginx/extra-conf.d/backend-not-found.conf
+
+# Check Nginx from inside the container so Docker Compose can reject an image
+# that started a process but cannot serve frontend requests.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl --fail --silent --show-error http://127.0.0.1/health > /dev/null || exit 1

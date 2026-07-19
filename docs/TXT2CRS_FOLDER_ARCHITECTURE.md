@@ -1,182 +1,108 @@
-# txt2crs Folder Architecture
+# txt2crs Workspace Architecture
 
-> Status: adopted library-first backend workspace.
->
-> The local `python-react-boilerplate` remains a compatibility reference rather
-> than a dependency. Its application shell can be added later without moving
-> the txt2crs library.
+> Status: adopted library-first monorepo with a FastAPI/React application
+> shell.
 
 ## Goal
 
-Build txt2crs as an independently installable Python distribution while placing
-it inside the future backend's Docker and dependency boundary. The library can
-therefore be tested, built, tagged, and exported on its own or consumed by a
-React/FastAPI application in the same repository.
+Keep the education engine independently installable while the FastAPI and
+React application provide authentication, delivery, and product UI. The shell
+composes the engine; it does not duplicate engine behavior.
 
-## Adopted structure
+## Current Structure
 
 ```text
-txt2crs/
-├── backend/
-│   ├── pyproject.toml                  # Virtual uv workspace today
-│   ├── uv.lock                         # Reproducible workspace environment
-│   ├── README_backend.md
-│   ├── packages/
-│   │   ├── README_packages.md
-│   │   └── txt2crs/
-│   │       ├── pyproject.toml          # Independent distribution metadata
-│   │       ├── README_txt2crs.md
-│   │       ├── LICENSE
-│   │       ├── docs/
-│   │       │   └── README_txt2crs_docs.md
-│   │       ├── src/
-│   │       │   └── txt2crs/
-│   │       │       ├── domain/
-│   │       │       ├── application/
-│   │       │       ├── adapters/
-│   │       │       │   ├── ai/
-│   │       │       │   ├── ingestion/
-│   │       │       │   ├── persistence/
-│   │       │       │   ├── research/
-│   │       │       │   └── rendering/
-│   │       │       ├── observability/
-│   │       │       ├── security/
-│   │       │       └── evals/
-│   │       └── tests/
-│   │           ├── unit/
-│   │           ├── contract/
-│   │           └── integration/
-│   └── tests/
-│       └── acceptance/                 # Future product-level tests
-├── docs/
-├── make-scenarios/
-├── VERSION
-└── README.md
+backend/
+|-- app/                            FastAPI application shell
+|-- packages/txt2crs/
+|   |-- src/txt2crs/
+|   |   |-- domain/                 Models and deterministic invariants
+|   |   |-- application/            Use cases, ports, and orchestration
+|   |   |-- adapters/               External runtime implementations
+|   |   |-- ai/                     Codex subscription runtime
+|   |   |-- ingestion/              Input normalization
+|   |   |-- jobs/                   Job state and persistence
+|   |   |-- research/               Evidence collection and citation policy
+|   |   |-- rendering/              Deterministic deliverables
+|   |   |-- security/               Untrusted-input and path boundaries
+|   |   |-- observability/          Private and public events
+|   |   `-- evals/                  Versioned quality cases
+|   `-- tests/
+|       |-- unit/
+|       |-- contract/
+|       |-- integration/
+|       `-- acceptance/
+`-- tests/                           Shell and product acceptance tests
 ```
 
-The future `backend/app/`, application migrations, and `frontend/` directories
-will be created only when the full-stack boilerplate is adopted. The tree is a
-responsibility map, not permission to add untested placeholder behavior.
+The package has its own `pyproject.toml`, documentation, license, tests, and
+build metadata. `backend/pyproject.toml` declares it as a uv workspace member
+and application dependency.
 
-## Library responsibilities
-
-| Folder | Owns |
-|---|---|
-| `domain/` | Versioned models and deterministic invariants for inputs, evidence, courses, review packs, assessments, and jobs |
-| `application/` | Framework-independent use cases, staged orchestration, budgets, checkpoints, and provider/repository protocols |
-| `adapters/ai/` | Codex subscription runtime, deterministic fake runtime, event projection, retries, and usage capture |
-| `adapters/research/` | Research tools, evidence collection, source policy, and citation verification |
-| `adapters/ingestion/` | Plain text, URL, PDF, document, audio, and video normalization |
-| `adapters/persistence/` | Independently useful repository implementations, such as local SQLite |
-| `adapters/rendering/` | Deterministic course, review-pack, assessment, and answer-sheet rendering |
-| `security/` | URL safety, policy enforcement, redaction, path confinement, and untrusted-content boundaries |
-| `observability/` | Private diagnostic events and safe public progress-event contracts |
-| `evals/` | Versioned evaluation cases, replay, deterministic checks, and rubric results |
-
-## Dependency rule
+## Dependency Direction
 
 ```text
-Future React client
-        ↓ HTTP
-Future FastAPI application shell
-        ↓
+React client
+    |
+    | HTTP
+    v
+FastAPI application shell
+    |
+    | public txt2crs package API
+    v
 txt2crs application services
-        ↓
+    |
+    v
 txt2crs domain
-        ↑
-txt2crs adapters implement application ports
+    ^
+    | protocols implemented by adapters
 ```
 
-- `domain/` must not import FastAPI, SQLite, Codex, Tavily, or SDK event types.
-- `application/` depends on local protocols rather than concrete adapters.
-- The library must not import the future `backend/app/` package.
-- FastAPI requests, authentication, application database sessions, public API
-  errors, and Alembic migrations stop at the application-shell boundary.
-- The future application composition root selects concrete txt2crs adapters
-  and supplies authenticated ownership context.
-- Live-provider tests remain explicitly gated; default tests use deterministic
-  fakes.
+- The engine does not import `backend/app`.
+- Domain code does not import FastAPI, SQLite, Codex, or provider SDK events.
+- Application services depend on protocols, not concrete adapters.
+- FastAPI owns users, authorization, public schemas, SQLModel sessions,
+  Alembic migrations, shell error codes, and HTTP delivery.
+- The engine owns generation, research, validation, engine job persistence,
+  rendering, and evaluation.
+- The administrative MCP server and engine research MCP boundary remain
+  separate.
 
-## Interim authentication boundary
+Course-generation routes are not exposed yet. When Phase 01 adds shell
+composition, route handlers must invoke package services rather than recreate
+their logic.
 
-The full FastAPI/frontend shell does not exist yet, but subscription
-authentication cannot depend on a developer's preinstalled Codex environment.
-The adopted interim boundary is therefore:
+## State and Authentication
 
-```text
-temporary packaged bootstrap (future: FastAPI setup page)
-        ↓ URL + user code + safe status
-txt2crs DedicatedSystemAuthenticator
-        ↓ public Python SDK
-bundled Codex app-server
-        ↓ device-code authentication
-dedicated ChatGPT hackathon identity
-```
+PostgreSQL stores application users and shell records. Tenant-scoped engine
+jobs use SQLite under `/var/lib/txt2crs/jobs.sqlite3`; rendered artifacts and
+the isolated Codex home are sibling children of `/var/lib/txt2crs`. Temporary
+worker files stay under `/tmp/txt2crs-worker`.
 
-- The app starts `chatgptDeviceCode`; it never implements OpenAI token exchange.
-- The UI receives only the verification URL, short user code, and safe state.
-- Codex alone stores and refreshes credentials in an application-owned
-  `CODEX_HOME`.
-- ChatGPT login is forced, API-key environment values are blanked for the child,
-  and the credential store is pinned to the isolated filesystem directory.
-- The temporary console entry point is replaced by setup routes/UI when
-  `backend/app/` is adopted; the library service remains reusable.
+Codex performs ChatGPT device-code authentication and stores credentials only
+in the application-owned Codex home. The public UI may receive a verification
+URL, short code, and safe state, but never raw credentials or provider event
+payloads.
 
-## Future boilerplate integration
-
-When `python-react-boilerplate` is selected:
-
-1. Merge its backend project metadata into `backend/pyproject.toml` while
-   retaining `[tool.uv.workspace]`.
-2. Declare `txt2crs` as a workspace dependency of the backend application.
-3. Add the boilerplate's FastAPI code under `backend/app/`.
-4. Register course-generation routes from `backend/app/api/main.py`.
-5. Keep user authentication, system-authentication HTTP routes, SQLModel
-   application tables, and Alembic migrations under the application shell;
-   those routes call the framework-independent `DedicatedSystemAuthenticator`.
-6. Update the backend Dockerfile to copy `packages/` before workspace
-   installation. Its existing `./backend` build context can remain unchanged.
-7. Add the React application under the repository-root `frontend/` directory
-   and regenerate its API client from the combined OpenAPI contract.
-
-The expected local dependency direction is:
-
-```text
-backend/app/api/routes/courses.py
-                ↓ imports
-backend/packages/txt2crs/src/txt2crs/
-```
-
-The boilerplate's administrative MCP server and the txt2crs research-tool
-adapter remain separate security boundaries.
-
-## Test placement
+## Test and Build Boundaries
 
 Tests are written before implementation:
 
-- package `unit/`: domain invariants, budgets, ranking, rendering, and safety
-  helpers;
-- package `contract/`: runtime, repository, research-tool, schema, and event
-  contracts;
-- package `integration/`: SQLite, Codex SDK fakes, research HTTP fakes, and
-  other independently useful adapter integrations;
-- backend `acceptance/`: future authenticated API, resumable end-to-end
-  generation, delivery, and frontend-facing behavior.
+- engine unit tests cover pure invariants and helpers;
+- engine contract tests cover ports, schemas, and events;
+- engine integration tests cover SQLite and deterministic provider fakes;
+- backend tests cover shell behavior and authenticated API composition;
+- frontend unit and Playwright tests cover product behavior.
 
-## Packaging, versions, and export
-
-`backend/packages/txt2crs/pyproject.toml` builds the independent wheel and source
-distribution. From `backend/`, use:
+Run package commands from `backend/packages/txt2crs/` so its strict tool
+configuration applies:
 
 ```bash
-uv sync --all-packages
 uv run --package txt2crs pytest
+uv run --package txt2crs ruff check .
+uv run --package txt2crs mypy
 uv build --package txt2crs
 ```
 
-The root `VERSION` remains the repository's Semantic Versioning source. The
-package metadata uses the equivalent normalized PEP 440 spelling. The current
-repository and package release is `0.3.0`.
-
-An immutable annotated Git tag plus the built wheel and source distribution
-preserve a standalone-library milestone before full-stack integration begins.
+The root `VERSION` is the repository SemVer source. Release changes synchronize
+the package version and follow [Versioning](VERSIONING.md).

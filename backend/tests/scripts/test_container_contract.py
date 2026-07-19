@@ -7,6 +7,19 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 BACKEND_DOCKERFILE = REPOSITORY_ROOT / "backend" / "Dockerfile"
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
+ROOT_ENVIRONMENT_EXAMPLE = REPOSITORY_ROOT / ".env.example"
+
+# Hosted deployment is explicitly outside the project scope. Keeping these
+# donor files would silently turn an optional future product decision into an
+# active operational dependency, so their absence is part of the local-first
+# container contract.
+OUT_OF_SCOPE_HOSTED_DEPLOYMENT_FILES = (
+    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-coolify.yml",
+    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-staging.yml",
+    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-production.yml",
+    REPOSITORY_ROOT / ".github" / "workflows" / "backup-db.yml",
+    REPOSITORY_ROOT / "scripts" / "coolify-deploy.sh",
+)
 
 
 def _read_repository_file(path: Path) -> str:
@@ -126,3 +139,24 @@ def test_development_override_keeps_a_single_reload_process() -> None:
 
     assert "--reload" in backend_service
     assert "--workers" not in backend_service
+
+
+def test_project_scope_contains_no_active_hosted_deployment_automation() -> None:
+    """Local Docker is the only deployment target in the current project scope."""
+
+    unexpected_files = [
+        str(path.relative_to(REPOSITORY_ROOT))
+        for path in OUT_OF_SCOPE_HOSTED_DEPLOYMENT_FILES
+        if path.exists()
+    ]
+
+    assert unexpected_files == []
+
+
+def test_local_environment_example_has_no_coolify_configuration() -> None:
+    """The default operator surface must not advertise an out-of-scope host."""
+
+    environment_example_text = _read_repository_file(ROOT_ENVIRONMENT_EXAMPLE)
+
+    assert "COOLIFY" not in environment_example_text.upper()
+    assert "APP_UUID" not in environment_example_text

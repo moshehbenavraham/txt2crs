@@ -38,6 +38,9 @@ transition therefore uses the pipeline workflow's allowed local-fallback path.
    regression baseline.
 6. Added static workflow contracts to the fast repository validator.
 7. Documented workflow ownership and secret names in `CONVENTIONS.md`.
+8. Removed inherited hosted deployment and scheduled-backup workflows after
+   the owner confirmed that Docker Compose is the complete project deployment
+   scope.
 
 ## Workflow Inventory
 
@@ -47,7 +50,7 @@ transition therefore uses the pipeline workflow's allowed local-fallback path.
 | Build & Test | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | PASS | Runner rejected by billing |
 | Security | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | PASS for history/dependency/workflow scanners; CodeQL definition validated | Runner unavailable; CodeQL is remote-only |
 | Integration | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | PASS; no open PRs | Runner rejected by billing |
-| Operations | `deploy-coolify.yml`, `deploy-staging.yml`, `deploy-production.yml`, `backup-db.yml` | Syntax and supply-chain validation PASS | Deploy/backup side effects not requested; runners unavailable |
+| Operations | No deployment workflows | N/A: deployment is local-only | GitHub Actions intentionally does not deploy an environment |
 
 ## Evidence Ledger
 
@@ -74,20 +77,19 @@ transition therefore uses the pipeline workflow's allowed local-fallback path.
 The connected repository currently reports no configured Actions secrets.
 Required names are documented in `CONVENTIONS.md`; no values were created,
 printed, or committed. Security analysis needs only GitHub's automatic
-`GITHUB_TOKEN`. Deployment and backup workflows remain operator-triggered
-capabilities until their environment-specific secrets are provisioned.
+`GITHUB_TOKEN`. There are no deployment or hosted-backup workflow secrets
+because remote operations are outside the project scope.
 
 ## Known Issues Loaded
 
 - Ignored paths: 3
 - Ignored rules: 3, including one four-fingerprint Gitleaks exception
 - Known failing tests: 0
-- Skipped workflows: 13, all due the same external Actions billing condition
+- Skipped workflows: 9, all due the same external Actions billing condition
 - Skipped infrastructure: 0
 
 No repository-fixable pipeline failure remains. Restoring GitHub Actions
-billing and provisioning only the intended environment secrets will re-enable
-remote verification without another code change.
+billing will re-enable remote validation without creating a deployment path.
 
 ## Handoff
 

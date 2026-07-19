@@ -1,24 +1,30 @@
 # txt2crs Development
 
-## Docker Compose
-
-Start the local stack with Docker Compose:
+## One-Command Stack
 
 ```bash
-docker compose watch
+docker compose up -d --wait
+```
+
+Use `docker compose watch` when you want Compose file-watch rebuild/sync
+behavior. Stop the stack without deleting application data:
+
+```bash
+docker compose down
 ```
 
 ## Local Service Endpoints
 
-Host tools and browsers use the published ports below. Containers communicate
-over the Docker network with the internal addresses shown in the last column.
+Host tools use published ports. Containers use service names and internal
+ports.
 
 | Service | Host address | Container address |
 |---------|--------------|-------------------|
 | Frontend | <http://localhost:5183> | `frontend:80` |
+| Frontend health | <http://localhost:5183/health> | `frontend:80/health` |
 | Backend API | <http://localhost:8012> | `backend:8000` |
+| Backend readiness | <http://localhost:8012/api/v1/utils/health/> | `backend:8000/api/v1/utils/health/` |
 | Swagger UI | <http://localhost:8012/docs> | `backend:8000/docs` |
-| ReDoc | <http://localhost:8012/redoc> | `backend:8000/redoc` |
 | PostgreSQL | `localhost:5447` | `db:5432` |
 | Adminer | <http://localhost:8096> | `adminer:8080` |
 | Mailcatcher UI | <http://localhost:1081> | `mailcatcher:1080` |
@@ -26,164 +32,165 @@ over the Docker network with the internal addresses shown in the last column.
 | Traefik dashboard | <http://localhost:8095> | `proxy:8080` |
 | Jaeger UI | <http://localhost:16686> | `jaeger:16686` |
 
-The first startup may take a minute while the backend waits for PostgreSQL and
-runs its initialization. Use the logs to monitor progress.
+The local proxy dashboard is available, but the Docker provider is disabled
+in `docker-compose.override.yml`. Use the published localhost ports above
+instead of expecting `*.localhost.tiangolo.com` routing.
 
-To check the logs, run (in another terminal):
-
-```bash
-docker compose logs
-```
-
-To check the logs of a specific service, add the name of the service, e.g.:
+## Logs and Health
 
 ```bash
+docker compose ps
 docker compose logs backend
+curl --fail http://localhost:8012/api/v1/utils/health/
+curl --fail http://localhost:5183/health
 ```
 
-## Mailcatcher
+The backend readiness response includes PostgreSQL health and release version.
+The frontend response proves Nginx is serving without loading React.
 
-Mailcatcher captures email sent by the backend during local development and
-displays it in a web interface instead of delivering it externally.
+## Develop One Service on the Host
 
-This is useful for:
+Stop only the service you want to replace.
 
-* Testing email functionality during development
-* Verifying email content and formatting
-* Debugging email-related functionality without sending real emails
-
-The backend is automatically configured to use `mailcatcher:1025` inside
-Docker. Host-side SMTP clients can use `localhost:1026`. All captured emails
-can be viewed at <http://localhost:1081>.
-
-## Local Development
-
-The Docker Compose files are configured so that each of the services is available in a different port in `localhost`.
-
-For the backend and frontend, they use the same port that would be used by their local development server, so, the backend is at `http://localhost:8012` and the frontend at `http://localhost:5183`.
-
-This way, you could turn off a Docker Compose service and start its local development service, and everything would keep working, because it all uses the same ports.
-
-For example, you can stop that `frontend` service in the Docker Compose, in another terminal, run:
-
-```bash
-docker compose stop frontend
-```
-
-And then start the local frontend development server:
-
-```bash
-cd frontend
-npm run dev
-```
-
-Or you could stop the `backend` Docker Compose service:
+### Backend
 
 ```bash
 docker compose stop backend
+cd backend
+uv sync --all-packages
+uv run fastapi dev app/main.py
 ```
 
-And then you can run the local development server for the backend:
+The host backend reads `backend/.env`; it reaches PostgreSQL through
+`localhost:5447`.
+
+### Frontend
+
+```bash
+docker compose stop frontend
+cd frontend
+npm ci
+npm run dev
+```
+
+The dev server uses the port configured in `frontend/vite.config.ts`.
+
+## Private Engine State
+
+The container backend mounts one named volume at `/var/lib/txt2crs`:
+
+```text
+/var/lib/txt2crs/
+|-- jobs.sqlite3
+|-- artifacts/
+`-- codex-home/
+```
+
+The runtime user owns these paths with private modes. Worker scratch data is
+ephemeral under `/tmp/txt2crs-worker`. The research MCP port is not published.
+Do not add replicas or multiple FastAPI workers while this serial SQLite
+topology remains.
+
+## Mailcatcher
+
+Local Compose routes application email to `mailcatcher:1025`. View captured
+messages at <http://localhost:1081>; no external email is sent.
+
+## Validation
+
+Run the credential-free fast gate from the repository root:
+
+```bash
+./scripts/validate-changes.sh
+```
+
+Selectors can narrow feedback:
+
+```bash
+./scripts/validate-changes.sh backend
+./scripts/validate-changes.sh engine
+./scripts/validate-changes.sh frontend
+./scripts/validate-changes.sh --json
+```
+
+### Backend shell
 
 ```bash
 cd backend
-fastapi dev app/main.py
+uv run pytest tests/ -v
+uv run mypy app
+uv run ty check app
+uv run ruff check app tests
+uv run ruff format --check app tests
 ```
 
-## Docker Compose in `localhost.tiangolo.com`
+The full suite needs PostgreSQL. Start `db` first or run it inside the
+full-stack Compose environment.
 
-When you start the Docker Compose stack, it uses `localhost` by default, with different ports for each service (backend, frontend, adminer, etc).
+### Reusable engine
 
-When you deploy it to production (or staging), it will deploy each service in a different subdomain, like `api.example.com` for the backend and `dashboard.example.com` for the frontend.
-
-For deployment policy and current production path ownership, start with [deployment policy](deployment-policy.md). The [deployment](deployment.md) guide remains as a legacy Docker Compose fallback reference and includes Traefik details.
-
-If you want to test that it's all working locally, you can edit the local `.env` file, and change:
-
-```dotenv
-DOMAIN=localhost.tiangolo.com
-```
-
-That will be used by the Docker Compose files to configure the base domain for the services.
-
-Traefik will use this to transmit traffic at `api.localhost.tiangolo.com` to the backend, and traffic at `dashboard.localhost.tiangolo.com` to the frontend.
-
-The domain `localhost.tiangolo.com` is a special domain that is configured (with all its subdomains) to point to `127.0.0.1`. This way you can use that for your local development.
-
-After you update it, run again:
+Run from the engine package directory so its own `pyproject.toml` applies:
 
 ```bash
-docker compose watch
+cd backend/packages/txt2crs
+uv run --package txt2crs pytest
+uv run --package txt2crs ruff check .
+uv run --package txt2crs mypy
 ```
 
-When deploying, for example in production, the main Traefik is configured outside of the Docker Compose files. For local development, there's an included Traefik in `docker-compose.override.yml`, just to let you test that the domains work as expected, for example with `api.localhost.tiangolo.com` and `dashboard.localhost.tiangolo.com`.
+The default suite is network-free. The live Codex acceptance check requires
+the explicit `TXT2CRS_RUN_LIVE_CODEX=1` gate.
 
-## Docker Compose files and env vars
-
-There is a main `docker-compose.yml` file with all the configurations that apply to the whole stack, it is used automatically by `docker compose`.
-
-And there's also a `docker-compose.override.yml` with overrides for development, for example to mount the source code as a volume. It is used automatically by `docker compose` to apply overrides on top of `docker-compose.yml`.
-
-These Docker Compose files use the `.env` file containing configurations to be injected as environment variables in the containers.
-
-They also use some additional configurations taken from environment variables set in the scripts before calling the `docker compose` command.
-
-After changing variables, make sure you restart the stack:
+### Frontend
 
 ```bash
-docker compose watch
+cd frontend
+npm run test:unit
+npm run typecheck
+npm run lint
+npm run build
+npx playwright test
 ```
 
-## The .env file
-
-The `.env` file is the one that contains all your configurations, generated keys and passwords, etc.
-
-Depending on your workflow, you could want to exclude it from Git, for example if your project is public. In that case, you would have to make sure to set up a way for your CI tools to obtain it while building or deploying your project.
-
-One way to do it could be to add each environment variable to your CI/CD system, and updating the `docker-compose.yml` file to read that specific env var instead of reading the `.env` file.
-
-## Pre-commits and code linting
-
-we are using a tool called [pre-commit](https://pre-commit.com/) for code linting and formatting.
-
-When you install it, it runs right before making a commit in git. This way it ensures that the code is consistent and formatted even before it is committed.
-
-You can find a file `.pre-commit-config.yaml` with configurations at the root of the project.
-
-#### Install pre-commit to run automatically
-
-`pre-commit` is already part of the dependencies of the project, but you could also install it globally if you prefer to, following [the official pre-commit docs](https://pre-commit.com/).
-
-After having the `pre-commit` tool installed and available, you need to "install" it in the local repository, so that it runs automatically before each commit.
-
-Using `uv`, you could do it with:
+### Containers
 
 ```bash
-❯ uv run pre-commit install
-pre-commit installed at .git/hooks/pre-commit
+docker compose config --quiet
+./scripts/verify-production-baseline.sh
 ```
 
-Now whenever you try to commit, e.g. with:
+The production-like local baseline smoke builds the backend target, imports
+the engine as UID 1001, checks private modes, and reopens state through a
+replacement container.
+
+## Pre-commit
+
+Pre-commit is installed in the backend development environment:
 
 ```bash
-git commit
+cd backend
+uv run pre-commit install
+uv run pre-commit run --all-files
 ```
 
-...pre-commit will run and check and format the code you are about to commit, and will ask you to add that code (stage it) with git again before committing.
+The hooks cover file hygiene, spelling, Python lint/format/types, frontend
+Biome/TypeScript, deterministic client generation, and workflow security.
 
-Then you can `git add` the modified/fixed files again and now you can commit.
+## Generated Client
 
-#### Running pre-commit hooks manually
-
-you can also run `pre-commit` manually on all the files, you can do it using `uv` with:
+After backend API changes:
 
 ```bash
-❯ uv run pre-commit run --all-files
-check for added large files..............................................Passed
-check toml...............................................................Passed
-check yaml...............................................................Passed
-ruff.....................................................................Passed
-ruff-format..............................................................Passed
-eslint...................................................................Passed
-prettier.................................................................Passed
+./scripts/generate-client.sh
+git diff -- frontend/openapi.json frontend/src/client
 ```
+
+The script exports OpenAPI and formats both generated surfaces. Never edit
+`frontend/src/client/` manually.
+
+## Environment and Deployment
+
+- [Configuration catalog](CONFIGURATION.md)
+- [Environment behavior](environments.md)
+- [Deployment policy](deployment-policy.md)
+- [Local deployment](deployment.md)

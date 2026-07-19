@@ -12,15 +12,39 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added a stable frontend `/health` JSON endpoint, Docker image health check,
+  and static local deployment scope contracts.
+- Added ADR-0008 to establish repository-root Docker Compose as the only
+  current deployment target.
+
 ### Changed
+
+- Reconciled root, architecture, API, environment, package, onboarding,
+  development, deployment, security, and runbook documentation with the
+  completed Phase 00 implementation.
+- Clarified that `staging` and `production` are inactive runtime validation
+  profiles, not deployed environments.
 
 ### Deprecated
 
+- Superseded the inherited Coolify architecture decision with the local-only
+  deployment decision.
+
 ### Removed
+
+- Removed inherited hosted deployment and scheduled remote-backup workflows,
+  the Coolify deployment script, and platform-specific example variables.
 
 ### Fixed
 
+- Corrected the frontend Docker build argument so local BuildKit validation no
+  longer reports an undefined self-reference.
+
 ### Security
+
+- Documented request-log privacy risk, complete local backup/restore gaps, and
+  the missing private vulnerability-reporting channel without inventing
+  external owners or infrastructure.
 
 ## [0.3.3] - 2026-07-19
 

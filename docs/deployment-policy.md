@@ -2,31 +2,62 @@
 
 ## Scope
 
-This policy defines the deployment source of truth for `python-react-boilerplate` and the allowed use of fallback deployment paths.
+txt2crs is local-first and local-only for the current project scope.
+Repository-root Docker Compose is the sole deployment source of truth.
 
-## Source of Truth
+This policy is established by
+[ADR-0008](adr/0008-local-only-deployment-scope.md), which supersedes the
+donor-era hosted-platform decision.
 
-- **Primary deployment path**: Coolify.
-- **Authoritative automation**: `.github/workflows/deploy-coolify.yml`.
-- **Architecture decision**: `docs/adr/0007-coolify-deployment-platform.md`.
+## Authoritative Path
 
-Use this path for normal staging and production releases.
+```bash
+cp .env.example .env
+# Replace local placeholder secrets.
+docker compose up --detach --build --wait
+```
 
-## Legacy Fallback Workflows
+The command starts the complete application topology:
 
-- `.github/workflows/deploy-staging.yml`
-- `.github/workflows/deploy-production.yml`
+- PostgreSQL with persistent application data;
+- one non-root FastAPI process hosting the reusable engine;
+- one Nginx-served React frontend;
+- one private engine-state volume for SQLite jobs, artifacts, and Codex
+  credentials.
 
-These workflows are retained as **break-glass fallback** for incidents where Coolify automation is unavailable or degraded.
+There is no active staging, hosted production, or platform-specific deployment
+workflow in scope. GitHub Actions validates source and containers; it does not
+deploy an environment.
 
-### Required controls when using fallback workflows
+## Health Contract
 
-1. Log incident context and approver in the incident ticket.
-2. Run smoke checks and rollback steps defined in `docs/runbooks/incident-response.md`.
-3. Open follow-up remediation tasks to restore primary-path operation.
+Docker Compose waits for:
 
-## Deployment Governance
+| Service | Probe | Meaning |
+|---------|-------|---------|
+| Backend | `/api/v1/utils/health/` | FastAPI is responsive and PostgreSQL is healthy |
+| Frontend | `/health` | Nginx returns `{"status":"healthy","service":"frontend"}` |
 
-- Changes to deployment routing or primary-path ownership require an ADR update.
-- Runbook commands and workflow references must be kept in sync whenever deploy scripts/workflows change.
-- Release verification must include readiness (`/api/v1/utils/health/`) and liveness (`/api/v1/utils/health-check/`) checks.
+The backend also exposes liveness at
+`/api/v1/utils/health-check/`. Health checks run inside their containers and
+do not require a browser.
+
+## Data Safety
+
+`docker compose down` preserves named volumes. Do not add `--volumes` unless
+the operator explicitly intends to delete:
+
+- PostgreSQL users and application records;
+- engine job state and rendered artifacts;
+- the locally isolated Codex credential store.
+
+The repository provides a PostgreSQL dump helper, but a complete backup must
+also protect private engine state while no writer is active. Off-host backup
+and hosted disaster recovery are outside the current scope.
+
+## Future Hosting
+
+A future production scope is not assumed. If the owner later chooses to host
+txt2crs, that work must begin with explicit requirements and a new ADR covering
+data residency, secrets, TLS, domains, backups, rollout, rollback,
+observability, cost, and platform choice. No platform is preselected.

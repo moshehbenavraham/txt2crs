@@ -36,8 +36,8 @@ provider internals or filesystem paths.
 - Add multiple concurrent Codex workers, a queue platform, or horizontal
   backend replicas.
 - Add a general model or provider selector.
-- Require hosted deployment when the tested local Docker deployment is more
-  reliable for the event deadline.
+- Add hosted deployment, platform-specific CD, public domains, or remote
+  environment operations within the current project scope.
 - Add image, audio, or video ingestion before each capability has bounded
   deployment dependencies and representative tests.
 
@@ -172,6 +172,10 @@ provider internals or filesystem paths.
   generation, research, validation, persistence, policy, or rendering logic.
 - PostgreSQL schema changes use Alembic; generated frontend client files are
   updated only through the repository client-generation script.
+- Repository-root Docker Compose is the only deployment target in scope.
+  Runtime `staging` and `production` profiles do not imply a hosted
+  environment, and any future hosting choice requires explicit owner approval
+  and a new ADR.
 - External credentials may be absent during build and OpenAPI generation, but
   readiness must then reject new generation work truthfully.
 
@@ -270,9 +274,9 @@ This system delivers the product via phases. Each phase is implemented through
 
 ## Assumptions
 
-- **Local Docker is the required deployment baseline**: The adopted plan makes
-  hosting optional and prioritizes a reproducible local Docker submission, so
-  phase planning can proceed without a hosted environment.
+- **Local Docker is the complete deployment scope**: Repository-root Docker
+  Compose is the release, demonstration, and judge path. Phase planning must
+  not add hosted automation or assume a future platform.
 - **The repository is a three-package workspace**: Root and side-specific
   agent guidance, the uv workspace, nested engine package, and independent
   React manifest establish distinct backend shell, engine, and frontend
