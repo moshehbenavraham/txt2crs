@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
-  "current_phase": 1,
+  "current_phase": 2,
   "current_session": null,
   "monorepo": true,
   "packages": [
@@ -33,6 +33,12 @@
       "name": "Engine Application Boundary",
       "description": "Expose the durable, safe, and lifecycle-managed engine operations required by the application shell without duplicating package logic.",
       "status": "complete",
+      "session_count": 5
+    },
+    "2": {
+      "name": "Composition and Readiness",
+      "description": "Compose one FastAPI-owned engine lifecycle, serial worker, safe readiness and authentication API, and operator setup experience.",
+      "status": "not_started",
       "session_count": 5
     }
   },

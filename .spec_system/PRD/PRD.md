@@ -188,7 +188,7 @@ This system delivers the product via phases. Each phase is implemented through
 |-------|------|----------|--------|
 | 00 | Application Baseline | 1 | Complete |
 | 01 | Engine Application Boundary | 5 | Complete |
-| 02 | Composition and Readiness | 1 | Not Started |
+| 02 | Composition and Readiness | 5 | Not Started |
 | 03 | Durable Jobs API | 2 | Not Started |
 | 04 | Learner Experience | 2 | Not Started |
 | 05 | Hardening and Submission | 2 | Not Started |
@@ -211,6 +211,30 @@ This system delivers the product via phases. Each phase is implemented through
   production image, enforce one non-root backend process, add typed confined
   private engine-state paths and persistent storage, and preserve existing
   shell smoke behavior.
+
+## Phase 02: Composition and Readiness
+
+### Objectives
+
+1. Compose one public engine facade for the complete FastAPI lifespan.
+2. Recover and execute runnable work through one serial worker supervisor.
+3. Maintain truthful, side-effect-free cached readiness and safe
+   observability.
+4. Expose authenticated readiness and superuser-only device authentication.
+5. Provide an accessible operator setup experience with CLI recovery.
+
+### Sessions
+
+- **S01 - Engine Composition Lifecycle**: Translate typed shell settings into
+  package configuration and own one facade with deterministic cleanup.
+- **S02 - Serial Worker Supervisor**: Recover and execute one job at a time
+  through public handles with bounded cancellation and shutdown.
+- **S03 - Cached Readiness and Observability**: Compose safe cached dependency
+  state, serialize runtime ownership, sanitize logs, and translate errors.
+- **S04 - System Readiness and Auth API**: Add strict readiness and privileged
+  device-auth routes, then regenerate the OpenAPI client.
+- **S05 - Operator Setup Experience**: Build the responsive, accessible
+  superuser setup and device-login workflow.
 
 ## Technical Stack
 
