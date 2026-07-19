@@ -15,6 +15,9 @@ BACKEND_DOCKERFILE = REPOSITORY_ROOT / "backend" / "Dockerfile"
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
 ROOT_ENVIRONMENT_EXAMPLE = REPOSITORY_ROOT / ".env.example"
+DOCKER_COMPOSE_WORKFLOW = (
+    REPOSITORY_ROOT / ".github" / "workflows" / "test-docker-compose.yml"
+)
 
 # Hosted deployment is explicitly outside the project scope. Keeping these
 # donor files would silently turn an optional future product decision into an
@@ -198,3 +201,13 @@ def test_local_environment_example_has_no_coolify_configuration() -> None:
 
     assert "COOLIFY" not in environment_example_text.upper()
     assert "APP_UUID" not in environment_example_text
+
+
+def test_docker_workflow_probes_authoritative_local_health_endpoints() -> None:
+    """CI smoke checks must use the same ports and readiness paths as Compose."""
+
+    workflow_text = _read_repository_file(DOCKER_COMPOSE_WORKFLOW)
+
+    assert "curl --fail http://localhost:8012/api/v1/utils/health/" in workflow_text
+    assert "curl --fail http://localhost:5183/health" in workflow_text
+    assert "localhost:5181" not in workflow_text
