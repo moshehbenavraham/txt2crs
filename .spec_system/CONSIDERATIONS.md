@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 00 (2026-07-19)
+> **Line budget**: 600 max | **Last updated**: Phase 01 (2026-07-19)
 
 ---
 
@@ -26,22 +26,25 @@ Items requiring attention in upcoming phases. Review before each session.
 - [P00] **Deployment is intentionally local-only**: Docker Compose is the only
   project target. Do not add hosted deployment automation or assume a future
   platform without an explicit owner-approved scope change and new ADR.
-- [P00] **Complete local backups are not proven**: PostgreSQL dump tooling
-  exists, but recovery must also cover the private engine-state volume and be
-  tested while no writer is active.
+- [P01-backend/packages/txt2crs] **Credentialed provider proof is still gated**:
+  The deterministic suite proves exact GPT-5.6 and Tavily policy, but the live
+  subscription/research acceptance test must run before release.
 
 ### Performance / Security
 
 - [P00-backend+backend/packages/txt2crs] **One process is mandatory**: The P0
   serial worker and SQLite store cannot safely run under multiple FastAPI
-  workers. Preserve the container contract until a real queue architecture
-  replaces it.
-- [P00-backend/packages/txt2crs] **Private state needs lifecycle coverage**:
-  SQLite jobs, artifacts, and Codex credentials share one owner-only volume;
-  future retention, deletion, and backup work must preserve this boundary.
-- [P00-backend] **Readiness is still shell-only**: Current readiness proves
-  PostgreSQL and version health. Phase 02 must add truthful engine, worker,
-  storage, research, and provider capability readiness before job admission.
+  workers. Preserve the container contract until a real queue replaces it.
+- [P01-backend/packages/txt2crs] **Private-state retention is undefined**:
+  Owner purge and complete local recovery now work, but learner requests,
+  checkpoints, artifacts, logs, and backup bundles still need an explicit
+  retention schedule and encrypted-copy policy.
+- [P00-backend] **Readiness still needs engine composition**: Phase 02 must
+  translate the facade's engine, worker, storage, research, provider, and auth
+  capability snapshots into truthful shell admission/readiness behavior.
+- [P01-backend+backend/packages/txt2crs] **HTTP artifact delivery owns cleanup**:
+  Phase 03 must close package streams on disconnect and apply private,
+  no-store, nosniff, and safe attachment headers.
 
 ### Architecture
 
@@ -54,6 +57,12 @@ Items requiring attention in upcoming phases. Review before each session.
 - [P00-backend+frontend] **Generated OpenAPI is the cross-package contract**:
   Regenerate and format `openapi.json` plus `src/client` together after API
   changes; never patch generated frontend files by hand.
+- [P01-backend+backend/packages/txt2crs] **Account erasure spans two owners**:
+  Phase 04 must stop/purge engine owner state before deleting the PostgreSQL
+  user and must report any partial failure truthfully.
+- [P01-backend+backend/packages/txt2crs] **Worker recovery uses public handles**:
+  The serial worker must prefer recovered runnable jobs and use
+  `ApplicationExecutor` for cancellation and shutdown, never private stores.
 
 ---
 
@@ -77,6 +86,25 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P00] **Tests-first works for deployment files**: Static contracts for
   Dockerfiles, Compose, workflow YAML, and generation scripts made each
   infrastructure repair observable before implementation.
+- [P01-backend/packages/txt2crs] **Persist exact accepted identity**: A strict
+  normalized request, immutable execution profile, and canonical hash make
+  restart recovery deterministic without current-default substitution.
+- [P01-backend/packages/txt2crs] **Construct public allowlists**: Copy reviewed,
+  bounded leaves into public contracts instead of filtering serialized private
+  models after the fact.
+- [P01-backend/packages/txt2crs] **Checkpoint before provider construction**:
+  Provider-free ingestion, policy, and preference acceptance makes denial and
+  restart behavior deterministic and testable.
+- [P01-backend/packages/txt2crs] **One context owns provider resources**:
+  Enter temporary, HTTP, MCP, and Codex resources in dependency order and
+  unwind them in reverse without masking the primary generation error.
+- [P01-backend/packages/txt2crs] **Cross-store erasure needs a worker barrier**:
+  Cancel/wait for owner work, delete artifacts first, then transactionally
+  remove SQLite parents so every failure remains retryable.
+- [P01-backend/packages/txt2crs] **Facade integration tests protect boundaries**:
+  A public-only deterministic lifecycle can exercise real persistence,
+  preparation, rendering, artifact, recovery, and purge behavior without
+  FastAPI, credentials, or private imports.
 
 ### What to Avoid
 
@@ -95,6 +123,18 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P00] **Do not run generic whitespace fixes on source-byte fixtures**:
   Versioned protocol captures, legacy exports, and noisy OCR evaluations need
   precise documented exclusions.
+- [P01-backend/packages/txt2crs] **Do not treat frozen models as deeply frozen**:
+  Nested Pydantic values can still mutate; detach snapshots and revalidate
+  their canonical identity at persistence boundaries.
+- [P01-backend/packages/txt2crs] **Do not retain private exception context**:
+  Safe outer text is insufficient when `__cause__` or `__context__` still
+  contains learner content, paths, provider values, or SQL details.
+- [P01-backend/packages/txt2crs] **Do not let writer/read bounds drift**:
+  Artifact state accepted by a writer must remain immediately readable through
+  the same shared metadata and topology validation.
+- [P01-backend/packages/txt2crs] **Do not use `executescript` for atomic upgrades**:
+  Apply fixed statements within the explicit `BEGIN IMMEDIATE` transaction so
+  schema changes and migration-version records commit together.
 
 ### Tool/Library Notes
 
@@ -108,6 +148,9 @@ Proven patterns and anti-patterns. Reference during implementation.
   layer.
 - [P00] **Client generation is formatter-owning**: The generation script must
   format both the OpenAPI document and generated client before later hooks.
+- [P01-backend/packages/txt2crs] **Use stdlib SQLite when the CLI is absent**:
+  Python's `sqlite3` module can apply and inspect packaged migrations in the
+  same interpreter environment as the engine.
 
 ---
 
@@ -117,6 +160,8 @@ Recently closed items (buffer - rotates out after 2 phases).
 
 | Phase | Item | Resolution |
 |-------|------|------------|
+| P01 | Complete local recovery | One owner-only bundle now captures and restores PostgreSQL plus private engine state with pre-destructive validation. |
+| P01 | Engine owner lifecycle | Active work is stopped and owner requests, checkpoints, delivery rows, and artifacts are purged through the public facade. |
 | P00 | Host/container engine parity | Both backend image targets install and import the workspace package. |
 | P00 | Unsafe multi-worker runtime | Development and production-like image targets run one non-root FastAPI process. |
 | P00 | Unconfined private state | Typed settings, owner-only paths, and one persistent state volume now fail closed and pass runtime smokes. |
