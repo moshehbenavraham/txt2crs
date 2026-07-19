@@ -176,7 +176,8 @@ cannot redirect a named volume:
 The job database, artifacts, and Codex home must remain strict children of the
 persistent root. The worker root must remain outside it. Docker Compose mounts
 the `txt2crs-state` volume only at `/var/lib/txt2crs`. A complete local backup
-must protect that volume while no process is writing to it.
+uses `scripts/backup-local-state.sh`, which briefly stops the backend writer
+and packages that volume with PostgreSQL in one checksum-protected bundle.
 
 ### CORS
 

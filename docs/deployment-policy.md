@@ -51,9 +51,24 @@ the operator explicitly intends to delete:
 - engine job state and rendered artifacts;
 - the locally isolated Codex credential store.
 
-The repository provides a PostgreSQL dump helper, but a complete backup must
-also protect private engine state while no writer is active. Off-host backup
-and hosted disaster recovery are outside the current scope.
+Create one complete owner-only local backup bundle with:
+
+```bash
+./scripts/backup-local-state.sh
+```
+
+The command briefly stops the backend writer, captures a PostgreSQL
+custom-format dump plus the complete private engine-state volume, validates
+both archives, and writes SHA-256 checksums. Restore requires the explicit
+confirmation documented in [Local deployment](local-deploy.md#backup-and-restore).
+The legacy `scripts/backup-db.sh` helper covers PostgreSQL only and is not a
+complete application backup.
+
+Backups contain learner records, generated artifacts, and Codex credentials.
+They are ignored by Git, created with owner-only permissions, and must be
+copied to an operator-controlled encrypted location for protection from host
+loss. Automated off-host retention and hosted disaster recovery remain
+outside the current scope.
 
 ## Future Hosting
 

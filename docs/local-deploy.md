@@ -49,6 +49,52 @@ docker compose config --volumes
 docker volume ls
 ```
 
+## Backup and Restore
+
+Keep the complete stack running, then create one consistent bundle:
+
+```bash
+./scripts/backup-local-state.sh
+```
+
+The default destination is `./backups/txt2crs_backup_<UTC timestamp>/`.
+`BACKUP_RETENTION_DAYS` defaults to seven days and controls cleanup of older
+complete bundle directories:
+
+```bash
+BACKUP_RETENTION_DAYS=30 ./scripts/backup-local-state.sh
+```
+
+Each bundle contains:
+
+- `postgres.dump`, a validated PostgreSQL custom-format dump;
+- `engine-state.tar.gz`, containing SQLite jobs, artifacts, and the isolated
+  Codex home while the backend writer is stopped;
+- `manifest.json` and `SHA256SUMS`.
+
+The directory is mode `0700` and its files are mode `0600`. Treat the complete
+bundle as a secret: it can contain learner data, generated course content, and
+Codex credentials. Git ignores the default `backups/` path, but operators must
+still copy required bundles to encrypted, access-controlled storage.
+
+Restore replaces both current stores. It validates every checksum, the
+PostgreSQL catalog, and all archive paths before it stops the backend or
+deletes current data:
+
+```bash
+TXT2CRS_RESTORE_CONFIRM=replace-local-state \
+  ./scripts/restore-local-state.sh \
+  ./backups/txt2crs_backup_<UTC timestamp>
+```
+
+Run the health checks at the top of this guide after restore. The scripts
+discover the Compose-prefixed engine volume from the backend container, so the
+same commands also work with an explicit `COMPOSE_PROJECT_NAME`.
+
+`scripts/backup-db.sh` is a legacy PostgreSQL-only helper. It does not capture
+engine job state, artifacts, or credentials and must not be used as the sole
+application backup.
+
 ## Destructive Reset
 
 The following command permanently deletes both named volumes:
@@ -59,7 +105,8 @@ docker compose down --remove-orphans --volumes
 
 Use it only when a disposable local environment is intended. It deletes users,
 application records, engine jobs, rendered artifacts, and locally stored Codex
-credentials. The command does not create a backup.
+credentials. The command does not create a backup; run the complete backup
+command above first when the state may be needed again.
 
 ## Targeted Rebuilds
 

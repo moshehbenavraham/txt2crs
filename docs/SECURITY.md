@@ -46,7 +46,9 @@ Repository controls include:
 - Gitleaks history scanning and dependency audits
 - Commit-pinned GitHub Actions plus Zizmor checks
 - Credential-free deterministic validation
+- Owner-only, checksum-validated PostgreSQL and engine-state backups
 
 The current scope is local-only. Do not claim that real learner data is ready
-for unrestricted use while logging, complete backup/restore, remote-CI, and
-privacy-policy findings remain.
+for unrestricted use while logging, remote-CI, private reporting, and
+privacy-policy findings remain. Backup bundles themselves contain learner data
+and Codex credentials, so keep them encrypted and access controlled.

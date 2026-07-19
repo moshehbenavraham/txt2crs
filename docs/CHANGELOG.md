@@ -12,7 +12,13 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added owner-only local backup and restore commands that capture PostgreSQL
+  plus complete private engine state in one checksum-validated bundle.
+
 ### Changed
+
+- Documented complete local recovery, retention, destructive confirmation, and
+  encrypted off-host storage responsibilities.
 
 ### Deprecated
 
@@ -21,6 +27,9 @@ Archived entries are stored in [`archive/`](archive/).
 ### Fixed
 
 ### Security
+
+- Reject symbolic links, traversal paths, duplicate archive paths, and special
+  files before private engine state is replaced during restore.
 
 ## [0.5.0] - 2026-07-19
 

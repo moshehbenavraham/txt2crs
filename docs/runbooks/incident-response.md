@@ -65,7 +65,7 @@ docker compose exec backend alembic history
 Correct the migration or configuration and rerun
 `docker compose exec backend alembic upgrade head`. A downgrade can destroy or
 reinterpret data; use it only after reviewing the target migration and
-capturing a restorable backup.
+capturing a complete backup with `./scripts/backup-local-state.sh`.
 
 ## Private Engine State Failure
 
@@ -79,9 +79,24 @@ isolated Codex credential store.
 4. Never copy the SQLite database while it is being written.
 5. Never use `docker compose down --volumes` as a repair step.
 
-Course-generation routes are not composed yet, so Phase 00 proves state
-topology but not product job recovery. Complete backup and restore validation
-for both PostgreSQL and engine state remains open.
+Create a consistent backup before invasive repair:
+
+```bash
+./scripts/backup-local-state.sh
+```
+
+When recovery requires replacement of both PostgreSQL and private engine
+state, use a reviewed bundle:
+
+```bash
+TXT2CRS_RESTORE_CONFIRM=replace-local-state \
+  ./scripts/restore-local-state.sh \
+  ./backups/txt2crs_backup_<UTC timestamp>
+```
+
+The restore validates checksums and both archive formats before destructive
+replacement, then restarts and waits for a previously running backend. Verify
+both health endpoints and inspect correlated logs after recovery.
 
 ## Local Rollback
 
@@ -98,7 +113,7 @@ local image IDs, but it does not roll back either database.
 ## Escalation Gaps
 
 The repository does not yet contain a verified private security-reporting
-address, valid CODEOWNERS identity, or a proven backup covering both local data
-stores. Those are owner/operator decisions recorded in
+address or valid CODEOWNERS identity. Those are owner/operator decisions
+recorded in
 [`../../.spec_system/docs-audit.md`](../../.spec_system/docs-audit.md) and the
 [deployment guide](../deployment.md).

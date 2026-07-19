@@ -65,6 +65,27 @@ docker compose down --remove-orphans --volumes
 That command permanently removes both application databases, artifacts, and
 local Codex credentials.
 
+## Backup and State Recovery
+
+Create a checksum-protected backup of PostgreSQL and private engine state:
+
+```bash
+./scripts/backup-local-state.sh
+```
+
+Restore both stores only with the explicit destructive confirmation:
+
+```bash
+TXT2CRS_RESTORE_CONFIRM=replace-local-state \
+  ./scripts/restore-local-state.sh \
+  ./backups/txt2crs_backup_<UTC timestamp>
+```
+
+The backup command briefly stops the backend writer so engine SQLite/WAL files,
+artifacts, and Codex credentials are internally consistent. See
+[Local deployment](local-deploy.md#backup-and-restore) for bundle contents,
+retention, permissions, validation, and secure-storage responsibilities.
+
 ## Release Validation
 
 Run the repository gate:
@@ -96,7 +117,8 @@ restore plan exists.
 
 If previous local image IDs were captured before a rebuild,
 `scripts/deploy-rollback.sh` can retag and recreate the backend and frontend.
-It does not roll back PostgreSQL or engine SQLite schemas.
+It does not roll back PostgreSQL or engine SQLite schemas. Use a reviewed
+complete backup bundle when data rollback is required.
 
 ## Out of Scope
 

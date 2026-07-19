@@ -159,6 +159,7 @@ artifacts, and Codex-managed credentials.
 | Health | frontend | Nginx + Docker | `/health` returns stable JSON; image probe runs every 30 seconds |
 | Database | backend-shell | PostgreSQL 18 | Compose-managed persistent volume; Alembic migrations |
 | Persistent state | txt2crs-engine | SQLite + filesystem | One backend-mounted `txt2crs-state` volume; not deployed independently |
+| Backup | backend-shell + txt2crs-engine | Docker + PostgreSQL + safe tar helper | One owner-only bundle covers PostgreSQL, SQLite jobs, artifacts, and Codex credentials; checksums and archive validation precede restore |
 
 Local Docker is the only deployment target in scope. The authoritative probe
 paths and operator commands live in `docs/deployment-policy.md`; adding any

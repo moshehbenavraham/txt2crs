@@ -34,6 +34,9 @@ playwright/.cache/
 # Temporary standalone authentication state contains Codex OAuth credentials.
 .txt2crs-system/
 
+# Local backup bundles contain database records and Codex credentials.
+/backups/
+
 # Local snapshot of python-react-boilerplate; reference only, never committed.
 boilerplate/
 
