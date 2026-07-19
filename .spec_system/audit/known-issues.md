@@ -34,8 +34,8 @@ exempt and when it was added. Remove entries that no longer apply.
 | `playwright.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 70 browser tests passed against isolated local services. | 2026-07-19 |
 | `quality.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; backend, engine, and frontend equivalents passed locally. | 2026-07-19 |
 | `security.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; Gitleaks and both dependency audits passed locally, while CodeQL remains remote-only. | 2026-07-19 |
-| `test-backend.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 184 backend tests passed at the measured 78% coverage baseline. | 2026-07-19 |
-| `test-docker-compose.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; an isolated full-stack Compose build and HTTP smoke test passed locally. | 2026-07-19 |
+| `test-backend.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 195 backend tests passed in host and non-root container modes at the measured 78% coverage baseline. | 2026-07-19 |
+| `test-docker-compose.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; an isolated full-stack Compose build and health validation passed locally, and static coverage now protects the authoritative readiness URLs. | 2026-07-19 |
 | `zizmor.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; local Zizmor validation passed for every workflow. | 2026-07-19 |
 
 ## Skipped Infra
