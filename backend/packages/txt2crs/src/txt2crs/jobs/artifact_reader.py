@@ -64,9 +64,20 @@ class FilesystemArtifactReader:
     def job_directory(self, *, user_id: str, job_id: str) -> Path:
         """Return a confined path made only from opaque identifier hashes."""
 
-        owner_hash = sha256(user_id.encode("utf-8")).hexdigest()
+        owner_directory = self.owner_directory(user_id=user_id)
         job_hash = sha256(job_id.encode("utf-8")).hexdigest()
-        return self._root_directory / "owners" / owner_hash / "jobs" / job_hash
+        return owner_directory / "jobs" / job_hash
+
+    def owner_directory(self, *, user_id: str) -> Path:
+        """Return the non-identifying confined directory for one owner."""
+
+        owner_hash = sha256(user_id.encode("utf-8")).hexdigest()
+        return self._root_directory / "owners" / owner_hash
+
+    def require_confined_directory(self, directory: Path) -> None:
+        """Reject a symlink, non-directory, or path outside the private root."""
+
+        self._require_confined_regular_directory(directory)
 
     def require_job_directory(self, *, user_id: str, job_id: str) -> Path:
         """Return an existing owner-scoped directory or one safe not-found."""

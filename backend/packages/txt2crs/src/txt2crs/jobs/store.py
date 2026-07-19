@@ -679,6 +679,35 @@ class SqliteJobStore:
                 }
             )
 
+    def purge_owner(self, *, user_id: str) -> int:
+        """Atomically delete every job and cascaded row for one valid owner."""
+
+        normalized_user_id = _normalize_owner_id(user_id)
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                count_row = self._connection.execute(
+                    "SELECT COUNT(*) AS job_count FROM jobs WHERE user_id = ?",
+                    (normalized_user_id,),
+                ).fetchone()
+                if count_row is None:
+                    raise JobStoreError("Owner job count could not be read.")
+                deleted_job_count = int(count_row["job_count"])
+                delete_cursor = self._connection.execute(
+                    "DELETE FROM jobs WHERE user_id = ?",
+                    (normalized_user_id,),
+                )
+                if delete_cursor.rowcount != deleted_job_count:
+                    raise JobStoreError("Owner job deletion could not be verified.")
+                # COMMIT is part of the transaction's success boundary. A
+                # filesystem-full, authorizer, or I/O failure here must still
+                # enter the rollback path so a later purge can retry cleanly.
+                self._connection.execute("COMMIT")
+            except BaseException:
+                self._connection.execute("ROLLBACK")
+                raise
+            return deleted_job_count
+
 
 def _job_from_row(row: sqlite3.Row) -> JobRecord:
     """Convert one SQLite row to the strict public job contract."""
@@ -719,6 +748,23 @@ def _normalize_submission_identity(
     if normalized_identity is None:
         raise InvalidJobSubmissionError("The job submission identity is invalid.")
     return normalized_identity
+
+
+def _normalize_owner_id(user_id: str) -> str:
+    """Validate an owner with the existing durable identifier grammar."""
+
+    normalized_identity: JobSubmissionIdentity | None = None
+    try:
+        normalized_identity = JobSubmissionIdentity(
+            user_id=user_id,
+            # This fixed internal value is validated but never stored.
+            idempotency_key="owner-purge",
+        )
+    except ValueError:
+        pass
+    if normalized_identity is None:
+        raise InvalidJobSubmissionError("The owner identity is invalid.")
+    return normalized_identity.user_id
 
 
 def _canonical_json(value: object) -> str:

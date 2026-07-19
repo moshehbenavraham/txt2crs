@@ -70,6 +70,9 @@ class PrivateArtifactStore(Protocol):
     ) -> AbstractContextManager[Iterator[bytes]]:
         """Open one verified bounded byte stream for the context lifetime."""
 
+    def purge_owner(self, *, user_id: str) -> int:
+        """Delete every artifact job for one owner and return the count."""
+
 
 class InMemoryPrivateArtifactStore:
     """Owner-scoped deterministic artifact store for tests/local demos."""
@@ -178,6 +181,20 @@ class InMemoryPrivateArtifactStore:
             )
             content_snapshot = bytes(selected_artifact.content)
         yield _iter_in_memory_artifact_chunks(content_snapshot)
+
+    def purge_owner(self, *, user_id: str) -> int:
+        """Atomically remove every in-memory artifact set for one owner."""
+
+        with self._lock:
+            owner_keys = [
+                storage_key
+                for storage_key in self._artifacts
+                if storage_key[0] == user_id
+            ]
+            for storage_key in owner_keys:
+                del self._artifacts[storage_key]
+                del self._created_at[storage_key]
+            return len(owner_keys)
 
     def _now(self) -> datetime:
         """Return an aware UTC timestamp for immutable manifest metadata."""

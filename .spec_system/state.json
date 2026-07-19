@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 1,
-  "current_session": "phase01-session04-managed-runtime-and-model-policy",
+  "current_session": null,
   "monorepo": true,
   "packages": [
     {
@@ -32,7 +32,7 @@
     "1": {
       "name": "Engine Application Boundary",
       "description": "Expose the durable, safe, and lifecycle-managed engine operations required by the application shell without duplicating package logic.",
-      "status": "in_progress",
+      "status": "complete",
       "session_count": 5
     }
   },
@@ -55,6 +55,10 @@
     },
     {
       "id": "phase01-session04-managed-runtime-and-model-policy",
+      "package": "backend/packages/txt2crs"
+    },
+    {
+      "id": "phase01-session05-public-facade-and-owner-lifecycle",
       "package": "backend/packages/txt2crs"
     }
   ],
@@ -144,6 +148,24 @@
     {
       "date": "2026-07-19",
       "session": "phase01-session04-managed-runtime-and-model-policy",
+      "package": "backend/packages/txt2crs",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session05-public-facade-and-owner-lifecycle",
+      "package": "backend/packages/txt2crs",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session05-public-facade-and-owner-lifecycle",
+      "package": "backend/packages/txt2crs",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session05-public-facade-and-owner-lifecycle",
       "package": "backend/packages/txt2crs",
       "status": "completed"
     }

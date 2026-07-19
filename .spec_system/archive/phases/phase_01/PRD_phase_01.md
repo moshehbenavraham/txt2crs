@@ -1,10 +1,10 @@
 # PRD Phase 01: Engine Application Boundary
 
-**Status**: In Progress
+**Status**: Complete
 **Sessions**: 5
 **Estimated Duration**: 2-4 days
 
-**Progress**: 4/5 sessions (80%)
+**Progress**: 5/5 sessions (100%)
 
 ---
 
@@ -26,7 +26,7 @@ gaps that currently prevent application composition.
 | 02 | Safe Queries and Artifact Access | Complete | 22 | 2026-07-19 |
 | 03 | Input Preferences and Policy Gate | Complete | 24 | 2026-07-19 |
 | 04 | Managed Runtime and Model Policy | Complete | 24 | 2026-07-19 |
-| 05 | Public Facade and Owner Lifecycle | Not Started | ~16-22 | - |
+| 05 | Public Facade and Owner Lifecycle | Complete | 24 | 2026-07-19 |
 
 ---
 
@@ -36,12 +36,13 @@ gaps that currently prevent application composition.
 - Session 02: Safe Queries and Artifact Access - completed 2026-07-19
 - Session 03: Input Preferences and Policy Gate - completed 2026-07-19
 - Session 04: Managed Runtime and Model Policy - completed 2026-07-19
+- Session 05: Public Facade and Owner Lifecycle - completed 2026-07-19
 
 ---
 
 ## Upcoming Sessions
 
-- Session 05: Public Facade and Owner Lifecycle
+None. Phase 01 is complete.
 
 ---
 
@@ -157,23 +158,23 @@ checkpoints rather than applying current defaults or fetching input again.
 
 Phase complete when:
 
-- [ ] All 5 sessions completed.
-- [ ] A strict versioned request and immutable execution profile are committed
+- [x] All 5 sessions completed.
+- [x] A strict versioned request and immutable execution profile are committed
   atomically with idempotency and recovered without reinterpretation.
-- [ ] Runnable jobs are discovered deterministically and public job snapshots
+- [x] Runnable jobs are discovered deterministically and public job snapshots
   expose only bounded allowlisted state.
-- [ ] Owner-scoped manifest and artifact reads verify confinement, size, and
+- [x] Owner-scoped manifest and artifact reads verify confinement, size, and
   integrity without returning filesystem paths.
-- [ ] URL routing, preference resolution, course-shape validation, and
+- [x] URL routing, preference resolution, course-shape validation, and
   two-stage policy behavior are deterministic and checkpointed.
-- [ ] No research or Codex work occurs before post-ingestion policy acceptance.
-- [ ] Managed research MCP and Codex resources close without leaked listeners
+- [x] No research or Codex work occurs before post-ingestion policy acceptance.
+- [x] Managed research MCP and Codex resources close without leaked listeners
   on success, failure, cancellation, or shutdown.
-- [ ] Notification-disabled completion, idempotent owner purge, GPT-5.6
+- [x] Notification-disabled completion, idempotent owner purge, GPT-5.6
   no-fallback selection, and fresh per-job budgets are proven.
-- [ ] The complete shell-needed lifecycle is reachable through documented
+- [x] The complete shell-needed lifecycle is reachable through documented
   public package methods and real/deterministic factories.
-- [ ] Engine Ruff, mypy, pytest, build, and explicit live-gated compatibility
+- [x] Engine Ruff, mypy, pytest, build, and explicit live-gated compatibility
   checks pass at the phase exit gate.
 
 ---

@@ -12,6 +12,9 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
 
+from pydantic import TypeAdapter, ValidationError
+
+from txt2crs.domain.models import Identifier
 from txt2crs.jobs.artifact_queries import (
     _MANIFEST_FILE_NAME,
     _MAXIMUM_MANIFEST_BYTES,
@@ -195,6 +198,43 @@ class FilesystemPrivateArtifactStore:
         )
         shutil.rmtree(job_directory)
         self._prune_empty_parent_directories(job_directory.parent)
+
+    def purge_owner(self, *, user_id: str) -> int:
+        """Idempotently delete one confined hashed owner artifact tree."""
+
+        normalized_user_id: str | None = None
+        try:
+            normalized_user_id = TypeAdapter(Identifier).validate_python(user_id)
+        except ValidationError:
+            pass
+        if normalized_user_id is None:
+            raise ValueError("The owner identity is invalid.")
+
+        owner_directory = self._reader.owner_directory(user_id=normalized_user_id)
+        if owner_directory.is_symlink():
+            raise ArtifactIntegrityError(
+                "Artifact storage failed integrity verification."
+            )
+        if not owner_directory.exists():
+            return 0
+        self._reader.require_confined_directory(owner_directory)
+        jobs_directory = owner_directory / "jobs"
+        deleted_job_count = 0
+        if jobs_directory.exists():
+            if jobs_directory.is_symlink():
+                raise ArtifactIntegrityError(
+                    "Artifact storage failed integrity verification."
+                )
+            self._reader.require_confined_directory(jobs_directory)
+            for job_directory in jobs_directory.iterdir():
+                if job_directory.is_symlink() or not job_directory.is_dir():
+                    raise ArtifactIntegrityError(
+                        "Artifact storage failed integrity verification."
+                    )
+                deleted_job_count += 1
+        shutil.rmtree(owner_directory)
+        self._prune_empty_parent_directories(owner_directory.parent)
+        return deleted_job_count
 
     def purge_expired(self) -> int:
         """Delete verified jobs older than the configured retention window."""

@@ -2,8 +2,8 @@
 
 **Session ID**: `phase01-session05-public-facade-and-owner-lifecycle`
 **Package**: backend/packages/txt2crs
-**Status**: Not Started
-**Estimated Tasks**: ~16-22
+**Status**: Complete
+**Estimated Tasks**: 24
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -43,8 +43,8 @@ purge.
 
 ## Prerequisites
 
-- [ ] Sessions 01-04 public contracts and lifecycle behavior are validated.
-- [ ] The existing package import and build contract remains green.
+- [x] Sessions 01-04 public contracts and lifecycle behavior are validated.
+- [x] The existing package import and build contract remains green.
 
 ---
 
@@ -60,13 +60,13 @@ purge.
 
 ## Success Criteria
 
-- [ ] Every shell-needed operation is available through documented public
+- [x] Every shell-needed operation is available through documented public
   package methods without importing private engine modules.
-- [ ] Real and deterministic factories share typed contracts and build fresh
+- [x] Real and deterministic factories share typed contracts and build fresh
   job-scoped graphs.
-- [ ] Owner purge removes all engine-owned records and artifacts, is safe to
+- [x] Owner purge removes all engine-owned records and artifacts, is safe to
   retry, and never reports success after a partial failure.
-- [ ] The engine lifecycle executes without FastAPI, PostgreSQL user models,
+- [x] The engine lifecycle executes without FastAPI, PostgreSQL user models,
   network access, or provider credentials in deterministic tests.
-- [ ] Ruff, mypy, pytest, package build, and the explicit live-gated
+- [x] Ruff, mypy, pytest, package build, and the explicit live-gated
   compatibility check pass for the completed phase.

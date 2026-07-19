@@ -20,6 +20,7 @@ from txt2crs.jobs.store import (
     ConcurrencyConflictError,
     IdempotencyConflictError,
     JobNotFoundError,
+    JobStoreError,
     SqliteJobStore,
 )
 
@@ -386,3 +387,200 @@ def test_invalid_status_transition_is_rejected(tmp_path: Path) -> None:
             expected_revision=0,
             new_status=JobStatus.completed,
         )
+
+
+def test_owner_purge_cascades_every_child_table_and_preserves_other_owner(
+    tmp_path: Path,
+) -> None:
+    """Active parent deletion removes requests, admission, checkpoints, delivery."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    store = job_store(database_path)
+    owner_job = store.create_or_get_job(
+        user_id="user-1",
+        idempotency_key="owner-active",
+        generation_request=valid_generation_request(value="owner source"),
+        admission_reservation=standard_admission_reservation(),
+    )
+    other_job = store.create_or_get_job(
+        user_id="user-2",
+        idempotency_key="other-active",
+        generation_request=valid_generation_request(value="other source"),
+        admission_reservation=standard_admission_reservation(),
+    )
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO job_checkpoints(
+                checkpoint_id, job_id, user_id, stage, sequence,
+                artifact_version, evidence_version, artifact_json,
+                budget_snapshot_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+            """,
+            (
+                f"checkpoint-{owner_job.job_id}",
+                owner_job.job_id,
+                "user-1",
+                "prepare_input",
+                1,
+                "sha256:" + ("a" * 64),
+                "{}",
+                "{}",
+                "2026-07-19T00:00:00+00:00",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO job_deliveries(
+                job_id, user_id, payload_hash, created_at, notified_at,
+                notification_schema_version, notification_mode,
+                notification_status
+            ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)
+            """,
+            (
+                owner_job.job_id,
+                "user-1",
+                "sha256:" + ("b" * 64),
+                "2026-07-19T00:00:00+00:00",
+                "1.0",
+                "disabled",
+                "not_applicable",
+            ),
+        )
+
+    deleted_count = store.purge_owner(user_id="user-1")
+
+    assert deleted_count == 1
+    with sqlite3.connect(database_path) as connection:
+        for table_name in (
+            "jobs",
+            "generation_requests",
+            "job_admissions",
+            "job_checkpoints",
+            "job_deliveries",
+        ):
+            owner_count = connection.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE user_id = ?",  # noqa: S608
+                ("user-1",),
+            ).fetchone()
+            other_count = connection.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE user_id = ?",  # noqa: S608
+                ("user-2",),
+            ).fetchone()
+            assert owner_count is not None and int(owner_count[0]) == 0
+            expected_other_count = (
+                1
+                if table_name in {"jobs", "generation_requests", "job_admissions"}
+                else 0
+            )
+            assert other_count is not None
+            assert int(other_count[0]) == expected_other_count
+    assert store.get_job(job_id=other_job.job_id, user_id="user-2") == other_job
+    assert store.purge_owner(user_id="user-1") == 0
+
+
+def test_owner_purge_rolls_back_on_database_failure_and_retries(
+    tmp_path: Path,
+) -> None:
+    """No parent or child row is lost when SQLite aborts owner deletion."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    store = job_store(database_path)
+    owner_job = store.create_or_get_job(
+        user_id="user-1",
+        idempotency_key="owner-retry",
+        generation_request=valid_generation_request(),
+        admission_reservation=standard_admission_reservation(),
+    )
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TRIGGER reject_owner_purge
+            BEFORE DELETE ON jobs
+            WHEN OLD.user_id = 'user-1'
+            BEGIN
+                SELECT RAISE(ABORT, 'simulated owner purge failure');
+            END
+            """
+        )
+
+    with pytest.raises(sqlite3.IntegrityError, match="owner purge failure"):
+        store.purge_owner(user_id="user-1")
+    assert store.get_job(job_id=owner_job.job_id, user_id="user-1") == owner_job
+    assert (
+        store.get_generation_request(job_id=owner_job.job_id, user_id="user-1")
+        == valid_generation_request()
+    )
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("DROP TRIGGER reject_owner_purge")
+    assert store.purge_owner(user_id="user-1") == 1
+
+
+def test_owner_purge_rolls_back_when_commit_is_rejected_and_retries(
+    tmp_path: Path,
+) -> None:
+    """A failed commit cannot leave an open transaction or invisible deletion."""
+
+    store = job_store(tmp_path / "jobs.sqlite3")
+    owner_job = store.create_or_get_job(
+        user_id="user-1",
+        idempotency_key="owner-commit-retry",
+        generation_request=valid_generation_request(),
+        admission_reservation=standard_admission_reservation(),
+    )
+
+    def reject_commit_only(
+        action_code: int,
+        action_name: str | None,
+        _table_name: str | None,
+        _database_name: str | None,
+        _trigger_name: str | None,
+    ) -> int:
+        """Deny the transaction commit while still allowing its rollback."""
+
+        if action_code == sqlite3.SQLITE_TRANSACTION and action_name == "COMMIT":
+            return sqlite3.SQLITE_DENY
+        return sqlite3.SQLITE_OK
+
+    store._connection.set_authorizer(reject_commit_only)  # noqa: SLF001
+    with pytest.raises(sqlite3.DatabaseError, match="not authorized"):
+        store.purge_owner(user_id="user-1")
+    store._connection.set_authorizer(None)  # noqa: SLF001
+
+    assert store.get_job(job_id=owner_job.job_id, user_id="user-1") == owner_job
+    assert store.purge_owner(user_id="user-1") == 1
+
+
+def test_owner_purge_rejects_a_silently_suppressed_delete(
+    tmp_path: Path,
+) -> None:
+    """Success counts cannot claim rows that a database trigger retained."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    store = job_store(database_path)
+    owner_job = store.create_or_get_job(
+        user_id="user-1",
+        idempotency_key="owner-delete-count",
+        generation_request=valid_generation_request(),
+        admission_reservation=standard_admission_reservation(),
+    )
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TRIGGER ignore_owner_purge
+            BEFORE DELETE ON jobs
+            WHEN OLD.user_id = 'user-1'
+            BEGIN
+                SELECT RAISE(IGNORE);
+            END
+            """
+        )
+
+    with pytest.raises(JobStoreError, match="could not be verified"):
+        store.purge_owner(user_id="user-1")
+    assert store.get_job(job_id=owner_job.job_id, user_id="user-1") == owner_job
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("DROP TRIGGER ignore_owner_purge")
+    assert store.purge_owner(user_id="user-1") == 1

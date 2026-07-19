@@ -22,6 +22,55 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.5.0] - 2026-07-19
+
+### Added
+
+- Added the public `Txt2CrsApplication` facade for durable submission,
+  recovery, runnable discovery, public job/artifact access, safe readiness and
+  authentication, owner/job-bound execution, owner erasure, and application
+  shutdown.
+- Added strict real and deterministic application configurations plus one
+  shared factory protocol. Real composition owns the production ingestion,
+  policy, persistence, Tavily, managed MCP, exact GPT-5.6 Codex, pipeline,
+  rendering, readiness, and authentication graph.
+- Added a credential-free deterministic factory that preserves production
+  persistence, preparation, pipeline, rendering, artifact, recovery, and
+  purge behavior and proves the complete 16-artifact public lifecycle.
+- Added artifact-first, retry-safe owner purge across private files and all
+  SQLite job, request, admission, checkpoint, and delivery rows.
+
+### Changed
+
+- Changed package assembly guidance to require the supported application
+  factory/facade boundary instead of manual private-module composition.
+- Added lazy top-level facade/factory discovery without eagerly loading
+  optional ingestion or provider dependencies for metadata-only imports.
+- Synchronized facade calls, executor cancellation, owner purge, and
+  application cleanup so active work settles before resources or owner data
+  are removed.
+
+### Fixed
+
+- Rolled back SQLite owner deletion when commit fails and rejected claimed
+  success when database triggers suppress parent-row deletion.
+- Prevented active delivery from recreating artifacts after owner purge and
+  stopped retaining completed executor graphs for the process lifetime.
+- Rejected invalid direct deterministic JSON, impossible purge counts,
+  symlinked or overlapping private roots, and non-loopback MCP hosts before
+  runtime work.
+- Removed a coarse-filesystem timestamp assumption from the artifact mutation
+  race regression.
+
+### Security
+
+- Kept Tavily secrets, Codex credentials, private paths, owner hashes, raw
+  requests, SQL details, provider discovery, and internal errors out of public
+  configuration serialization and lifecycle responses.
+- Confined owner deletion to hashed private paths, stopped tracked owner work
+  before erasure, and made every artifact/database/commit/count failure
+  explicit and safe to retry.
+
 ## [0.4.0] - 2026-07-19
 
 ### Added

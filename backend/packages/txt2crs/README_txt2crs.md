@@ -115,24 +115,80 @@ personal ChatGPT subscription.
 
 ## Application assembly
 
-A production application constructs admission limits, one `RunBudget`, reviewed
-`SourcePolicyRegistry`, `ResearchToolService`, loopback
-`ResearchMcpApplication`, `OfficialCodexSdkAdapter`, ingestion service, course
-pipeline, `SqliteJobStore`, `FilesystemPrivateArtifactStore`, and
-`GenerationJobExecutor` per isolated subscription worker.
+Application shells use the public `RealApplicationFactory`; they do not import
+or assemble stores, ingestion adapters, research tools, MCP servers, model
+runtimes, pipelines, or renderers themselves. The package factory owns those
+details and returns one framework-independent `Txt2CrsApplication` facade.
+
+```python
+from pathlib import Path
+
+from pydantic import SecretStr
+from txt2crs.application import (
+    ApplicationAdmissionConfig,
+    ApplicationStorageConfig,
+    RealApplicationConfig,
+    RealApplicationFactory,
+)
+
+# The shell translates validated environment settings exactly once. The
+# execution profile is a strict package contract stored with every job.
+application = RealApplicationFactory(
+    RealApplicationConfig(
+        storage=ApplicationStorageConfig(
+            state_directory=Path("/private/txt2crs-state"),
+            maximum_artifact_job_bytes=100_000_000,
+            artifact_retention_days=30,
+        ),
+        admission=ApplicationAdmissionConfig(
+            window_seconds=3_600,
+            maximum_jobs_per_user=10,
+            maximum_jobs_global=100,
+            maximum_reserved_tokens_per_user=2_000_000,
+            maximum_reserved_tokens_global=20_000_000,
+            maximum_research_cost_microusd_per_user=1_000_000,
+            maximum_research_cost_microusd_global=10_000_000,
+        ),
+        default_execution_profile=validated_execution_profile,
+        codex_home=Path("/private/txt2crs-codex-home"),
+        tavily_api_key=SecretStr(validated_tavily_api_key),
+    )
+).create()
+
+try:
+    submitted_job = application.submit(
+        user_id=authenticated_user_id,
+        idempotency_key=request_idempotency_key,
+        generation_request=generation_request,
+        admission_reservation=admission_reservation,
+    )
+    # The serial worker creates a fresh, owner/job-bound, one-shot executor.
+    with application.create_executor(
+        job_id=submitted_job.job_id,
+        user_id=authenticated_user_id,
+    ) as executor:
+        completed_job = executor.execute()
+finally:
+    application.close()
+```
+
+`DeterministicApplicationFactory` exposes the same facade for offline tests. It
+uses scripted provider results while retaining production SQLite, preparation,
+pipeline, rendering, artifact, recovery, and owner-purge behavior. The
+executable public-boundary example is
+[`tests/integration/test_application_lifecycle.py`](tests/integration/test_application_lifecycle.py).
 
 Important deployment rules:
 
 - The worker must use an explicitly selected ChatGPT/Codex identity. The
   temporary hackathon bootstrap owns one dedicated demo identity; a production
   multi-tenant policy must not pool one personal subscription across unrelated
-  users. Pass the exact absolute `codex_home` selected by the application to
-  `OfficialCodexSdkAdapter.create`.
+  users. Pass the exact absolute `codex_home` to `RealApplicationConfig`.
 - The MCP HTTP listener must remain on loopback. Tavily credentials stay in the
   application-owned research process and are not inherited by the Codex
   worker.
-- Consent, `learner_age`, and any qualified high-risk review approval must be
-  passed explicitly to `GenerationJobExecutor.execute`.
+- Consent, `learner_age`, and any qualified high-risk review approval belong
+  in the strict `GenerationRequest`; the facade stores that exact request.
 - Every new job submission must declare a finite `AdmissionReservation`
   matching its configured run/research limits.
 - The included `FilesystemPrivateArtifactStore` is suitable for the current
@@ -140,12 +196,7 @@ Important deployment rules:
   future hosted scope, any replacement `PrivateArtifactStore` must preserve
   owner checks, idempotency, integrity, deletion, and retention behavior.
 - FastAPI authentication and authorization must establish `user_id` before
-  calling `JobService`. Identifiers alone are never authorization.
-
-The executable offline example in
-[`tests/integration/test_generation_job_executor.py`](tests/integration/test_generation_job_executor.py)
-shows the full submission, generation, checkpoint, crash-resume, rendering, and
-private delivery lifecycle with deterministic providers.
+  calling the facade. Identifiers alone are never authorization.
 
 ## Develop and verify
 

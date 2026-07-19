@@ -437,6 +437,123 @@ def disabled_delivery_notification_policy() -> DeliveryNotificationPolicy:
     return DeliveryNotificationPolicy.disabled()
 
 
+def deterministic_generation_request() -> GenerationRequest:
+    """Return a one-module request aligned with the public deterministic scenario."""
+
+    compact_profile = valid_execution_profile().model_copy(
+        update={
+            "preference_defaults": LearningPreferenceDefaults(
+                desired_depth="introductory",
+                duration_minutes=60,
+                tone="clear",
+                accessibility_requirements=("semantic headings",),
+                assessment_item_count=1,
+                passing_percentage=70,
+            ),
+            "curriculum_shape_limits": CurriculumShapeLimits(
+                minimum_objectives=1,
+                maximum_objectives=2,
+                minimum_modules=1,
+                maximum_modules=2,
+                minimum_sections_per_module=1,
+                maximum_sections_per_module=2,
+                minimum_content_blocks_per_section=1,
+                maximum_content_blocks_per_section=5,
+            ),
+        }
+    )
+    return valid_generation_request(
+        value="Teach Python variables.",
+        learning_goal="Explain and use Python variables.",
+        execution_profile=compact_profile,
+    )
+
+
+def deterministic_generation_scenario() -> Any:
+    """Return six strict local turns and one frozen primary evidence set."""
+
+    # Import locally so unrelated package tests can use this shared fixture
+    # before the optional public application module is imported.
+    from txt2crs.application import (  # noqa: PLC0415
+        DeterministicGenerationScenario,
+        DeterministicTurn,
+    )
+    from txt2crs.domain.models import EvidenceExcerpt, SourceRecord  # noqa: PLC0415
+    from txt2crs.research.evidence import EvidenceLedger  # noqa: PLC0415
+
+    course_data = valid_course_data()
+    evidence_ledger = EvidenceLedger()
+    evidence_ledger.add_source(SourceRecord.model_validate(course_data["sources"][0]))
+    evidence_ledger.add_excerpt(
+        EvidenceExcerpt.model_validate(course_data["evidence"][0])
+    )
+    evidence_set = evidence_ledger.freeze()
+    course_plan = {
+        "schema_version": "1.0",
+        "plan_id": "course-plan-python",
+        "course_id": "course-python-basics",
+        "title": "Python Basics",
+        "language": "en",
+        "audience": "First-year computer-science students",
+        "level": "beginner",
+        "prerequisites": ["Basic computer literacy"],
+        "duration_minutes": 60,
+        "accessibility_requirements": ["semantic headings"],
+        "learning_objectives": course_data["learning_objectives"],
+        "modules": [
+            {
+                "module_id": "mod-foundations",
+                "title": "Foundations",
+                "objective_ids": ["obj-variables"],
+                "section_ids": ["sec-variables"],
+            }
+        ],
+    }
+    research_plan = {
+        "schema_version": "1.0",
+        "plan_id": "plan-python",
+        "questions": [
+            {
+                "question_id": "q-assignment",
+                "question": "How does Python assignment bind names?",
+                "preferred_source_types": ["official_documentation"],
+                "freshness_days": None,
+            }
+        ],
+        "maximum_sources": 3,
+        "stop_criteria": ["The objective has primary evidence"],
+    }
+    assessment_package = {
+        "schema_version": "1.0",
+        "assessment": valid_assessment_data(),
+        "answer_key": valid_answer_key_data(),
+    }
+    return DeterministicGenerationScenario.create(
+        model_id="gpt-5.6",
+        turns=(
+            DeterministicTurn.create(stage="plan_research", output=research_plan),
+            DeterministicTurn.create(stage="design_course", output=course_plan),
+            DeterministicTurn.create(
+                stage="write_module:mod-foundations",
+                output=valid_course_module_draft_data(),
+            ),
+            DeterministicTurn.create(
+                stage="generate_review_pack",
+                output=valid_review_pack_data(),
+            ),
+            DeterministicTurn.create(
+                stage="design_assessment",
+                output=valid_assessment_blueprint_data(),
+            ),
+            DeterministicTurn.create(
+                stage="cross_validate_artifacts",
+                output=assessment_package,
+            ),
+        ),
+        evidence_set=evidence_set,
+    )
+
+
 def valid_input_document(
     *,
     normalized_text: str = "Teach Python variables with worked examples.",

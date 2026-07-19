@@ -1399,8 +1399,11 @@ Work:
 8. Prepare one deterministic sample and one completed live demo job.
 9. Update root README with setup, sample input, run, architecture, AI usage,
    privacy, limits, and testing instructions.
-10. Release `0.4.0`: synchronize `VERSION`, backend, engine, frontend,
-    changelog, lockfile, built distributions, tested commit, and annotated tag.
+10. Release the final tested submission version: synchronize `VERSION`,
+    backend, engine, frontend, changelog, lockfile, built distributions,
+    tested commit, and annotated tag. Earlier Phase 01 milestones already used
+    immutable `0.4.0` and `0.5.0` releases, so the final version must be the
+    next SemVer value selected at that gate.
 11. Confirm license and repository judge access.
 12. Capture the primary Codex `/feedback` Session ID.
 13. Record and publish a narrated public YouTube video under three minutes.
@@ -1550,7 +1553,8 @@ uv run --package txt2crs pytest \
 
 ### Submission
 
-- [ ] The tested submission release is synchronized and tagged `v0.4.0`.
+- [ ] The tested submission release is synchronized and tagged with its exact
+      final SemVer version.
 - [ ] One representative live GPT-5.6 course completed with real research.
 - [ ] The 16 live artifacts passed human inspection.
 - [ ] Root README contains judge-ready setup, sample, run, test, architecture,

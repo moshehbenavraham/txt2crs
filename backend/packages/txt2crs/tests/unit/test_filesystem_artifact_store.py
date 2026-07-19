@@ -128,6 +128,68 @@ def test_filesystem_store_is_idempotent_and_rejects_conflicting_replay(
         )
 
 
+def test_owner_purge_deletes_only_the_hashed_owner_tree_and_is_idempotent(
+    tmp_path: Path,
+) -> None:
+    """Account erasure removes every owner job while preserving other owners."""
+
+    store = FilesystemPrivateArtifactStore(
+        root_directory=tmp_path / "artifacts",
+        maximum_job_bytes=10_000,
+        retention_days=30,
+    )
+    store.save(
+        user_id="user-1",
+        job_id="job-1",
+        artifacts=sample_artifacts(),
+    )
+    store.save(
+        user_id="user-1",
+        job_id="job-2",
+        artifacts=sample_artifacts(course_content=b"Second course"),
+    )
+    store.save(
+        user_id="user-2",
+        job_id="job-3",
+        artifacts=sample_artifacts(course_content=b"Other owner"),
+    )
+
+    assert store.purge_owner(user_id="user-1") == 2
+    assert store.purge_owner(user_id="user-1") == 0
+    with pytest.raises(JobNotFoundError):
+        store.get_manifest(user_id="user-1", job_id="job-1")
+    assert (
+        store.get(user_id="user-2", job_id="job-3")["course_markdown"].content
+        == b"Other owner"
+    )
+
+
+def test_owner_purge_rejects_symlinked_owner_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    """A replaced owner directory cannot redirect recursive deletion."""
+
+    artifact_root = tmp_path / "artifacts"
+    store = FilesystemPrivateArtifactStore(
+        root_directory=artifact_root,
+        maximum_job_bytes=10_000,
+        retention_days=30,
+    )
+    external_directory = tmp_path / "external"
+    external_directory.mkdir()
+    external_file = external_directory / "keep.txt"
+    external_file.write_text("keep", encoding="utf-8")
+    owner_hash = sha256(b"user-1").hexdigest()
+    owner_directory = artifact_root / "owners" / owner_hash
+    owner_directory.parent.mkdir(parents=True)
+    owner_directory.symlink_to(external_directory, target_is_directory=True)
+
+    with pytest.raises(ArtifactIntegrityError, match="integrity"):
+        store.purge_owner(user_id="user-1")
+
+    assert external_file.read_text(encoding="utf-8") == "keep"
+
+
 def test_filesystem_store_enforces_owner_and_detects_symlink_tampering(
     tmp_path: Path,
 ) -> None:
@@ -429,7 +491,11 @@ def test_stream_detects_mutation_between_hash_and_descriptor_recheck(
         if file_status.st_ino == target_inode:
             target_fstat_count += 1
             if target_fstat_count == 2:
-                course_path.write_bytes(b"mutated!")
+                # Change the size as well as the contents. Some temporary
+                # filesystems can report identical nanosecond timestamps for
+                # two operations in the same clock tick, so a same-length
+                # replacement made this race test flaky.
+                course_path.write_bytes(b"mutated-and-resized!")
                 file_status = real_fstat(file_descriptor)
         return file_status
 
