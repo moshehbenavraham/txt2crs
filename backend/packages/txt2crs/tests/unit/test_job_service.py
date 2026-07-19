@@ -9,8 +9,9 @@ import pytest
 from tests.factories import (
     generous_admission_limits,
     standard_admission_reservation,
+    valid_generation_request,
 )
-from txt2crs.jobs.models import CompletedJobPayload, JobRecord, JobStatus
+from txt2crs.jobs.models import CompletedJobPayload, JobRecord, JobStatus, ResumeState
 from txt2crs.jobs.service import (
     InMemoryPrivateArtifactStore,
     JobService,
@@ -89,17 +90,66 @@ def job_service(
 def accepted_job(service: JobService) -> JobRecord:
     """Submit and start one job for stage tests."""
 
+    generation_request = valid_generation_request()
     job = service.submit(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=generation_request,
         admission_reservation=standard_admission_reservation(),
+    )
+    assert (
+        service.resume(
+            job_id=job.job_id,
+            user_id="user-1",
+        ).request
+        == generation_request
     )
     return service.start(
         job_id=job.job_id,
         user_id="user-1",
         expected_revision=job.revision,
     )
+
+
+def test_resume_delegates_one_atomic_store_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The service cannot assemble job, request, and checkpoint across writes."""
+
+    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    generation_request = valid_generation_request()
+    job = service.submit(
+        user_id="user-1",
+        idempotency_key="atomic-resume",
+        generation_request=generation_request,
+        admission_reservation=standard_admission_reservation(),
+    )
+    expected_state = ResumeState(
+        job=job,
+        request=generation_request,
+        checkpoint=None,
+    )
+    captured_calls: list[tuple[str, str]] = []
+
+    def return_atomic_state(
+        _store: SqliteJobStore,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> ResumeState:
+        captured_calls.append((job_id, user_id))
+        return expected_state
+
+    monkeypatch.setattr(
+        SqliteJobStore,
+        "get_resume_state",
+        return_atomic_state,
+        raising=False,
+    )
+
+    assert service.resume(job_id=job.job_id, user_id="user-1") is expected_state
+    assert captured_calls == [(job.job_id, "user-1")]
 
 
 def test_only_accepted_required_stage_is_checkpointed(tmp_path: Path) -> None:

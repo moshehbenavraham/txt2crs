@@ -11,7 +11,17 @@ from copy import deepcopy
 from hashlib import sha256
 from typing import Any
 
+from txt2crs.ingestion.models import InputPayload
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
+from txt2crs.jobs.requests import (
+    ExecutionProfile,
+    GenerationRequest,
+    InputExecutionLimits,
+    LearnerAgeGroup,
+    LearningPreferenceIntent,
+    RequestRetryPolicy,
+    RunExecutionLimits,
+)
 
 
 def _hash_text(value: str) -> str:
@@ -301,7 +311,92 @@ def standard_admission_reservation() -> AdmissionReservation:
     """Return the finite worst-case reservation used by job fixtures."""
 
     return AdmissionReservation(
-        maximum_input_tokens=10_000,
-        maximum_output_tokens=10_000,
+        maximum_input_tokens=600_000,
+        maximum_output_tokens=150_000,
         maximum_research_cost_microusd=100_000,
+    )
+
+
+def valid_execution_profile(
+    *,
+    maximum_input_bytes: int = 20_971_520,
+    maximum_metadata_bytes: int = 262_144,
+    maximum_input_tokens: int = 600_000,
+    maximum_output_tokens: int = 150_000,
+) -> ExecutionProfile:
+    """Return the finite P0-like profile shared by request tests."""
+
+    return ExecutionProfile(
+        schema_version="1.0",
+        engine_version="engine-0.4",
+        prompt_version="course-pipeline-v1",
+        policy_version="content-policy-v1",
+        model_id="gpt-5.6",
+        reasoning_effort="high",
+        retry_policy=RequestRetryPolicy(
+            maximum_attempts=3,
+            base_seconds=1.0,
+            maximum_seconds=15.0,
+            jitter_ratio=0.2,
+        ),
+        input_limits=InputExecutionLimits(
+            maximum_input_bytes=maximum_input_bytes,
+            maximum_metadata_bytes=maximum_metadata_bytes,
+            maximum_normalized_characters=200_000,
+            maximum_pdf_pages=200,
+        ),
+        run_limits=RunExecutionLimits(
+            maximum_turns=20,
+            maximum_research_calls=12,
+            maximum_search_calls=6,
+            maximum_extract_calls=6,
+            maximum_sources=12,
+            maximum_extracted_bytes=2_000_000,
+            maximum_input_tokens=maximum_input_tokens,
+            maximum_output_tokens=maximum_output_tokens,
+            maximum_retries=3,
+            maximum_repairs=3,
+            maximum_elapsed_seconds=2_700.0,
+        ),
+    )
+
+
+def valid_generation_request(
+    *,
+    value: str | bytes = "Teach Python variables with worked examples.",
+    input_payload: InputPayload | None = None,
+    metadata: dict[str, object] | None = None,
+    preferences: LearningPreferenceIntent | None = None,
+    learning_goal: str = "Explain variables.",
+    provider_consent: bool = True,
+    learner_age_group: LearnerAgeGroup = LearnerAgeGroup.adult,
+    policy_flags: tuple[str, ...] = ("allow_external_research",),
+    execution_profile: ExecutionProfile | None = None,
+) -> GenerationRequest:
+    """Create one complete request whose hash production code computes."""
+
+    request_metadata = {"source": "learner"} if metadata is None else metadata
+    request_input_payload = input_payload or InputPayload(
+        input_type="text",
+        value=value,
+        media_type="text/plain",
+        file_name=None,
+        metadata=request_metadata,
+    )
+    return GenerationRequest.create(
+        schema_version="1.0",
+        request_version="generation-request-v1",
+        input_payload=request_input_payload,
+        preferences=preferences
+        or LearningPreferenceIntent(
+            audience=None,
+            prior_knowledge=None,
+            learning_goals=(learning_goal,),
+            level="auto",
+            language="auto",
+        ),
+        provider_consent=provider_consent,
+        learner_age_group=learner_age_group,
+        policy_flags=policy_flags,
+        execution_profile=execution_profile or valid_execution_profile(),
     )

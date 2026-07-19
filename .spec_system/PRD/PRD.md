@@ -187,7 +187,7 @@ This system delivers the product via phases. Each phase is implemented through
 | Phase | Name | Sessions | Status |
 |-------|------|----------|--------|
 | 00 | Application Baseline | 1 | Complete |
-| 01 | Engine Application Boundary | 2 | Not Started |
+| 01 | Engine Application Boundary | 5 | In Progress |
 | 02 | Composition and Readiness | 1 | Not Started |
 | 03 | Durable Jobs API | 2 | Not Started |
 | 04 | Learner Experience | 2 | Not Started |
@@ -286,7 +286,10 @@ This system delivers the product via phases. Each phase is implemented through
 ### Conflict Resolutions
 
 - **Phase progress**: `docs/CHANGELOG.md` says the previous documentation pass
-  recorded Phase 1 complete, while the adopted plan and current code show the
-  baseline container gaps and every engine application-boundary gap still
-  open. Current code plus the plan's verified-state table are authoritative,
-  so Phase 00 is in progress and Phases 01-05 remain not started.
+  recorded Phase 1 complete before the spec workflow was reconciled. The
+  validated Phase 00 session and phase-transition evidence are authoritative:
+  Phase 00 is complete, and Phases 01-05 remain unfinished.
+- **Phase 01 session count**: The implementation plan suggested two sessions,
+  but those sessions combined fourteen substantial package gaps and exceeded
+  the Apex Spec 12-25 task and 2-4 hour limits. Phase 01 therefore uses five
+  dependency-ordered sessions without changing the phase scope.

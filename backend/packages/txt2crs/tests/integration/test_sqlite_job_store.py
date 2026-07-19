@@ -11,6 +11,7 @@ import pytest
 from tests.factories import (
     generous_admission_limits,
     standard_admission_reservation,
+    valid_generation_request,
 )
 from txt2crs.jobs.models import JobCheckpoint, JobStatus
 from txt2crs.jobs.store import (
@@ -48,6 +49,12 @@ def test_initial_schema_is_a_packaged_reviewable_migration() -> None:
         .read_text(encoding="utf-8")
     )
     assert "CREATE TABLE IF NOT EXISTS job_admissions" in admission_migration_sql
+    request_migration_sql = (
+        files("txt2crs.jobs")
+        .joinpath("migrations", "003_generation_requests.sql")
+        .read_text(encoding="utf-8")
+    )
+    assert "CREATE TABLE IF NOT EXISTS generation_requests" in request_migration_sql
 
 
 def test_submission_is_idempotent_but_detects_key_reuse_for_other_input(
@@ -59,23 +66,23 @@ def test_submission_is_idempotent_but_detects_key_reuse_for_other_input(
     first_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(value="source-a"),
         admission_reservation=standard_admission_reservation(),
     )
     replayed_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(value="source-a"),
         admission_reservation=standard_admission_reservation(),
     )
 
     assert replayed_job.job_id == first_job.job_id
     assert replayed_job.revision == first_job.revision
-    with pytest.raises(IdempotencyConflictError, match="different input"):
+    with pytest.raises(IdempotencyConflictError, match="different request"):
         store.create_or_get_job(
             user_id="user-1",
             idempotency_key="submit-1",
-            input_hash="sha256:" + ("b" * 64),
+            generation_request=valid_generation_request(value="source-b"),
             admission_reservation=standard_admission_reservation(),
         )
 
@@ -89,7 +96,7 @@ def test_tenant_isolation_returns_not_found_instead_of_leaking_ownership(
     job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(),
         admission_reservation=standard_admission_reservation(),
     )
 
@@ -106,7 +113,7 @@ def test_compare_and_swap_allows_only_one_competing_worker(tmp_path: Path) -> No
     job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(),
         admission_reservation=standard_admission_reservation(),
     )
 
@@ -137,7 +144,7 @@ def test_checkpoint_and_job_survive_process_restart(tmp_path: Path) -> None:
     job = first_store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(),
         admission_reservation=standard_admission_reservation(),
     )
     researching_job = first_store.compare_and_swap_status(
@@ -174,7 +181,7 @@ def test_checkpoint_and_job_survive_process_restart(tmp_path: Path) -> None:
 
     assert resumed_job.status is JobStatus.drafting
     assert resumed_checkpoint == checkpoint
-    assert reopened_store.migration_version == 2
+    assert reopened_store.migration_version == 3
 
 
 def test_invalid_status_transition_is_rejected(tmp_path: Path) -> None:
@@ -184,7 +191,7 @@ def test_invalid_status_transition_is_rejected(tmp_path: Path) -> None:
     job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="submit-1",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(),
         admission_reservation=standard_admission_reservation(),
     )
 

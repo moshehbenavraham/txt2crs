@@ -7,7 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from tests.factories import valid_execution_profile, valid_generation_request
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.store import AdmissionQuotaExceededError, SqliteJobStore
 
 
@@ -22,6 +24,22 @@ def reservation(
         maximum_input_tokens=tokens // 2,
         maximum_output_tokens=tokens - (tokens // 2),
         maximum_research_cost_microusd=research_cost_microusd,
+    )
+
+
+def request_for_reservation(
+    admission_reservation: AdmissionReservation,
+    *,
+    value: str = "source",
+) -> GenerationRequest:
+    """Freeze token ceilings that the tested reservation exactly covers."""
+
+    return valid_generation_request(
+        value=value,
+        execution_profile=valid_execution_profile(
+            maximum_input_tokens=admission_reservation.maximum_input_tokens,
+            maximum_output_tokens=admission_reservation.maximum_output_tokens,
+        ),
     )
 
 
@@ -42,17 +60,24 @@ def test_submission_reserves_user_and_global_allowance_exactly_once(
             maximum_research_cost_microusd_global=2_000,
         ),
     )
+    requested_reservation = reservation()
     first_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="job-1",
-        input_hash="sha256:" + ("a" * 64),
-        admission_reservation=reservation(),
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="source-a",
+        ),
+        admission_reservation=requested_reservation,
     )
     replayed_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="job-1",
-        input_hash="sha256:" + ("a" * 64),
-        admission_reservation=reservation(),
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="source-a",
+        ),
+        admission_reservation=requested_reservation,
     )
 
     assert replayed_job == first_job
@@ -60,21 +85,30 @@ def test_submission_reserves_user_and_global_allowance_exactly_once(
         store.create_or_get_job(
             user_id="user-1",
             idempotency_key="job-2",
-            input_hash="sha256:" + ("b" * 64),
-            admission_reservation=reservation(),
+            generation_request=request_for_reservation(
+                requested_reservation,
+                value="source-b",
+            ),
+            admission_reservation=requested_reservation,
         )
     store.create_or_get_job(
         user_id="user-2",
         idempotency_key="job-1",
-        input_hash="sha256:" + ("c" * 64),
-        admission_reservation=reservation(),
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="source-c",
+        ),
+        admission_reservation=requested_reservation,
     )
     with pytest.raises(AdmissionQuotaExceededError, match="global_jobs"):
         store.create_or_get_job(
             user_id="user-3",
             idempotency_key="job-1",
-            input_hash="sha256:" + ("d" * 64),
-            admission_reservation=reservation(),
+            generation_request=request_for_reservation(
+                requested_reservation,
+                value="source-d",
+            ),
+            admission_reservation=requested_reservation,
         )
 
 
@@ -152,7 +186,7 @@ def test_submission_rejects_each_token_and_cost_limit(
         store.create_or_get_job(
             user_id="user-1",
             idempotency_key="job-1",
-            input_hash="sha256:" + ("a" * 64),
+            generation_request=request_for_reservation(requested_reservation),
             admission_reservation=requested_reservation,
         )
 
@@ -176,18 +210,25 @@ def test_admission_window_expires_without_deleting_job_history(
         ),
         clock=lambda: current_time,
     )
+    requested_reservation = reservation()
     first_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="job-1",
-        input_hash="sha256:" + ("a" * 64),
-        admission_reservation=reservation(),
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="source-a",
+        ),
+        admission_reservation=requested_reservation,
     )
     current_time += timedelta(seconds=61)
     second_job = store.create_or_get_job(
         user_id="user-1",
         idempotency_key="job-2",
-        input_hash="sha256:" + ("b" * 64),
-        admission_reservation=reservation(),
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="source-b",
+        ),
+        admission_reservation=requested_reservation,
     )
 
     assert first_job.job_id != second_job.job_id

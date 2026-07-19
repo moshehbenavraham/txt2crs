@@ -154,3 +154,94 @@ Archived entries are stored in [`archive/`](archive/).
 - Prevented worker credential-directory inheritance, case-variant API-key
   inheritance, cross-tenant artifact paths, symlink reads, quota-reset restarts,
   and oversized prompt side effects.
+
+## [0.3.4] - 2026-07-19
+
+### Added
+
+- Added a strict, versioned `GenerationRequest` and immutable
+  `ExecutionProfile` covering exact input, learner intent, policy context,
+  supported contract/model versions, retries, and finite execution bounds.
+- Added packaged SQLite migration 003 for owner-linked canonical request
+  envelopes plus deterministic recovery-first runnable discovery.
+- Added atomic request/job/admission persistence, exact restart recovery,
+  concurrent idempotency coverage, and lock-scoped resume snapshots.
+- Added a stable frontend `/health` JSON endpoint, Docker image health check,
+  and static local deployment scope contracts.
+- Added ADR-0008 to establish repository-root Docker Compose as the only
+  current deployment target.
+
+### Changed
+
+- Replaced caller-supplied input hashes with complete canonical requests across
+  the engine store, service, quota, executor, and shared test fixtures.
+- Reconciled root, architecture, API, environment, package, onboarding,
+  development, deployment, security, and runbook documentation with the
+  completed Phase 00 implementation.
+- Clarified that `staging` and `production` are inactive runtime validation
+  profiles, not deployed environments.
+
+### Deprecated
+
+- Superseded the inherited Coolify architecture decision with the local-only
+  deployment decision.
+
+### Removed
+
+- Removed inherited hosted deployment and scheduled remote-backup workflows,
+  the Coolify deployment script, and platform-specific example variables.
+
+### Fixed
+
+- Corrected the frontend Docker build argument so local BuildKit validation no
+  longer reports an undefined self-reference.
+- Normalized request identity before hashing, bounded finite JSON metadata,
+  rejected token under-reservation and invalid durable identifiers before
+  writes, and made compatibility errors context-free.
+
+### Security
+
+- Documented request-log privacy risk, complete local backup/restore gaps, and
+  the missing private vulnerability-reporting channel without inventing
+  external owners or infrastructure.
+- Kept raw learner input in owner-private engine SQLite, removed validation
+  cause/context exposure, enforced owner-scoped recovery, and preserved the
+  planned idempotent erasure path.
+
+## [0.3.3] - 2026-07-19
+
+### Added
+
+- Added typed, normalized, and confined txt2crs state, SQLite, artifact,
+  isolated Codex home, and worker path settings with 19 deterministic tests.
+- Added static container/Compose contracts and a real production-image smoke
+  for workspace import, non-root identity, private modes, and persistent state
+  reopen.
+- Initialized the Apex specification system and completed, reviewed, and
+  validated Phase 00: Application Baseline.
+
+### Changed
+
+- Corrected both backend image targets to install the workspace engine before
+  synchronization and run one FastAPI process as fixed UID/GID 1001.
+- Added a separate image-owned txt2crs state volume to Compose while keeping
+  the research MCP port unpublished.
+- Replaced donor product identity in public metadata, routes, logo assets, and
+  the footer with shared txt2crs branding.
+- Removed learner-visible TanStack devtool launchers and their unused direct
+  dependencies.
+
+### Fixed
+
+- Pinned container state paths to the image-owned mount point so a fresh named
+  volume remains writable by the non-root runtime.
+- Isolated Settings tests from inherited txt2crs path variables and expanded
+  repository validation to lint, format, and execute the baseline contracts.
+- Taught the project-local prerequisite script to recognize the nested uv
+  workspace and registered package stack hints.
+
+### Security
+
+- Enforced owner-only private state and worker directories, rejected relative,
+  escaping, overlapping, and existing-symlink path layouts, and verified that
+  no credentials are required by deterministic validation.

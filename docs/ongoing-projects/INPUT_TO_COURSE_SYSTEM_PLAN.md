@@ -1189,7 +1189,7 @@ Deadline control for the 2026-07-22 03:00 Jerusalem submission:
 
 ### Phase 0 - finish the application baseline
 
-**Status:** Partially complete.
+**Status:** Complete.
 
 Objective: make the imported shell a truthful, reproducible base for engine
 composition.
@@ -1218,7 +1218,7 @@ Suggested implementation session: **S01 - baseline container and state**.
 
 ### Phase 1 - close the engine application-boundary gaps
 
-**Status:** Not started.
+**Status:** In progress (Session 1 of 5 complete).
 
 Objective: expose every durable and safe operation the shell needs without
 letting FastAPI reach into engine internals.

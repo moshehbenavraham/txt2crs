@@ -17,6 +17,7 @@ from txt2crs.jobs.models import (
     ResumeState,
 )
 from txt2crs.jobs.quota import AdmissionReservation
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import (
     ConcurrencyConflictError,
@@ -116,15 +117,15 @@ class JobService:
         *,
         user_id: str,
         idempotency_key: str,
-        input_hash: str,
+        generation_request: GenerationRequest,
         admission_reservation: AdmissionReservation,
     ) -> JobRecord:
-        """Submit or replay one tenant-owned job."""
+        """Durably submit or replay one complete tenant-owned request."""
 
         return self._store.create_or_get_job(
             user_id=user_id,
             idempotency_key=idempotency_key,
-            input_hash=input_hash,
+            generation_request=generation_request,
             admission_reservation=admission_reservation,
         )
 
@@ -147,13 +148,12 @@ class JobService:
     def resume(self, *, job_id: str, user_id: str) -> ResumeState:
         """Return owner-scoped state and only the last accepted checkpoint."""
 
-        return ResumeState(
-            job=self._store.get_job(job_id=job_id, user_id=user_id),
-            checkpoint=self._store.latest_checkpoint(
-                job_id=job_id,
-                user_id=user_id,
-            ),
-        )
+        return self._store.get_resume_state(job_id=job_id, user_id=user_id)
+
+    def next_runnable(self) -> ResumeState | None:
+        """Return one exact worker item without exposing store queries."""
+
+        return self._store.next_runnable_job()
 
     def fail(
         self,

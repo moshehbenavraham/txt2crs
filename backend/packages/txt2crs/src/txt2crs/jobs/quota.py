@@ -2,7 +2,9 @@
 
 """Durable admission limits for job count, tokens, and paid research."""
 
+import sqlite3
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,3 +68,88 @@ class AdmissionReservation:
         """Return the combined maximum provider-token allowance."""
 
         return self.maximum_input_tokens + self.maximum_output_tokens
+
+
+def find_admission_limit_violation(
+    *,
+    connection: sqlite3.Connection,
+    user_id: str,
+    reservation: AdmissionReservation,
+    limits: AdmissionLimits,
+    timestamp: str,
+) -> tuple[str, int] | None:
+    """Return the first exceeded rolling allowance without mutating state.
+
+    The store owns the transaction and the public error type. This helper owns
+    only quota arithmetic and read queries, keeping those responsibilities
+    testable without making the main job store a multi-purpose module.
+    """
+
+    current_time = datetime.fromisoformat(timestamp)
+    window_start = current_time - timedelta(seconds=limits.window_seconds)
+    window_start_text = window_start.isoformat()
+    user_totals = connection.execute(
+        """
+        SELECT
+            COUNT(*) AS job_count,
+            COALESCE(SUM(reserved_tokens), 0) AS reserved_tokens,
+            COALESCE(SUM(reserved_research_cost_microusd), 0)
+                AS reserved_research_cost_microusd
+        FROM job_admissions
+        WHERE user_id = ? AND created_at >= ?
+        """,
+        (user_id, window_start_text),
+    ).fetchone()
+    global_totals = connection.execute(
+        """
+        SELECT
+            COUNT(*) AS job_count,
+            COALESCE(SUM(reserved_tokens), 0) AS reserved_tokens,
+            COALESCE(SUM(reserved_research_cost_microusd), 0)
+                AS reserved_research_cost_microusd
+        FROM job_admissions
+        WHERE created_at >= ?
+        """,
+        (window_start_text,),
+    ).fetchone()
+    if user_totals is None or global_totals is None:
+        raise RuntimeError("Admission totals could not be read.")
+
+    quota_checks = (
+        (
+            "user_jobs",
+            int(user_totals["job_count"]) + 1,
+            limits.maximum_jobs_per_user,
+        ),
+        (
+            "global_jobs",
+            int(global_totals["job_count"]) + 1,
+            limits.maximum_jobs_global,
+        ),
+        (
+            "user_tokens",
+            int(user_totals["reserved_tokens"]) + reservation.reserved_tokens,
+            limits.maximum_reserved_tokens_per_user,
+        ),
+        (
+            "global_tokens",
+            int(global_totals["reserved_tokens"]) + reservation.reserved_tokens,
+            limits.maximum_reserved_tokens_global,
+        ),
+        (
+            "user_research_cost",
+            int(user_totals["reserved_research_cost_microusd"])
+            + reservation.maximum_research_cost_microusd,
+            limits.maximum_research_cost_microusd_per_user,
+        ),
+        (
+            "global_research_cost",
+            int(global_totals["reserved_research_cost_microusd"])
+            + reservation.maximum_research_cost_microusd,
+            limits.maximum_research_cost_microusd_global,
+        ),
+    )
+    for resource_name, requested_total, configured_limit in quota_checks:
+        if requested_total > configured_limit:
+            return resource_name, configured_limit
+    return None

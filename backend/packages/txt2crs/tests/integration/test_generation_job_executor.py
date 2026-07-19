@@ -12,6 +12,7 @@ from tests.factories import (
     standard_admission_reservation,
     valid_assessment_blueprint_data,
     valid_course_module_draft_data,
+    valid_generation_request,
     valid_review_pack_data,
 )
 from tests.integration.test_generation_pipeline import (
@@ -156,7 +157,7 @@ def test_executor_completes_and_privately_delivers_all_formats(
     job = service.submit(
         user_id="user-1",
         idempotency_key="generate-python",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(input_payload=input_payload()),
         admission_reservation=standard_admission_reservation(),
     )
     pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
@@ -206,7 +207,7 @@ def test_executor_resumes_delivery_without_regenerating_from_model(
     job = service.submit(
         user_id="user-1",
         idempotency_key="generate-python",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(input_payload=input_payload()),
         admission_reservation=standard_admission_reservation(),
     )
     pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
@@ -261,7 +262,10 @@ def test_executor_rejects_missing_consent_before_model_or_research_work(
     job = service.submit(
         user_id="user-1",
         idempotency_key="no-consent",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(
+            input_payload=input_payload(),
+            provider_consent=False,
+        ),
         admission_reservation=standard_admission_reservation(),
     )
     pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
@@ -309,7 +313,7 @@ def test_executor_resumes_from_last_stage_after_worker_process_exit(
     job = first_service.submit(
         user_id="user-1",
         idempotency_key="resume-stage",
-        input_hash="sha256:" + ("a" * 64),
+        generation_request=valid_generation_request(input_payload=input_payload()),
         admission_reservation=standard_admission_reservation(),
     )
     first_pipeline = pipeline_with_evidence(

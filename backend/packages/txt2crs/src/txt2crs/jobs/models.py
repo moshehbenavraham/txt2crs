@@ -7,9 +7,10 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from txt2crs.domain.models import HashValue, Identifier, SchemaVersion, StrictContract
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.rendering.artifacts import RenderedArtifact
 
 
@@ -27,6 +28,50 @@ class JobStatus(StrEnum):
     cancelled = "cancelled"
 
 
+_STATUS_ORDER = {
+    JobStatus.accepted: 0,
+    JobStatus.researching: 1,
+    JobStatus.drafting: 2,
+    JobStatus.validating: 3,
+    JobStatus.rendering: 4,
+    JobStatus.delivering: 5,
+    JobStatus.completed: 6,
+}
+_TERMINAL_STATUSES = frozenset(
+    {JobStatus.completed, JobStatus.failed, JobStatus.cancelled}
+)
+
+
+def validate_status_transition(
+    current_status: JobStatus,
+    new_status: JobStatus,
+    *,
+    allow_same: bool = False,
+) -> None:
+    """Permit forward progress, failure/cancellation, and no terminal rewrites."""
+
+    if current_status in _TERMINAL_STATUSES:
+        raise ValueError(
+            f"Invalid job status transition: {current_status} -> {new_status}."
+        )
+    if new_status in {JobStatus.failed, JobStatus.cancelled}:
+        return
+    if new_status is JobStatus.completed and current_status is not JobStatus.delivering:
+        raise ValueError(
+            f"Invalid job status transition: {current_status} -> {new_status}."
+        )
+    if new_status not in _STATUS_ORDER or current_status not in _STATUS_ORDER:
+        raise ValueError(
+            f"Invalid job status transition: {current_status} -> {new_status}."
+        )
+    if allow_same and new_status is current_status:
+        return
+    if _STATUS_ORDER[new_status] <= _STATUS_ORDER[current_status]:
+        raise ValueError(
+            f"Invalid job status transition: {current_status} -> {new_status}."
+        )
+
+
 class JobRecord(StrictContract):
     """Current durable state for one tenant-owned generation job."""
 
@@ -34,12 +79,26 @@ class JobRecord(StrictContract):
     job_id: Identifier
     user_id: Identifier
     idempotency_key: Identifier
-    input_hash: HashValue
+    request_hash: HashValue
     status: JobStatus
     revision: int = Field(ge=0)
     failure_code: Identifier | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class JobSubmissionIdentity(StrictContract):
+    """Normalized owner and idempotency identifiers validated before writes."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        frozen=True,
+        hide_input_in_errors=True,
+    )
+
+    user_id: Identifier
+    idempotency_key: Identifier
 
 
 class JobCheckpoint(StrictContract):
@@ -58,9 +117,10 @@ class JobCheckpoint(StrictContract):
 
 @dataclass(frozen=True, slots=True)
 class ResumeState:
-    """Job plus its most recent accepted checkpoint, if any."""
+    """Job, exact accepted request, and most recent accepted checkpoint."""
 
     job: JobRecord
+    request: GenerationRequest
     checkpoint: JobCheckpoint | None
 
 

@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
-  "current_phase": 0,
+  "current_phase": 1,
   "current_session": null,
   "monorepo": true,
   "packages": [
@@ -28,12 +28,22 @@
       "description": "Make the application shell a reproducible single-process base with workspace engine installation and confined persistent private state.",
       "status": "complete",
       "session_count": 1
+    },
+    "1": {
+      "name": "Engine Application Boundary",
+      "description": "Expose the durable, safe, and lifecycle-managed engine operations required by the application shell without duplicating package logic.",
+      "status": "in_progress",
+      "session_count": 5
     }
   },
   "completed_sessions": [
     {
       "id": "phase00-session01-baseline-container-and-state",
       "package": null
+    },
+    {
+      "id": "phase01-session01-durable-requests-and-recovery",
+      "package": "backend/packages/txt2crs"
     }
   ],
   "next_session_history": [
@@ -51,6 +61,24 @@
       "date": "2026-07-19",
       "session": "phase00-session01-baseline-container-and-state",
       "package": null,
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session01-durable-requests-and-recovery",
+      "package": "backend/packages/txt2crs",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session01-durable-requests-and-recovery",
+      "package": "backend/packages/txt2crs",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session01-durable-requests-and-recovery",
+      "package": "backend/packages/txt2crs",
       "status": "completed"
     }
   ]

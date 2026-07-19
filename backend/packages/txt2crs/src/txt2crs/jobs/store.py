@@ -5,29 +5,42 @@
 import json
 import sqlite3
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from importlib.resources import files
 from pathlib import Path
 from threading import RLock
 from uuid import uuid4
 
-from txt2crs.jobs.models import JobCheckpoint, JobRecord, JobStatus
-from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
-
-_MIGRATION_VERSION = 2
-
-_STATUS_ORDER = {
-    JobStatus.accepted: 0,
-    JobStatus.researching: 1,
-    JobStatus.drafting: 2,
-    JobStatus.validating: 3,
-    JobStatus.rendering: 4,
-    JobStatus.delivering: 5,
-    JobStatus.completed: 6,
-}
-_TERMINAL_STATUSES = frozenset(
-    {JobStatus.completed, JobStatus.failed, JobStatus.cancelled}
+from txt2crs.jobs.models import (
+    JobCheckpoint,
+    JobRecord,
+    JobStatus,
+    JobSubmissionIdentity,
+    ResumeState,
+    validate_status_transition,
 )
+from txt2crs.jobs.quota import (
+    AdmissionLimits,
+    AdmissionReservation,
+    find_admission_limit_violation,
+)
+from txt2crs.jobs.request_store import (
+    PersistedRequestError,
+    insert_request_envelope,
+    load_request_envelope,
+    request_envelope_matches,
+)
+from txt2crs.jobs.requests import (
+    GenerationRequest,
+    serialize_generation_request,
+)
+
+_MIGRATION_RESOURCES = {
+    1: "001_jobs.sql",
+    2: "002_job_admissions.sql",
+    3: "003_generation_requests.sql",
+}
+_MIGRATION_VERSION = max(_MIGRATION_RESOURCES)
 
 
 class JobStoreError(RuntimeError):
@@ -39,7 +52,7 @@ class JobNotFoundError(JobStoreError):
 
 
 class IdempotencyConflictError(JobStoreError):
-    """An idempotency key was reused with a different input."""
+    """An idempotency key was reused with a different complete request."""
 
 
 class ConcurrencyConflictError(JobStoreError):
@@ -53,6 +66,18 @@ class AdmissionQuotaExceededError(JobStoreError):
         self.resource_name = resource_name
         self.limit = limit
         super().__init__(f"The {resource_name} admission quota ({limit}) is exhausted.")
+
+
+class AdmissionReservationMismatchError(JobStoreError):
+    """A reservation is smaller than the immutable request run ceiling."""
+
+
+class InvalidJobSubmissionError(JobStoreError):
+    """An owner or idempotency identifier is invalid for durable storage."""
+
+
+class JobRequestCompatibilityError(JobStoreError):
+    """An accepted job lacks an exact request this engine can safely restore."""
 
 
 class SqliteJobStore:
@@ -92,18 +117,10 @@ class SqliteJobStore:
         """Apply each idempotent schema migration and record its version."""
 
         with self._lock:
-            for migration_version in range(1, _MIGRATION_VERSION + 1):
+            for migration_version in sorted(_MIGRATION_RESOURCES):
                 migration_sql = (
                     files("txt2crs.jobs")
-                    .joinpath(
-                        "migrations",
-                        f"{migration_version:03d}_"
-                        + (
-                            "jobs.sql"
-                            if migration_version == 1
-                            else "job_admissions.sql"
-                        ),
-                    )
+                    .joinpath("migrations", _MIGRATION_RESOURCES[migration_version])
                     .read_text(encoding="utf-8")
                 )
                 self._connection.executescript(migration_sql)
@@ -134,11 +151,22 @@ class SqliteJobStore:
         *,
         user_id: str,
         idempotency_key: str,
-        input_hash: str,
+        generation_request: GenerationRequest,
         admission_reservation: AdmissionReservation,
     ) -> JobRecord:
         """Atomically reserve resources and create or replay one exact job."""
 
+        submission_identity = _normalize_submission_identity(
+            user_id=user_id,
+            idempotency_key=idempotency_key,
+        )
+        user_id = submission_identity.user_id
+        idempotency_key = submission_identity.idempotency_key
+
+        # Serialize before taking the write lock so invalid request metadata
+        # cannot hold an SQLite transaction open. The request model recomputes
+        # its hash here, catching mutation after construction.
+        serialized_request = serialize_generation_request(generation_request)
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
             try:
@@ -151,9 +179,20 @@ class SqliteJobStore:
                 ).fetchone()
                 if existing_row is not None:
                     existing_job = _job_from_row(existing_row)
-                    if existing_job.input_hash != input_hash:
+                    if existing_job.request_hash != generation_request.request_hash:
                         raise IdempotencyConflictError(
-                            "The idempotency key was reused for different input."
+                            "The idempotency key was reused for a different request."
+                        )
+                    if not request_envelope_matches(
+                        self._connection,
+                        job_id=existing_job.job_id,
+                        user_id=user_id,
+                        request_hash=generation_request.request_hash,
+                        serialized_request=serialized_request,
+                    ):
+                        raise IdempotencyConflictError(
+                            "The idempotency key has incompatible durable request "
+                            "state."
                         )
                     admission_row = self._connection.execute(
                         """
@@ -177,6 +216,18 @@ class SqliteJobStore:
                     self._connection.execute("COMMIT")
                     return existing_job
 
+                run_limits = generation_request.execution_profile.run_limits
+                if (
+                    admission_reservation.maximum_input_tokens
+                    < run_limits.maximum_input_tokens
+                    or admission_reservation.maximum_output_tokens
+                    < run_limits.maximum_output_tokens
+                ):
+                    raise AdmissionReservationMismatchError(
+                        "The admission reservation does not cover the request "
+                        "execution profile."
+                    )
+
                 timestamp = self._now_text()
                 self._enforce_admission_limits(
                     user_id=user_id,
@@ -195,11 +246,19 @@ class SqliteJobStore:
                         job_id,
                         user_id,
                         idempotency_key,
-                        input_hash,
+                        generation_request.request_hash,
                         JobStatus.accepted.value,
                         timestamp,
                         timestamp,
                     ),
+                )
+                insert_request_envelope(
+                    self._connection,
+                    job_id=job_id,
+                    user_id=user_id,
+                    generation_request=generation_request,
+                    serialized_request=serialized_request,
+                    timestamp=timestamp,
                 )
                 self._connection.execute(
                     """
@@ -231,78 +290,16 @@ class SqliteJobStore:
     ) -> None:
         """Fail before insertion when any rolling reservation would exceed."""
 
-        current_time = datetime.fromisoformat(timestamp)
-        window_start = current_time - timedelta(
-            seconds=self._admission_limits.window_seconds
+        violation = find_admission_limit_violation(
+            connection=self._connection,
+            user_id=user_id,
+            reservation=reservation,
+            limits=self._admission_limits,
+            timestamp=timestamp,
         )
-        window_start_text = window_start.isoformat()
-        user_totals = self._connection.execute(
-            """
-            SELECT
-                COUNT(*) AS job_count,
-                COALESCE(SUM(reserved_tokens), 0) AS reserved_tokens,
-                COALESCE(SUM(reserved_research_cost_microusd), 0)
-                    AS reserved_research_cost_microusd
-            FROM job_admissions
-            WHERE user_id = ? AND created_at >= ?
-            """,
-            (user_id, window_start_text),
-        ).fetchone()
-        global_totals = self._connection.execute(
-            """
-            SELECT
-                COUNT(*) AS job_count,
-                COALESCE(SUM(reserved_tokens), 0) AS reserved_tokens,
-                COALESCE(SUM(reserved_research_cost_microusd), 0)
-                    AS reserved_research_cost_microusd
-            FROM job_admissions
-            WHERE created_at >= ?
-            """,
-            (window_start_text,),
-        ).fetchone()
-        if user_totals is None or global_totals is None:
-            raise JobStoreError("Admission totals could not be read.")
-
-        checks = (
-            (
-                "user_jobs",
-                int(user_totals["job_count"]) + 1,
-                self._admission_limits.maximum_jobs_per_user,
-            ),
-            (
-                "global_jobs",
-                int(global_totals["job_count"]) + 1,
-                self._admission_limits.maximum_jobs_global,
-            ),
-            (
-                "user_tokens",
-                int(user_totals["reserved_tokens"]) + reservation.reserved_tokens,
-                self._admission_limits.maximum_reserved_tokens_per_user,
-            ),
-            (
-                "global_tokens",
-                int(global_totals["reserved_tokens"]) + reservation.reserved_tokens,
-                self._admission_limits.maximum_reserved_tokens_global,
-            ),
-            (
-                "user_research_cost",
-                int(user_totals["reserved_research_cost_microusd"])
-                + reservation.maximum_research_cost_microusd,
-                (self._admission_limits.maximum_research_cost_microusd_per_user),
-            ),
-            (
-                "global_research_cost",
-                int(global_totals["reserved_research_cost_microusd"])
-                + reservation.maximum_research_cost_microusd,
-                self._admission_limits.maximum_research_cost_microusd_global,
-            ),
-        )
-        for resource_name, requested_total, configured_limit in checks:
-            if requested_total > configured_limit:
-                raise AdmissionQuotaExceededError(
-                    resource_name,
-                    configured_limit,
-                )
+        if violation is not None:
+            resource_name, configured_limit = violation
+            raise AdmissionQuotaExceededError(resource_name, configured_limit)
 
     def get_job(self, *, job_id: str, user_id: str) -> JobRecord:
         """Read a job through a tenant-scoped query."""
@@ -315,6 +312,97 @@ class SqliteJobStore:
             if row is None:
                 raise JobNotFoundError("The requested job was not found.")
             return _job_from_row(row)
+
+    def get_generation_request(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> GenerationRequest:
+        """Restore one owner's exact request or fail closed on incompatible state."""
+
+        job = self.get_job(job_id=job_id, user_id=user_id)
+        generation_request: GenerationRequest | None = None
+        try:
+            with self._lock:
+                generation_request = load_request_envelope(
+                    self._connection,
+                    job=job,
+                )
+        except PersistedRequestError:
+            # Raise only after leaving this handler. That keeps the private
+            # serialized request out of both ``__cause__`` and ``__context__``
+            # on the package-facing compatibility error.
+            pass
+        if generation_request is None:
+            raise JobRequestCompatibilityError(
+                "The accepted job cannot be recovered with this engine."
+            )
+        return generation_request
+
+    def get_resume_state(self, *, job_id: str, user_id: str) -> ResumeState:
+        """Read one process-local job/request/checkpoint snapshot for an owner."""
+
+        # FastAPI reads and the serial worker share this store instance. Keep
+        # the reentrant lock across all three reads so a status/checkpoint write
+        # cannot interleave and produce a state assembled from different
+        # revisions.
+        with self._lock:
+            return ResumeState(
+                job=self.get_job(job_id=job_id, user_id=user_id),
+                request=self.get_generation_request(job_id=job_id, user_id=user_id),
+                checkpoint=self.latest_checkpoint(job_id=job_id, user_id=user_id),
+            )
+
+    def next_runnable_job(self) -> ResumeState | None:
+        """Return one complete recovery-first work item in stable order.
+
+        This is an internal worker query, so it deliberately selects the owner
+        from the durable job rather than accepting an owner from an HTTP
+        caller. Public owner queries continue to require an explicit
+        ``user_id`` at the closest storage boundary.
+        """
+
+        with self._lock:
+            row = self._connection.execute(
+                """
+                SELECT *
+                FROM jobs
+                WHERE status IN (?, ?, ?, ?, ?, ?)
+                ORDER BY
+                    CASE status
+                        WHEN ? THEN 0
+                        WHEN ? THEN 1
+                        WHEN ? THEN 2
+                        WHEN ? THEN 3
+                        WHEN ? THEN 4
+                        WHEN ? THEN 5
+                        ELSE 6
+                    END,
+                    created_at ASC,
+                    job_id ASC
+                LIMIT 1
+                """,
+                (
+                    JobStatus.accepted.value,
+                    JobStatus.researching.value,
+                    JobStatus.drafting.value,
+                    JobStatus.validating.value,
+                    JobStatus.rendering.value,
+                    JobStatus.delivering.value,
+                    JobStatus.delivering.value,
+                    JobStatus.rendering.value,
+                    JobStatus.validating.value,
+                    JobStatus.drafting.value,
+                    JobStatus.researching.value,
+                    JobStatus.accepted.value,
+                ),
+            ).fetchone()
+            if row is None:
+                return None
+
+            job = _job_from_row(row)
+            return self.get_resume_state(job_id=job.job_id, user_id=job.user_id)
 
     def compare_and_swap_status(
         self,
@@ -333,7 +421,7 @@ class SqliteJobStore:
                 raise ConcurrencyConflictError(
                     "The job revision changed before this update."
                 )
-            _validate_status_transition(current_job.status, new_status)
+            validate_status_transition(current_job.status, new_status)
             cursor = self._connection.execute(
                 """
                 UPDATE jobs
@@ -377,7 +465,7 @@ class SqliteJobStore:
                     raise ConcurrencyConflictError(
                         "The job revision changed before checkpointing."
                     )
-                _validate_status_transition(
+                validate_status_transition(
                     current_job.status,
                     next_status,
                     allow_same=True,
@@ -524,36 +612,6 @@ class SqliteJobStore:
                 raise JobNotFoundError("The requested delivery was not found.")
 
 
-def _validate_status_transition(
-    current_status: JobStatus,
-    new_status: JobStatus,
-    *,
-    allow_same: bool = False,
-) -> None:
-    """Permit forward progress, failure/cancellation, and no terminal rewrites."""
-
-    if current_status in _TERMINAL_STATUSES:
-        raise ValueError(
-            f"Invalid job status transition: {current_status} -> {new_status}."
-        )
-    if new_status in {JobStatus.failed, JobStatus.cancelled}:
-        return
-    if new_status is JobStatus.completed and current_status is not JobStatus.delivering:
-        raise ValueError(
-            f"Invalid job status transition: {current_status} -> {new_status}."
-        )
-    if new_status not in _STATUS_ORDER or current_status not in _STATUS_ORDER:
-        raise ValueError(
-            f"Invalid job status transition: {current_status} -> {new_status}."
-        )
-    if allow_same and new_status is current_status:
-        return
-    if _STATUS_ORDER[new_status] <= _STATUS_ORDER[current_status]:
-        raise ValueError(
-            f"Invalid job status transition: {current_status} -> {new_status}."
-        )
-
-
 def _job_from_row(row: sqlite3.Row) -> JobRecord:
     """Convert one SQLite row to the strict public job contract."""
 
@@ -562,7 +620,7 @@ def _job_from_row(row: sqlite3.Row) -> JobRecord:
         job_id=str(row["job_id"]),
         user_id=str(row["user_id"]),
         idempotency_key=str(row["idempotency_key"]),
-        input_hash=str(row["input_hash"]),
+        request_hash=str(row["input_hash"]),
         status=JobStatus(str(row["status"])),
         revision=int(row["revision"]),
         failure_code=(
@@ -571,6 +629,28 @@ def _job_from_row(row: sqlite3.Row) -> JobRecord:
         created_at=datetime.fromisoformat(str(row["created_at"])),
         updated_at=datetime.fromisoformat(str(row["updated_at"])),
     )
+
+
+def _normalize_submission_identity(
+    *,
+    user_id: str,
+    idempotency_key: str,
+) -> JobSubmissionIdentity:
+    """Return storage-safe identifiers without retaining validation context."""
+
+    normalized_identity: JobSubmissionIdentity | None = None
+    try:
+        normalized_identity = JobSubmissionIdentity(
+            user_id=user_id,
+            idempotency_key=idempotency_key,
+        )
+    except ValueError:
+        # The idempotency key is private request metadata. Leave the handler
+        # before translating so it is not retained in exception context.
+        pass
+    if normalized_identity is None:
+        raise InvalidJobSubmissionError("The job submission identity is invalid.")
+    return normalized_identity
 
 
 def _canonical_json(value: object) -> str:
