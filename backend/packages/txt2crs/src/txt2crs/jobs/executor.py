@@ -6,20 +6,28 @@ import json
 from collections.abc import Callable
 from dataclasses import asdict
 from hashlib import sha256
-from typing import Protocol, cast
+from typing import Protocol
 
 from txt2crs.ai.runtime import CancellationToken
 from txt2crs.ai.usage import aggregate_usage
 from txt2crs.domain.validation import validate_artifact_bundle
-from txt2crs.generation.models import LearningPreferences
 from txt2crs.generation.pipeline import PipelineCheckpoint, PipelineResult
 from txt2crs.generation.quality import validate_assessment_quality
-from txt2crs.ingestion.models import InputPayload
-from txt2crs.jobs.models import CompletedJobPayload, JobRecord, JobStatus
+from txt2crs.jobs.models import (
+    CompletedJobPayload,
+    JobCheckpoint,
+    JobRecord,
+    JobStatus,
+)
+from txt2crs.jobs.preparation import (
+    GenerationPreparation,
+    GenerationPreparationService,
+    PreparationPolicyError,
+)
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.rendering.artifacts import ArtifactRenderer
-from txt2crs.security.policy import ContentPolicy, PolicyOutcome
 
 
 class DurablePipeline(Protocol):
@@ -28,13 +36,19 @@ class DurablePipeline(Protocol):
     def generate(
         self,
         *,
-        payload: InputPayload,
-        preferences: LearningPreferences,
+        preparation: GenerationPreparation,
         cancellation: CancellationToken,
         resume_checkpoint: PipelineCheckpoint | None = None,
         checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
     ) -> PipelineResult:
         """Generate and locally validate all canonical artifacts."""
+
+
+class DurablePipelineFactory(Protocol):
+    """Construct provider-backed generation only after preparation is durable."""
+
+    def create(self, generation_request: GenerationRequest) -> DurablePipeline:
+        """Build a pipeline from the exact request accepted by the job store."""
 
 
 class JobExecutionStateError(RuntimeError):
@@ -52,28 +66,23 @@ class GenerationJobExecutor:
         self,
         *,
         job_service: JobService,
-        pipeline: DurablePipeline,
+        preparation_service: GenerationPreparationService,
+        pipeline_factory: DurablePipelineFactory,
         renderer: ArtifactRenderer,
-        content_policy: ContentPolicy,
     ) -> None:
         self._job_service = job_service
-        self._pipeline = pipeline
+        self._preparation_service = preparation_service
+        self._pipeline_factory = pipeline_factory
         self._renderer = renderer
-        self._content_policy = content_policy
 
     def execute(
         self,
         *,
         job_id: str,
         user_id: str,
-        payload: InputPayload,
-        preferences: LearningPreferences,
         cancellation: CancellationToken,
-        provider_consent: bool,
-        learner_age: int | None,
-        high_risk_review_approved: bool = False,
     ) -> JobRecord:
-        """Generate or resume accepted stages and deliver idempotently."""
+        """Load the accepted request, resume generation, and deliver privately."""
 
         resume_state = self._job_service.resume(job_id=job_id, user_id=user_id)
         current_job = resume_state.job
@@ -83,38 +92,11 @@ class GenerationJobExecutor:
             raise JobExecutionStateError(
                 f"Job is already terminal with status {current_job.status.value}."
             )
-
-        policy_decision = self._content_policy.evaluate(
-            request_text=_policy_text(payload),
-            learner_age=learner_age,
-            provider_consent=provider_consent,
-        )
-        high_risk_review_required = (
-            policy_decision.outcome is PolicyOutcome.human_review
-            or preferences.high_risk_course
-        )
-        if policy_decision.outcome is PolicyOutcome.rejected:
-            self._job_service.fail(
-                job_id=job_id,
-                user_id=user_id,
-                expected_revision=current_job.revision,
-                failure_code=policy_decision.reason_code,
+        generation_request = resume_state.request
+        if generation_request.request_hash != current_job.request_hash:
+            raise JobExecutionStateError(
+                "The durable job and generation request identities do not match."
             )
-            raise PolicyViolationError(policy_decision.public_message)
-        if high_risk_review_required and not high_risk_review_approved:
-            self._job_service.fail(
-                job_id=job_id,
-                user_id=user_id,
-                expected_revision=current_job.revision,
-                failure_code="high_risk_review_required",
-            )
-            raise PolicyViolationError(
-                "High-stakes educational material requires qualified review."
-            )
-        if high_risk_review_required and not preferences.high_risk_course:
-            # A deterministic topic match cannot be weakened by a client that
-            # incorrectly labels the course as ordinary.
-            preferences = preferences.model_copy(update={"high_risk_course": True})
 
         if current_job.status is JobStatus.accepted:
             current_job = self._job_service.start(
@@ -128,10 +110,17 @@ class GenerationJobExecutor:
             JobStatus.drafting,
             JobStatus.validating,
         }:
-            pipeline_resume_checkpoint = (
-                PipelineCheckpoint.model_validate(resume_state.checkpoint.artifact)
-                if resume_state.checkpoint is not None
-                else None
+            (
+                preparation,
+                pipeline_resume_checkpoint,
+                current_job,
+            ) = self._load_or_prepare_generation(
+                job_id=job_id,
+                user_id=user_id,
+                current_job=current_job,
+                generation_request=generation_request,
+                checkpoint=resume_state.checkpoint,
+                cancellation=cancellation,
             )
 
             def persist_checkpoint(checkpoint: PipelineCheckpoint) -> None:
@@ -139,7 +128,6 @@ class GenerationJobExecutor:
 
                 nonlocal current_job
                 next_status_by_stage = {
-                    "ingest_input": JobStatus.researching,
                     "plan_research": JobStatus.researching,
                     "collect_evidence": JobStatus.drafting,
                     "design_course": JobStatus.drafting,
@@ -175,39 +163,41 @@ class GenerationJobExecutor:
                 )
 
             try:
-                pipeline_result = self._pipeline.generate(
-                    payload=payload,
-                    preferences=preferences,
+                # The factory is deliberately called after ``prepare_input``
+                # has committed. A worker replacement at this exact boundary
+                # can reuse normalized input without reading the source again.
+                pipeline = self._pipeline_factory.create(generation_request)
+                pipeline_result = pipeline.generate(
+                    preparation=preparation,
                     cancellation=cancellation,
                     resume_checkpoint=pipeline_resume_checkpoint,
                     checkpoint_sink=persist_checkpoint,
                 )
+                # ``persist_checkpoint`` reassigns ``current_job`` while the
+                # pipeline runs, so this check intentionally reads the live
+                # row before accepting the returned artifact set.
+                if current_job.status is not JobStatus.rendering:
+                    raise JobExecutionStateError(
+                        "Pipeline returned without a final accepted checkpoint."
+                    )
+                rendered_artifacts = pipeline_result.rendered_artifacts
+                usage_summary = aggregate_usage(
+                    pipeline_result.usage_records
+                ).model_dump(mode="json")
             except Exception:
                 self._settle_generation_failure(
                     current_job=current_job,
                     cancellation=cancellation,
                 )
                 raise
-            # ``persist_checkpoint`` reassigns ``current_job`` (nonlocal)
-            # while ``generate`` runs, so the status narrowing from the
-            # branch guard above no longer holds; cast back to the full
-            # enum so this re-check compares against the live value.
-            status_after_generation = cast(JobStatus, current_job.status)
-            if status_after_generation is not JobStatus.rendering:
-                raise JobExecutionStateError(
-                    "Pipeline returned without a final accepted checkpoint."
-                )
-            rendered_artifacts = pipeline_result.rendered_artifacts
-            usage_summary = aggregate_usage(pipeline_result.usage_records).model_dump(
-                mode="json"
-            )
         elif current_job.status in {JobStatus.rendering, JobStatus.delivering}:
             if resume_state.checkpoint is None:
                 raise JobExecutionStateError(
                     "Rendering or delivery requires a validated bundle checkpoint."
                 )
-            checkpoint_artifact = PipelineCheckpoint.model_validate(
-                resume_state.checkpoint.artifact
+            checkpoint_artifact = self._validated_pipeline_checkpoint(
+                checkpoint=resume_state.checkpoint,
+                generation_request=generation_request,
             )
             if (
                 checkpoint_artifact.stage != "cross_validate_artifacts"
@@ -251,6 +241,93 @@ class GenerationJobExecutor:
             ),
         )
 
+    def _load_or_prepare_generation(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+        current_job: JobRecord,
+        generation_request: GenerationRequest,
+        checkpoint: JobCheckpoint | None,
+        cancellation: CancellationToken,
+    ) -> tuple[GenerationPreparation, PipelineCheckpoint | None, JobRecord]:
+        """Reuse accepted preparation or persist it before provider startup."""
+
+        if checkpoint is None:
+            try:
+                cancellation.raise_if_cancelled()
+                preparation = self._preparation_service.prepare(generation_request)
+            except PreparationPolicyError as policy_error:
+                self._job_service.fail(
+                    job_id=job_id,
+                    user_id=user_id,
+                    expected_revision=current_job.revision,
+                    failure_code=policy_error.reason_code,
+                )
+                raise PolicyViolationError(str(policy_error)) from None
+            except Exception:
+                self._settle_generation_failure(
+                    current_job=current_job,
+                    cancellation=cancellation,
+                )
+                raise
+
+            preparation.require_request_hash(generation_request.request_hash)
+            current_job = self._job_service.checkpoint_stage(
+                job_id=job_id,
+                user_id=user_id,
+                expected_revision=current_job.revision,
+                stage="prepare_input",
+                sequence=1,
+                result=StageResult.accepted(artifact=preparation),
+                artifact_version=_hash_json(preparation.model_dump(mode="json")),
+                evidence_version=None,
+                budget_snapshot={},
+                next_status=JobStatus.researching,
+                required_stage=True,
+            )
+            return preparation, None, current_job
+
+        if checkpoint.stage == "prepare_input":
+            if checkpoint.sequence != 1:
+                raise JobExecutionStateError(
+                    "The preparation checkpoint has an invalid sequence."
+                )
+            preparation = GenerationPreparation.model_validate(checkpoint.artifact)
+            try:
+                preparation.require_request_hash(generation_request.request_hash)
+            except ValueError as request_error:
+                raise JobExecutionStateError(str(request_error)) from request_error
+            return preparation, None, current_job
+
+        pipeline_checkpoint = self._validated_pipeline_checkpoint(
+            checkpoint=checkpoint,
+            generation_request=generation_request,
+        )
+        return pipeline_checkpoint.preparation, pipeline_checkpoint, current_job
+
+    def _validated_pipeline_checkpoint(
+        self,
+        *,
+        checkpoint: JobCheckpoint,
+        generation_request: GenerationRequest,
+    ) -> PipelineCheckpoint:
+        """Bind a cumulative artifact to its row and exact accepted request."""
+
+        pipeline_checkpoint = PipelineCheckpoint.model_validate(checkpoint.artifact)
+        if (
+            checkpoint.stage != pipeline_checkpoint.stage
+            or checkpoint.sequence != pipeline_checkpoint.sequence
+        ):
+            raise JobExecutionStateError(
+                "The checkpoint row and pipeline artifact do not agree."
+            )
+        if pipeline_checkpoint.request_hash != generation_request.request_hash:
+            raise JobExecutionStateError(
+                "The pipeline checkpoint belongs to a different generation request."
+            )
+        return pipeline_checkpoint
+
     def _settle_generation_failure(
         self,
         *,
@@ -284,11 +361,3 @@ def _hash_json(value: object) -> str:
         separators=(",", ":"),
     )
     return f"sha256:{sha256(canonical_json.encode('utf-8')).hexdigest()}"
-
-
-def _policy_text(payload: InputPayload) -> str:
-    """Extract bounded pre-provider text without attempting remote ingestion."""
-
-    if isinstance(payload.value, str):
-        return payload.value[:100_000]
-    return payload.file_name or "Uploaded binary educational material"

@@ -12,18 +12,25 @@ from hashlib import sha256
 from typing import Any
 
 from txt2crs.ai.budgets import RunBudgetSnapshot
+from txt2crs.domain.models import InputDocument
+from txt2crs.generation.models import LearningPreferences
 from txt2crs.generation.pipeline import PipelineCheckpoint
+from txt2crs.generation.preferences import PreparedLearningPreferences
 from txt2crs.ingestion.models import InputPayload, InputType
+from txt2crs.jobs.preparation import GenerationPreparation
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
 from txt2crs.jobs.requests import (
+    CurriculumShapeLimits,
     ExecutionProfile,
     GenerationRequest,
     InputExecutionLimits,
     LearnerAgeGroup,
+    LearningPreferenceDefaults,
     LearningPreferenceIntent,
     RequestRetryPolicy,
     RunExecutionLimits,
 )
+from txt2crs.security.policy import PolicyDecision, PolicyOutcome, PolicyStage
 
 
 def _hash_text(value: str) -> str:
@@ -360,6 +367,8 @@ def valid_execution_profile(
             maximum_repairs=3,
             maximum_elapsed_seconds=2_700.0,
         ),
+        preference_defaults=LearningPreferenceDefaults(),
+        curriculum_shape_limits=CurriculumShapeLimits(),
     )
 
 
@@ -404,6 +413,97 @@ def valid_generation_request(
     )
 
 
+def valid_input_document(
+    *,
+    normalized_text: str = "Teach Python variables with worked examples.",
+    input_type: InputType = "text",
+    media_type: str = "text/plain",
+    language: str = "en",
+    metadata: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
+) -> InputDocument:
+    """Return one canonical normalized input document for checkpoint tests."""
+
+    content_hash = _hash_text(normalized_text)
+    return InputDocument(
+        schema_version="1.0",
+        document_id=f"input-{content_hash.removeprefix('sha256:')[:24]}",
+        input_type=input_type,
+        media_type=media_type,
+        normalized_text=normalized_text,
+        language=language,
+        metadata=deepcopy(metadata or {}),
+        content_hash=content_hash,
+        warnings=list(warnings or []),
+        locations=[],
+    )
+
+
+def valid_generation_preparation(
+    *,
+    generation_request: GenerationRequest | None = None,
+    input_document: InputDocument | None = None,
+) -> GenerationPreparation:
+    """Return allowed provider-free state bound to one exact request hash."""
+
+    request = generation_request or valid_generation_request()
+    prepared_document = input_document or valid_input_document(
+        input_type=request.input_payload.input_type,
+        media_type=request.input_payload.media_type,
+    )
+    return GenerationPreparation(
+        schema_version="1.0",
+        request_hash=request.request_hash,
+        input_document=prepared_document,
+        policy_decision=PolicyDecision(
+            policy_version=request.execution_profile.policy_version,
+            stage=PolicyStage.post_ingestion,
+            outcome=PolicyOutcome.allowed,
+            reason_code="allowed",
+            high_risk=False,
+            public_message="The request may proceed.",
+        ),
+        planning_preferences=PreparedLearningPreferences.from_request(
+            generation_request=request,
+            detected_input_language=prepared_document.language,
+            high_risk_course=False,
+        ),
+        curriculum_shape_limits=(request.execution_profile.curriculum_shape_limits),
+    )
+
+
+def valid_resolved_preferences(
+    *,
+    audience: str = "First-year computer-science students",
+    prior_knowledge: str = "Basic computer literacy",
+    learning_goals: tuple[str, ...] = ("Explain and use Python variables.",),
+    level: str = "beginner",
+    language: str = "en",
+    defaults: LearningPreferenceDefaults | None = None,
+) -> LearningPreferences:
+    """Return one concrete post-plan learning contract."""
+
+    preference_defaults = defaults or LearningPreferenceDefaults()
+    return LearningPreferences.model_validate(
+        {
+            "audience": audience,
+            "prior_knowledge": prior_knowledge,
+            "learning_goals": learning_goals,
+            "level": level,
+            "desired_depth": preference_defaults.desired_depth,
+            "duration_minutes": preference_defaults.duration_minutes,
+            "language": language,
+            "tone": preference_defaults.tone,
+            "accessibility_requirements": (
+                preference_defaults.accessibility_requirements
+            ),
+            "assessment_item_count": preference_defaults.assessment_item_count,
+            "passing_percentage": preference_defaults.passing_percentage,
+            "high_risk_course": False,
+        }
+    )
+
+
 def valid_pipeline_checkpoint(
     *,
     normalized_text: str = "Private normalized course input.",
@@ -429,6 +529,29 @@ def valid_pipeline_checkpoint(
     course_data["sources"] = [retained_source]
     course_data["evidence"] = [retained_evidence]
     course_data["unresolved_or_conflicting_claims"] = list(unresolved_conflicts or [])
+    request_payload = InputPayload(
+        input_type=input_type,
+        value=(
+            normalized_text
+            if input_type in {"prompt", "text", "url"}
+            else b"bounded-private-input"
+        ),
+        media_type=media_type,
+        file_name="course-source.pdf" if input_type == "pdf" else None,
+        metadata={},
+    )
+    generation_request = valid_generation_request(input_payload=request_payload)
+    prepared_document = valid_input_document(
+        normalized_text=normalized_text,
+        input_type=input_type,
+        media_type=media_type,
+        metadata=input_metadata,
+        warnings=warnings,
+    )
+    preparation = valid_generation_preparation(
+        generation_request=generation_request,
+        input_document=prepared_document,
+    )
 
     # Replacing an evidence fixture requires every course-local reference to
     # point at the replacement ID so the checkpoint stays structurally valid.
@@ -447,25 +570,14 @@ def valid_pipeline_checkpoint(
     )
     module_draft_data["citations"] = deepcopy(course_data["citations"])
 
-    checkpoint_hash = _hash_text("valid public-query checkpoint")
+    checkpoint_hash = preparation.request_hash
     return PipelineCheckpoint.model_validate(
         {
             "schema_version": "1.0",
             "stage": "cross_validate_artifacts",
             "sequence": 9,
             "request_hash": checkpoint_hash,
-            "input_document": {
-                "schema_version": "1.0",
-                "document_id": "document-public-query",
-                "input_type": input_type,
-                "media_type": media_type,
-                "normalized_text": normalized_text,
-                "language": "en",
-                "metadata": input_metadata or {},
-                "content_hash": checkpoint_hash,
-                "warnings": warnings or [],
-                "locations": [],
-            },
+            "preparation": preparation.model_dump(mode="json"),
             "research_plan": {
                 "schema_version": "1.0",
                 "plan_id": "research-plan-public-query",
@@ -511,6 +623,9 @@ def valid_pipeline_checkpoint(
                     }
                 ],
             },
+            "resolved_preferences": valid_resolved_preferences().model_dump(
+                mode="json"
+            ),
             "course_module_drafts": [module_draft_data],
             "course": course_data,
             "review_pack": valid_review_pack_data(),

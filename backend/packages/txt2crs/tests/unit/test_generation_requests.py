@@ -13,9 +13,11 @@ from tests.factories import valid_execution_profile, valid_generation_request
 from txt2crs.ingestion.models import InputPayload
 from txt2crs.jobs import requests as request_contracts
 from txt2crs.jobs.requests import (
+    CurriculumShapeLimits,
     ExecutionProfile,
     GenerationRequest,
     LearnerAgeGroup,
+    LearningPreferenceDefaults,
     LearningPreferenceIntent,
     RunExecutionLimits,
     deserialize_generation_request,
@@ -99,6 +101,91 @@ def test_execution_profile_rejects_inconsistent_research_and_retry_limits() -> N
     profile_data["run_limits"]["maximum_retries"] = 1
     with pytest.raises(ValidationError, match="retry"):
         ExecutionProfile.model_validate(profile_data)
+
+
+def test_execution_profile_freezes_documented_p0_defaults_and_shape_limits() -> None:
+    """Recovery receives every server-selected preference and curriculum bound."""
+
+    profile = valid_execution_profile()
+
+    assert profile.preference_defaults == LearningPreferenceDefaults(
+        desired_depth="Comprehensive, foundational-to-applied",
+        duration_minutes=120,
+        tone="Clear, rigorous, and encouraging",
+        accessibility_requirements=(
+            "Semantic headings",
+            "Plain-language definitions",
+            "Textual explanations of visual concepts",
+        ),
+        assessment_item_count=15,
+        passing_percentage=70,
+    )
+    assert profile.curriculum_shape_limits == CurriculumShapeLimits(
+        minimum_objectives=5,
+        maximum_objectives=12,
+        minimum_modules=3,
+        maximum_modules=6,
+        minimum_sections_per_module=2,
+        maximum_sections_per_module=5,
+        minimum_content_blocks_per_section=3,
+        maximum_content_blocks_per_section=12,
+    )
+
+
+@pytest.mark.parametrize(
+    ("minimum_field", "maximum_field"),
+    [
+        ("minimum_objectives", "maximum_objectives"),
+        ("minimum_modules", "maximum_modules"),
+        ("minimum_sections_per_module", "maximum_sections_per_module"),
+        (
+            "minimum_content_blocks_per_section",
+            "maximum_content_blocks_per_section",
+        ),
+    ],
+)
+def test_curriculum_shape_limits_require_ordered_finite_ranges(
+    minimum_field: str,
+    maximum_field: str,
+) -> None:
+    """A stored minimum can never exceed the corresponding maximum."""
+
+    shape_data = valid_execution_profile().curriculum_shape_limits.model_dump(
+        mode="python"
+    )
+    shape_data[minimum_field] = shape_data[maximum_field] + 1
+
+    with pytest.raises(ValidationError, match="minimum"):
+        CurriculumShapeLimits.model_validate(shape_data)
+
+
+def test_preference_defaults_and_shape_limits_are_immutable_and_hashed() -> None:
+    """Changing any server default or curriculum bound changes request identity."""
+
+    baseline_request = valid_generation_request()
+    baseline_profile = baseline_request.execution_profile
+    changed_defaults = baseline_profile.preference_defaults.model_copy(
+        update={"duration_minutes": 180}
+    )
+    changed_shape = baseline_profile.curriculum_shape_limits.model_copy(
+        update={"maximum_modules": 5}
+    )
+
+    default_changed_request = valid_generation_request(
+        execution_profile=baseline_profile.model_copy(
+            update={"preference_defaults": changed_defaults}
+        )
+    )
+    shape_changed_request = valid_generation_request(
+        execution_profile=baseline_profile.model_copy(
+            update={"curriculum_shape_limits": changed_shape}
+        )
+    )
+
+    assert default_changed_request.request_hash != baseline_request.request_hash
+    assert shape_changed_request.request_hash != baseline_request.request_hash
+    with pytest.raises(ValidationError, match="frozen"):
+        baseline_profile.preference_defaults.duration_minutes = 180
 
 
 @pytest.mark.parametrize("empty_value", ["", b""])

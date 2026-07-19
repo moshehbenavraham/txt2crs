@@ -75,6 +75,81 @@ class LearningPreferenceIntent(FrozenStrictContract):
         return self
 
 
+class LearningPreferenceDefaults(FrozenStrictContract):
+    """Server-selected P0 learning values frozen with an accepted request.
+
+    These values are not learner controls in P0, but they still affect prompts,
+    course validation, assessment generation, and rendered output. Keeping them
+    in the execution profile prevents a replacement worker from applying newer
+    process defaults to already accepted work.
+    """
+
+    desired_depth: PreferenceText = "Comprehensive, foundational-to-applied"
+    duration_minutes: int = Field(default=120, gt=0, le=100_000)
+    tone: Annotated[str, Field(min_length=1, max_length=200)] = (
+        "Clear, rigorous, and encouraging"
+    )
+    accessibility_requirements: tuple[PreferenceText, ...] = Field(
+        default=(
+            "Semantic headings",
+            "Plain-language definitions",
+            "Textual explanations of visual concepts",
+        ),
+        min_length=1,
+        max_length=20,
+    )
+    assessment_item_count: int = Field(default=15, gt=0, le=1_000)
+    passing_percentage: int = Field(default=70, ge=0, le=100)
+
+    @model_validator(mode="after")
+    def require_unique_accessibility_requirements(self) -> Self:
+        """Reject duplicated requirements that differ only by case or spacing."""
+
+        normalized_requirements = tuple(
+            " ".join(requirement.casefold().split())
+            for requirement in self.accessibility_requirements
+        )
+        if len(normalized_requirements) != len(set(normalized_requirements)):
+            raise ValueError("accessibility requirements must be unique")
+        return self
+
+
+class CurriculumShapeLimits(FrozenStrictContract):
+    """Finite local curriculum ranges stored with each accepted request."""
+
+    minimum_objectives: int = Field(default=5, ge=1, le=100)
+    maximum_objectives: int = Field(default=12, ge=1, le=100)
+    minimum_modules: int = Field(default=3, ge=1, le=100)
+    maximum_modules: int = Field(default=6, ge=1, le=100)
+    minimum_sections_per_module: int = Field(default=2, ge=1, le=100)
+    maximum_sections_per_module: int = Field(default=5, ge=1, le=100)
+    minimum_content_blocks_per_section: int = Field(default=3, ge=1, le=500)
+    maximum_content_blocks_per_section: int = Field(default=12, ge=1, le=500)
+
+    @model_validator(mode="after")
+    def require_ordered_shape_ranges(self) -> Self:
+        """Ensure every minimum can be satisfied by its paired maximum."""
+
+        ordered_ranges = (
+            (self.minimum_objectives, self.maximum_objectives),
+            (self.minimum_modules, self.maximum_modules),
+            (
+                self.minimum_sections_per_module,
+                self.maximum_sections_per_module,
+            ),
+            (
+                self.minimum_content_blocks_per_section,
+                self.maximum_content_blocks_per_section,
+            ),
+        )
+        if any(
+            minimum_value > maximum_value
+            for minimum_value, maximum_value in ordered_ranges
+        ):
+            raise ValueError("curriculum shape minimum cannot exceed its maximum")
+        return self
+
+
 class RequestRetryPolicy(FrozenStrictContract):
     """Finite retry configuration frozen with an accepted request."""
 
@@ -140,6 +215,12 @@ class ExecutionProfile(FrozenStrictContract):
     retry_policy: RequestRetryPolicy
     input_limits: InputExecutionLimits
     run_limits: RunExecutionLimits
+    preference_defaults: LearningPreferenceDefaults = Field(
+        default_factory=LearningPreferenceDefaults
+    )
+    curriculum_shape_limits: CurriculumShapeLimits = Field(
+        default_factory=CurriculumShapeLimits
+    )
 
     @model_validator(mode="after")
     def require_retry_budget_capacity(self) -> Self:

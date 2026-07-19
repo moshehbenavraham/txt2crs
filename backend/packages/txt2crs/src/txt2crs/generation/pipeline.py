@@ -2,11 +2,12 @@
 
 """Twelve-stage course generation from one input and frozen evidence set."""
 
+from __future__ import annotations
+
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from hashlib import sha256
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -41,10 +42,12 @@ from txt2crs.generation.quality import (
     validate_assessment_quality,
     validate_course_quality,
 )
-from txt2crs.ingestion.models import InputPayload
-from txt2crs.ingestion.service import IngestionService
+from txt2crs.jobs.preparation import GenerationPreparation
 from txt2crs.rendering.artifacts import ArtifactRenderer, RenderedArtifact
 from txt2crs.research.evidence import FrozenEvidenceSet
+
+if TYPE_CHECKING:
+    from txt2crs.jobs.requests import CurriculumShapeLimits
 
 
 class PipelineGenerationError(RuntimeError):
@@ -52,7 +55,6 @@ class PipelineGenerationError(RuntimeError):
 
 
 _EARLY_PIPELINE_STAGE_SEQUENCE = {
-    "ingest_input": 1,
     "plan_research": 2,
     "collect_evidence": 3,
     "design_course": 4,
@@ -71,10 +73,11 @@ class PipelineCheckpoint(StrictContract):
     stage: str = Field(min_length=1, max_length=128)
     sequence: int = Field(ge=1, le=108)
     request_hash: HashValue
-    input_document: InputDocument
+    preparation: GenerationPreparation
     research_plan: ResearchPlan | None = None
     evidence_set: FrozenEvidenceSet | None = None
     course_plan: CoursePlan | None = None
+    resolved_preferences: LearningPreferences | None = None
     course_module_drafts: list[CourseModuleDraft] = Field(max_length=100)
     course: Course | None = None
     review_pack: ReviewPack | None = None
@@ -85,7 +88,7 @@ class PipelineCheckpoint(StrictContract):
     budget_snapshot: RunBudgetSnapshot
 
     @model_validator(mode="after")
-    def require_complete_cumulative_state(self) -> "PipelineCheckpoint":
+    def require_complete_cumulative_state(self) -> PipelineCheckpoint:
         """Reject a checkpoint whose label overstates accepted work."""
 
         expected_sequence = _expected_checkpoint_sequence(
@@ -95,20 +98,29 @@ class PipelineCheckpoint(StrictContract):
         )
         if self.sequence != expected_sequence:
             raise ValueError("Unknown or mismatched pipeline checkpoint stage.")
+        if self.preparation.request_hash != self.request_hash:
+            raise ValueError("Checkpoint preparation belongs to another request.")
         required_fields_by_stage = {
             "plan_research": ("research_plan",),
             "collect_evidence": ("research_plan", "evidence_set"),
-            "design_course": ("research_plan", "evidence_set", "course_plan"),
+            "design_course": (
+                "research_plan",
+                "evidence_set",
+                "course_plan",
+                "resolved_preferences",
+            ),
             "verify_course": (
                 "research_plan",
                 "evidence_set",
                 "course_plan",
+                "resolved_preferences",
                 "course",
             ),
             "generate_review_pack": (
                 "research_plan",
                 "evidence_set",
                 "course_plan",
+                "resolved_preferences",
                 "course",
                 "review_pack",
             ),
@@ -116,6 +128,7 @@ class PipelineCheckpoint(StrictContract):
                 "research_plan",
                 "evidence_set",
                 "course_plan",
+                "resolved_preferences",
                 "course",
                 "review_pack",
                 "assessment_blueprint",
@@ -124,6 +137,7 @@ class PipelineCheckpoint(StrictContract):
                 "research_plan",
                 "evidence_set",
                 "course_plan",
+                "resolved_preferences",
                 "course",
                 "review_pack",
                 "assessment_blueprint",
@@ -133,7 +147,12 @@ class PipelineCheckpoint(StrictContract):
         }
         required_fields = required_fields_by_stage.get(self.stage)
         if self.stage.startswith("write_module:"):
-            required_fields = ("research_plan", "evidence_set", "course_plan")
+            required_fields = (
+                "research_plan",
+                "evidence_set",
+                "course_plan",
+                "resolved_preferences",
+            )
             if not self.course_module_drafts:
                 raise ValueError("Module checkpoint has no accepted module draft.")
             expected_module_id = self.stage.removeprefix("write_module:")
@@ -146,7 +165,84 @@ class PipelineCheckpoint(StrictContract):
         for field_name in required_fields:
             if getattr(self, field_name) is None:
                 raise ValueError(f"Checkpoint {self.stage} is missing {field_name}.")
+
+        # Required-field checks prevent a stage label from overstating work.
+        # The inverse check below is equally important: a tampered early row
+        # must not carry later artifacts that make resume skip required model
+        # turns or local acceptance gates.
+        forbidden_fields_by_stage = {
+            "plan_research": (
+                "evidence_set",
+                "course_plan",
+                "resolved_preferences",
+                "course_module_drafts",
+                "course",
+                "review_pack",
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            ),
+            "collect_evidence": (
+                "course_plan",
+                "resolved_preferences",
+                "course_module_drafts",
+                "course",
+                "review_pack",
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            ),
+            "design_course": (
+                "course_module_drafts",
+                "course",
+                "review_pack",
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            ),
+            "verify_course": (
+                "review_pack",
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            ),
+            "generate_review_pack": (
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            ),
+            "design_assessment": ("assessment", "answer_key"),
+            "cross_validate_artifacts": (),
+        }
+        forbidden_fields = (
+            (
+                "course",
+                "review_pack",
+                "assessment_blueprint",
+                "assessment",
+                "answer_key",
+            )
+            if self.stage.startswith("write_module:")
+            else forbidden_fields_by_stage[self.stage]
+        )
+        for field_name in forbidden_fields:
+            field_value = getattr(self, field_name)
+            has_unaccepted_value = (
+                bool(field_value)
+                if field_name == "course_module_drafts"
+                else field_value is not None
+            )
+            if has_unaccepted_value:
+                raise ValueError(
+                    f"Checkpoint {self.stage} contains unaccepted artifacts."
+                )
         return self
+
+    @property
+    def input_document(self) -> InputDocument:
+        """Expose the accepted document without duplicating persisted state."""
+
+        return self.preparation.input_document
 
 
 class ModelRuntime(Protocol):
@@ -180,6 +276,7 @@ class PipelineResult:
     """All accepted artifacts and accounting for one completed pipeline."""
 
     input_document: InputDocument
+    resolved_preferences: LearningPreferences
     research_plan: ResearchPlan
     course_plan: CoursePlan
     evidence_set: FrozenEvidenceSet
@@ -198,7 +295,6 @@ class CourseGenerationPipeline:
     def __init__(
         self,
         *,
-        ingestion_service: IngestionService,
         runtime: ModelRuntime,
         research_coordinator: ResearchCoordinator,
         renderer: ArtifactRenderer,
@@ -206,7 +302,6 @@ class CourseGenerationPipeline:
         budget: RunBudget,
         retry_settings: RetrySettings,
     ) -> None:
-        self._ingestion_service = ingestion_service
         self._runtime = runtime
         self._research_coordinator = research_coordinator
         self._renderer = renderer
@@ -217,8 +312,7 @@ class CourseGenerationPipeline:
     def generate(
         self,
         *,
-        payload: InputPayload,
-        preferences: LearningPreferences,
+        preparation: GenerationPreparation,
         cancellation: CancellationToken,
         resume_checkpoint: PipelineCheckpoint | None = None,
         checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
@@ -226,21 +320,24 @@ class CourseGenerationPipeline:
         """Run or resume the pipeline and return only a complete accepted bundle."""
 
         cancellation.raise_if_cancelled()
-        request_hash = _derive_pipeline_request_hash(payload, preferences)
+        request_hash = preparation.request_hash
         if resume_checkpoint is not None:
             if resume_checkpoint.request_hash != request_hash:
                 raise PipelineGenerationError(
-                    "Resume checkpoint belongs to a different input or "
-                    "learning contract."
+                    "Resume checkpoint belongs to a different generation request."
+                )
+            if resume_checkpoint.preparation != preparation:
+                raise PipelineGenerationError(
+                    "Resume checkpoint contains different accepted preparation."
                 )
             _restore_budget_for_resume(
                 budget=self._budget,
                 checkpoint_snapshot=resume_checkpoint.budget_snapshot,
             )
-            input_document: InputDocument | None = resume_checkpoint.input_document
             research_plan = resume_checkpoint.research_plan
             evidence_set = resume_checkpoint.evidence_set
             course_plan = resume_checkpoint.course_plan
+            resolved_preferences = resume_checkpoint.resolved_preferences
             course_module_drafts = list(resume_checkpoint.course_module_drafts)
             course = resume_checkpoint.course
             review_pack = resume_checkpoint.review_pack
@@ -249,10 +346,10 @@ class CourseGenerationPipeline:
             answer_key = resume_checkpoint.answer_key
             usage_records = list(resume_checkpoint.usage_records)
         else:
-            input_document = None
             research_plan = None
             evidence_set = None
             course_plan = None
+            resolved_preferences = None
             course_module_drafts = []
             course = None
             review_pack = None
@@ -266,8 +363,6 @@ class CourseGenerationPipeline:
 
             if checkpoint_sink is None:
                 return
-            if input_document is None:
-                raise AssertionError("Input must exist before checkpointing.")
             checkpoint_sink(
                 PipelineCheckpoint(
                     schema_version="1.0",
@@ -278,10 +373,11 @@ class CourseGenerationPipeline:
                         module_drafts=course_module_drafts,
                     ),
                     request_hash=request_hash,
-                    input_document=input_document,
+                    preparation=preparation,
                     research_plan=research_plan,
                     evidence_set=evidence_set,
                     course_plan=course_plan,
+                    resolved_preferences=resolved_preferences,
                     course_module_drafts=course_module_drafts,
                     course=course,
                     review_pack=review_pack,
@@ -292,12 +388,6 @@ class CourseGenerationPipeline:
                     budget_snapshot=self._budget.snapshot(),
                 )
             )
-
-        # Stage 1: normalize the source before any model sees it.
-        if input_document is None:
-            input_document = self._ingestion_service.ingest(payload)
-            emit_checkpoint("ingest_input")
-        cancellation.raise_if_cancelled()
 
         # Stages 2-3: the preferences are already the explicit learning
         # contract; ask the runtime for a finite research plan.
@@ -310,8 +400,12 @@ class CourseGenerationPipeline:
                     "Return only the requested schema."
                 ),
                 untrusted_payload={
-                    "input_document": input_document.model_dump(mode="json"),
-                    "learning_preferences": preferences.model_dump(mode="json"),
+                    "input_document": preparation.input_document.model_dump(
+                        mode="json"
+                    ),
+                    "learning_preferences": (
+                        preparation.planning_preferences.model_dump(mode="json")
+                    ),
                 },
                 cancellation=cancellation,
                 usage_records=usage_records,
@@ -324,7 +418,7 @@ class CourseGenerationPipeline:
             evidence_set = self._research_coordinator.collect(
                 research_plan,
                 cancellation,
-                high_risk_course=preferences.high_risk_course,
+                high_risk_course=(preparation.planning_preferences.high_risk_course),
             )
             if not evidence_set.sources or not evidence_set.excerpts:
                 raise PipelineGenerationError(
@@ -342,6 +436,22 @@ class CourseGenerationPipeline:
 
         # Stage 6: approve a curriculum design independently from lesson prose.
         if course_plan is None:
+            # Import after PipelineCheckpoint exists to avoid the jobs package's
+            # public-query import cycle during module initialization.
+            from txt2crs.generation.preferences import (
+                resolve_learning_preferences,
+            )
+
+            def accept_course_plan(candidate_course_plan: CoursePlan) -> None:
+                """Resolve intent only when every local plan gate accepts."""
+
+                nonlocal resolved_preferences
+                resolved_preferences = resolve_learning_preferences(
+                    planning_preferences=preparation.planning_preferences,
+                    course_plan=candidate_course_plan,
+                    shape_limits=preparation.curriculum_shape_limits,
+                )
+
             course_plan = self._run_stage(
                 stage="design_course",
                 artifact_model=CoursePlan,
@@ -350,14 +460,26 @@ class CourseGenerationPipeline:
                     "and research plan. Return only the requested schema."
                 ),
                 untrusted_payload={
-                    "input_document": input_document.model_dump(mode="json"),
-                    "learning_preferences": preferences.model_dump(mode="json"),
+                    "input_document": preparation.input_document.model_dump(
+                        mode="json"
+                    ),
+                    "learning_preferences": (
+                        preparation.planning_preferences.model_dump(mode="json")
+                    ),
                     "research_plan": research_plan.model_dump(mode="json"),
                 },
                 cancellation=cancellation,
                 usage_records=usage_records,
+                artifact_validator=accept_course_plan,
+                repair_failure_message=(
+                    "The course plan remained invalid after one repair."
+                ),
             )
             emit_checkpoint("design_course")
+        if resolved_preferences is None:
+            raise PipelineGenerationError(
+                "The accepted course plan has no resolved learning contract."
+            )
 
         # Stages 7-8: draft and checkpoint one module at a time. The model
         # returns only module-local prose, glossary entries, and citations;
@@ -400,6 +522,7 @@ class CourseGenerationPipeline:
                     module_plan=module_plan,
                     course_plan=course_plan,
                     evidence_set=evidence_set,
+                    shape_limits=preparation.curriculum_shape_limits,
                 )
                 course_module_drafts.append(module_draft)
                 emit_checkpoint(f"write_module:{module_plan.module_id}")
@@ -412,7 +535,7 @@ class CourseGenerationPipeline:
         validate_course_quality(
             course,
             evidence_set=evidence_set,
-            high_risk_course=preferences.high_risk_course,
+            high_risk_course=resolved_preferences.high_risk_course,
         )
         if resume_checkpoint is None or resume_checkpoint.course is None:
             emit_checkpoint("verify_course")
@@ -445,8 +568,10 @@ class CourseGenerationPipeline:
                 ),
                 untrusted_payload={
                     "course": course.model_dump(mode="json"),
-                    "requested_item_count": preferences.assessment_item_count,
-                    "passing_percentage": preferences.passing_percentage,
+                    "requested_item_count": (
+                        resolved_preferences.assessment_item_count
+                    ),
+                    "passing_percentage": resolved_preferences.passing_percentage,
                 },
                 cancellation=cancellation,
                 usage_records=usage_records,
@@ -454,8 +579,8 @@ class CourseGenerationPipeline:
         _validate_assessment_blueprint(
             assessment_blueprint=assessment_blueprint,
             course=course,
-            requested_item_count=preferences.assessment_item_count,
-            passing_percentage=preferences.passing_percentage,
+            requested_item_count=resolved_preferences.assessment_item_count,
+            passing_percentage=resolved_preferences.passing_percentage,
         )
         if resume_checkpoint is None or resume_checkpoint.assessment_blueprint is None:
             emit_checkpoint("design_assessment")
@@ -513,7 +638,8 @@ class CourseGenerationPipeline:
         cancellation.raise_if_cancelled()
         rendered_artifacts = self._renderer.render_bundle(bundle)
         return PipelineResult(
-            input_document=input_document,
+            input_document=preparation.input_document,
+            resolved_preferences=resolved_preferences,
             research_plan=research_plan,
             course_plan=course_plan,
             evidence_set=evidence_set,
@@ -535,8 +661,10 @@ class CourseGenerationPipeline:
         untrusted_payload: dict[str, object],
         cancellation: CancellationToken,
         usage_records: list[RuntimeUsage],
+        artifact_validator: Callable[[ArtifactType], None] | None = None,
+        repair_failure_message: str | None = None,
     ) -> ArtifactType:
-        """Run one narrow turn and retain its truthful usage record."""
+        """Run one narrow turn and allow one schema or local-gate repair."""
 
         cancellation.raise_if_cancelled()
         request = TurnRequest(
@@ -553,42 +681,64 @@ class CourseGenerationPipeline:
             ),
             timeout_seconds=600,
         )
+        first_result: ValidatedTurnResult[ArtifactType] | None = None
+        needs_repair = False
         try:
-            result = self._run_runtime_with_retry(
+            first_result = self._run_runtime_with_retry(
                 request=request,
                 artifact_model=artifact_model,
                 cancellation=cancellation,
             )
         except InvalidModelOutputError as invalid_output_error:
             self._record_usage(invalid_output_error.usage, usage_records)
-            self._budget.reserve_repair()
-            cancellation.raise_if_cancelled()
-            repair_request = TurnRequest(
-                request_id=f"{stage}-repair-{len(usage_records) + 1}",
-                stage=stage,
-                model_id=self._model_id,
-                prompt_version=f"{stage}-repair-v1",
-                trusted_instructions=(
-                    f"The prior {stage} output failed strict local schema "
-                    "validation. Produce one corrected artifact that exactly "
-                    "matches the requested JSON Schema. Return only the schema."
-                ),
-                untrusted_data=request.untrusted_data,
-                timeout_seconds=request.timeout_seconds,
+            needs_repair = True
+        if first_result is not None:
+            self._record_usage(first_result.usage, usage_records)
+            if artifact_validator is not None:
+                try:
+                    artifact_validator(first_result.artifact)
+                except ValueError:
+                    needs_repair = True
+            if not needs_repair:
+                return first_result.artifact
+
+        self._budget.reserve_repair()
+        cancellation.raise_if_cancelled()
+        repair_request = TurnRequest(
+            request_id=f"{stage}-repair-{len(usage_records) + 1}",
+            stage=stage,
+            model_id=self._model_id,
+            prompt_version=f"{stage}-repair-v1",
+            trusted_instructions=(
+                f"The prior {stage} output failed strict schema or local "
+                "acceptance validation. Produce one corrected artifact that "
+                "matches the requested JSON Schema and supplied learning "
+                "contract. Return only the schema."
+            ),
+            untrusted_data=request.untrusted_data,
+            timeout_seconds=request.timeout_seconds,
+        )
+        try:
+            repaired_result = self._run_runtime_with_retry(
+                request=repair_request,
+                artifact_model=artifact_model,
+                cancellation=cancellation,
             )
+        except InvalidModelOutputError as repair_error:
+            self._record_usage(repair_error.usage, usage_records)
+            raise PipelineGenerationError(
+                repair_failure_message or f"{stage} remained invalid after one repair."
+            ) from None
+        self._record_usage(repaired_result.usage, usage_records)
+        if artifact_validator is not None:
             try:
-                result = self._run_runtime_with_retry(
-                    request=repair_request,
-                    artifact_model=artifact_model,
-                    cancellation=cancellation,
-                )
-            except InvalidModelOutputError as repair_error:
-                self._record_usage(repair_error.usage, usage_records)
+                artifact_validator(repaired_result.artifact)
+            except ValueError:
                 raise PipelineGenerationError(
-                    f"{stage} remained invalid after one repair."
-                ) from repair_error
-        self._record_usage(result.usage, usage_records)
-        return result.artifact
+                    repair_failure_message
+                    or f"{stage} remained invalid after one repair."
+                ) from None
+        return repaired_result.artifact
 
     def _run_runtime_with_retry[ArtifactType: BaseModel](
         self,
@@ -722,6 +872,7 @@ def _validate_module_draft(
     module_plan: CoursePlanModule,
     course_plan: CoursePlan,
     evidence_set: FrozenEvidenceSet,
+    shape_limits: CurriculumShapeLimits | None = None,
 ) -> None:
     """Reject one module that drifts from its plan or frozen evidence."""
 
@@ -730,6 +881,23 @@ def _validate_module_draft(
             f"Module {module_plan.module_id} references a different course."
         )
     module = module_draft.module
+    if shape_limits is not None:
+        # Import lazily because the jobs package publicly imports pipeline
+        # checkpoint contracts. A module-level jobs import would create a
+        # package-initialization cycle before PipelineCheckpoint is defined.
+        from txt2crs.generation.preferences import (
+            validate_module_content_block_shape,
+        )
+
+        try:
+            validate_module_content_block_shape(
+                module_draft=module_draft,
+                shape_limits=shape_limits,
+            )
+        except ValueError:
+            raise PipelineGenerationError(
+                "Module content block count violates the curriculum shape."
+            ) from None
     if module.module_id != module_plan.module_id or module.title != module_plan.title:
         raise PipelineGenerationError(
             f"Module {module_plan.module_id} drifted from the approved plan."
@@ -868,39 +1036,6 @@ def _validate_assessment_blueprint(
         raise PipelineGenerationError(
             "Assessment blueprint does not cover every assessed objective."
         )
-
-
-def _derive_pipeline_request_hash(
-    payload: InputPayload,
-    preferences: LearningPreferences,
-) -> str:
-    """Bind a durable checkpoint to the exact raw input and learning contract."""
-
-    raw_input_bytes = (
-        payload.value.encode("utf-8")
-        if isinstance(payload.value, str)
-        else payload.value
-    )
-    canonical_request = {
-        "input_type": payload.input_type,
-        "input_sha256": sha256(raw_input_bytes).hexdigest(),
-        "media_type": payload.media_type,
-        "file_name": payload.file_name,
-        "metadata": payload.metadata,
-        "preferences": preferences.model_dump(mode="json"),
-    }
-    try:
-        canonical_json = json.dumps(
-            canonical_request,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-    except (TypeError, ValueError) as serialization_error:
-        raise PipelineGenerationError(
-            "Input metadata must contain only JSON-compatible values."
-        ) from serialization_error
-    return f"sha256:{sha256(canonical_json.encode('utf-8')).hexdigest()}"
 
 
 def _restore_budget_for_resume(

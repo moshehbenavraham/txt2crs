@@ -2,8 +2,8 @@
 
 **Session ID**: `phase01-session03-input-preferences-and-policy-gate`
 **Package**: backend/packages/txt2crs
-**Status**: Not Started
-**Estimated Tasks**: ~20-25
+**Status**: Complete
+**Estimated Tasks**: 24
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -43,9 +43,9 @@ starts.
 
 ## Prerequisites
 
-- [ ] Session 01 exact request and recovery contracts are validated.
-- [ ] Existing ingestion adapters, course-planning schemas, and policy tests
-  are green before changes.
+- [x] Session 01 exact request and recovery contracts are validated.
+- [x] Existing ingestion adapters, course-planning schemas, and policy tests
+  are green before changes (22 focused tests passed on 2026-07-19).
 
 ---
 

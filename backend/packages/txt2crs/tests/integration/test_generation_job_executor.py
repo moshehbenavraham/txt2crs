@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT-0
 
-"""End-to-end durable execution from one submission through private delivery."""
+"""Durable preparation-first execution through private artifact delivery."""
 
+from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,28 +14,39 @@ from tests.factories import (
     valid_assessment_blueprint_data,
     valid_course_module_draft_data,
     valid_generation_request,
+    valid_pipeline_checkpoint,
     valid_review_pack_data,
 )
 from tests.integration.test_generation_pipeline import (
     assessment_package_data,
     course_plan_data,
     frozen_evidence,
+    generation_request_for_pipeline,
     pipeline_with_evidence,
     research_plan_data,
     scripted_turn,
 )
 from txt2crs.ai.fake_runtime import ScriptedTurn
 from txt2crs.ai.runtime import CancellationToken
-from txt2crs.generation.models import LearningPreferences
+from txt2crs.domain.models import InputDocument
 from txt2crs.generation.pipeline import (
     CourseGenerationPipeline,
     PipelineCheckpoint,
     PipelineResult,
 )
 from txt2crs.ingestion.models import InputPayload
-from txt2crs.jobs.executor import GenerationJobExecutor, PolicyViolationError
+from txt2crs.ingestion.service import IngestionService
+from txt2crs.jobs.executor import (
+    DurablePipelineFactory,
+    GenerationJobExecutor,
+    JobExecutionStateError,
+    PolicyViolationError,
+)
 from txt2crs.jobs.models import JobStatus
+from txt2crs.jobs.preparation import GenerationPreparation, GenerationPreparationService
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import InMemoryPrivateArtifactStore, JobService
+from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import SqliteJobStore
 from txt2crs.rendering.artifacts import ArtifactRenderer, RenderedArtifact
 from txt2crs.security.policy import ContentPolicy
@@ -70,22 +82,109 @@ class CountingPipeline:
     def generate(
         self,
         *,
-        payload: InputPayload,
-        preferences: LearningPreferences,
+        preparation: GenerationPreparation,
         cancellation: CancellationToken,
         resume_checkpoint: PipelineCheckpoint | None = None,
         checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
     ) -> PipelineResult:
-        """Generate once and count any accidental replay after checkpointing."""
+        """Generate once and count accidental provider-backed replay."""
 
         self.call_count += 1
         return self._pipeline.generate(
-            payload=payload,
-            preferences=preferences,
+            preparation=preparation,
             cancellation=cancellation,
             resume_checkpoint=resume_checkpoint,
             checkpoint_sink=checkpoint_sink,
         )
+
+
+class RecordingPipelineFactory:
+    """Lazily return scripted pipelines and inspect the durable ordering point."""
+
+    def __init__(
+        self,
+        pipelines: tuple[CountingPipeline, ...],
+        *,
+        before_create: Callable[[], None] | None = None,
+    ) -> None:
+        self._pipelines = deque(pipelines)
+        self._before_create = before_create
+        self.requests: list[GenerationRequest] = []
+
+    def create(self, generation_request: GenerationRequest) -> CountingPipeline:
+        """Record construction only after the executor has prepared the request."""
+
+        if self._before_create is not None:
+            self._before_create()
+        self.requests.append(generation_request)
+        if not self._pipelines:
+            raise AssertionError("No pipeline was configured for this factory call.")
+        return self._pipelines.popleft()
+
+
+class RaisingPipelineFactory:
+    """Simulate abrupt replacement at the provider-graph construction boundary."""
+
+    def __init__(self, *, before_create: Callable[[], None]) -> None:
+        self._before_create = before_create
+        self.call_count = 0
+
+    def create(self, _generation_request: GenerationRequest) -> CountingPipeline:
+        """Prove preparation durability, then interrupt the worker."""
+
+        self._before_create()
+        self.call_count += 1
+        raise SystemExit("simulated worker replacement after preparation")
+
+
+class FailingPipelineFactory:
+    """Raise an ordinary provider-graph construction failure."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    def create(self, _generation_request: GenerationRequest) -> CountingPipeline:
+        """Represent a terminal provider startup error, not process loss."""
+
+        self.call_count += 1
+        raise RuntimeError("simulated provider startup failure")
+
+
+class RecordingIngestionService:
+    """Return configured normalized input while counting source reads."""
+
+    def __init__(self, *, normalized_text: str, language: str = "en") -> None:
+        self._normalized_text = normalized_text
+        self._language = language
+        self.payloads: list[InputPayload] = []
+
+    def ingest(self, payload: InputPayload) -> InputDocument:
+        """Record one source read and return its canonical document."""
+
+        self.payloads.append(payload)
+        return InputDocument(
+            schema_version="1.0",
+            document_id="input-executor",
+            input_type=payload.input_type,
+            media_type=payload.media_type,
+            normalized_text=self._normalized_text,
+            language=self._language,
+            metadata={},
+            content_hash=(
+                "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            ),
+            warnings=[],
+            locations=[],
+        )
+
+
+class FailIfIngestionRepeats:
+    """Fail loudly if recovery attempts to read an accepted source again."""
+
+    def ingest(self, _payload: InputPayload) -> InputDocument:
+        """Recovery must use the checkpoint instead of entering this method."""
+
+        raise AssertionError("accepted source preparation was repeated")
 
 
 class FailOncePrivateArtifactStore(InMemoryPrivateArtifactStore):
@@ -110,287 +209,503 @@ class FailOncePrivateArtifactStore(InMemoryPrivateArtifactStore):
         super().save(user_id=user_id, job_id=job_id, artifacts=artifacts)
 
 
-def learning_preferences() -> LearningPreferences:
-    """Return the preferences used by the credential-free pipeline fixture."""
+def _job_service(
+    database_path: Path,
+    *,
+    artifact_store: InMemoryPrivateArtifactStore | None = None,
+    notification_sink: RecordingNotificationSink | None = None,
+) -> JobService:
+    """Build one real SQLite application boundary for executor tests."""
 
-    return LearningPreferences(
-        audience="First-year computer-science students",
-        prior_knowledge="Basic computer literacy",
-        desired_depth="introductory",
-        duration_minutes=60,
-        language="en",
-        tone="clear",
-        accessibility_requirements=["semantic headings"],
-        assessment_item_count=1,
-        passing_percentage=70,
-        high_risk_course=False,
+    return JobService(
+        store=SqliteJobStore(
+            database_path,
+            admission_limits=generous_admission_limits(),
+        ),
+        artifact_store=artifact_store or InMemoryPrivateArtifactStore(),
+        notification_sink=notification_sink or RecordingNotificationSink(),
     )
 
 
-def input_payload() -> InputPayload:
-    """Return one complete topic request."""
+def _preparation_service(
+    ingestion_service: IngestionService
+    | RecordingIngestionService
+    | FailIfIngestionRepeats,
+) -> GenerationPreparationService:
+    """Build preparation with the stored policy version used by fixtures."""
 
-    return InputPayload(
-        input_type="prompt",
-        value="Teach Python variables.",
-        media_type="text/plain",
-        file_name=None,
-        metadata={},
+    return GenerationPreparationService(
+        ingestion_service=ingestion_service,
+        content_policy=ContentPolicy(policy_version="content-policy-v1"),
     )
 
 
-def test_executor_completes_and_privately_delivers_all_formats(
+def _submit_pipeline_request(
+    service: JobService,
+    *,
+    idempotency_key: str,
+    generation_request: GenerationRequest | None = None,
+) -> tuple[str, GenerationRequest]:
+    """Persist one complete request and return its durable job identifier."""
+
+    request = generation_request or generation_request_for_pipeline()
+    job = service.submit(
+        user_id="user-1",
+        idempotency_key=idempotency_key,
+        generation_request=request,
+        admission_reservation=standard_admission_reservation(),
+    )
+    return job.job_id, request
+
+
+def _executor(
+    *,
+    service: JobService,
+    preparation_service: GenerationPreparationService,
+    pipeline_factory: DurablePipelineFactory,
+) -> GenerationJobExecutor:
+    """Build the executor without constructing provider-backed work eagerly."""
+
+    return GenerationJobExecutor(
+        job_service=service,
+        preparation_service=preparation_service,
+        pipeline_factory=pipeline_factory,
+        renderer=ArtifactRenderer(),
+    )
+
+
+def test_executor_persists_preparation_before_lazy_pipeline_and_delivers(
     tmp_path: Path,
 ) -> None:
-    """One submitted job reaches a durable checkpoint and private artifacts."""
+    """One request reaches all artifacts only after sequence-1 preparation."""
 
     private_store = InMemoryPrivateArtifactStore()
     notification_sink = RecordingNotificationSink()
-    service = JobService(
-        store=SqliteJobStore(
-            tmp_path / "jobs.sqlite3",
-            admission_limits=generous_admission_limits(),
-        ),
+    service = _job_service(
+        tmp_path / "jobs.sqlite3",
         artifact_store=private_store,
         notification_sink=notification_sink,
     )
-    job = service.submit(
-        user_id="user-1",
+    job_id, request = _submit_pipeline_request(
+        service,
         idempotency_key="generate-python",
-        generation_request=valid_generation_request(input_payload=input_payload()),
-        admission_reservation=standard_admission_reservation(),
+    )
+    ingestion_service = RecordingIngestionService(
+        normalized_text="Teach Python variables."
     )
     pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
-    executor = GenerationJobExecutor(
-        job_service=service,
-        pipeline=pipeline,
-        renderer=ArtifactRenderer(),
-        content_policy=ContentPolicy(),
+
+    def assert_preparation_is_durable() -> None:
+        checkpoint = service.resume(job_id=job_id, user_id="user-1").checkpoint
+        assert checkpoint is not None
+        assert checkpoint.stage == "prepare_input"
+        assert checkpoint.sequence == 1
+
+    pipeline_factory = RecordingPipelineFactory(
+        (pipeline,),
+        before_create=assert_preparation_is_durable,
+    )
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(ingestion_service),
+        pipeline_factory=pipeline_factory,
     )
 
     completed_job = executor.execute(
-        job_id=job.job_id,
+        job_id=job_id,
         user_id="user-1",
-        payload=input_payload(),
-        preferences=learning_preferences(),
         cancellation=CancellationToken(),
-        provider_consent=True,
-        learner_age=18,
     )
 
-    resume_state = service.resume(job_id=job.job_id, user_id="user-1")
-    stored_artifacts = private_store.get(user_id="user-1", job_id=job.job_id)
+    resume_state = service.resume(job_id=job_id, user_id="user-1")
     assert completed_job.status is JobStatus.completed
     assert resume_state.checkpoint is not None
     assert resume_state.checkpoint.stage == "cross_validate_artifacts"
     assert resume_state.checkpoint.sequence == 9
-    assert len(stored_artifacts) == 16
+    assert len(private_store.get(user_id="user-1", job_id=job_id)) == 16
+    assert ingestion_service.payloads == [request.input_payload]
+    assert pipeline_factory.requests == [request]
     assert pipeline.call_count == 1
-    assert notification_sink.keys == [f"delivery:{job.job_id}"]
+    assert notification_sink.keys == [f"delivery:{job_id}"]
 
 
-def test_executor_resumes_delivery_without_regenerating_from_model(
+def test_executor_rejects_preflight_without_ingestion_or_pipeline_construction(
     tmp_path: Path,
 ) -> None:
-    """A replacement worker revalidates the durable bundle and skips model work."""
+    """Missing consent is terminal before any source or provider work."""
 
-    private_store = FailOncePrivateArtifactStore()
-    notification_sink = RecordingNotificationSink()
-    service = JobService(
-        store=SqliteJobStore(
-            tmp_path / "jobs.sqlite3",
-            admission_limits=generous_admission_limits(),
-        ),
-        artifact_store=private_store,
-        notification_sink=notification_sink,
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    base_request = generation_request_for_pipeline()
+    denied_request = valid_generation_request(
+        input_payload=base_request.input_payload,
+        preferences=base_request.preferences,
+        provider_consent=False,
+        execution_profile=base_request.execution_profile,
     )
-    job = service.submit(
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="no-consent",
+        generation_request=denied_request,
+    )
+    ingestion_service = RecordingIngestionService(normalized_text="unused")
+    pipeline_factory = RecordingPipelineFactory(())
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(ingestion_service),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(PolicyViolationError, match="Permission"):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    rejected_job = service.resume(job_id=job_id, user_id="user-1").job
+    assert rejected_job.status is JobStatus.failed
+    assert rejected_job.failure_code == "provider_consent_required"
+    assert ingestion_service.payloads == []
+    assert pipeline_factory.requests == []
+
+
+def test_executor_rejects_post_ingestion_review_without_pipeline_construction(
+    tmp_path: Path,
+) -> None:
+    """Normalized binary content is terminally gated before provider creation."""
+
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    base_request = generation_request_for_pipeline()
+    binary_request = valid_generation_request(
+        input_payload=InputPayload(
+            input_type="pdf",
+            value=b"%PDF-safe",
+            media_type="application/pdf",
+            file_name="course.pdf",
+            metadata={},
+        ),
+        preferences=base_request.preferences,
+        execution_profile=base_request.execution_profile,
+    )
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="post-policy",
+        generation_request=binary_request,
+    )
+    ingestion_service = RecordingIngestionService(
+        normalized_text="A guide to adjusting insulin dosage."
+    )
+    pipeline_factory = RecordingPipelineFactory(())
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(ingestion_service),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(PolicyViolationError, match="qualified review"):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    rejected_job = service.resume(job_id=job_id, user_id="user-1").job
+    assert rejected_job.status is JobStatus.failed
+    assert rejected_job.failure_code == "high_risk_review_required"
+    assert ingestion_service.payloads == [binary_request.input_payload]
+    assert pipeline_factory.requests == []
+
+
+def test_pipeline_factory_failure_settles_generation_after_preparation(
+    tmp_path: Path,
+) -> None:
+    """An ordinary provider startup failure cannot leave a hot-loop job."""
+
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="provider-startup-failure",
+    )
+    pipeline_factory = FailingPipelineFactory()
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(RuntimeError, match="provider startup"):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    resume_state = service.resume(job_id=job_id, user_id="user-1")
+    assert resume_state.job.status is JobStatus.failed
+    assert resume_state.job.failure_code == "generation_failed"
+    assert resume_state.checkpoint is not None
+    assert resume_state.checkpoint.stage == "prepare_input"
+    assert pipeline_factory.call_count == 1
+
+
+def test_restart_reuses_durable_preparation_without_refetching(
+    tmp_path: Path,
+) -> None:
+    """Replacement after provider construction begins uses sequence 1 exactly."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    private_store = InMemoryPrivateArtifactStore()
+    notifications = RecordingNotificationSink()
+    first_service = _job_service(
+        database_path,
+        artifact_store=private_store,
+        notification_sink=notifications,
+    )
+    job_id, _request = _submit_pipeline_request(
+        first_service,
+        idempotency_key="resume-preparation",
+    )
+    first_ingestion = RecordingIngestionService(
+        normalized_text="Teach Python variables."
+    )
+
+    def assert_preparation_is_durable() -> None:
+        checkpoint = first_service.resume(
+            job_id=job_id,
+            user_id="user-1",
+        ).checkpoint
+        assert checkpoint is not None
+        assert checkpoint.stage == "prepare_input"
+        assert checkpoint.sequence == 1
+
+    first_executor = _executor(
+        service=first_service,
+        preparation_service=_preparation_service(first_ingestion),
+        pipeline_factory=RaisingPipelineFactory(
+            before_create=assert_preparation_is_durable
+        ),
+    )
+
+    with pytest.raises(SystemExit, match="after preparation"):
+        first_executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    replacement_service = _job_service(
+        database_path,
+        artifact_store=private_store,
+        notification_sink=notifications,
+    )
+    replacement_pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
+    replacement_factory = RecordingPipelineFactory((replacement_pipeline,))
+    replacement_executor = _executor(
+        service=replacement_service,
+        preparation_service=_preparation_service(FailIfIngestionRepeats()),
+        pipeline_factory=replacement_factory,
+    )
+
+    completed_job = replacement_executor.execute(
+        job_id=job_id,
         user_id="user-1",
-        idempotency_key="generate-python",
-        generation_request=valid_generation_request(input_payload=input_payload()),
-        admission_reservation=standard_admission_reservation(),
+        cancellation=CancellationToken(),
+    )
+
+    assert completed_job.status is JobStatus.completed
+    assert len(first_ingestion.payloads) == 1
+    assert replacement_pipeline.call_count == 1
+
+
+def test_restart_reuses_resolved_preferences_after_design_course(
+    tmp_path: Path,
+) -> None:
+    """A replacement worker does not reinterpret auto or replay accepted stages."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    private_store = InMemoryPrivateArtifactStore()
+    notifications = RecordingNotificationSink()
+    first_service = _job_service(
+        database_path,
+        artifact_store=private_store,
+        notification_sink=notifications,
+    )
+    job_id, _request = _submit_pipeline_request(
+        first_service,
+        idempotency_key="resume-resolved-preferences",
+    )
+    first_pipeline = CountingPipeline(
+        pipeline_with_evidence(
+            frozen_evidence(),
+            scripted_turns=(
+                scripted_turn(research_plan_data(), 1),
+                scripted_turn(course_plan_data(), 2),
+                ScriptedTurn(error=SystemExit("simulated module replacement")),
+            ),
+        )
+    )
+    first_executor = _executor(
+        service=first_service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=RecordingPipelineFactory((first_pipeline,)),
+    )
+
+    with pytest.raises(SystemExit, match="module replacement"):
+        first_executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    interrupted_checkpoint = first_service.resume(
+        job_id=job_id,
+        user_id="user-1",
+    ).checkpoint
+    assert interrupted_checkpoint is not None
+    assert interrupted_checkpoint.stage == "design_course"
+    assert interrupted_checkpoint.sequence == 4
+    parsed_checkpoint = PipelineCheckpoint.model_validate(
+        interrupted_checkpoint.artifact
+    )
+    assert parsed_checkpoint.resolved_preferences is not None
+    assert parsed_checkpoint.resolved_preferences.level == "beginner"
+
+    replacement_service = _job_service(
+        database_path,
+        artifact_store=private_store,
+        notification_sink=notifications,
+    )
+    replacement_pipeline = CountingPipeline(
+        pipeline_with_evidence(
+            frozen_evidence(),
+            scripted_turns=(
+                scripted_turn(valid_course_module_draft_data(), 3),
+                scripted_turn(valid_review_pack_data(), 4),
+                scripted_turn(valid_assessment_blueprint_data(), 5),
+                scripted_turn(assessment_package_data(), 6),
+            ),
+        )
+    )
+    replacement_executor = _executor(
+        service=replacement_service,
+        preparation_service=_preparation_service(FailIfIngestionRepeats()),
+        pipeline_factory=RecordingPipelineFactory((replacement_pipeline,)),
+    )
+
+    completed_job = replacement_executor.execute(
+        job_id=job_id,
+        user_id="user-1",
+        cancellation=CancellationToken(),
+    )
+
+    assert completed_job.status is JobStatus.completed
+    assert replacement_pipeline.call_count == 1
+
+
+def test_delivery_restart_does_not_construct_pipeline_or_repeat_preparation(
+    tmp_path: Path,
+) -> None:
+    """Local delivery recovery stays independent from provider availability."""
+
+    database_path = tmp_path / "jobs.sqlite3"
+    private_store = FailOncePrivateArtifactStore()
+    service = _job_service(database_path, artifact_store=private_store)
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="resume-delivery",
     )
     pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
-    executor = GenerationJobExecutor(
-        job_service=service,
-        pipeline=pipeline,
-        renderer=ArtifactRenderer(),
-        content_policy=ContentPolicy(),
+    first_factory = RecordingPipelineFactory((pipeline,))
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=first_factory,
     )
 
     with pytest.raises(OSError, match="storage outage"):
         executor.execute(
-            job_id=job.job_id,
+            job_id=job_id,
             user_id="user-1",
-            payload=input_payload(),
-            preferences=learning_preferences(),
             cancellation=CancellationToken(),
-            provider_consent=True,
-            learner_age=18,
         )
-    interrupted_state = service.resume(job_id=job.job_id, user_id="user-1")
-    completed_job = executor.execute(
-        job_id=job.job_id,
+
+    replacement_service = _job_service(
+        database_path,
+        artifact_store=private_store,
+    )
+    replacement_factory = RecordingPipelineFactory(())
+    replacement_executor = _executor(
+        service=replacement_service,
+        preparation_service=_preparation_service(FailIfIngestionRepeats()),
+        pipeline_factory=replacement_factory,
+    )
+    completed_job = replacement_executor.execute(
+        job_id=job_id,
         user_id="user-1",
-        payload=input_payload(),
-        preferences=learning_preferences(),
         cancellation=CancellationToken(),
-        provider_consent=True,
-        learner_age=18,
     )
 
-    assert interrupted_state.job.status is JobStatus.delivering
     assert completed_job.status is JobStatus.completed
     assert pipeline.call_count == 1
+    assert replacement_factory.requests == []
     assert private_store.save_count == 1
 
 
-def test_executor_rejects_missing_consent_before_model_or_research_work(
+def test_delivery_rejects_checkpoint_from_a_different_request(
     tmp_path: Path,
 ) -> None:
-    """Provider consent is a hard application boundary, not a UI convention."""
+    """Rendering cannot deliver a valid bundle transplanted from another job."""
 
     private_store = InMemoryPrivateArtifactStore()
-    service = JobService(
-        store=SqliteJobStore(
-            tmp_path / "jobs.sqlite3",
-            admission_limits=generous_admission_limits(),
-        ),
+    service = _job_service(
+        tmp_path / "jobs.sqlite3",
         artifact_store=private_store,
-        notification_sink=RecordingNotificationSink(),
     )
-    job = service.submit(
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="foreign-render-checkpoint",
+    )
+    submitted_state = service.resume(job_id=job_id, user_id="user-1")
+    started_job = service.start(
+        job_id=job_id,
         user_id="user-1",
-        idempotency_key="no-consent",
-        generation_request=valid_generation_request(
-            input_payload=input_payload(),
-            provider_consent=False,
-        ),
-        admission_reservation=standard_admission_reservation(),
+        expected_revision=submitted_state.job.revision,
     )
-    pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
-    executor = GenerationJobExecutor(
-        job_service=service,
-        pipeline=pipeline,
-        renderer=ArtifactRenderer(),
-        content_policy=ContentPolicy(),
+    foreign_checkpoint = valid_pipeline_checkpoint()
+    service.checkpoint_stage(
+        job_id=job_id,
+        user_id="user-1",
+        expected_revision=started_job.revision,
+        stage=foreign_checkpoint.stage,
+        sequence=foreign_checkpoint.sequence,
+        result=StageResult.accepted(artifact=foreign_checkpoint),
+        artifact_version=foreign_checkpoint.request_hash,
+        evidence_version=(
+            foreign_checkpoint.evidence_set.evidence_version
+            if foreign_checkpoint.evidence_set is not None
+            else None
+        ),
+        budget_snapshot={},
+        next_status=JobStatus.rendering,
+        required_stage=True,
+    )
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(FailIfIngestionRepeats()),
+        pipeline_factory=RecordingPipelineFactory(()),
     )
 
-    with pytest.raises(PolicyViolationError, match="Consent"):
+    with pytest.raises(JobExecutionStateError, match="different generation request"):
         executor.execute(
-            job_id=job.job_id,
+            job_id=job_id,
             user_id="user-1",
-            payload=input_payload(),
-            preferences=learning_preferences(),
             cancellation=CancellationToken(),
-            provider_consent=False,
-            learner_age=18,
         )
 
-    rejected_job = service.resume(job_id=job.job_id, user_id="user-1").job
-    assert rejected_job.status is JobStatus.failed
-    assert rejected_job.failure_code == "provider_consent_required"
-    assert pipeline.call_count == 0
     assert private_store.save_count == 0
-
-
-def test_executor_resumes_from_last_stage_after_worker_process_exit(
-    tmp_path: Path,
-) -> None:
-    """A replacement worker does not replay accepted research or model turns."""
-
-    database_path = tmp_path / "jobs.sqlite3"
-    private_store = InMemoryPrivateArtifactStore()
-    notification_sink = RecordingNotificationSink()
-    first_service = JobService(
-        store=SqliteJobStore(
-            database_path,
-            admission_limits=generous_admission_limits(),
-        ),
-        artifact_store=private_store,
-        notification_sink=notification_sink,
-    )
-    job = first_service.submit(
-        user_id="user-1",
-        idempotency_key="resume-stage",
-        generation_request=valid_generation_request(input_payload=input_payload()),
-        admission_reservation=standard_admission_reservation(),
-    )
-    first_pipeline = pipeline_with_evidence(
-        frozen_evidence(),
-        scripted_turns=(
-            # The research plan is accepted and checkpointed. Process loss
-            # occurs when the next model turn begins.
-            scripted_turn(research_plan_data(), 1),
-            ScriptedTurn(error=SystemExit("simulated worker replacement")),
-        ),
-    )
-    first_executor = GenerationJobExecutor(
-        job_service=first_service,
-        pipeline=first_pipeline,
-        renderer=ArtifactRenderer(),
-        content_policy=ContentPolicy(),
-    )
-
-    with pytest.raises(SystemExit, match="worker replacement"):
-        first_executor.execute(
-            job_id=job.job_id,
-            user_id="user-1",
-            payload=input_payload(),
-            preferences=learning_preferences(),
-            cancellation=CancellationToken(),
-            provider_consent=True,
-            learner_age=18,
-        )
-
-    interrupted_state = first_service.resume(
-        job_id=job.job_id,
-        user_id="user-1",
-    )
-    assert interrupted_state.job.status is JobStatus.drafting
-    assert interrupted_state.checkpoint is not None
-    assert interrupted_state.checkpoint.stage == "collect_evidence"
-    assert interrupted_state.checkpoint.sequence == 3
-
-    replacement_service = JobService(
-        store=SqliteJobStore(
-            database_path,
-            admission_limits=generous_admission_limits(),
-        ),
-        artifact_store=private_store,
-        notification_sink=notification_sink,
-    )
-    replacement_pipeline = pipeline_with_evidence(
-        frozen_evidence(),
-        scripted_turns=(
-            scripted_turn(course_plan_data(), 2),
-            scripted_turn(valid_course_module_draft_data(), 3),
-            scripted_turn(valid_review_pack_data(), 4),
-            scripted_turn(valid_assessment_blueprint_data(), 5),
-            scripted_turn(assessment_package_data(), 6),
-        ),
-    )
-    replacement_executor = GenerationJobExecutor(
-        job_service=replacement_service,
-        pipeline=replacement_pipeline,
-        renderer=ArtifactRenderer(),
-        content_policy=ContentPolicy(),
-    )
-    completed_job = replacement_executor.execute(
-        job_id=job.job_id,
-        user_id="user-1",
-        payload=input_payload(),
-        preferences=learning_preferences(),
-        cancellation=CancellationToken(),
-        provider_consent=True,
-        learner_age=18,
-    )
-
-    assert completed_job.status is JobStatus.completed
-    final_checkpoint = replacement_service.resume(
-        job_id=job.job_id,
-        user_id="user-1",
-    ).checkpoint
-    assert final_checkpoint is not None
-    assert final_checkpoint.stage == "cross_validate_artifacts"
-    assert final_checkpoint.sequence == 9

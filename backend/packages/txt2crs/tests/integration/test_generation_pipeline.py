@@ -13,6 +13,8 @@ from tests.factories import (
     valid_assessment_data,
     valid_course_data,
     valid_course_module_draft_data,
+    valid_execution_profile,
+    valid_generation_request,
     valid_review_pack_data,
 )
 from txt2crs.ai.budgets import BudgetExceededError, RunBudget, RunBudgetLimits
@@ -22,16 +24,23 @@ from txt2crs.ai.runtime import CancellationToken
 from txt2crs.ai.runtime_status import CredentialStatus, RuntimeReadinessStatus
 from txt2crs.ai.usage import RuntimeUsage
 from txt2crs.domain.models import EvidenceExcerpt, SourceRecord
-from txt2crs.generation.models import LearningPreferences
 from txt2crs.generation.pipeline import (
     CourseGenerationPipeline,
     PipelineCheckpoint,
     PipelineGenerationError,
 )
-from txt2crs.ingestion.models import IngestionLimits, InputPayload
+from txt2crs.ingestion.models import IngestionLimits
 from txt2crs.ingestion.service import IngestionService
+from txt2crs.jobs.preparation import GenerationPreparation, GenerationPreparationService
+from txt2crs.jobs.requests import (
+    CurriculumShapeLimits,
+    GenerationRequest,
+    LearningPreferenceDefaults,
+    LearningPreferenceIntent,
+)
 from txt2crs.rendering.artifacts import ArtifactRenderer
 from txt2crs.research.evidence import EvidenceLedger, FrozenEvidenceSet
+from txt2crs.security.policy import ContentPolicy
 
 
 def fake_usage() -> RuntimeUsage:
@@ -190,13 +199,6 @@ def pipeline_with_evidence(
         ),
     )
     return CourseGenerationPipeline(
-        ingestion_service=IngestionService(
-            limits=IngestionLimits(
-                maximum_input_bytes=10_000,
-                maximum_normalized_characters=20_000,
-            ),
-            adapters={},
-        ),
         runtime=runtime,
         research_coordinator=FakeResearchCoordinator(evidence_set),
         renderer=ArtifactRenderer(),
@@ -211,6 +213,72 @@ def pipeline_with_evidence(
     )
 
 
+def generation_request_for_pipeline(
+    *,
+    minimum_content_blocks_per_section: int = 1,
+    input_value: str = "Teach Python variables.",
+) -> GenerationRequest:
+    """Build the compact fixture request with explicit test-only stored limits."""
+
+    base_profile = valid_execution_profile()
+    execution_profile = base_profile.model_copy(
+        update={
+            "preference_defaults": LearningPreferenceDefaults(
+                desired_depth="introductory",
+                duration_minutes=60,
+                tone="clear",
+                accessibility_requirements=("semantic headings",),
+                assessment_item_count=1,
+                passing_percentage=70,
+            ),
+            "curriculum_shape_limits": CurriculumShapeLimits(
+                minimum_objectives=1,
+                maximum_objectives=2,
+                minimum_modules=1,
+                maximum_modules=2,
+                minimum_sections_per_module=1,
+                maximum_sections_per_module=2,
+                minimum_content_blocks_per_section=(minimum_content_blocks_per_section),
+                maximum_content_blocks_per_section=3,
+            ),
+        }
+    )
+    return valid_generation_request(
+        value=input_value,
+        preferences=LearningPreferenceIntent(
+            audience="First-year computer-science students",
+            prior_knowledge="Basic computer literacy",
+            learning_goals=("Explain and use Python variables.",),
+            level="beginner",
+            language="en",
+        ),
+        execution_profile=execution_profile,
+    )
+
+
+def prepared_generation_for_pipeline(
+    *,
+    minimum_content_blocks_per_section: int = 1,
+    input_value: str = "Teach Python variables.",
+) -> GenerationPreparation:
+    """Prepare the compact legacy fixture with explicit test-only stored limits."""
+
+    request = generation_request_for_pipeline(
+        minimum_content_blocks_per_section=minimum_content_blocks_per_section,
+        input_value=input_value,
+    )
+    return GenerationPreparationService(
+        ingestion_service=IngestionService(
+            limits=IngestionLimits(
+                maximum_input_bytes=10_000,
+                maximum_normalized_characters=20_000,
+            ),
+            adapters={},
+        ),
+        content_policy=ContentPolicy(policy_version="content-policy-v1"),
+    ).prepare(request)
+
+
 def test_pipeline_generates_all_required_artifacts_from_one_evidence_set() -> None:
     """One input reaches course, review, test, answer sheet, and render output."""
 
@@ -218,25 +286,7 @@ def test_pipeline_generates_all_required_artifacts_from_one_evidence_set() -> No
     pipeline = pipeline_with_evidence(frozen_evidence(), budget=budget)
 
     result = pipeline.generate(
-        payload=InputPayload(
-            input_type="prompt",
-            value="Teach Python variables.",
-            media_type="text/plain",
-            file_name=None,
-            metadata={},
-        ),
-        preferences=LearningPreferences(
-            audience="First-year computer-science students",
-            prior_knowledge="Basic computer literacy",
-            desired_depth="introductory",
-            duration_minutes=60,
-            language="en",
-            tone="clear",
-            accessibility_requirements=["semantic headings"],
-            assessment_item_count=1,
-            passing_percentage=70,
-            high_risk_course=False,
-        ),
+        preparation=prepared_generation_for_pipeline(),
         cancellation=CancellationToken(),
     )
 
@@ -270,25 +320,7 @@ def test_pipeline_reserves_each_turn_before_calling_the_runtime() -> None:
 
     with pytest.raises(BudgetExceededError, match="turns"):
         pipeline.generate(
-            payload=InputPayload(
-                input_type="prompt",
-                value="Teach Python variables.",
-                media_type="text/plain",
-                file_name=None,
-                metadata={},
-            ),
-            preferences=LearningPreferences(
-                audience="Students",
-                prior_knowledge="None",
-                desired_depth="introductory",
-                duration_minutes=60,
-                language="en",
-                tone="clear",
-                accessibility_requirements=[],
-                assessment_item_count=1,
-                passing_percentage=70,
-                high_risk_course=False,
-            ),
+            preparation=prepared_generation_for_pipeline(),
             cancellation=CancellationToken(),
         )
 
@@ -301,14 +333,9 @@ def test_pipeline_rejects_oversized_prompt_before_reserving_a_turn() -> None:
 
     with pytest.raises(BudgetExceededError, match="input_tokens"):
         pipeline.generate(
-            payload=InputPayload(
-                input_type="text",
-                value="Python variables " * 100,
-                media_type="text/plain",
-                file_name=None,
-                metadata={},
+            preparation=prepared_generation_for_pipeline(
+                input_value="Python variables " * 100
             ),
-            preferences=learning_preferences_for_test(),
             cancellation=CancellationToken(),
         )
 
@@ -335,14 +362,7 @@ def test_pipeline_repairs_invalid_schema_output_exactly_once() -> None:
     )
 
     result = pipeline.generate(
-        payload=InputPayload(
-            input_type="prompt",
-            value="Teach Python variables.",
-            media_type="text/plain",
-            file_name=None,
-            metadata={},
-        ),
-        preferences=learning_preferences_for_test(),
+        preparation=prepared_generation_for_pipeline(),
         cancellation=CancellationToken(),
     )
 
@@ -371,14 +391,7 @@ def test_pipeline_retries_one_transient_model_transport_failure() -> None:
     )
 
     result = pipeline.generate(
-        payload=InputPayload(
-            input_type="prompt",
-            value="Teach Python variables.",
-            media_type="text/plain",
-            file_name=None,
-            metadata={},
-        ),
-        preferences=learning_preferences_for_test(),
+        preparation=prepared_generation_for_pipeline(),
         cancellation=CancellationToken(),
     )
 
@@ -397,25 +410,7 @@ def test_pipeline_refuses_to_call_an_empty_result_deep_researched() -> None:
 
     with pytest.raises(PipelineGenerationError, match="research"):
         pipeline.generate(
-            payload=InputPayload(
-                input_type="prompt",
-                value="Teach Python variables.",
-                media_type="text/plain",
-                file_name=None,
-                metadata={},
-            ),
-            preferences=LearningPreferences(
-                audience="Students",
-                prior_knowledge="None",
-                desired_depth="introductory",
-                duration_minutes=60,
-                language="en",
-                tone="clear",
-                accessibility_requirements=[],
-                assessment_item_count=1,
-                passing_percentage=70,
-                high_risk_course=False,
-            ),
+            preparation=prepared_generation_for_pipeline(),
             cancellation=CancellationToken(),
         )
 
@@ -429,25 +424,7 @@ def test_pipeline_cancellation_stops_before_checkpointable_output() -> None:
 
     with pytest.raises(RuntimeError, match="cancelled"):
         pipeline.generate(
-            payload=InputPayload(
-                input_type="prompt",
-                value="Teach Python.",
-                media_type="text/plain",
-                file_name=None,
-                metadata={},
-            ),
-            preferences=LearningPreferences(
-                audience="Students",
-                prior_knowledge="None",
-                desired_depth="introductory",
-                duration_minutes=60,
-                language="en",
-                tone="clear",
-                accessibility_requirements=[],
-                assessment_item_count=1,
-                passing_percentage=70,
-                high_risk_course=False,
-            ),
+            preparation=prepared_generation_for_pipeline(input_value="Teach Python."),
             cancellation=cancellation,
         )
 
@@ -473,21 +450,13 @@ def test_pipeline_emits_cumulative_accepted_checkpoints_and_resumes() -> None:
 
     with pytest.raises(SimulatedWorkerExit):
         first_pipeline.generate(
-            payload=InputPayload(
-                input_type="prompt",
-                value="Teach Python variables.",
-                media_type="text/plain",
-                file_name=None,
-                metadata={},
-            ),
-            preferences=learning_preferences_for_test(),
+            preparation=prepared_generation_for_pipeline(),
             cancellation=CancellationToken(),
             checkpoint_sink=stop_after_course_design,
         )
 
     durable_checkpoint = first_run_checkpoints[-1]
     assert [checkpoint.stage for checkpoint in first_run_checkpoints] == [
-        "ingest_input",
         "plan_research",
         "collect_evidence",
         "design_course",
@@ -507,14 +476,7 @@ def test_pipeline_emits_cumulative_accepted_checkpoints_and_resumes() -> None:
         ),
     )
     result = resumed_pipeline.generate(
-        payload=InputPayload(
-            input_type="prompt",
-            value="Teach Python variables.",
-            media_type="text/plain",
-            file_name=None,
-            metadata={},
-        ),
-        preferences=learning_preferences_for_test(),
+        preparation=prepared_generation_for_pipeline(),
         cancellation=CancellationToken(),
         resume_checkpoint=durable_checkpoint,
         checkpoint_sink=resumed_checkpoints.append,
@@ -584,14 +546,7 @@ def test_pipeline_writes_and_checkpoints_each_planned_module_separately() -> Non
     )
 
     result = pipeline.generate(
-        payload=InputPayload(
-            input_type="prompt",
-            value="Teach Python variables.",
-            media_type="text/plain",
-            file_name=None,
-            metadata={},
-        ),
-        preferences=learning_preferences_for_test(),
+        preparation=prepared_generation_for_pipeline(),
         cancellation=CancellationToken(),
         checkpoint_sink=checkpoints.append,
     )
@@ -612,18 +567,163 @@ def test_pipeline_writes_and_checkpoints_each_planned_module_separately() -> Non
     assert len(result.usage_records) == 7
 
 
-def learning_preferences_for_test() -> LearningPreferences:
-    """Return reusable complete preferences for pipeline behavior tests."""
+def test_prepared_pipeline_checkpoints_resolved_preferences_before_drafting() -> None:
+    """The first model stage sees accepted preparation, never raw re-ingestion."""
 
-    return LearningPreferences(
-        audience="Students",
-        prior_knowledge="None",
-        desired_depth="introductory",
-        duration_minutes=60,
-        language="en",
-        tone="clear",
-        accessibility_requirements=[],
-        assessment_item_count=1,
-        passing_percentage=70,
-        high_risk_course=False,
+    checkpoints: list[PipelineCheckpoint] = []
+    preparation = prepared_generation_for_pipeline()
+
+    result = pipeline_with_evidence(frozen_evidence()).generate(
+        preparation=preparation,
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
     )
+
+    assert result.input_document == preparation.input_document
+    assert checkpoints[0].stage == "plan_research"
+    assert checkpoints[0].sequence == 2
+    assert all(checkpoint.stage != "ingest_input" for checkpoint in checkpoints)
+    design_checkpoint = next(
+        checkpoint for checkpoint in checkpoints if checkpoint.stage == "design_course"
+    )
+    first_module_checkpoint = next(
+        checkpoint
+        for checkpoint in checkpoints
+        if checkpoint.stage.startswith("write_module:")
+    )
+    assert design_checkpoint.resolved_preferences is not None
+    assert design_checkpoint.resolved_preferences.level == "beginner"
+    assert design_checkpoint.resolved_preferences.learning_goals == (
+        "Explain and use Python variables.",
+    )
+    assert design_checkpoint.preparation == preparation
+    assert design_checkpoint.sequence < first_module_checkpoint.sequence
+
+
+def test_checkpoint_rejects_artifacts_beyond_its_labeled_stage() -> None:
+    """A tampered early checkpoint cannot skip required generation stages."""
+
+    checkpoints: list[PipelineCheckpoint] = []
+    result = pipeline_with_evidence(frozen_evidence()).generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+    design_checkpoint = next(
+        checkpoint for checkpoint in checkpoints if checkpoint.stage == "design_course"
+    )
+    tampered_checkpoint_data = design_checkpoint.model_dump(mode="python")
+    tampered_checkpoint_data["course"] = result.course.model_dump(mode="python")
+
+    with pytest.raises(ValueError, match="unaccepted artifacts"):
+        PipelineCheckpoint.model_validate(tampered_checkpoint_data)
+
+
+def test_schema_valid_course_plan_gets_one_local_alignment_repair() -> None:
+    """Local contract drift spends the same single bounded repair allowance."""
+
+    drifting_plan = course_plan_data()
+    drifting_plan["language"] = "he"
+    budget = pipeline_budget(maximum_turns=7)
+    checkpoints: list[PipelineCheckpoint] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(drifting_plan, 2),
+            scripted_turn(course_plan_data(), 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    assert budget.snapshot().repairs == 1
+    assert [checkpoint.stage for checkpoint in checkpoints].count("design_course") == 1
+
+
+def test_course_plan_that_fails_local_gate_twice_never_reaches_module_drafting() -> (
+    None
+):
+    """Prompt compliance cannot override deterministic local acceptance."""
+
+    drifting_plan = course_plan_data()
+    drifting_plan["level"] = "advanced"
+    budget = pipeline_budget(maximum_turns=3)
+    checkpoints: list[PipelineCheckpoint] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(drifting_plan, 2),
+            scripted_turn(drifting_plan, 3),
+        ),
+    )
+
+    with pytest.raises(PipelineGenerationError, match="course plan"):
+        pipeline.generate(
+            preparation=prepared_generation_for_pipeline(),
+            cancellation=CancellationToken(),
+            checkpoint_sink=checkpoints.append,
+        )
+
+    assert budget.snapshot().turns == 3
+    assert budget.snapshot().repairs == 1
+    assert all(
+        not checkpoint.stage.startswith("write_module:") for checkpoint in checkpoints
+    )
+
+
+def test_module_content_block_shape_is_enforced_before_checkpoint() -> None:
+    """A schema-valid module can still violate the accepted curriculum range."""
+
+    checkpoints: list[PipelineCheckpoint] = []
+    pipeline = pipeline_with_evidence(frozen_evidence())
+
+    with pytest.raises(PipelineGenerationError, match="content block"):
+        pipeline.generate(
+            preparation=prepared_generation_for_pipeline(
+                minimum_content_blocks_per_section=2
+            ),
+            cancellation=CancellationToken(),
+            checkpoint_sink=checkpoints.append,
+        )
+
+    assert all(
+        not checkpoint.stage.startswith("write_module:") for checkpoint in checkpoints
+    )
+
+
+def test_resume_checkpoint_is_bound_to_preparation_request_hash() -> None:
+    """A checkpoint cannot be replayed with a different durable request."""
+
+    checkpoints: list[PipelineCheckpoint] = []
+    first_preparation = prepared_generation_for_pipeline()
+    pipeline_with_evidence(frozen_evidence()).generate(
+        preparation=first_preparation,
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+    different_preparation = first_preparation.model_copy(
+        update={
+            "request_hash": (
+                "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            )
+        }
+    )
+
+    with pytest.raises(PipelineGenerationError, match="different generation request"):
+        pipeline_with_evidence(frozen_evidence()).generate(
+            preparation=different_preparation,
+            cancellation=CancellationToken(),
+            resume_checkpoint=checkpoints[-1],
+        )

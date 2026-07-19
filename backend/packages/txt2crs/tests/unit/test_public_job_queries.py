@@ -13,12 +13,15 @@ from tests.factories import (
     valid_source_data,
 )
 from txt2crs.generation.pipeline import PipelineCheckpoint
-from txt2crs.ingestion.models import InputPayload
+from txt2crs.ingestion.models import IngestionLimits, InputPayload
+from txt2crs.ingestion.service import IngestionService
 from txt2crs.jobs.models import JobCheckpoint, JobRecord, JobStatus, ResumeState
+from txt2crs.jobs.preparation import GenerationPreparationService
 from txt2crs.jobs.public_queries import (
     PublicJobProjectionError,
     project_public_job_snapshot,
 )
+from txt2crs.security.policy import ContentPolicy
 
 _PRIVATE_INPUT = "PRIVATE NORMALIZED LEARNER INPUT SENTINEL"
 _PRIVATE_EVIDENCE = "PRIVATE EVIDENCE EXCERPT SENTINEL"
@@ -31,6 +34,7 @@ def _job(
     *,
     status: JobStatus = JobStatus.validating,
     failure_code: str | None = None,
+    request_hash: str = "sha256:" + ("b" * 64),
 ) -> JobRecord:
     """Return one authorized durable job with stable public timestamps."""
 
@@ -39,7 +43,7 @@ def _job(
         job_id="job-public-query",
         user_id="owner-1",
         idempotency_key="private-idempotency-key",
-        request_hash="sha256:" + ("b" * 64),
+        request_hash=request_hash,
         status=status,
         revision=7,
         failure_code=failure_code,
@@ -114,20 +118,44 @@ def _resume_state(
 ) -> ResumeState:
     """Wrap a complete request and optional pipeline checkpoint for projection."""
 
-    request = valid_generation_request(
-        input_payload=InputPayload(
-            input_type="pdf",
-            value=b"%PDF-private-raw-bytes",
-            media_type="application/pdf",
-            file_name="../../private/course-source.pdf",
-            metadata={"private_path": _PRIVATE_PATH},
+    if checkpoint is None:
+        request = valid_generation_request(
+            input_payload=InputPayload(
+                input_type="pdf",
+                value=b"%PDF-private-raw-bytes",
+                media_type="application/pdf",
+                file_name="../../private/course-source.pdf",
+                metadata={"private_path": _PRIVATE_PATH},
+            )
         )
+    else:
+        # ``valid_pipeline_checkpoint`` creates this exact accepted request
+        # before replacing its normalized document with private sentinels.
+        # Keep the public-query fixture coherent with that durable identity.
+        input_document = checkpoint.input_document
+        request = valid_generation_request(
+            input_payload=InputPayload(
+                input_type=input_document.input_type,
+                value=(
+                    input_document.normalized_text
+                    if input_document.input_type in {"prompt", "text", "url"}
+                    else b"bounded-private-input"
+                ),
+                media_type=input_document.media_type,
+                file_name=(
+                    "course-source.pdf" if input_document.input_type == "pdf" else None
+                ),
+                metadata={},
+            )
+        )
+    selected_job = (job or _job()).model_copy(
+        update={"request_hash": request.request_hash}
     )
     durable_checkpoint = (
         JobCheckpoint(
             schema_version="1.0",
             checkpoint_id="checkpoint-public-query-9",
-            job_id=(job or _job()).job_id,
+            job_id=selected_job.job_id,
             stage=checkpoint.stage,
             sequence=checkpoint.sequence,
             artifact_version=_HASH,
@@ -139,7 +167,7 @@ def _resume_state(
         else None
     )
     return ResumeState(
-        job=job or _job(),
+        job=selected_job,
         request=request,
         checkpoint=durable_checkpoint,
     )
@@ -284,6 +312,134 @@ def test_accepted_snapshot_uses_fixed_display_copy_without_raw_input() -> None:
     assert snapshot.sources == ()
     assert snapshot.conflicts == ()
     assert "%PDF-private-raw-bytes" not in snapshot.model_dump_json()
+
+
+def test_public_snapshot_rejects_job_and_request_identity_mismatch() -> None:
+    """A direct projection caller cannot pair a job with another request."""
+
+    coherent_state = _resume_state(job=_job(status=JobStatus.accepted))
+    mismatched_state = ResumeState(
+        job=coherent_state.job.model_copy(update={"request_hash": _HASH}),
+        request=coherent_state.request,
+        checkpoint=None,
+    )
+
+    with pytest.raises(PublicJobProjectionError) as error_info:
+        project_public_job_snapshot(
+            resume_state=mismatched_state,
+            artifact_manifest=None,
+        )
+
+    assert error_info.value.__cause__ is None
+    assert error_info.value.__context__ is None
+
+
+def test_preparation_only_snapshot_exposes_progress_without_private_state() -> None:
+    """Sequence-1 preparation is useful publicly without exposing its contents."""
+
+    private_goal = "PRIVATE LEARNING GOAL SENTINEL"
+    request = valid_generation_request(
+        value=_PRIVATE_INPUT,
+        learning_goal=private_goal,
+    )
+    preparation = GenerationPreparationService(
+        ingestion_service=IngestionService(
+            limits=IngestionLimits(
+                maximum_input_bytes=1_000,
+                maximum_normalized_characters=2_000,
+            ),
+            adapters={},
+        ),
+        content_policy=ContentPolicy(policy_version="content-policy-v1"),
+    ).prepare(request)
+    job = _job(
+        status=JobStatus.researching,
+        request_hash=request.request_hash,
+    )
+    resume_state = ResumeState(
+        job=job,
+        request=request,
+        checkpoint=JobCheckpoint(
+            schema_version="1.0",
+            checkpoint_id="checkpoint-public-query-1",
+            job_id=job.job_id,
+            stage="prepare_input",
+            sequence=1,
+            artifact_version=_HASH,
+            evidence_version=None,
+            artifact=preparation.model_dump(mode="json"),
+            budget_snapshot={},
+        ),
+    )
+
+    snapshot = project_public_job_snapshot(
+        resume_state=resume_state,
+        artifact_manifest=None,
+    )
+    serialized_snapshot = snapshot.model_dump_json()
+
+    assert snapshot.last_accepted_stage == "prepare_input"
+    assert snapshot.progress.completed_units == 1
+    assert snapshot.progress.total_units == 12
+    assert snapshot.input.input_type == "text"
+    assert snapshot.input.display_name == "Pasted text"
+    assert snapshot.sources == ()
+    assert snapshot.course_title is None
+    for private_value in (
+        _PRIVATE_INPUT,
+        private_goal,
+        preparation.request_hash,
+        preparation.policy_decision.policy_version,
+        preparation.policy_decision.reason_code,
+        preparation.planning_preferences.desired_depth,
+    ):
+        assert private_value not in serialized_snapshot
+
+
+def test_public_snapshot_rejects_checkpoint_from_a_different_request() -> None:
+    """A transplanted checkpoint cannot expose another request's safe leaves."""
+
+    requested_job = valid_generation_request(value="Requested learner source.")
+    foreign_request = valid_generation_request(value="Foreign learner source.")
+    foreign_preparation = GenerationPreparationService(
+        ingestion_service=IngestionService(
+            limits=IngestionLimits(
+                maximum_input_bytes=1_000,
+                maximum_normalized_characters=2_000,
+            ),
+            adapters={},
+        ),
+        content_policy=ContentPolicy(policy_version="content-policy-v1"),
+    ).prepare(foreign_request)
+    job = _job(
+        status=JobStatus.researching,
+        request_hash=requested_job.request_hash,
+    )
+    resume_state = ResumeState(
+        job=job,
+        request=requested_job,
+        checkpoint=JobCheckpoint(
+            schema_version="1.0",
+            checkpoint_id="checkpoint-foreign-preparation",
+            job_id=job.job_id,
+            stage="prepare_input",
+            sequence=1,
+            artifact_version=_HASH,
+            evidence_version=None,
+            artifact=foreign_preparation.model_dump(mode="json"),
+            budget_snapshot={},
+        ),
+    )
+
+    with pytest.raises(PublicJobProjectionError) as error_info:
+        project_public_job_snapshot(
+            resume_state=resume_state,
+            artifact_manifest=None,
+        )
+
+    assert "Foreign learner source" not in str(error_info.value)
+    assert error_info.value.__cause__ is None
+    assert error_info.value.__context__ is None
 
 
 @pytest.mark.parametrize(

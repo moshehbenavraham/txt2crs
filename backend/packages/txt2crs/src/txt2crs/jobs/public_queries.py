@@ -9,6 +9,7 @@ public contracts that projection code fills one reviewed field at a time.
 """
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
@@ -16,11 +17,17 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
 
-from txt2crs.domain.models import Identifier, SchemaVersion, StrictContract
+from txt2crs.domain.models import (
+    Identifier,
+    InputDocument,
+    SchemaVersion,
+    StrictContract,
+)
 from txt2crs.generation.pipeline import PipelineCheckpoint
 from txt2crs.ingestion.models import InputType
 from txt2crs.jobs.artifact_queries import ArtifactManifest
 from txt2crs.jobs.models import JobStatus, ResumeState
+from txt2crs.jobs.preparation import GenerationPreparation
 from txt2crs.security.redaction import sanitize_public_text
 
 PublicDisplayText = Annotated[str, Field(min_length=1, max_length=500)]
@@ -164,6 +171,22 @@ class PublicJobSnapshot(_PublicQueryContract):
         return self
 
 
+@dataclass(frozen=True, slots=True)
+class _ValidatedCheckpointProjection:
+    """Private checkpoint leaves needed to build the public allowlist.
+
+    Preparation and pipeline artifacts contain substantially more private
+    state. Keeping that full object behind this tiny internal projection makes
+    it difficult for a future response field to expose the artifact by
+    accident.
+    """
+
+    stage: str
+    sequence: int
+    input_document: InputDocument
+    pipeline_checkpoint: PipelineCheckpoint | None
+
+
 def project_public_job_snapshot(
     *,
     resume_state: ResumeState,
@@ -199,12 +222,21 @@ def _build_public_job_snapshot(
     """Build the public object while private contracts remain package-local."""
 
     job = resume_state.job
+    if job.request_hash != resume_state.request.request_hash:
+        raise ValueError("Job and request identities do not agree.")
     if artifact_manifest is not None and artifact_manifest.job_id != job.job_id:
         raise ValueError("Artifact manifest belongs to another job.")
 
-    pipeline_checkpoint = _validated_pipeline_checkpoint(resume_state)
+    validated_checkpoint = _validated_checkpoint_projection(resume_state)
+    pipeline_checkpoint = (
+        validated_checkpoint.pipeline_checkpoint
+        if validated_checkpoint is not None
+        else None
+    )
     input_document = (
-        pipeline_checkpoint.input_document if pipeline_checkpoint is not None else None
+        validated_checkpoint.input_document
+        if validated_checkpoint is not None
+        else None
     )
     public_warnings = (
         _bounded_public_texts(input_document.warnings, maximum_items=20)
@@ -235,11 +267,11 @@ def _build_public_job_snapshot(
         created_at=job.created_at,
         updated_at=job.updated_at,
         last_accepted_stage=(
-            pipeline_checkpoint.stage if pipeline_checkpoint is not None else None
+            validated_checkpoint.stage if validated_checkpoint is not None else None
         ),
         progress=_public_progress(
             status=job.status,
-            pipeline_checkpoint=pipeline_checkpoint,
+            validated_checkpoint=validated_checkpoint,
         ),
         input=public_input,
         failure=_public_failure(status=job.status, private_code=job.failure_code),
@@ -253,23 +285,44 @@ def _build_public_job_snapshot(
     )
 
 
-def _validated_pipeline_checkpoint(
+def _validated_checkpoint_projection(
     resume_state: ResumeState,
-) -> PipelineCheckpoint | None:
-    """Validate that the outer row and cumulative private artifact agree."""
+) -> _ValidatedCheckpointProjection | None:
+    """Parse the stage-discriminated private checkpoint and copy safe leaves."""
 
     durable_checkpoint = resume_state.checkpoint
     if durable_checkpoint is None:
         return None
     if durable_checkpoint.job_id != resume_state.job.job_id:
         raise ValueError("Checkpoint belongs to another job.")
+
+    if durable_checkpoint.stage == "prepare_input":
+        if durable_checkpoint.sequence != 1:
+            raise ValueError("Preparation checkpoint has an invalid sequence.")
+        preparation = GenerationPreparation.model_validate(durable_checkpoint.artifact)
+        preparation.require_request_hash(resume_state.request.request_hash)
+        return _ValidatedCheckpointProjection(
+            stage=durable_checkpoint.stage,
+            sequence=durable_checkpoint.sequence,
+            input_document=preparation.input_document,
+            pipeline_checkpoint=None,
+        )
+
     pipeline_checkpoint = PipelineCheckpoint.model_validate(durable_checkpoint.artifact)
     if (
         durable_checkpoint.stage != pipeline_checkpoint.stage
         or durable_checkpoint.sequence != pipeline_checkpoint.sequence
     ):
         raise ValueError("Checkpoint row and artifact do not agree.")
-    return pipeline_checkpoint
+    pipeline_checkpoint.preparation.require_request_hash(
+        resume_state.request.request_hash
+    )
+    return _ValidatedCheckpointProjection(
+        stage=pipeline_checkpoint.stage,
+        sequence=pipeline_checkpoint.sequence,
+        input_document=pipeline_checkpoint.input_document,
+        pipeline_checkpoint=pipeline_checkpoint,
+    )
 
 
 def _safe_input_display_name(
@@ -289,7 +342,7 @@ def _safe_input_display_name(
             return sanitized_basename
     labels: dict[InputType, str] = {
         "prompt": "Text prompt",
-        "text": "Text input",
+        "text": "Pasted text",
         "url": "Web source",
         "pdf": "PDF document",
         "document": "Document",
@@ -304,19 +357,25 @@ def _safe_input_display_name(
 def _public_progress(
     *,
     status: JobStatus,
-    pipeline_checkpoint: PipelineCheckpoint | None,
+    validated_checkpoint: _ValidatedCheckpointProjection | None,
 ) -> PublicJobProgress:
     """Derive coherent units from accepted checkpoint sequence and course plan."""
 
-    if pipeline_checkpoint is None:
+    if validated_checkpoint is None:
         return PublicJobProgress(
             completed_units=0,
             total_units=_PUBLIC_DEFAULT_TOTAL_UNITS,
         )
     completed_units = min(
         _PUBLIC_PROGRESS_UNIT_LIMIT,
-        max(0, pipeline_checkpoint.sequence),
+        max(0, validated_checkpoint.sequence),
     )
+    pipeline_checkpoint = validated_checkpoint.pipeline_checkpoint
+    if pipeline_checkpoint is None:
+        return PublicJobProgress(
+            completed_units=completed_units,
+            total_units=max(_PUBLIC_DEFAULT_TOTAL_UNITS, completed_units),
+        )
     if pipeline_checkpoint.course_plan is None:
         total_units = max(_PUBLIC_DEFAULT_TOTAL_UNITS, completed_units)
     else:

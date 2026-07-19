@@ -5,7 +5,10 @@
 import re
 from enum import StrEnum
 
-from txt2crs.domain.models import StrictContract
+from pydantic import ConfigDict
+
+from txt2crs.domain.models import Identifier, InputDocument, StrictContract
+from txt2crs.jobs.requests import GenerationRequest, LearnerAgeGroup
 
 _HIGH_RISK_PATTERNS = (
     re.compile(
@@ -33,42 +36,117 @@ class PolicyOutcome(StrEnum):
     rejected = "rejected"
 
 
+class PolicyStage(StrEnum):
+    """The request boundary at which a decision was made."""
+
+    preflight = "preflight"
+    post_ingestion = "post_ingestion"
+
+
 class PolicyDecision(StrictContract):
     """Safe policy decision recorded before provider processing."""
 
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        frozen=True,
+        hide_input_in_errors=True,
+    )
+
+    policy_version: Identifier
+    stage: PolicyStage
     outcome: PolicyOutcome
-    reason_code: str
+    reason_code: Identifier
     high_risk: bool
     public_message: str
 
 
-class ContentPolicy:
-    """Apply narrow deterministic gates before AI or research spend."""
+class PolicyCompatibilityError(RuntimeError):
+    """The worker cannot execute the exact policy stored with a request."""
 
-    def evaluate(
+
+class ContentPolicy:
+    """Apply request and normalized-content gates before provider work."""
+
+    def __init__(self, *, policy_version: str = "content-policy-v1") -> None:
+        self._policy_version = policy_version
+
+    def evaluate_preflight(
+        self,
+        generation_request: GenerationRequest,
+    ) -> PolicyDecision:
+        """Evaluate consent and any request language available before ingestion."""
+
+        self._require_compatible_policy(generation_request)
+        request_payload = generation_request.input_payload
+        request_text = (
+            request_payload.value[:100_000]
+            if request_payload.input_type in {"prompt", "text", "url"}
+            and isinstance(request_payload.value, str)
+            else ""
+        )
+        return self._evaluate_text(
+            request_text=request_text,
+            learner_age_group=generation_request.learner_age_group,
+            provider_consent=generation_request.provider_consent,
+            stage=PolicyStage.preflight,
+        )
+
+    def evaluate_ingested_content(
+        self,
+        *,
+        generation_request: GenerationRequest,
+        input_document: InputDocument,
+    ) -> PolicyDecision:
+        """Evaluate the bounded normalized source after typed ingestion."""
+
+        self._require_compatible_policy(generation_request)
+        return self._evaluate_text(
+            request_text=input_document.normalized_text,
+            learner_age_group=generation_request.learner_age_group,
+            provider_consent=generation_request.provider_consent,
+            stage=PolicyStage.post_ingestion,
+        )
+
+    def _require_compatible_policy(
+        self,
+        generation_request: GenerationRequest,
+    ) -> None:
+        """Fail closed instead of applying current policy to stored work."""
+
+        if generation_request.execution_profile.policy_version != self._policy_version:
+            raise PolicyCompatibilityError(
+                "The stored request requires an incompatible content policy."
+            )
+
+    def _evaluate_text(
         self,
         *,
         request_text: str,
-        learner_age: int | None,
+        learner_age_group: LearnerAgeGroup,
         provider_consent: bool,
+        stage: PolicyStage,
     ) -> PolicyDecision:
-        """Return one explicit allow, review, or reject decision."""
+        """Return one context-free decision for bounded available text."""
 
         if not provider_consent:
             return PolicyDecision(
+                policy_version=self._policy_version,
+                stage=stage,
                 outcome=PolicyOutcome.rejected,
                 reason_code="provider_consent_required",
                 high_risk=False,
                 public_message=(
-                    "Consent is required before content is sent to AI providers."
+                    "Permission to use the configured providers is required."
                 ),
             )
         if (
-            learner_age is not None
-            and learner_age < 18
+            learner_age_group is LearnerAgeGroup.minor
             and _AGE_INAPPROPRIATE_PATTERN.search(request_text)
         ):
             return PolicyDecision(
+                policy_version=self._policy_version,
+                stage=stage,
                 outcome=PolicyOutcome.rejected,
                 reason_code="age_inappropriate",
                 high_risk=False,
@@ -76,6 +154,8 @@ class ContentPolicy:
             )
         if _COPYRIGHT_REPRODUCTION_PATTERN.search(request_text):
             return PolicyDecision(
+                policy_version=self._policy_version,
+                stage=stage,
                 outcome=PolicyOutcome.rejected,
                 reason_code="copyright_reproduction",
                 high_risk=False,
@@ -85,6 +165,8 @@ class ContentPolicy:
             )
         if any(pattern.search(request_text) for pattern in _HIGH_RISK_PATTERNS):
             return PolicyDecision(
+                policy_version=self._policy_version,
+                stage=stage,
                 outcome=PolicyOutcome.human_review,
                 reason_code="high_risk_domain",
                 high_risk=True,
@@ -93,8 +175,19 @@ class ContentPolicy:
                 ),
             )
         return PolicyDecision(
+            policy_version=self._policy_version,
+            stage=stage,
             outcome=PolicyOutcome.allowed,
             reason_code="allowed",
             high_risk=False,
             public_message="The request may proceed.",
         )
+
+
+__all__ = [
+    "ContentPolicy",
+    "PolicyCompatibilityError",
+    "PolicyDecision",
+    "PolicyOutcome",
+    "PolicyStage",
+]

@@ -11,15 +11,16 @@ import pytest
 from tests.factories import (
     generous_admission_limits,
     standard_admission_reservation,
+    valid_generation_preparation,
     valid_generation_request,
+    valid_input_document,
 )
-from txt2crs.ai.budgets import RunBudgetSnapshot
-from txt2crs.generation.pipeline import PipelineCheckpoint
 from txt2crs.jobs.artifact_store import (
     ArtifactIntegrityError,
     FilesystemPrivateArtifactStore,
 )
 from txt2crs.jobs.models import JobStatus
+from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import JobNotFoundError, SqliteJobStore
@@ -74,52 +75,30 @@ def _job_service(
     )
 
 
-def _checkpoint_ingested_input(
+def _checkpoint_prepared_input(
     *,
     service: JobService,
     job_id: str,
     expected_revision: int,
+    generation_request: GenerationRequest,
 ) -> None:
-    """Persist one accepted input checkpoint through the public job service."""
+    """Persist one accepted provider-free preparation through the job service."""
 
-    checkpoint = PipelineCheckpoint.model_validate(
-        {
-            "schema_version": "1.0",
-            "stage": "ingest_input",
-            "sequence": 1,
-            "request_hash": _HASH,
-            "input_document": {
-                "schema_version": "1.0",
-                "document_id": "document-query-service",
-                "input_type": "text",
-                "media_type": "text/plain",
-                "normalized_text": _PRIVATE_INPUT,
-                "language": "en",
-                "metadata": {"private_path": "/home/ada/private/input.txt"},
-                "content_hash": _HASH,
-                "warnings": ["Minor extraction warning"],
-                "locations": [],
-            },
-            "research_plan": None,
-            "evidence_set": None,
-            "course_plan": None,
-            "course_module_drafts": [],
-            "course": None,
-            "review_pack": None,
-            "assessment_blueprint": None,
-            "assessment": None,
-            "answer_key": None,
-            "usage_records": [],
-            "budget_snapshot": RunBudgetSnapshot(),
-        }
+    preparation = valid_generation_preparation(
+        generation_request=generation_request,
+        input_document=valid_input_document(
+            normalized_text=_PRIVATE_INPUT,
+            metadata={"private_path": "/home/ada/private/input.txt"},
+            warnings=["Minor extraction warning"],
+        ),
     )
     service.checkpoint_stage(
         job_id=job_id,
         user_id="owner-1",
         expected_revision=expected_revision,
-        stage=checkpoint.stage,
-        sequence=checkpoint.sequence,
-        result=StageResult.accepted(artifact=checkpoint),
+        stage="prepare_input",
+        sequence=1,
+        result=StageResult.accepted(artifact=preparation),
         artifact_version=_HASH,
         evidence_version=None,
         budget_snapshot={},
@@ -151,10 +130,11 @@ def test_service_queries_survive_sqlite_and_filesystem_restart(
         user_id="owner-1",
         expected_revision=submitted_job.revision,
     )
-    _checkpoint_ingested_input(
+    _checkpoint_prepared_input(
         service=service,
         job_id=started_job.job_id,
         expected_revision=started_job.revision,
+        generation_request=request,
     )
     artifact_store.save(
         user_id="owner-1",
@@ -192,7 +172,7 @@ def test_service_queries_survive_sqlite_and_filesystem_restart(
         reopened_job_store.close()
 
     assert snapshot.status is JobStatus.researching
-    assert snapshot.last_accepted_stage == "ingest_input"
+    assert snapshot.last_accepted_stage == "prepare_input"
     assert snapshot.input.extraction_warnings == ("Minor extraction warning",)
     assert snapshot.artifacts.available is True
     assert snapshot.artifacts.count == 1
