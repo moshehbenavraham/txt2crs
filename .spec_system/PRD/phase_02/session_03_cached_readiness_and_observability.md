@@ -2,8 +2,8 @@
 
 **Session ID**: `phase02-session03-cached-readiness-and-observability`
 **Package**: backend
-**Status**: Not Started
-**Estimated Tasks**: ~12-25
+**Status**: Complete
+**Tasks**: 25
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -39,8 +39,8 @@ admission state without leaking request or provider data.
 
 ## Prerequisites
 
-- [ ] Session 01 exposes one application-owned facade.
-- [ ] Session 02 exposes a bounded safe worker snapshot.
+- [x] Session 01 exposes one application-owned facade.
+- [x] Session 02 exposes a bounded safe worker snapshot.
 
 ---
 
@@ -57,13 +57,13 @@ admission state without leaking request or provider data.
 
 ## Success Criteria
 
-- [ ] Readiness is `accepting_jobs=true` only when every required check and
+- [x] Readiness is `accepting_jobs=true` only when every required check and
   admission condition passes.
-- [ ] Unconfigured systems report safe recovery actions without credentials,
+- [x] Unconfigured systems report safe recovery actions without credentials,
   paths, provider payloads, or exception context.
-- [ ] Browser reads return the last snapshot and never start a provider
+- [x] Browser reads return the last snapshot and never start a provider
   resource or storage probe.
-- [ ] A running job prevents competing readiness or login ownership.
-- [ ] Logs omit raw paths, query strings, client IPs, learner data, and
+- [x] A running job prevents competing readiness or login ownership.
+- [x] Logs omit raw paths, query strings, client IPs, learner data, and
   provider internals.
-- [ ] Focused backend tests and static checks pass.
+- [x] Focused backend tests and static checks pass.

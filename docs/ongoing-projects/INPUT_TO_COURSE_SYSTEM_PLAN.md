@@ -1264,7 +1264,7 @@ Implemented sessions:
 
 ### Phase 2 - composition root and readiness
 
-**Status:** Not started.
+**Status:** In progress (3 of 5 sessions validated).
 
 Objective: start, inspect, and safely stop one real engine worker graph.
 
@@ -1283,6 +1283,12 @@ Work:
 9. Add `/setup` with CLI recovery instructions.
 10. Add structured events and safe exception translation.
 
+Implemented sessions:
+
+- **S01 - engine composition lifecycle**
+- **S02 - serial worker supervisor**
+- **S03 - cached readiness and observability**
+
 Exit gate:
 
 - unconfigured readiness is truthful and safe;
@@ -1293,7 +1299,8 @@ Exit gate:
 - new work is refused with `SYSTEM_NOT_READY` when any required dependency
   fails.
 
-Suggested implementation session: **S04 - composition and readiness**.
+Next implementation session: **S04 - system readiness and authentication
+API**.
 
 ### Phase 3 - durable jobs API and worker execution
 

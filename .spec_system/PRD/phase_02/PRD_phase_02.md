@@ -4,7 +4,7 @@
 **Sessions**: 5 (initial estimate)
 **Estimated Duration**: 3-5 days
 
-**Progress**: 2/5 sessions (40%)
+**Progress**: 3/5 sessions (60%)
 
 ---
 
@@ -24,7 +24,7 @@ provider work from browser polling.
 |---------|------|--------|------------|-----------|
 | 01 | Engine Composition Lifecycle | Complete | 24 | 2026-07-19 |
 | 02 | Serial Worker Supervisor | Complete | 25 | 2026-07-19 |
-| 03 | Cached Readiness and Observability | Not Started | ~12-25 | - |
+| 03 | Cached Readiness and Observability | Complete | 25 | 2026-07-19 |
 | 04 | System Readiness and Auth API | Not Started | ~12-25 | - |
 | 05 | Operator Setup Experience | Not Started | ~12-25 | - |
 
@@ -34,12 +34,13 @@ provider work from browser polling.
 
 - Session 01: Engine Composition Lifecycle - completed 2026-07-19
 - Session 02: Serial Worker Supervisor - completed 2026-07-19
+- Session 03: Cached Readiness and Observability - completed 2026-07-19
 
 ---
 
 ## Upcoming Sessions
 
-- Session 03: Cached Readiness and Observability
+- Session 04: System Readiness and Auth API
 
 ---
 
@@ -139,13 +140,14 @@ failure, cancellation, and shutdown.
 
 ### Relevant Considerations
 
-- [P00-backend] **Request logs expose raw request metadata**: Session 03
-  removes raw path, query, and client-IP exposure before new system endpoints
-  become public.
+- [P02-backend] **Operational logs use field allowlists**: Session 03 removed
+  raw request/provider/error data; later system routes must preserve static
+  route names, finite codes, status, and timing only.
 - [P00-backend+backend/packages/txt2crs] **One process is mandatory**: The
   lifecycle and supervisor preserve exactly one in-process serial worker.
-- [P00-backend] **Readiness still needs engine composition**: Sessions 01-04
-  translate the facade snapshots into truthful admission and operator state.
+- [P02-backend] **Browser readiness reads only the cache**: Session 03
+  completed the engine aggregate and shared runtime owner; Session 04 routes
+  must never invoke a provider or storage probe directly.
 - [P00-backend+backend/packages/txt2crs] **Shell/package boundary is strict**:
   Shell services call only public facade and factory contracts.
 - [P01-backend+backend/packages/txt2crs] **Worker recovery uses public
@@ -154,9 +156,9 @@ failure, cancellation, and shutdown.
 - [P01-backend/packages/txt2crs] **One context owns provider resources**:
   Composition and supervision preserve dependency-order entry and reverse
   cleanup.
-- [P01-backend/packages/txt2crs] **Do not retain private exception context**:
-  Session 03 tests safe exception translation without private causes or
-  contexts.
+- [P02-backend+backend/packages/txt2crs] **Do not retain private exception
+  context**: Session 03 added central translation with generic details and
+  cleared causes/contexts; every new route must use it.
 
 ---
 
@@ -165,20 +167,20 @@ failure, cancellation, and shutdown.
 Phase complete when:
 
 - [ ] All 5 sessions completed.
-- [ ] Unconfigured readiness is truthful, bounded, safe, and side-effect free.
-- [ ] Configured readiness validates dedicated authentication, discovered
+- [x] Unconfigured readiness is truthful, bounded, safe, and side-effect free.
+- [x] Configured readiness validates dedicated authentication, discovered
   GPT-5.6, research, storage, worker health, enabled inputs, and admission.
-- [ ] The serial worker recovers runnable jobs, executes one job at a time,
+- [x] The serial worker recovers runnable jobs, executes one job at a time,
   and closes every per-job resource.
 - [ ] A superuser can complete device-code setup through the browser while
   non-superusers cannot access the ceremony.
-- [ ] Shutdown and partial startup failures close all application-owned child
+- [x] Shutdown and partial startup failures close all currently composed child
   resources.
 - [ ] Readiness-dependent admission fails with `SYSTEM_NOT_READY` when any
   required dependency is unavailable.
-- [ ] Shell logs and error responses contain no raw personal, learner,
+- [x] Shell logs and error responses contain no raw personal, learner,
   provider, credential, or filesystem data.
-- [ ] Backend and frontend deterministic validation remains green.
+- [x] Backend and frontend deterministic validation remains green.
 
 ---
 

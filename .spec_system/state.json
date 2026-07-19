@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 2,
-  "current_session": "phase02-session03-cached-readiness-and-observability",
+  "current_session": null,
   "monorepo": true,
   "packages": [
     {
@@ -74,21 +74,13 @@
     {
       "id": "phase02-session02-serial-worker-supervisor",
       "package": "backend"
+    },
+    {
+      "id": "phase02-session03-cached-readiness-and-observability",
+      "package": "backend"
     }
   ],
   "next_session_history": [
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session01-durable-requests-and-recovery",
-      "package": "backend/packages/txt2crs",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session02-safe-queries-and-artifact-access",
-      "package": "backend/packages/txt2crs",
-      "status": "planned"
-    },
     {
       "date": "2026-07-19",
       "session": "phase01-session02-safe-queries-and-artifact-access",
@@ -196,6 +188,18 @@
       "session": "phase02-session03-cached-readiness-and-observability",
       "package": "backend",
       "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session03-cached-readiness-and-observability",
+      "package": "backend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session03-cached-readiness-and-observability",
+      "package": "backend",
+      "status": "completed"
     }
   ]
 }

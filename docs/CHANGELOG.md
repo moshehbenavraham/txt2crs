@@ -22,6 +22,43 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.5.3] - 2026-07-19
+
+### Added
+
+- Added one public aggregate engine-readiness projection for authentication,
+  exact GPT-5.6 discovery, managed research, SQLite, artifacts, P0 inputs, and
+  conservative admission capacity.
+- Added one immutable stale-while-busy shell readiness cache with immediate
+  startup inspection, finite maintenance refresh, explicit freshness, and
+  side-effect-free reads.
+- Added one shared finite runtime owner for readiness, authentication, and
+  serial job execution.
+- Added semantic system/job error codes and context-free public engine
+  exception translation.
+
+### Changed
+
+- FastAPI now starts readiness before the serial worker and closes worker,
+  readiness, runtime ownership, and the engine facade in reverse order.
+- The serial worker now holds runtime execution ownership from durable
+  discovery through executor cleanup.
+
+### Fixed
+
+- Prevented a closed readiness coordinator from relaunching provider work
+  during teardown.
+- Enforced exact GPT-5.6 identity at readiness-contract construction and
+  reported runtime contention as degraded instead of unavailable.
+
+### Security
+
+- Removed raw request paths, queries, client addresses, provider responses,
+  exception details, tracebacks, recipient identities, and infrastructure
+  locations from reviewed normal shell operational logs.
+- Added rollback-only SQLite and confined atomic artifact probes that leave no
+  persistent maintenance state.
+
 ## [0.5.2] - 2026-07-19
 
 ### Added

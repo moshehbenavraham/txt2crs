@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 01 (2026-07-19)
+> **Line budget**: 600 max | **Last updated**: Phase 02 Session 03 (2026-07-19)
 
 ---
 
@@ -14,9 +14,6 @@ Items requiring attention in upcoming phases. Review before each session.
 - [P00-backend+frontend] **Donor items remain temporary**: Keep the existing
   item routes and UI only until durable jobs acceptance coverage exists; Phase
   03 must remove the domain without breaking authentication.
-- [P00-backend] **Request logs expose raw request metadata**: The logger writes
-  paths, query strings, and client IPs; password-recovery paths can contain an
-  email. Sanitize to route templates and define retention before public use.
 
 ### External Dependencies
 
@@ -39,9 +36,6 @@ Items requiring attention in upcoming phases. Review before each session.
   Owner purge and complete local recovery now work, but learner requests,
   checkpoints, artifacts, logs, and backup bundles still need an explicit
   retention schedule and encrypted-copy policy.
-- [P00-backend] **Readiness still needs engine composition**: Phase 02 must
-  translate the facade's engine, worker, storage, research, provider, and auth
-  capability snapshots into truthful shell admission/readiness behavior.
 - [P01-backend+backend/packages/txt2crs] **HTTP artifact delivery owns cleanup**:
   Phase 03 must close package streams on disconnect and apply private,
   no-store, nosniff, and safe attachment headers.
@@ -105,6 +99,14 @@ Proven patterns and anti-patterns. Reference during implementation.
   A public-only deterministic lifecycle can exercise real persistence,
   preparation, rendering, artifact, recovery, and purge behavior without
   FastAPI, credentials, or private imports.
+- [P02-backend] **Cache side effects behind one runtime owner**: Startup and
+  finite maintenance refresh may probe the public engine aggregate, while
+  browser reads return only immutable cached state and never compete with job
+  execution or device authentication.
+- [P02-backend] **Operational logs need field allowlists**: Static route names,
+  methods, status, duration, finite codes, and attempt counts provide useful
+  telemetry without retaining raw request, provider, exception, recipient, or
+  infrastructure content.
 
 ### What to Avoid
 
@@ -160,6 +162,8 @@ Recently closed items (buffer - rotates out after 2 phases).
 
 | Phase | Item | Resolution |
 |-------|------|------------|
+| P02 | Raw request metadata in logs | Request, exception, telemetry, SMTP, and startup events now use bounded allowlists with focused privacy regressions. |
+| P02 | Composite readiness ownership | One public engine aggregate, immutable shell cache, and shared finite runtime owner now cover readiness without browser-side effects. |
 | P01 | Complete local recovery | One owner-only bundle now captures and restores PostgreSQL plus private engine state with pre-destructive validation. |
 | P01 | Engine owner lifecycle | Active work is stopped and owner requests, checkpoints, delivery rows, and artifacts are purged through the public facade. |
 | P00 | Host/container engine parity | Both backend image targets install and import the workspace package. |

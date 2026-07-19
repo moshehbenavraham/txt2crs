@@ -38,7 +38,7 @@ public engine contracts.
 
 ## Prerequisites
 
-- [ ] Session 03 provides cached readiness and safe error translation.
+- [x] Session 03 provides cached readiness and safe error translation.
 - [ ] Session 01 exposes the package-owned authenticator lifecycle.
 
 ---
