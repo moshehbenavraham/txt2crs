@@ -2,7 +2,7 @@
 
 **Session ID**: `phase02-session03-cached-readiness-and-observability`
 **Phase**: 02 - Composition and Readiness
-**Status**: Implemented
+**Status**: Validated
 **Created**: 2026-07-19
 **Base Commit**: 73b395b0385dd0af3cb9841c61a38c7c6d153462
 **Package**: backend
@@ -181,49 +181,49 @@ unavailable snapshot without constructing an engine facade.
 
 ### Functional Requirements
 
-- [ ] `accepting_jobs` is true only when every required package check passes,
+- [x] `accepting_jobs` is true only when every required package check passes,
   the worker is alive and not shutting down, runtime ownership is available,
   the snapshot is fresh, and admission has capacity.
-- [ ] Unconfigured systems return a stable unavailable snapshot with generic
+- [x] Unconfigured systems return a stable unavailable snapshot with generic
   setup actions and no credentials, paths, ports, exception text, or provider
   payloads.
-- [ ] `snapshot()` never invokes package readiness, provider, MCP, SQLite
+- [x] `snapshot()` never invokes package readiness, provider, MCP, SQLite
   probe, artifact probe, or cache-refresh work.
-- [ ] Startup refreshes immediately; later refreshes use one finite interval
+- [x] Startup refreshes immediately; later refreshes use one finite interval
   and retain the previous safe snapshot while execution owns the runtime.
-- [ ] A running job prevents readiness and future authentication ownership
+- [x] A running job prevents readiness and future authentication ownership
   until executor cleanup completes.
-- [ ] Storage probes leave no durable job, admission, artifact, or temporary
+- [x] Storage probes leave no durable job, admission, artifact, or temporary
   probe state after success or failure.
-- [ ] Enabled inputs truthfully include all required P0 modes only when their
+- [x] Enabled inputs truthfully include all required P0 modes only when their
   package adapters and routing support exist.
-- [ ] Public engine failures map to stable shell codes; unknown failures are
+- [x] Public engine failures map to stable shell codes; unknown failures are
   generic and retain neither `__cause__` nor `__context__`.
-- [ ] Request logs omit raw paths, query strings, client IPs, learner data,
+- [x] Request logs omit raw paths, query strings, client IPs, learner data,
   credential material, and provider details.
 
 ### Testing Requirements
 
-- [ ] Tests are written and observed failing before implementation.
-- [ ] Focused engine readiness and backend runtime/readiness/logging/error
+- [x] Tests are written and observed failing before implementation.
+- [x] Focused engine readiness and backend runtime/readiness/logging/error
   tests pass.
-- [ ] Complete deterministic backend shell and engine suites pass.
+- [x] Complete deterministic backend shell and engine suites pass.
 
 ### Non-Functional Requirements
 
-- [ ] Every duration is finite and bounded by typed settings.
-- [ ] Snapshots, logs, warnings, and recovery actions are immutable or copied,
+- [x] Every duration is finite and bounded by typed settings.
+- [x] Snapshots, logs, warnings, and recovery actions are immutable or copied,
   bounded, allowlisted, and sanitized.
-- [ ] No shell module imports private package stores, adapters, factories, or
+- [x] No shell module imports private package stores, adapters, factories, or
   provider implementations.
-- [ ] Cleanup is idempotent, reverse ordered, and cannot mask a primary
+- [x] Cleanup is idempotent, reverse ordered, and cannot mask a primary
   startup or request failure.
 
 ### Quality Gates
 
-- [ ] All files are ASCII-encoded with Unix LF line endings.
-- [ ] Code includes intern-friendly comments for ownership and side effects.
-- [ ] Ruff format/check, strict mypy, ty, and repository pre-commit pass.
+- [x] All files are ASCII-encoded with Unix LF line endings.
+- [x] Code includes intern-friendly comments for ownership and side effects.
+- [x] Ruff format/check, strict mypy, ty, and repository pre-commit pass.
 
 ---
 
