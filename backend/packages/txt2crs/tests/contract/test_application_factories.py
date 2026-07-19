@@ -517,9 +517,15 @@ def test_real_factory_closes_partial_resources_when_authentication_build_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Later composition failures close both long-lived resources already made."""
+    """
+    Later failures close acquired resources and keep Codex cwd ephemeral.
+
+    Authentication is part of the real Codex graph, so its working directory
+    must use the configured worker root rather than durable engine state.
+    """
 
     close_events: list[str] = []
+    authentication_worker_directories: list[Path] = []
 
     class RecordingStore:
         """Minimal store double whose cleanup is observable."""
@@ -539,7 +545,8 @@ def test_real_factory_closes_partial_resources_when_authentication_build_fails(
         def close(self) -> None:
             close_events.append("http-closed")
 
-    def fail_authentication(*_args: Any, **_kwargs: Any) -> None:
+    def fail_authentication(*_args: Any, **kwargs: Any) -> None:
+        authentication_worker_directories.append(kwargs["worker_directory"])
         raise RuntimeError("synthetic authentication failure")
 
     monkeypatch.setattr(
@@ -554,12 +561,14 @@ def test_real_factory_closes_partial_resources_when_authentication_build_fails(
         "txt2crs.application.factories.DedicatedSystemAuthenticator.create",
         fail_authentication,
     )
+    worker_directory = (tmp_path / "worker").resolve()
     factory = RealApplicationFactory(
         RealApplicationConfig(
             storage=_storage(tmp_path),
             admission=_admission(),
             default_execution_profile=valid_execution_profile(),
             codex_home=(tmp_path / "codex-home").resolve(),
+            worker_directory=worker_directory,
             tavily_api_key=SecretStr("test-only"),
         )
     )
@@ -568,3 +577,4 @@ def test_real_factory_closes_partial_resources_when_authentication_build_fails(
         factory.create()
 
     assert close_events == ["http-closed", "store-closed"]
+    assert authentication_worker_directories == [worker_directory / "authentication"]

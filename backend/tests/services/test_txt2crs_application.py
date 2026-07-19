@@ -275,6 +275,69 @@ def test_factory_failure_resets_lifecycle_for_a_safe_retry(
     assert application.close_calls == 1
 
 
+def test_late_start_failure_closes_the_facade_without_masking_primary_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    A failure after factory return must release the newly acquired facade.
+
+    Logging is normally reliable, but a custom handler can raise. Simulating
+    that late startup failure proves the lifecycle owns the facade immediately
+    after ``create()`` and preserves the original failure if cleanup also
+    raises.
+    """
+
+    class FailingCompletionLogger:
+        """Raise only after the real facade has been returned by the factory."""
+
+        def info(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del extra
+            if event_name == "txt2crs.composition_completed":
+                raise RuntimeError("synthetic post-create failure")
+
+        def error(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del event_name, extra
+
+    monkeypatch.setattr(
+        "app.services.txt2crs_application.logger",
+        FailingCompletionLogger(),
+    )
+    application = RecordingApplication(
+        close_error=RuntimeError("private cleanup detail"),
+    )
+    factory = RecordingApplicationFactory(application=application)
+    lifecycle = Txt2CrsApplicationLifecycle(
+        settings=_configured_settings(tmp_path),
+        factory_builder=cast(
+            ApplicationFactoryBuilder,
+            RecordingFactoryBuilder(factory),
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="synthetic post-create failure"):
+        lifecycle.start()
+
+    assert application.close_calls == 1
+    assert lifecycle.application is None
+    assert lifecycle.is_started is False
+
+    # Ownership was cleared before cleanup, so the lifespan's finally block
+    # cannot invoke a partially closed facade for a second time.
+    lifecycle.close()
+    assert application.close_calls == 1
+
+
 def test_close_failure_clears_owned_reference_and_is_not_retried(
     tmp_path: Path,
 ) -> None:
@@ -299,6 +362,110 @@ def test_close_failure_clears_owned_reference_and_is_not_retried(
     assert application.close_calls == 1
     assert lifecycle.application is None
     assert lifecycle.is_started is False
+
+
+def test_shutdown_logging_failure_still_closes_the_owned_facade(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failing shutdown observer cannot skip package resource cleanup."""
+
+    class FailingShutdownLogger:
+        """Raise before facade cleanup while allowing startup logs."""
+
+        def info(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del extra
+            if event_name == "txt2crs.shutdown_started":
+                raise RuntimeError("synthetic shutdown logging failure")
+
+        def error(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del event_name, extra
+
+    monkeypatch.setattr(
+        "app.services.txt2crs_application.logger",
+        FailingShutdownLogger(),
+    )
+    application = RecordingApplication()
+    lifecycle = Txt2CrsApplicationLifecycle(
+        settings=_configured_settings(tmp_path),
+        factory_builder=cast(
+            ApplicationFactoryBuilder,
+            RecordingFactoryBuilder(
+                RecordingApplicationFactory(application=application)
+            ),
+        ),
+    )
+    lifecycle.start()
+
+    with pytest.raises(RuntimeError, match="synthetic shutdown logging failure"):
+        lifecycle.close()
+
+    assert application.close_calls == 1
+    assert lifecycle.application is None
+    lifecycle.close()
+    assert application.close_calls == 1
+
+
+def test_shutdown_failure_log_cannot_mask_the_facade_cleanup_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The package cleanup error remains primary if its error logger fails."""
+
+    class FailingErrorLogger:
+        """Allow normal events but fail while recording shutdown failure."""
+
+        def info(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del event_name, extra
+
+        def error(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            del extra
+            if event_name == "txt2crs.shutdown_failed":
+                raise RuntimeError("synthetic secondary logging failure")
+
+    monkeypatch.setattr(
+        "app.services.txt2crs_application.logger",
+        FailingErrorLogger(),
+    )
+    application = RecordingApplication(
+        close_error=RuntimeError("primary facade cleanup failure"),
+    )
+    lifecycle = Txt2CrsApplicationLifecycle(
+        settings=_configured_settings(tmp_path),
+        factory_builder=cast(
+            ApplicationFactoryBuilder,
+            RecordingFactoryBuilder(
+                RecordingApplicationFactory(application=application)
+            ),
+        ),
+    )
+    lifecycle.start()
+
+    with pytest.raises(RuntimeError, match="primary facade cleanup failure"):
+        lifecycle.close()
+
+    assert application.close_calls == 1
+    assert lifecycle.application is None
 
 
 def test_lifecycle_events_do_not_log_secret_path_or_exception_text(

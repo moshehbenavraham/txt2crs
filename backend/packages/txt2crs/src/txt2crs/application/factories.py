@@ -527,8 +527,12 @@ class RealApplicationFactory:
                 config=self._config,
                 http_client=ingestion_http_client,
             )
+            # System authentication also launches Codex app-server, so its cwd
+            # belongs under the configured ephemeral worker root. Keeping this
+            # directory out of durable state prevents it from entering backups
+            # alongside SQLite, artifacts, and credentials.
             authentication_worker_directory = (
-                self._config.storage.state_directory / "authentication-worker"
+                self._config.worker_directory / "authentication"
             )
             authenticator = DedicatedSystemAuthenticator.create(
                 worker_directory=authentication_worker_directory,

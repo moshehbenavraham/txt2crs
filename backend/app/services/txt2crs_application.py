@@ -40,6 +40,27 @@ P0_ARTIFACT_RETENTION_DAYS = 36_500
 logger = get_logger(__name__)
 
 
+def _log_error_without_masking_primary(
+    event_name: str,
+    *,
+    extra: dict[str, object] | None = None,
+) -> None:
+    """
+    Best-effort an error event while another exception is already in flight.
+
+    A custom logging handler is application code and can itself raise. Startup
+    and cleanup guarantees would become misleading if that secondary observer
+    failure replaced the original composition error, so exceptional branches
+    deliberately keep the primary exception authoritative.
+    """
+    try:
+        logger.error(event_name, extra=extra)
+    except BaseException:
+        # There is already a primary exception to propagate. Retrying or
+        # surfacing this secondary logging failure would hide its root cause.
+        return
+
+
 class ApplicationFactoryBuilder(Protocol):
     """Injectable shell boundary that accepts only one public package config."""
 
@@ -244,10 +265,21 @@ class Txt2CrsApplicationLifecycle:
                 # Never include the exception, config, secret, or private paths
                 # in this event. Later shell error translation owns the
                 # caller-safe failure code.
+                acquired_application = self._application
                 self._application = None
                 self._is_configured = False
                 self._is_started = False
-                logger.error("txt2crs.composition_failed")
+                if acquired_application is not None:
+                    try:
+                        acquired_application.close()
+                    except BaseException:
+                        # Cleanup is still attempted exactly once, but it must
+                        # not replace the primary startup failure. The event
+                        # deliberately contains no exception or path detail.
+                        _log_error_without_masking_primary(
+                            "txt2crs.startup_cleanup_failed"
+                        )
+                _log_error_without_masking_primary("txt2crs.composition_failed")
                 raise
 
     def close(self) -> None:
@@ -267,14 +299,23 @@ class Txt2CrsApplicationLifecycle:
             if not was_started and application is None:
                 return
 
-            logger.info(
-                "txt2crs.shutdown_started",
-                extra={"configured": application is not None},
-            )
+            shutdown_start_log_error: BaseException | None = None
+            try:
+                logger.info(
+                    "txt2crs.shutdown_started",
+                    extra={"configured": application is not None},
+                )
+            except BaseException as logging_error:
+                # Cleanup is the authoritative operation. Remember the
+                # observer failure, continue releasing the facade, and surface
+                # it only if package cleanup itself succeeds.
+                shutdown_start_log_error = logging_error
             try:
                 if application is not None:
                     application.close()
             except BaseException:
-                logger.error("txt2crs.shutdown_failed")
+                _log_error_without_masking_primary("txt2crs.shutdown_failed")
                 raise
+            if shutdown_start_log_error is not None:
+                raise shutdown_start_log_error
             logger.info("txt2crs.shutdown_completed")
