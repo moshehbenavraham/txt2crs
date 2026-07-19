@@ -12,6 +12,12 @@ from txt2crs.jobs.artifact_queries import (
     ArtifactMetadata,
 )
 from txt2crs.jobs.models import JobCheckpoint, JobRecord, JobStatus
+from txt2crs.jobs.notifications import (
+    DeliveryNotificationMode,
+    DeliveryNotificationPolicy,
+    DeliveryNotificationState,
+    DeliveryNotificationStatus,
+)
 from txt2crs.jobs.requests import (
     CurriculumShapeLimits,
     ExecutionProfile,
@@ -68,6 +74,10 @@ __all__ = [
     "ArtifactManifest",
     "ArtifactMetadata",
     "CurriculumShapeLimits",
+    "DeliveryNotificationMode",
+    "DeliveryNotificationPolicy",
+    "DeliveryNotificationState",
+    "DeliveryNotificationStatus",
     "ExecutionProfile",
     "GenerationPreparation",
     "GenerationPreparationService",

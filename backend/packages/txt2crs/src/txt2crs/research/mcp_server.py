@@ -94,6 +94,18 @@ class ResearchMcpApplication:
 
         self.fastmcp.run(transport="stdio")
 
+    def registered_tool_names(self) -> tuple[str, ...]:
+        """Read names from FastMCP's actual registry in registration order."""
+
+        # ``FastMCP.list_tools`` is asynchronous even though its underlying
+        # registry is process-local and synchronous. The managed listener can
+        # be started from code that already owns an event loop, so using
+        # ``asyncio.run`` here would fail in otherwise valid application code.
+        # Reading through FastMCP's tool manager preserves the actual registry
+        # check without creating a second event loop or trusting ``tool_names``.
+        registered_tools = self.fastmcp._tool_manager.list_tools()  # noqa: SLF001
+        return tuple(tool.name for tool in registered_tools)
+
     @property
     def streamable_http_url(self) -> str:
         """Return the loopback URL supplied to the Codex app-server adapter."""

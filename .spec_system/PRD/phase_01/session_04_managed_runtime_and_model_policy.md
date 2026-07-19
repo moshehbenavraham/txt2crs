@@ -2,8 +2,8 @@
 
 **Session ID**: `phase01-session04-managed-runtime-and-model-policy`
 **Package**: backend/packages/txt2crs
-**Status**: Not Started
-**Estimated Tasks**: ~18-24
+**Status**: Complete
+**Estimated Tasks**: 24
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -42,9 +42,9 @@ notification semantics.
 
 ## Prerequisites
 
-- [ ] Session 03 preparation gate proves that providers start only after
+- [x] Session 03 preparation gate proves that providers start only after
   accepted policy.
-- [ ] The existing Codex protocol fixtures and two-tool research declaration
+- [x] The existing Codex protocol fixtures and two-tool research declaration
   are understood.
 
 ---
@@ -61,12 +61,12 @@ notification semantics.
 
 ## Success Criteria
 
-- [ ] The research MCP URL becomes available only after exactly two tools are
+- [x] The research MCP URL becomes available only after exactly two tools are
   ready and the listener always closes.
-- [ ] Configured GPT-5.6 absence makes the runtime unavailable; no older or
+- [x] Configured GPT-5.6 absence makes the runtime unavailable; no older or
   first-discovered model is selected.
-- [ ] Each executor graph receives fresh budget and cancellation state.
-- [ ] Disabled notification records `not_applicable` and cannot block a
+- [x] Each executor graph receives fresh budget and cancellation state.
+- [x] Disabled notification records `not_applicable` and cannot block a
   completed delivery.
-- [ ] Success, failure, cancellation, and shutdown leave no child process,
+- [x] Success, failure, cancellation, and shutdown leave no child process,
   HTTP client, temporary worker resource, or loopback listener.

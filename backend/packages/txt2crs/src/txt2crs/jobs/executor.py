@@ -4,6 +4,7 @@
 
 import json
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import asdict
 from hashlib import sha256
 from typing import Protocol
@@ -45,10 +46,13 @@ class DurablePipeline(Protocol):
 
 
 class DurablePipelineFactory(Protocol):
-    """Construct provider-backed generation only after preparation is durable."""
+    """Own provider-backed generation only after preparation is durable."""
 
-    def create(self, generation_request: GenerationRequest) -> DurablePipeline:
-        """Build a pipeline from the exact request accepted by the job store."""
+    def open(
+        self,
+        generation_request: GenerationRequest,
+    ) -> AbstractContextManager[DurablePipeline]:
+        """Open a pipeline for the exact request accepted by the job store."""
 
 
 class JobExecutionStateError(RuntimeError):
@@ -166,24 +170,24 @@ class GenerationJobExecutor:
                 # The factory is deliberately called after ``prepare_input``
                 # has committed. A worker replacement at this exact boundary
                 # can reuse normalized input without reading the source again.
-                pipeline = self._pipeline_factory.create(generation_request)
-                pipeline_result = pipeline.generate(
-                    preparation=preparation,
-                    cancellation=cancellation,
-                    resume_checkpoint=pipeline_resume_checkpoint,
-                    checkpoint_sink=persist_checkpoint,
-                )
-                # ``persist_checkpoint`` reassigns ``current_job`` while the
-                # pipeline runs, so this check intentionally reads the live
-                # row before accepting the returned artifact set.
-                if current_job.status is not JobStatus.rendering:
-                    raise JobExecutionStateError(
-                        "Pipeline returned without a final accepted checkpoint."
+                with self._pipeline_factory.open(generation_request) as pipeline:
+                    pipeline_result = pipeline.generate(
+                        preparation=preparation,
+                        cancellation=cancellation,
+                        resume_checkpoint=pipeline_resume_checkpoint,
+                        checkpoint_sink=persist_checkpoint,
                     )
-                rendered_artifacts = pipeline_result.rendered_artifacts
-                usage_summary = aggregate_usage(
-                    pipeline_result.usage_records
-                ).model_dump(mode="json")
+                    # ``persist_checkpoint`` reassigns ``current_job`` while
+                    # the pipeline runs, so this check intentionally reads the
+                    # live row before accepting the returned artifact set.
+                    if current_job.status is not JobStatus.rendering:
+                        raise JobExecutionStateError(
+                            "Pipeline returned without a final accepted checkpoint."
+                        )
+                    rendered_artifacts = pipeline_result.rendered_artifacts
+                    usage_summary = aggregate_usage(
+                        pipeline_result.usage_records
+                    ).model_dump(mode="json")
             except Exception:
                 self._settle_generation_failure(
                     current_job=current_job,

@@ -29,6 +29,7 @@ from txt2crs.ai.errors import (
     classify_runtime_error,
 )
 from txt2crs.ai.events import RuntimeEvent, RuntimeEventType, stable_tool_call_id
+from txt2crs.ai.model_policy import Gpt56ModelPolicy, ModelPolicyError
 from txt2crs.ai.runtime import (
     CancellationToken,
     CodexAdapter,
@@ -137,8 +138,14 @@ class CodexSubscriptionRuntime:
         }
     )
 
-    def __init__(self, *, adapter: CodexAdapter) -> None:
+    def __init__(
+        self,
+        *,
+        adapter: CodexAdapter,
+        model_policy: Gpt56ModelPolicy,
+    ) -> None:
         self._adapter = adapter
+        self._model_policy = model_policy
 
     @classmethod
     def build_child_environment(
@@ -159,7 +166,7 @@ class CodexSubscriptionRuntime:
         child_environment["CODEX_HOME"] = str(codex_home)
         return child_environment
 
-    def inspect_readiness(self, *, model_id: str) -> RuntimeReadiness:
+    def inspect_readiness(self) -> RuntimeReadiness:
         """Return a browser-safe account/model/quota readiness projection."""
 
         try:
@@ -198,7 +205,12 @@ class CodexSubscriptionRuntime:
                 ),
             )
 
-        model_entitled = model_id in available_model_ids
+        try:
+            self._model_policy.require_discovered(available_model_ids)
+        except ModelPolicyError:
+            model_entitled = False
+        else:
+            model_entitled = True
         return RuntimeReadiness.create(
             status=(
                 RuntimeReadinessStatus.ready
@@ -216,12 +228,12 @@ class CodexSubscriptionRuntime:
                     "Codex Python SDK."
                 ]
                 if model_entitled
-                else [f"Model {model_id!r} is not available for this account."]
+                else ["The configured GPT-5.6 model is not available for this account."]
             ),
             recovery_actions=(
                 []
                 if model_entitled
-                else ["Choose a model returned by Codex model discovery."]
+                else ["Review the configured GPT-5.6 model and account access."]
             ),
         )
 
@@ -241,10 +253,13 @@ class CodexSubscriptionRuntime:
             )
 
         available_model_ids = self._adapter.list_model_ids()
-        if request.model_id not in available_model_ids:
-            raise RuntimePolicyError(
-                f"Requested model {request.model_id!r} is not available."
+        try:
+            self._model_policy.require_turn_model(
+                requested_model_id=request.model_id,
+                discovered_model_ids=available_model_ids,
             )
+        except ModelPolicyError as model_policy_error:
+            raise RuntimePolicyError(str(model_policy_error)) from None
 
         started_at = monotonic()
         adapter_result = self._adapter.run_turn(
@@ -253,6 +268,13 @@ class CodexSubscriptionRuntime:
             cancellation=cancellation,
         )
         cancellation.raise_if_cancelled()
+        try:
+            self._model_policy.require_result_model(
+                requested_model_id=request.model_id,
+                result_model_id=adapter_result.model_id,
+            )
+        except ModelPolicyError as model_policy_error:
+            raise RuntimePolicyError(str(model_policy_error)) from None
         usage = RuntimeUsage.for_chatgpt_subscription(
             model_id=adapter_result.model_id,
             input_tokens=adapter_result.input_tokens,

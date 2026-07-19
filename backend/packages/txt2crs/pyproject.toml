@@ -1,6 +1,6 @@
 [project]
 name = "txt2crs"
-version = "0.3.6"
+version = "0.4.0"
 description = "Turn source material into researched courses, review packs, and assessments."
 readme = "README_txt2crs.md"
 requires-python = ">=3.12,<3.15"
@@ -32,6 +32,8 @@ dependencies = [
     "pytesseract>=0.3.13,<1",
     "python-docx>=1.2,<2",
     "python-pptx>=1.0,<2",
+    # The engine owns a pre-bound loopback ASGI listener for research MCP.
+    "uvicorn>=0.41,<1",
     "youtube-transcript-api>=1.2,<2",
 ]
 

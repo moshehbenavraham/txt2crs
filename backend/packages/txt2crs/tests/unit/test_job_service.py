@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT-0
 
-"""Tests for accepted-only checkpoints and exactly-once private delivery."""
+"""Tests for accepted-only checkpoints and explicit private delivery."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +13,7 @@ from tests.factories import (
     valid_generation_request,
 )
 from txt2crs.jobs.models import CompletedJobPayload, JobRecord, JobStatus, ResumeState
+from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.service import (
     InMemoryPrivateArtifactStore,
     JobService,
@@ -20,28 +21,6 @@ from txt2crs.jobs.service import (
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import JobNotFoundError, SqliteJobStore
 from txt2crs.rendering.artifacts import RenderedArtifact
-
-
-class IdempotentNotificationSink:
-    """Record one notification per stable delivery key."""
-
-    def __init__(self) -> None:
-        self.sent_keys: set[str] = set()
-        self.send_attempts = 0
-
-    def send_completion(
-        self,
-        *,
-        user_id: str,
-        job_id: str,
-        idempotency_key: str,
-    ) -> None:
-        """Simulate a provider that deduplicates its idempotency key."""
-
-        assert user_id
-        assert job_id
-        self.send_attempts += 1
-        self.sent_keys.add(idempotency_key)
 
 
 class FailOnceArtifactStore(InMemoryPrivateArtifactStore):
@@ -71,21 +50,21 @@ def job_service(
 ) -> tuple[
     JobService,
     InMemoryPrivateArtifactStore,
-    IdempotentNotificationSink,
+    SqliteJobStore,
 ]:
-    """Build a service with durable state and observable local side effects."""
+    """Build a service with durable state and observable private artifacts."""
 
     artifact_store = InMemoryPrivateArtifactStore()
-    notification_sink = IdempotentNotificationSink()
-    service = JobService(
-        store=SqliteJobStore(
-            tmp_path / "jobs.sqlite3",
-            admission_limits=generous_admission_limits(),
-        ),
-        artifact_store=artifact_store,
-        notification_sink=notification_sink,
+    store = SqliteJobStore(
+        tmp_path / "jobs.sqlite3",
+        admission_limits=generous_admission_limits(),
     )
-    return service, artifact_store, notification_sink
+    service = JobService(
+        store=store,
+        artifact_store=artifact_store,
+        notification_policy=DeliveryNotificationPolicy.disabled(),
+    )
+    return service, artifact_store, store
 
 
 def accepted_job(service: JobService) -> JobRecord:
@@ -118,7 +97,7 @@ def test_resume_delegates_one_atomic_store_snapshot(
 ) -> None:
     """The service cannot assemble job, request, and checkpoint across writes."""
 
-    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    service, _artifact_store, _store = job_service(tmp_path)
     generation_request = valid_generation_request()
     job = service.submit(
         user_id="user-1",
@@ -156,7 +135,7 @@ def test_resume_delegates_one_atomic_store_snapshot(
 def test_only_accepted_required_stage_is_checkpointed(tmp_path: Path) -> None:
     """Required degradation becomes visible failure and stores no artifact."""
 
-    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    service, _artifact_store, _store = job_service(tmp_path)
     started_job = accepted_job(service)
 
     failed_job = service.checkpoint_stage(
@@ -186,7 +165,7 @@ def test_only_accepted_required_stage_is_checkpointed(tmp_path: Path) -> None:
 def test_resume_returns_only_last_accepted_checkpoint(tmp_path: Path) -> None:
     """Crash recovery receives validated state and its exact job revision."""
 
-    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    service, _artifact_store, _store = job_service(tmp_path)
     started_job = accepted_job(service)
     drafting_job = service.checkpoint_stage(
         job_id=started_job.job_id,
@@ -209,10 +188,12 @@ def test_resume_returns_only_last_accepted_checkpoint(tmp_path: Path) -> None:
     assert resume_state.checkpoint.artifact == {"source_count": 3}
 
 
-def test_completion_stores_private_artifacts_and_notifies_once(tmp_path: Path) -> None:
-    """Replaying completion cannot duplicate files or completion notification."""
+def test_completion_stores_artifacts_and_disabled_notification_once(
+    tmp_path: Path,
+) -> None:
+    """Replaying completion cannot duplicate files or durable disabled state."""
 
-    service, artifact_store, notification_sink = job_service(tmp_path)
+    service, artifact_store, store = job_service(tmp_path)
     started_job = accepted_job(service)
     rendering_job = service.checkpoint_stage(
         job_id=started_job.job_id,
@@ -259,8 +240,13 @@ def test_completion_stores_private_artifacts_and_notifies_once(tmp_path: Path) -
     assert completed_job.status is JobStatus.completed
     assert replayed_completion == completed_job
     assert artifact_store.save_count == 1
-    assert notification_sink.sent_keys == {f"delivery:{rendering_job.job_id}"}
-    assert notification_sink.send_attempts == 1
+    assert (
+        store.get_delivery_notification(
+            job_id=rendering_job.job_id,
+            user_id="user-1",
+        )
+        == DeliveryNotificationPolicy.disabled().state_for_completion()
+    )
     assert (
         artifact_store.get(
             user_id="user-1",
@@ -402,7 +388,7 @@ def test_public_snapshot_reports_unpublished_artifacts_after_owner_check(
 ) -> None:
     """An authorized accepted job may safely have no artifact manifest yet."""
 
-    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    service, _artifact_store, _store = job_service(tmp_path)
     submitted_job = service.submit(
         user_id="user-1",
         idempotency_key="snapshot-before-artifacts",
@@ -431,14 +417,14 @@ def test_delivery_resumes_after_worker_failure_in_delivering_state(
     """A delivery-side crash can retry from the durable validated checkpoint."""
 
     artifact_store = FailOnceArtifactStore()
-    notification_sink = IdempotentNotificationSink()
+    store = SqliteJobStore(
+        tmp_path / "jobs.sqlite3",
+        admission_limits=generous_admission_limits(),
+    )
     service = JobService(
-        store=SqliteJobStore(
-            tmp_path / "jobs.sqlite3",
-            admission_limits=generous_admission_limits(),
-        ),
+        store=store,
         artifact_store=artifact_store,
-        notification_sink=notification_sink,
+        notification_policy=DeliveryNotificationPolicy.disabled(),
     )
     started_job = accepted_job(service)
     rendering_job = service.checkpoint_stage(
@@ -486,13 +472,19 @@ def test_delivery_resumes_after_worker_failure_in_delivering_state(
     assert interrupted_job.status is JobStatus.delivering
     assert completed_job.status is JobStatus.completed
     assert artifact_store.save_count == 1
-    assert notification_sink.send_attempts == 1
+    assert (
+        store.get_delivery_notification(
+            job_id=rendering_job.job_id,
+            user_id="user-1",
+        )
+        == DeliveryNotificationPolicy.disabled().state_for_completion()
+    )
 
 
 def test_partial_failure_never_stores_or_delivers_artifacts(tmp_path: Path) -> None:
     """Failed validation cannot masquerade as success or trigger side effects."""
 
-    service, artifact_store, notification_sink = job_service(tmp_path)
+    service, artifact_store, store = job_service(tmp_path)
     started_job = accepted_job(service)
 
     failed_job = service.checkpoint_stage(
@@ -514,13 +506,17 @@ def test_partial_failure_never_stores_or_delivers_artifacts(tmp_path: Path) -> N
 
     assert failed_job.status is JobStatus.failed
     assert artifact_store.save_count == 0
-    assert notification_sink.send_attempts == 0
+    with pytest.raises(JobNotFoundError):
+        store.get_delivery_notification(
+            job_id=started_job.job_id,
+            user_id="user-1",
+        )
 
 
 def test_all_service_reads_enforce_owner_identity(tmp_path: Path) -> None:
     """Application callers cannot read or resume another tenant's job."""
 
-    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    service, _artifact_store, _store = job_service(tmp_path)
     started_job = accepted_job(service)
 
     with pytest.raises(JobNotFoundError):

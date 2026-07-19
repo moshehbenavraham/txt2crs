@@ -3,12 +3,12 @@
 """Integration tests for owner-safe job and artifact read operations."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
 from tests.factories import (
+    disabled_delivery_notification_policy,
     generous_admission_limits,
     standard_admission_reservation,
     valid_generation_preparation,
@@ -28,24 +28,6 @@ from txt2crs.rendering.artifacts import RenderedArtifact
 
 _HASH = "sha256:" + ("c" * 64)
 _PRIVATE_INPUT = "PRIVATE QUERY SERVICE INPUT"
-
-
-@dataclass
-class _UnusedNotificationSink:
-    """Fail if a read-only query test unexpectedly sends a notification."""
-
-    def send_completion(
-        self,
-        *,
-        user_id: str,
-        job_id: str,
-        idempotency_key: str,
-    ) -> None:
-        """Reject notification side effects in a read-only integration test."""
-
-        raise AssertionError(
-            f"Unexpected notification for {user_id!r}, {job_id!r}, {idempotency_key!r}."
-        )
 
 
 def _job_service(
@@ -68,7 +50,7 @@ def _job_service(
         JobService(
             store=job_store,
             artifact_store=artifact_store,
-            notification_sink=_UnusedNotificationSink(),
+            notification_policy=disabled_delivery_notification_policy(),
         ),
         job_store,
         artifact_store,

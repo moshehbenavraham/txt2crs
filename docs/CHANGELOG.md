@@ -22,68 +22,47 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
-## [0.3.6] - 2026-07-19
+## [0.4.0] - 2026-07-19
 
 ### Added
 
-- Added canonical package-owned routing between supported YouTube transcript
-  ingestion and general public URL ingestion.
-- Added immutable P0 learning defaults, curriculum limits, prepared preference
-  intent, and resolved learning-contract validation.
-- Added provider-free two-stage policy preparation with durable sequence-one
-  checkpoints and comprehensive routing, policy, preference, and restart tests.
+- Added a package-owned managed Uvicorn/FastMCP lifecycle that pre-binds an
+  explicit numeric loopback listener, verifies the exact two-tool registry,
+  publishes only after readiness, and releases the listener on every exit.
+- Added an immutable GPT-5.6 model policy for exactly four reviewed family
+  slugs, with exact discovery, requested-model, and returned-model checks.
+- Added fresh per-job budget/cancellation resources and one managed provider
+  session for temporary storage, HTTP, research MCP, and the Codex app-server.
+- Added versioned P0 notification state with durable
+  `disabled` / `not_applicable` semantics and SQLite migration 004.
 
 ### Changed
 
-- Refactored generation and execution to start from the exact stored request,
-  reuse accepted preparation, and construct provider-backed pipelines lazily.
-- Extended cumulative checkpoints and public job projection for resolved
-  preferences and safe preparation-only progress.
+- Changed the provider-backed pipeline factory to a context-managed boundary
+  that remains open through final checkpoint acceptance and result extraction.
+- Changed `CodexSubscriptionRuntime` to require the reviewed model policy and
+  fail closed when the authenticated account cannot discover the exact target.
+- Made package SQLite migration application serialized and atomic with each
+  migration-version record.
+
+### Removed
+
+- Removed nullable notification-sink behavior from P0 completion; course
+  delivery no longer depends on or calls an email/notification provider.
 
 ### Fixed
 
-- Rejected transplanted or future-filled checkpoints and settled ordinary
-  pipeline-factory failures instead of leaving jobs runnable.
-- Aligned custom objective limits and rejected non-string URL normalizer output
-  before adapter delegation.
+- Preserved primary generation failures when Codex or external provider
+  resource cleanup also fails.
+- Prevented transient server readiness, registry failures, shutdown timeouts,
+  and unexpected server exits from leaving a published or connectable MCP
+  endpoint.
+- Kept managed provider resources alive until all returned pipeline values are
+  accepted and extracted.
 
 ### Security
 
-- Enforced consent and age-group-aware policy before ingestion plus normalized
-  content policy before any research or Codex work.
-- Kept normalized text, request hashes, policy internals, preferences, provider
-  values, and checkpoint dictionaries outside public output and safe errors.
-
-## [0.3.5] - 2026-07-19
-
-### Added
-
-- Added immutable, bounded public job snapshots with safe progress, input,
-  failure, source, conflict, and artifact-availability projections.
-- Added canonical artifact manifest contracts and owner-scoped,
-  context-managed single-artifact streaming from one verified descriptor.
-- Added real SQLite/filesystem restart integration coverage plus privacy,
-  topology, mutation, cleanup, and deterministic-store regression tests.
-
-### Changed
-
-- Split artifact metadata contracts, confined reads, and atomic lifecycle into
-  cohesive query, reader, and store modules.
-- Extended `JobService` and its deterministic artifact store with public
-  snapshot, manifest, and bounded stream operations.
-
-### Fixed
-
-- Prevented metadata queries from reporting stale body sizes and prevented
-  writers from publishing manifests or metadata their readers cannot consume.
-- Made in-memory artifact writes atomic across timestamp failures and kept
-  failed/cancelled public state internally consistent.
-
-### Security
-
-- Kept raw requests, checkpoint payloads, evidence excerpts, provider data,
-  token accounting, filesystem paths, and descriptors outside public output
-  and context-free errors.
-- Rejected traversal, symlinks, unsafe topology, file/media control
-  characters, secret-shaped URL paths, content mutation, and wrong-owner
-  artifact access at the package boundary.
+- Restricted managed research publication to numeric loopback IPs, stripped
+  API keys from the Codex child environment, and kept credentials, raw
+  provider errors, discovery lists, ports, paths, payloads, and thread details
+  out of public readiness and lifecycle errors.

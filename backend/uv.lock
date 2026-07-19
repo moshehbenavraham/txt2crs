@@ -2398,7 +2398,7 @@ wheels = [
 
 [[package]]
 name = "txt2crs"
-version = "0.3.6"
+version = "0.4.0"
 source = { editable = "packages/txt2crs" }
 dependencies = [
     { name = "httpx" },
@@ -2411,6 +2411,7 @@ dependencies = [
     { name = "pytesseract" },
     { name = "python-docx" },
     { name = "python-pptx" },
+    { name = "uvicorn" },
     { name = "youtube-transcript-api" },
 ]
 
@@ -2440,6 +2441,7 @@ requires-dist = [
     { name = "pytesseract", specifier = ">=0.3.13,<1" },
     { name = "python-docx", specifier = ">=1.2,<2" },
     { name = "python-pptx", specifier = ">=1.0,<2" },
+    { name = "uvicorn", specifier = ">=0.41,<1" },
     { name = "youtube-transcript-api", specifier = ">=1.2,<2" },
 ]
 provides-extras = ["transcription"]

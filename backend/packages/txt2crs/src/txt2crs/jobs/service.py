@@ -25,6 +25,7 @@ from txt2crs.jobs.models import (
     JobStatus,
     ResumeState,
 )
+from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.public_queries import (
     PublicJobSnapshot,
     project_public_job_snapshot,
@@ -68,19 +69,6 @@ class PrivateArtifactStore(Protocol):
         artifact_id: str,
     ) -> AbstractContextManager[Iterator[bytes]]:
         """Open one verified bounded byte stream for the context lifetime."""
-
-
-class CompletionNotificationSink(Protocol):
-    """Send a completion notification with provider-level idempotency."""
-
-    def send_completion(
-        self,
-        *,
-        user_id: str,
-        job_id: str,
-        idempotency_key: str,
-    ) -> None:
-        """Send or deduplicate one completion notification."""
 
 
 class InMemoryPrivateArtifactStore:
@@ -208,11 +196,11 @@ class JobService:
         *,
         store: SqliteJobStore,
         artifact_store: PrivateArtifactStore,
-        notification_sink: CompletionNotificationSink,
+        notification_policy: DeliveryNotificationPolicy,
     ) -> None:
         self._store = store
         self._artifact_store = artifact_store
-        self._notification_sink = notification_sink
+        self._notification_policy = notification_policy
 
     def submit(
         self,
@@ -408,10 +396,21 @@ class JobService:
         expected_revision: int,
         payload: CompletedJobPayload,
     ) -> JobRecord:
-        """Store privately, dispatch one idempotent notification, and complete."""
+        """Store privately, persist explicit notification state, and complete."""
 
         current_job = self._store.get_job(job_id=job_id, user_id=user_id)
+        payload_hash = _hash_completed_payload(payload)
+        notification_state = self._notification_policy.state_for_completion()
         if current_job.status is JobStatus.completed:
+            # A completed replay performs no provider or filesystem work, but
+            # it still proves that the caller supplied the exact payload and
+            # policy state that already own this delivery.
+            self._store.record_delivery_if_absent(
+                job_id=job_id,
+                user_id=user_id,
+                payload_hash=payload_hash,
+                notification_state=notification_state,
+            )
             return current_job
 
         # Entering ``delivering`` is durable. If a worker or storage provider
@@ -436,22 +435,12 @@ class JobService:
             job_id=job_id,
             artifacts=payload.artifacts,
         )
-        payload_hash = _hash_completed_payload(payload)
         self._store.record_delivery_if_absent(
             job_id=job_id,
             user_id=user_id,
             payload_hash=payload_hash,
+            notification_state=notification_state,
         )
-        if self._store.delivery_needs_notification(
-            job_id=job_id,
-            user_id=user_id,
-        ):
-            self._notification_sink.send_completion(
-                user_id=user_id,
-                job_id=job_id,
-                idempotency_key=f"delivery:{job_id}",
-            )
-            self._store.mark_delivery_notified(job_id=job_id, user_id=user_id)
         return self._store.compare_and_swap_status(
             job_id=job_id,
             user_id=user_id,

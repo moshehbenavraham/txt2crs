@@ -12,11 +12,14 @@ from hashlib import sha256
 from typing import Any
 
 from txt2crs.ai.budgets import RunBudgetSnapshot
+from txt2crs.ai.job_runtime import JobRuntimeResources, JobRuntimeResourcesFactory
+from txt2crs.ai.model_policy import DEFAULT_GPT56_MODEL_ID, Gpt56ModelPolicy
 from txt2crs.domain.models import InputDocument
 from txt2crs.generation.models import LearningPreferences
 from txt2crs.generation.pipeline import PipelineCheckpoint
 from txt2crs.generation.preferences import PreparedLearningPreferences
 from txt2crs.ingestion.models import InputPayload, InputType
+from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.preparation import GenerationPreparation
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
 from txt2crs.jobs.requests import (
@@ -340,7 +343,7 @@ def valid_execution_profile(
         engine_version="engine-0.4",
         prompt_version="course-pipeline-v1",
         policy_version="content-policy-v1",
-        model_id="gpt-5.6",
+        model_id=DEFAULT_GPT56_MODEL_ID,
         reasoning_effort="high",
         retry_policy=RequestRetryPolicy(
             maximum_attempts=3,
@@ -411,6 +414,27 @@ def valid_generation_request(
         policy_flags=policy_flags,
         execution_profile=execution_profile or valid_execution_profile(),
     )
+
+
+def canonical_gpt56_model_policy() -> Gpt56ModelPolicy:
+    """Return the exact reviewed model policy shared by composition tests."""
+
+    return Gpt56ModelPolicy(configured_model_id=DEFAULT_GPT56_MODEL_ID)
+
+
+def fresh_job_runtime_resources(
+    execution_profile: ExecutionProfile | None = None,
+) -> JobRuntimeResources:
+    """Build pristine attempt state from a supplied or canonical profile."""
+
+    selected_execution_profile = execution_profile or valid_execution_profile()
+    return JobRuntimeResourcesFactory().create(selected_execution_profile)
+
+
+def disabled_delivery_notification_policy() -> DeliveryNotificationPolicy:
+    """Return the explicit provider-free policy shared by application tests."""
+
+    return DeliveryNotificationPolicy.disabled()
 
 
 def valid_input_document(

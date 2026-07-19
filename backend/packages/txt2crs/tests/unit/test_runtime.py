@@ -14,6 +14,7 @@ from txt2crs.ai.codex_runtime import (
     RuntimePolicyError,
 )
 from txt2crs.ai.fake_runtime import FakeRuntime, ScriptedTurn
+from txt2crs.ai.model_policy import Gpt56ModelPolicy
 from txt2crs.ai.runtime import CancellationToken, CodexAdapterResult, TurnRequest
 from txt2crs.ai.runtime_status import (
     CredentialStatus,
@@ -30,10 +31,12 @@ class StubCodexAdapter:
         self,
         *,
         account_type: str = "chatgpt",
-        models: tuple[str, ...] = ("gpt-5.4",),
+        models: tuple[str, ...] = ("gpt-5.6",),
+        result_model_id: str | None = None,
     ) -> None:
         self.account_type = account_type
         self.models = models
+        self.result_model_id = result_model_id
         self.received_output_schema: dict[str, Any] | None = None
 
     def inspect_account_type(self) -> str:
@@ -61,13 +64,13 @@ class StubCodexAdapter:
             output=valid_course_data(),
             thread_id="thread-1",
             turn_id="turn-1",
-            model_id=request.model_id,
+            model_id=self.result_model_id or request.model_id,
             input_tokens=125,
             output_tokens=75,
         )
 
 
-def course_turn_request(model_id: str = "gpt-5.4") -> TurnRequest:
+def course_turn_request(model_id: str = "gpt-5.6") -> TurnRequest:
     """Build the minimum trusted request used by runtime tests."""
 
     return TurnRequest(
@@ -84,7 +87,10 @@ def course_turn_request(model_id: str = "gpt-5.4") -> TurnRequest:
 def test_subscription_runtime_rejects_api_key_accounts() -> None:
     """Subscription mode cannot silently spend a Platform API key."""
 
-    runtime = CodexSubscriptionRuntime(adapter=StubCodexAdapter(account_type="api_key"))
+    runtime = CodexSubscriptionRuntime(
+        adapter=StubCodexAdapter(account_type="api_key"),
+        model_policy=Gpt56ModelPolicy(),
+    )
 
     with pytest.raises(RuntimePolicyError, match="ChatGPT"):
         runtime.run_validated_turn(
@@ -98,7 +104,10 @@ def test_subscription_runtime_uses_discovered_models_and_json_schema() -> None:
     """The wrapper validates model entitlement and transmits the exact schema."""
 
     adapter = StubCodexAdapter()
-    runtime = CodexSubscriptionRuntime(adapter=adapter)
+    runtime = CodexSubscriptionRuntime(
+        adapter=adapter,
+        model_policy=Gpt56ModelPolicy(),
+    )
 
     result = runtime.run_validated_turn(
         request=course_turn_request(),
@@ -115,11 +124,14 @@ def test_subscription_runtime_uses_discovered_models_and_json_schema() -> None:
 def test_subscription_runtime_rejects_an_undiscovered_model() -> None:
     """A configured model cannot be guessed when app-server omits it."""
 
-    runtime = CodexSubscriptionRuntime(adapter=StubCodexAdapter(models=("gpt-5.3",)))
+    runtime = CodexSubscriptionRuntime(
+        adapter=StubCodexAdapter(models=("gpt-5.4", "gpt-5.6-sol")),
+        model_policy=Gpt56ModelPolicy(),
+    )
 
     with pytest.raises(RuntimePolicyError, match="not available"):
         runtime.run_validated_turn(
-            request=course_turn_request(model_id="gpt-5.4"),
+            request=course_turn_request(),
             artifact_model=Course,
             cancellation=CancellationToken(),
         )
@@ -128,9 +140,12 @@ def test_subscription_runtime_rejects_an_undiscovered_model() -> None:
 def test_runtime_readiness_keeps_account_model_quota_and_job_state_separate() -> None:
     """A usable provider does not invent quota telemetry or job completion."""
 
-    runtime = CodexSubscriptionRuntime(adapter=StubCodexAdapter())
+    runtime = CodexSubscriptionRuntime(
+        adapter=StubCodexAdapter(),
+        model_policy=Gpt56ModelPolicy(),
+    )
 
-    readiness = runtime.inspect_readiness(model_id="gpt-5.4")
+    readiness = runtime.inspect_readiness()
 
     assert readiness.status is RuntimeReadinessStatus.ready
     assert readiness.credential_status is CredentialStatus.valid
@@ -151,9 +166,12 @@ def test_runtime_readiness_returns_redacted_reauthentication_recovery() -> None:
                 "401 expired credential sk-secret-value at /home/ada/auth.json"
             )
 
-    runtime = CodexSubscriptionRuntime(adapter=ExpiredAdapter())
+    runtime = CodexSubscriptionRuntime(
+        adapter=ExpiredAdapter(),
+        model_policy=Gpt56ModelPolicy(),
+    )
 
-    readiness = runtime.inspect_readiness(model_id="gpt-5.4")
+    readiness = runtime.inspect_readiness()
 
     assert readiness.status is RuntimeReadinessStatus.unavailable
     assert readiness.credential_status is CredentialStatus.reauthentication_required
@@ -161,6 +179,22 @@ def test_runtime_readiness_returns_redacted_reauthentication_recovery() -> None:
     serialized_readiness = readiness.model_dump_json()
     assert "sk-secret-value" not in serialized_readiness
     assert "/home/ada" not in serialized_readiness
+
+
+def test_subscription_runtime_rejects_adapter_model_substitution() -> None:
+    """A provider result cannot silently claim a different or older model."""
+
+    runtime = CodexSubscriptionRuntime(
+        adapter=StubCodexAdapter(result_model_id="gpt-5.4"),
+        model_policy=Gpt56ModelPolicy(),
+    )
+
+    with pytest.raises(RuntimePolicyError, match="configured GPT-5.6"):
+        runtime.run_validated_turn(
+            request=course_turn_request(),
+            artifact_model=Course,
+            cancellation=CancellationToken(),
+        )
 
 
 def test_runtime_child_environment_removes_platform_api_credentials() -> None:

@@ -145,7 +145,7 @@ class FakeSdkThread:
     ) -> FakeTurnHandle:
         """Record the schema-constrained turn."""
 
-        assert model == "gpt-5.4"
+        assert model == "gpt-5.6"
         self.received_prompt = prompt
         self.received_schema = output_schema
         return self.handle
@@ -172,7 +172,7 @@ class FakeSdkClient:
     def models(self) -> FakeModelsResponse:
         """Return one entitled model."""
 
-        return FakeModelsResponse(data=[FakeModel(model="gpt-5.4")])
+        return FakeModelsResponse(data=[FakeModel(model="gpt-5.6")])
 
     def thread_start(self, **arguments: Any) -> FakeSdkThread:
         """Record isolation policy and return the fake thread."""
@@ -192,7 +192,7 @@ def turn_request(*, timeout_seconds: float = 1) -> TurnRequest:
     return TurnRequest(
         request_id="request-1",
         stage="write_lessons",
-        model_id="gpt-5.4",
+        model_id="gpt-5.6",
         prompt_version="write-v1",
         trusted_instructions="Return the course schema.",
         untrusted_data="<learner_input>Variables</learner_input>",
@@ -219,7 +219,7 @@ def test_adapter_projects_account_models_schema_output_and_usage() -> None:
 
     assert adapter.inspect_account_type() == "chatgpt"
     assert sdk_client.account_refresh_requested is True
-    assert adapter.list_model_ids() == ("gpt-5.4",)
+    assert adapter.list_model_ids() == ("gpt-5.6",)
     result = adapter.run_turn(
         request=turn_request(),
         output_schema={"type": "object"},

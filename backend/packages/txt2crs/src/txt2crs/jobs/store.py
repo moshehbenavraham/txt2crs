@@ -19,6 +19,7 @@ from txt2crs.jobs.models import (
     ResumeState,
     validate_status_transition,
 )
+from txt2crs.jobs.notifications import DeliveryNotificationState
 from txt2crs.jobs.quota import (
     AdmissionLimits,
     AdmissionReservation,
@@ -39,6 +40,7 @@ _MIGRATION_RESOURCES = {
     1: "001_jobs.sql",
     2: "002_job_admissions.sql",
     3: "003_generation_requests.sql",
+    4: "004_delivery_notifications.sql",
 }
 _MIGRATION_VERSION = max(_MIGRATION_RESOURCES)
 
@@ -102,7 +104,14 @@ class SqliteJobStore:
         self._lock = RLock()
         self._admission_limits = admission_limits
         self._clock = clock or (lambda: datetime.now(UTC))
-        self._apply_migrations()
+        try:
+            self._apply_migrations()
+        except BaseException:
+            # Construction has not yielded a usable store, so no caller can
+            # close this connection. Release it here on migration errors,
+            # cancellation, or process-shutdown exceptions.
+            self._connection.close()
+            raise
 
     @property
     def migration_version(self) -> int:
@@ -114,23 +123,59 @@ class SqliteJobStore:
         return int(row["version"])
 
     def _apply_migrations(self) -> None:
-        """Apply each idempotent schema migration and record its version."""
+        """Apply each not-yet-recorded migration exactly once."""
 
         with self._lock:
-            for migration_version in sorted(_MIGRATION_RESOURCES):
-                migration_sql = (
-                    files("txt2crs.jobs")
-                    .joinpath("migrations", _MIGRATION_RESOURCES[migration_version])
-                    .read_text(encoding="utf-8")
-                )
-                self._connection.executescript(migration_sql)
-                self._connection.execute(
+            # Acquire SQLite's writer lock before reading applied versions.
+            # Concurrent workers then serialize migration discovery instead of
+            # both deciding that the same one-time ALTER is missing.
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                migration_table_exists = self._connection.execute(
                     """
-                    INSERT OR IGNORE INTO schema_migrations(version, applied_at)
-                    VALUES (?, ?)
-                    """,
-                    (migration_version, self._now_text()),
+                    SELECT 1
+                    FROM sqlite_master
+                    WHERE type = 'table' AND name = 'schema_migrations'
+                    """
+                ).fetchone()
+                applied_versions = (
+                    {
+                        int(row["version"])
+                        for row in self._connection.execute(
+                            "SELECT version FROM schema_migrations"
+                        ).fetchall()
+                    }
+                    if migration_table_exists is not None
+                    else set()
                 )
+                for migration_version in sorted(_MIGRATION_RESOURCES):
+                    if migration_version in applied_versions:
+                        continue
+                    migration_sql = (
+                        files("txt2crs.jobs")
+                        .joinpath(
+                            "migrations",
+                            _MIGRATION_RESOURCES[migration_version],
+                        )
+                        .read_text(encoding="utf-8")
+                    )
+                    # ``sqlite3.executescript`` implicitly commits before
+                    # execution, which would separate ALTER statements from
+                    # their version record. Execute complete statements inside
+                    # this explicit transaction instead.
+                    for migration_statement in _iter_sqlite_statements(migration_sql):
+                        self._connection.execute(migration_statement)
+                    self._connection.execute(
+                        """
+                        INSERT INTO schema_migrations(version, applied_at)
+                        VALUES (?, ?)
+                        """,
+                        (migration_version, self._now_text()),
+                    )
+            except BaseException:
+                self._connection.execute("ROLLBACK")
+                raise
+            self._connection.execute("COMMIT")
 
     def close(self) -> None:
         """Close the process-local SQLite connection."""
@@ -558,8 +603,9 @@ class SqliteJobStore:
         job_id: str,
         user_id: str,
         payload_hash: str,
+        notification_state: DeliveryNotificationState,
     ) -> bool:
-        """Claim one stable delivery row after private artifact storage."""
+        """Claim one stable delivery row with exact notification state."""
 
         self.get_job(job_id=job_id, user_id=user_id)
         with self._lock:
@@ -572,44 +618,66 @@ class SqliteJobStore:
                     raise IdempotencyConflictError(
                         "A different payload already owns this delivery."
                     )
+                if (
+                    str(existing_row["notification_schema_version"])
+                    != notification_state.schema_version
+                    or str(existing_row["notification_mode"])
+                    != notification_state.mode.value
+                    or str(existing_row["notification_status"])
+                    != notification_state.status.value
+                ):
+                    raise IdempotencyConflictError(
+                        "Different notification state already owns this delivery."
+                    )
                 return False
             self._connection.execute(
                 """
                 INSERT INTO job_deliveries(
-                    job_id, user_id, payload_hash, created_at, notified_at
-                ) VALUES (?, ?, ?, ?, NULL)
+                    job_id, user_id, payload_hash, created_at, notified_at,
+                    notification_schema_version, notification_mode,
+                    notification_status
+                ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)
                 """,
-                (job_id, user_id, payload_hash, self._now_text()),
+                (
+                    job_id,
+                    user_id,
+                    payload_hash,
+                    self._now_text(),
+                    notification_state.schema_version,
+                    notification_state.mode.value,
+                    notification_state.status.value,
+                ),
             )
             return True
 
-    def delivery_needs_notification(self, *, job_id: str, user_id: str) -> bool:
-        """Return whether the durable delivery outbox remains pending."""
+    def get_delivery_notification(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> DeliveryNotificationState:
+        """Read one owner's explicit versioned delivery-notification state."""
 
         self.get_job(job_id=job_id, user_id=user_id)
-        row = self._connection.execute(
-            """
-            SELECT notified_at FROM job_deliveries
-            WHERE job_id = ? AND user_id = ?
-            """,
-            (job_id, user_id),
-        ).fetchone()
-        return row is not None and row["notified_at"] is None
-
-    def mark_delivery_notified(self, *, job_id: str, user_id: str) -> None:
-        """Mark the outbox sent after an idempotent notification succeeds."""
-
         with self._lock:
-            cursor = self._connection.execute(
+            row = self._connection.execute(
                 """
-                UPDATE job_deliveries
-                SET notified_at = COALESCE(notified_at, ?)
+                SELECT notification_schema_version, notification_mode,
+                       notification_status
+                FROM job_deliveries
                 WHERE job_id = ? AND user_id = ?
                 """,
-                (self._now_text(), job_id, user_id),
-            )
-            if cursor.rowcount != 1:
+                (job_id, user_id),
+            ).fetchone()
+            if row is None:
                 raise JobNotFoundError("The requested delivery was not found.")
+            return DeliveryNotificationState.model_validate(
+                {
+                    "schema_version": str(row["notification_schema_version"]),
+                    "mode": str(row["notification_mode"]),
+                    "status": str(row["notification_status"]),
+                }
+            )
 
 
 def _job_from_row(row: sqlite3.Row) -> JobRecord:
@@ -662,3 +730,20 @@ def _canonical_json(value: object) -> str:
         sort_keys=True,
         separators=(",", ":"),
     )
+
+
+def _iter_sqlite_statements(migration_sql: str) -> list[str]:
+    """Split a reviewed migration without breaking triggers or SQL comments."""
+
+    complete_statements: list[str] = []
+    statement_lines: list[str] = []
+    for migration_line in migration_sql.splitlines(keepends=True):
+        statement_lines.append(migration_line)
+        statement_candidate = "".join(statement_lines)
+        if sqlite3.complete_statement(statement_candidate):
+            if statement_candidate.strip():
+                complete_statements.append(statement_candidate)
+            statement_lines = []
+    if "".join(statement_lines).strip():
+        raise JobStoreError("A packaged SQLite migration is incomplete.")
+    return complete_statements

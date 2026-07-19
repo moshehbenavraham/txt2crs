@@ -3,8 +3,10 @@
 """Durable preparation-first execution through private artifact delivery."""
 
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -37,12 +39,14 @@ from txt2crs.generation.pipeline import (
 from txt2crs.ingestion.models import InputPayload
 from txt2crs.ingestion.service import IngestionService
 from txt2crs.jobs.executor import (
+    DurablePipeline,
     DurablePipelineFactory,
     GenerationJobExecutor,
     JobExecutionStateError,
     PolicyViolationError,
 )
 from txt2crs.jobs.models import JobStatus
+from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.preparation import GenerationPreparation, GenerationPreparationService
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import InMemoryPrivateArtifactStore, JobService
@@ -50,26 +54,6 @@ from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import SqliteJobStore
 from txt2crs.rendering.artifacts import ArtifactRenderer, RenderedArtifact
 from txt2crs.security.policy import ContentPolicy
-
-
-class RecordingNotificationSink:
-    """Record the stable notification keys emitted after private storage."""
-
-    def __init__(self) -> None:
-        self.keys: list[str] = []
-
-    def send_completion(
-        self,
-        *,
-        user_id: str,
-        job_id: str,
-        idempotency_key: str,
-    ) -> None:
-        """Record one provider-idempotent completion request."""
-
-        assert user_id
-        assert job_id
-        self.keys.append(idempotency_key)
 
 
 class CountingPipeline:
@@ -99,27 +83,39 @@ class CountingPipeline:
 
 
 class RecordingPipelineFactory:
-    """Lazily return scripted pipelines and inspect the durable ordering point."""
+    """Open scripted pipelines lazily and record their complete lifetime."""
 
     def __init__(
         self,
-        pipelines: tuple[CountingPipeline, ...],
+        pipelines: tuple[DurablePipeline, ...],
         *,
-        before_create: Callable[[], None] | None = None,
+        before_open: Callable[[], None] | None = None,
+        lifecycle_events: list[str] | None = None,
     ) -> None:
         self._pipelines = deque(pipelines)
-        self._before_create = before_create
+        self._before_open = before_open
         self.requests: list[GenerationRequest] = []
+        self.lifecycle_events = lifecycle_events if lifecycle_events is not None else []
 
-    def create(self, generation_request: GenerationRequest) -> CountingPipeline:
-        """Record construction only after the executor has prepared the request."""
+    @contextmanager
+    def open(
+        self,
+        generation_request: GenerationRequest,
+    ) -> Iterator[DurablePipeline]:
+        """Own one pipeline from post-preparation construction through its turn."""
 
-        if self._before_create is not None:
-            self._before_create()
+        if self._before_open is not None:
+            self._before_open()
         self.requests.append(generation_request)
-        if not self._pipelines:
-            raise AssertionError("No pipeline was configured for this factory call.")
-        return self._pipelines.popleft()
+        self.lifecycle_events.append("pipeline.open")
+        try:
+            if not self._pipelines:
+                raise AssertionError(
+                    "No pipeline was configured for this factory call."
+                )
+            yield self._pipelines.popleft()
+        finally:
+            self.lifecycle_events.append("pipeline.close")
 
 
 class RaisingPipelineFactory:
@@ -129,12 +125,20 @@ class RaisingPipelineFactory:
         self._before_create = before_create
         self.call_count = 0
 
-    def create(self, _generation_request: GenerationRequest) -> CountingPipeline:
-        """Prove preparation durability, then interrupt the worker."""
+    @contextmanager
+    def open(
+        self,
+        _generation_request: GenerationRequest,
+    ) -> Iterator[CountingPipeline]:
+        """Prove preparation durability, then interrupt managed construction."""
 
         self._before_create()
         self.call_count += 1
-        raise SystemExit("simulated worker replacement after preparation")
+        try:
+            raise SystemExit("simulated worker replacement after preparation")
+            yield  # pragma: no cover - makes this a typed generator context.
+        finally:
+            self.call_count += 0
 
 
 class FailingPipelineFactory:
@@ -142,12 +146,85 @@ class FailingPipelineFactory:
 
     def __init__(self) -> None:
         self.call_count = 0
+        self.lifecycle_events: list[str] = []
 
-    def create(self, _generation_request: GenerationRequest) -> CountingPipeline:
-        """Represent a terminal provider startup error, not process loss."""
+    @contextmanager
+    def open(
+        self,
+        _generation_request: GenerationRequest,
+    ) -> Iterator[CountingPipeline]:
+        """Represent a managed provider startup failure, not process loss."""
 
         self.call_count += 1
-        raise RuntimeError("simulated provider startup failure")
+        self.lifecycle_events.append("pipeline.open")
+        try:
+            raise RuntimeError("simulated provider startup failure")
+            yield  # pragma: no cover - makes this a typed generator context.
+        finally:
+            self.lifecycle_events.append("pipeline.close")
+
+
+class FailingGenerationPipeline:
+    """Raise after managed provider construction has yielded successfully."""
+
+    def __init__(self, *, cancel_before_failure: bool = False) -> None:
+        self._cancel_before_failure = cancel_before_failure
+
+    def generate(
+        self,
+        *,
+        preparation: GenerationPreparation,
+        cancellation: CancellationToken,
+        resume_checkpoint: PipelineCheckpoint | None = None,
+        checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
+    ) -> PipelineResult:
+        """Fail inside the pipeline, optionally through the cancellation path."""
+
+        assert preparation
+        assert resume_checkpoint is None
+        assert checkpoint_sink is not None
+        if self._cancel_before_failure:
+            cancellation.cancel()
+            cancellation.raise_if_cancelled()
+        raise RuntimeError("simulated generation failure")
+
+
+class FailingResultExtractionPipeline:
+    """Return a result whose artifact read requires the provider context."""
+
+    def __init__(self, *, provider_is_open: Callable[[], bool]) -> None:
+        self._provider_is_open = provider_is_open
+
+    def generate(
+        self,
+        *,
+        preparation: GenerationPreparation,
+        cancellation: CancellationToken,
+        resume_checkpoint: PipelineCheckpoint | None = None,
+        checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
+    ) -> PipelineResult:
+        """Checkpoint a valid final bundle, then defer one failing result read."""
+
+        assert preparation
+        assert resume_checkpoint is None
+        assert checkpoint_sink is not None
+        final_checkpoint = valid_pipeline_checkpoint()
+        checkpoint_sink(final_checkpoint)
+
+        class DeferredResult:
+            """Small result-shaped value that observes provider ownership."""
+
+            usage_records: tuple[()] = ()
+
+            @property
+            def rendered_artifacts(self) -> dict[str, RenderedArtifact]:
+                assert self_provider_is_open(), (
+                    "The provider context closed before result extraction."
+                )
+                raise RuntimeError("simulated result extraction failure")
+
+        self_provider_is_open = self._provider_is_open
+        return cast(PipelineResult, DeferredResult())
 
 
 class RecordingIngestionService:
@@ -213,7 +290,6 @@ def _job_service(
     database_path: Path,
     *,
     artifact_store: InMemoryPrivateArtifactStore | None = None,
-    notification_sink: RecordingNotificationSink | None = None,
 ) -> JobService:
     """Build one real SQLite application boundary for executor tests."""
 
@@ -223,7 +299,7 @@ def _job_service(
             admission_limits=generous_admission_limits(),
         ),
         artifact_store=artifact_store or InMemoryPrivateArtifactStore(),
-        notification_sink=notification_sink or RecordingNotificationSink(),
+        notification_policy=DeliveryNotificationPolicy.disabled(),
     )
 
 
@@ -280,11 +356,9 @@ def test_executor_persists_preparation_before_lazy_pipeline_and_delivers(
     """One request reaches all artifacts only after sequence-1 preparation."""
 
     private_store = InMemoryPrivateArtifactStore()
-    notification_sink = RecordingNotificationSink()
     service = _job_service(
         tmp_path / "jobs.sqlite3",
         artifact_store=private_store,
-        notification_sink=notification_sink,
     )
     job_id, request = _submit_pipeline_request(
         service,
@@ -303,7 +377,7 @@ def test_executor_persists_preparation_before_lazy_pipeline_and_delivers(
 
     pipeline_factory = RecordingPipelineFactory(
         (pipeline,),
-        before_create=assert_preparation_is_durable,
+        before_open=assert_preparation_is_durable,
     )
     executor = _executor(
         service=service,
@@ -326,7 +400,7 @@ def test_executor_persists_preparation_before_lazy_pipeline_and_delivers(
     assert ingestion_service.payloads == [request.input_payload]
     assert pipeline_factory.requests == [request]
     assert pipeline.call_count == 1
-    assert notification_sink.keys == [f"delivery:{job_id}"]
+    assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
 
 
 def test_executor_rejects_preflight_without_ingestion_or_pipeline_construction(
@@ -448,6 +522,91 @@ def test_pipeline_factory_failure_settles_generation_after_preparation(
     assert resume_state.checkpoint is not None
     assert resume_state.checkpoint.stage == "prepare_input"
     assert pipeline_factory.call_count == 1
+    assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
+
+
+@pytest.mark.parametrize(
+    ("cancel_before_failure", "expected_status", "expected_failure_code"),
+    [
+        (False, JobStatus.failed, "generation_failed"),
+        (True, JobStatus.cancelled, "cancelled"),
+    ],
+)
+def test_pipeline_context_closes_after_generation_failure_or_cancellation(
+    tmp_path: Path,
+    cancel_before_failure: bool,
+    expected_status: JobStatus,
+    expected_failure_code: str,
+) -> None:
+    """Every yielded provider graph closes before terminal settlement returns."""
+
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key=f"managed-exit-{expected_status.value}",
+    )
+    pipeline_factory = RecordingPipelineFactory(
+        # The factory is structurally typed, so the failure double can focus
+        # on the same generation method without inheriting production code.
+        (FailingGenerationPipeline(cancel_before_failure=cancel_before_failure),),
+    )
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(RuntimeError):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    settled_job = service.resume(job_id=job_id, user_id="user-1").job
+    assert settled_job.status is expected_status
+    assert settled_job.failure_code == expected_failure_code
+    assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
+
+
+def test_pipeline_context_remains_open_through_result_extraction(
+    tmp_path: Path,
+) -> None:
+    """Provider ownership includes final-checkpoint and result acceptance."""
+
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="managed-result-extraction",
+    )
+    lifecycle_events: list[str] = []
+    pipeline = FailingResultExtractionPipeline(
+        provider_is_open=lambda: lifecycle_events == ["pipeline.open"]
+    )
+    pipeline_factory = RecordingPipelineFactory(
+        (pipeline,),
+        lifecycle_events=lifecycle_events,
+    )
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(RuntimeError, match="result extraction failure"):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    settled_job = service.resume(job_id=job_id, user_id="user-1").job
+    assert settled_job.status is JobStatus.failed
+    assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
 
 
 def test_restart_reuses_durable_preparation_without_refetching(
@@ -457,11 +616,9 @@ def test_restart_reuses_durable_preparation_without_refetching(
 
     database_path = tmp_path / "jobs.sqlite3"
     private_store = InMemoryPrivateArtifactStore()
-    notifications = RecordingNotificationSink()
     first_service = _job_service(
         database_path,
         artifact_store=private_store,
-        notification_sink=notifications,
     )
     job_id, _request = _submit_pipeline_request(
         first_service,
@@ -498,7 +655,6 @@ def test_restart_reuses_durable_preparation_without_refetching(
     replacement_service = _job_service(
         database_path,
         artifact_store=private_store,
-        notification_sink=notifications,
     )
     replacement_pipeline = CountingPipeline(pipeline_with_evidence(frozen_evidence()))
     replacement_factory = RecordingPipelineFactory((replacement_pipeline,))
@@ -526,11 +682,9 @@ def test_restart_reuses_resolved_preferences_after_design_course(
 
     database_path = tmp_path / "jobs.sqlite3"
     private_store = InMemoryPrivateArtifactStore()
-    notifications = RecordingNotificationSink()
     first_service = _job_service(
         database_path,
         artifact_store=private_store,
-        notification_sink=notifications,
     )
     job_id, _request = _submit_pipeline_request(
         first_service,
@@ -577,7 +731,6 @@ def test_restart_reuses_resolved_preferences_after_design_course(
     replacement_service = _job_service(
         database_path,
         artifact_store=private_store,
-        notification_sink=notifications,
     )
     replacement_pipeline = CountingPipeline(
         pipeline_with_evidence(
@@ -654,6 +807,7 @@ def test_delivery_restart_does_not_construct_pipeline_or_repeat_preparation(
     assert completed_job.status is JobStatus.completed
     assert pipeline.call_count == 1
     assert replacement_factory.requests == []
+    assert replacement_factory.lifecycle_events == []
     assert private_store.save_count == 1
 
 
