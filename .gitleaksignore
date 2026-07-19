@@ -1,0 +1,7 @@
+# The login route contains an illustrative API response token shape, not a credential.
+442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/app/api/routes/login.py:generic-api-key:119
+
+# These model-test values are synthetic fixtures for token and password validation.
+442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_auth_models.py:jwt:176
+442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_user_models.py:generic-api-key:454
+442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_user_models.py:generic-api-key:488

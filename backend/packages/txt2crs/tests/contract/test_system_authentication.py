@@ -123,9 +123,7 @@ def test_device_code_login_is_frontend_ready_and_verifies_chatgpt_account() -> N
 
     wait_gate = Event()
     fake_client = FakeAuthenticationClient(wait_gate=wait_gate)
-    authenticator = DedicatedSystemAuthenticator(
-        client_factory=lambda: fake_client
-    )
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: fake_client)
 
     challenge = authenticator.start_device_code_login()
 
@@ -151,9 +149,7 @@ def test_failed_login_redacts_provider_details_from_frontend_status() -> None:
         login_success=False,
         provider_error="Bearer extremely-sensitive-provider-token",
     )
-    authenticator = DedicatedSystemAuthenticator(
-        client_factory=lambda: fake_client
-    )
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: fake_client)
 
     authenticator.start_device_code_login()
     completed = authenticator.wait_for_current_attempt(timeout_seconds=2)
@@ -169,9 +165,7 @@ def test_api_key_account_cannot_satisfy_subscription_authentication() -> None:
     """A successful ceremony still fails when Codex reports API-key mode."""
 
     fake_client = FakeAuthenticationClient(account_type="apiKey")
-    authenticator = DedicatedSystemAuthenticator(
-        client_factory=lambda: fake_client
-    )
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: fake_client)
 
     authenticator.start_device_code_login()
     completed = authenticator.wait_for_current_attempt(timeout_seconds=2)
@@ -186,9 +180,7 @@ def test_device_code_login_rejects_non_openai_verification_origin() -> None:
 
     fake_client = FakeAuthenticationClient()
     fake_client.login_handle.verification_url = "https://attacker.example/device"
-    authenticator = DedicatedSystemAuthenticator(
-        client_factory=lambda: fake_client
-    )
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: fake_client)
 
     with pytest.raises(
         SystemAuthenticationError,
@@ -197,10 +189,7 @@ def test_device_code_login_rejects_non_openai_verification_origin() -> None:
         authenticator.start_device_code_login()
 
     assert fake_client.closed is True
-    assert (
-        authenticator.current_status().state
-        is SystemAuthenticationState.failed
-    )
+    assert authenticator.current_status().state is SystemAuthenticationState.failed
 
 
 def test_create_uses_bundled_runtime_and_isolated_file_credentials(

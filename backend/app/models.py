@@ -200,7 +200,11 @@ class ItemBase(SQLModel):
     content_type: ContentType | None = Field(
         default=None,
         max_length=50,
-        sa_type=String(50),  # type: ignore[call-overload]
+        # SQLModel's typed ``sa_type`` argument accepts a SQLAlchemy type
+        # class, not a configured type instance.  Supplying the complete
+        # column keeps the database's existing VARCHAR(50) contract while
+        # allowing both mypy and ty to validate this model without an ignore.
+        sa_column=Column(String(50), nullable=True),
     )
     item_metadata: dict[str, Any] | None = Field(default=None, sa_type=JSON)
 

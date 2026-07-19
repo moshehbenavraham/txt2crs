@@ -115,8 +115,8 @@ class FilesystemPrivateArtifactStore:
                 # Verify it exactly; never overwrite a completed directory.
                 if not job_directory.exists():
                     raise
-                existing_manifest, _existing_artifacts = (
-                    self._load_verified_directory(job_directory)
+                existing_manifest, _existing_artifacts = self._load_verified_directory(
+                    job_directory
                 )
                 if existing_manifest["artifacts"] != manifest_artifacts:
                     raise ValueError(
@@ -238,9 +238,8 @@ class FilesystemPrivateArtifactStore:
         restored_artifacts: dict[str, RenderedArtifact] = {}
         total_bytes = 0
         for artifact_name, raw_description in described_artifacts.items():
-            if (
-                not isinstance(artifact_name, str)
-                or not isinstance(raw_description, dict)
+            if not isinstance(artifact_name, str) or not isinstance(
+                raw_description, dict
             ):
                 raise ValueError("Artifact manifest failed integrity.")
             file_name = raw_description.get("file_name")
@@ -285,13 +284,7 @@ class FilesystemPrivateArtifactStore:
 
         owner_hash = sha256(user_id.encode("utf-8")).hexdigest()
         job_hash = sha256(job_id.encode("utf-8")).hexdigest()
-        return (
-            self._root_directory
-            / "owners"
-            / owner_hash
-            / "jobs"
-            / job_hash
-        )
+        return self._root_directory / "owners" / owner_hash / "jobs" / job_hash
 
     def _ensure_private_directory(self, directory: Path) -> None:
         """Create one store-owned directory and forbid symlink substitution."""

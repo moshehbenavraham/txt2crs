@@ -270,9 +270,7 @@ class CourseModuleDraft(StrictContract):
     def validate_module_local_references(self) -> "CourseModuleDraft":
         """Reject citations or glossary entries outside this module."""
 
-        section_ids = {
-            section.section_id for section in self.module.sections
-        }
+        section_ids = {section.section_id for section in self.module.sections}
         block_ids = {
             block.block_id
             for section in self.module.sections

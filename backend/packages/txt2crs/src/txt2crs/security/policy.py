@@ -11,15 +11,9 @@ _HIGH_RISK_PATTERNS = (
     re.compile(
         r"(?i)\b(?:insulin|dosage|diagnos(?:is|e)|medical treatment|prescription)\b"
     ),
-    re.compile(
-        r"(?i)\b(?:criminal appeal|legal advice|lawsuit|file .* court)\b"
-    ),
-    re.compile(
-        r"(?i)\b(?:investment strategy|retirement portfolio|tax advice)\b"
-    ),
-    re.compile(
-        r"(?i)\b(?:high-voltage|electrical repair|explosive|firearm safety)\b"
-    ),
+    re.compile(r"(?i)\b(?:criminal appeal|legal advice|lawsuit|file .* court)\b"),
+    re.compile(r"(?i)\b(?:investment strategy|retirement portfolio|tax advice)\b"),
+    re.compile(r"(?i)\b(?:high-voltage|electrical repair|explosive|firearm safety)\b"),
 )
 _AGE_INAPPROPRIATE_PATTERN = re.compile(
     r"(?i)\b(?:explicit sexual|pornograph|graphic sexual)\b"

@@ -24,9 +24,7 @@ class AdmissionLimits:
             "window_seconds": self.window_seconds,
             "maximum_jobs_per_user": self.maximum_jobs_per_user,
             "maximum_jobs_global": self.maximum_jobs_global,
-            "maximum_reserved_tokens_per_user": (
-                self.maximum_reserved_tokens_per_user
-            ),
+            "maximum_reserved_tokens_per_user": (self.maximum_reserved_tokens_per_user),
             "maximum_reserved_tokens_global": self.maximum_reserved_tokens_global,
         }
         for field_name, field_value in positive_values.items():

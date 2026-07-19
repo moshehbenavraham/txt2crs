@@ -83,6 +83,18 @@ def test_compose_passes_engine_paths_to_backend_and_prestart() -> None:
             assert environment_name in service_text
 
 
+def test_compose_uses_database_container_port_for_internal_clients() -> None:
+    """Host port mappings must never leak into service-to-service traffic."""
+
+    compose_text = _read_repository_file(COMPOSE_FILE)
+
+    for service_name in ("prestart", "backend"):
+        service_text = _compose_service(compose_text, service_name)
+        assert "- POSTGRES_SERVER=db" in service_text
+        assert "- POSTGRES_PORT=5432" in service_text
+        assert "- POSTGRES_PORT=${POSTGRES_PORT}" not in service_text
+
+
 def test_compose_mounts_one_private_state_volume_separate_from_postgres() -> None:
     compose_text = _read_repository_file(COMPOSE_FILE)
     backend_service = _compose_service(compose_text, "backend")

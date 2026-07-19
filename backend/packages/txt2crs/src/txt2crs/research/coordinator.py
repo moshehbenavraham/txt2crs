@@ -32,6 +32,8 @@ _PROMPT_INJECTION_PATTERN = re.compile(
     r"\b(?:instructions?|prompts?|rules?|system|developer)\b"
 )
 _CONFLICT_PATTERN = re.compile(
+    # The final alternative is a deliberate stem for all supersede variants.
+    # spellchecker:ignore-next-line
     r"(?i)\b(?:conflict|contradict|disagree|disputed|supersed)\w*\b"
 )
 

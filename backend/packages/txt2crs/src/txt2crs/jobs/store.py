@@ -52,9 +52,7 @@ class AdmissionQuotaExceededError(JobStoreError):
     def __init__(self, resource_name: str, limit: int) -> None:
         self.resource_name = resource_name
         self.limit = limit
-        super().__init__(
-            f"The {resource_name} admission quota ({limit}) is exhausted."
-        )
+        super().__init__(f"The {resource_name} admission quota ({limit}) is exhausted.")
 
 
 class SqliteJobStore:
@@ -278,24 +276,19 @@ class SqliteJobStore:
             ),
             (
                 "user_tokens",
-                int(user_totals["reserved_tokens"])
-                + reservation.reserved_tokens,
+                int(user_totals["reserved_tokens"]) + reservation.reserved_tokens,
                 self._admission_limits.maximum_reserved_tokens_per_user,
             ),
             (
                 "global_tokens",
-                int(global_totals["reserved_tokens"])
-                + reservation.reserved_tokens,
+                int(global_totals["reserved_tokens"]) + reservation.reserved_tokens,
                 self._admission_limits.maximum_reserved_tokens_global,
             ),
             (
                 "user_research_cost",
                 int(user_totals["reserved_research_cost_microusd"])
                 + reservation.maximum_research_cost_microusd,
-                (
-                    self._admission_limits
-                    .maximum_research_cost_microusd_per_user
-                ),
+                (self._admission_limits.maximum_research_cost_microusd_per_user),
             ),
             (
                 "global_research_cost",

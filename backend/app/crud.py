@@ -39,7 +39,8 @@ DUMMY_ARGON2_PASSWORD_HASH = (
     "$MelcZm0QrwTPLP8sxyQ8xgGgg7m60dAWa5Ppj+v1f+E"
 )
 DUMMY_BCRYPT_PASSWORD_HASH = (
-    "$2b$12$/ZsLFJfWQIE2AY8A7LXdVuMHYKuxUxVf.0fo6FLDt1rwTt.e0shda"
+    # Encoded bcrypt data can contain apparent short words by chance.
+    "$2b$12$/ZsLFJfWQIE2AY8A7LXdVuMHYKuxUxVf.0fo6FLDt1rwTt.e0shda"  # spellchecker:disable-line
 )
 
 

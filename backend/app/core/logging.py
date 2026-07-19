@@ -28,8 +28,12 @@ Log Event Naming Convention:
 import contextvars
 import json
 import logging
+import os
 import sys
+import traceback
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -232,6 +236,68 @@ def get_logger(name: str) -> logging.Logger:
         >>> logger.info("user.create_completed", extra={"user_id": "123"})
     """
     return logging.getLogger(name)
+
+
+def write_last_error(
+    error: BaseException,
+    *,
+    context: Mapping[str, Any] | None = None,
+    logs_directory: Path = Path("logs"),
+) -> Path:
+    """Write one private, machine-readable development error capture.
+
+    This helper is intentionally explicit rather than attached to the global
+    logger. Application code must decide when a local diagnostic file is
+    appropriate, which prevents routine production exceptions or sensitive
+    request data from being copied to disk automatically.
+
+    Args:
+        error: The exception to describe.
+        context: Non-sensitive diagnostic values chosen by the caller.
+        logs_directory: Destination used by local development tooling.
+
+    Returns:
+        The path of the newly created ``last_error_*.json`` file.
+    """
+
+    # Owner-only permissions protect stack traces and caller-provided context
+    # from other local users. chmod also tightens a pre-existing directory
+    # whose mode may have been influenced by the caller's process umask.
+    logs_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    logs_directory.chmod(0o700)
+
+    captured_at = datetime.now(UTC)
+    timestamp = captured_at.isoformat(timespec="microseconds")
+    filename_timestamp = timestamp.replace(":", "-").replace("+00-00", "Z")
+    capture_path = logs_directory / f"last_error_{filename_timestamp}.json"
+    error_message = str(error)
+    capture_payload = {
+        "timestamp": timestamp,
+        "level": "error",
+        "msg": error_message,
+        "error": {
+            "type": type(error).__name__,
+            "message": error_message,
+            "stack": "".join(
+                traceback.format_exception(type(error), error, error.__traceback__)
+            ),
+        },
+        "context": dict(context or {}),
+    }
+
+    # os.open applies the private mode at creation time. Using exclusive
+    # creation also avoids silently overwriting an earlier diagnostic if two
+    # captures somehow receive the same microsecond timestamp.
+    capture_file_descriptor = os.open(
+        capture_path,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+        0o600,
+    )
+    with os.fdopen(capture_file_descriptor, "w", encoding="utf-8") as capture_file:
+        json.dump(capture_payload, capture_file, default=str, indent=2)
+        capture_file.write("\n")
+
+    return capture_path
 
 
 # Initialize logging on module import

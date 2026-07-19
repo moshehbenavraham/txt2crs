@@ -113,9 +113,7 @@ def test_every_deliverable_has_html_markdown_searchable_pdf_and_docx() -> None:
             filetype="pdf",
         )
         try:
-            extracted_text = "\n".join(
-                page.get_text("text") for page in pdf_document
-            )
+            extracted_text = "\n".join(page.get_text("text") for page in pdf_document)
         finally:
             pdf_document.close()
         assert extracted_text.strip()
@@ -127,9 +125,7 @@ def test_every_deliverable_has_html_markdown_searchable_pdf_and_docx() -> None:
         "answer_key_docx",
     ):
         document = Document(BytesIO(rendered[artifact_name].content))
-        extracted_text = "\n".join(
-            paragraph.text for paragraph in document.paragraphs
-        )
+        extracted_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
         assert extracted_text.strip()
 
 

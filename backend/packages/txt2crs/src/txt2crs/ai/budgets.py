@@ -132,9 +132,7 @@ class RunBudget:
                     configured_limits[resource_name],
                 )
         if snapshot.research_calls != snapshot.search_calls + snapshot.extract_calls:
-            raise ValueError(
-                "Research-call total must equal search and extract calls."
-            )
+            raise ValueError("Research-call total must equal search and extract calls.")
         if (
             snapshot.elapsed_seconds < 0
             or snapshot.elapsed_seconds > self.limits.maximum_elapsed_seconds
@@ -158,9 +156,7 @@ class RunBudget:
                 self._repairs,
             )
             if self._restored or any(current_values):
-                raise RuntimeError(
-                    "Budget counters were already restored or reserved."
-                )
+                raise RuntimeError("Budget counters were already restored or reserved.")
             self._turns = snapshot.turns
             self._research_calls = snapshot.research_calls
             self._search_calls = snapshot.search_calls

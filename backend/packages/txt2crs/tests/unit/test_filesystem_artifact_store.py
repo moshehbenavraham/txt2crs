@@ -65,9 +65,7 @@ def test_filesystem_store_writes_private_files_and_integrity_manifest(
     regular_files = [path for path in all_paths if path.is_file()]
     assert regular_files
     assert all(S_IMODE(path.stat().st_mode) == 0o600 for path in regular_files)
-    manifest_path = next(
-        path for path in regular_files if path.name == "manifest.json"
-    )
+    manifest_path = next(path for path in regular_files if path.name == "manifest.json")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert set(manifest["artifacts"]) == {"answer_key_pdf", "course_markdown"}
     assert manifest["schema_version"] == "1.0"
@@ -116,8 +114,7 @@ def test_filesystem_store_enforces_owner_and_detects_symlink_tampering(
         store.get(user_id="user-2", job_id="job-1")
 
     job_directory = next(
-        path.parent
-        for path in (tmp_path / "artifacts").rglob("manifest.json")
+        path.parent for path in (tmp_path / "artifacts").rglob("manifest.json")
     )
     course_path = job_directory / "python-course.md"
     course_path.unlink()

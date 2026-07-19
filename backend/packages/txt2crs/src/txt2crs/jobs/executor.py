@@ -155,9 +155,7 @@ class GenerationJobExecutor:
                     raise JobExecutionStateError(
                         f"Unknown pipeline checkpoint stage {checkpoint.stage!r}."
                     )
-                checkpoint_version = _hash_json(
-                    checkpoint.model_dump(mode="json")
-                )
+                checkpoint_version = _hash_json(checkpoint.model_dump(mode="json"))
                 current_job = self._job_service.checkpoint_stage(
                     job_id=job_id,
                     user_id=user_id,
@@ -200,9 +198,9 @@ class GenerationJobExecutor:
                     "Pipeline returned without a final accepted checkpoint."
                 )
             rendered_artifacts = pipeline_result.rendered_artifacts
-            usage_summary = aggregate_usage(
-                pipeline_result.usage_records
-            ).model_dump(mode="json")
+            usage_summary = aggregate_usage(pipeline_result.usage_records).model_dump(
+                mode="json"
+            )
         elif current_job.status in {JobStatus.rendering, JobStatus.delivering}:
             if resume_state.checkpoint is None:
                 raise JobExecutionStateError(
@@ -274,6 +272,7 @@ class GenerationJobExecutor:
                 expected_revision=current_job.revision,
                 failure_code="generation_failed",
             )
+
 
 def _hash_json(value: object) -> str:
     """Hash one canonical JSON-compatible checkpoint payload."""

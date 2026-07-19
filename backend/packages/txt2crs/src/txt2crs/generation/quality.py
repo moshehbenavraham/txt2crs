@@ -143,9 +143,7 @@ def validate_assessment_quality(
     answer_by_item_id = {answer.item_id: answer for answer in answer_key.answers}
     if set(answer_by_item_id) != {item.item_id for item in assessment.items}:
         raise ArtifactQualityError("Assessment and answer key items do not align.")
-    evidence_by_id = {
-        evidence.evidence_id: evidence for evidence in course.evidence
-    }
+    evidence_by_id = {evidence.evidence_id: evidence for evidence in course.evidence}
     sections_by_id = {
         section.section_id: section
         for course_module in course.modules

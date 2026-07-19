@@ -307,9 +307,7 @@ def test_adapter_config_clears_inherited_tools_and_uses_pinned_safe_defaults() -
 
     connection = ResearchMcpConnection(url="http://127.0.0.1:8765/mcp")
 
-    overrides = OfficialCodexSdkAdapter.build_config_overrides(
-        research_mcp=connection
-    )
+    overrides = OfficialCodexSdkAdapter.build_config_overrides(research_mcp=connection)
     no_research_overrides = OfficialCodexSdkAdapter.build_config_overrides(
         research_mcp=None
     )

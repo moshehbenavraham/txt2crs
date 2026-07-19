@@ -94,11 +94,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
         return 130
 
     print(completed_status.message)
-    return (
-        0
-        if completed_status.state is SystemAuthenticationState.authenticated
-        else 1
-    )
+    return 0 if completed_status.state is SystemAuthenticationState.authenticated else 1
 
 
 if __name__ == "__main__":

@@ -129,9 +129,7 @@ def test_live_chatgpt_turn_calls_allowlisted_research_tool(
     parent_environment = dict(os.environ)
     configured_codex_home = os.getenv("TXT2CRS_LIVE_CODEX_HOME")
     isolated_codex_home = (
-        Path(configured_codex_home)
-        if configured_codex_home
-        else Path.home() / ".codex"
+        Path(configured_codex_home) if configured_codex_home else Path.home() / ".codex"
     )
     adapter = OfficialCodexSdkAdapter.create(
         worker_directory=tmp_path / "codex-worker",

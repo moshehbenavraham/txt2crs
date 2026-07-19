@@ -1,2 +1,20 @@
+[files]
+# This fixture intentionally simulates corrupted OCR text. Correcting its
+# misspellings would invalidate the ingestion/evaluation scenario it protects.
+extend-exclude = [
+    "backend/packages/txt2crs/src/txt2crs/evals/fixtures/noisy_extraction.txt",
+]
+
+[default]
+# Keep exceptions next to the exact non-prose line they justify. This is
+# narrower than teaching the repository dictionary that fragments such as
+# "fo" or "supersed" are valid English everywhere.
+extend-ignore-re = [
+    "(?Rm)^.*#\\s*spellchecker:disable-line$",
+    "(#|//)\\s*spellchecker:ignore-next-line\\n.*",
+]
+
 [default.extend-words]
+# Existing project vocabulary retained while adding the narrower audit
+# exceptions above.
 alls = "alls"

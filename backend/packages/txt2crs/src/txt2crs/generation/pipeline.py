@@ -145,9 +145,7 @@ class PipelineCheckpoint(StrictContract):
             required_fields = ()
         for field_name in required_fields:
             if getattr(self, field_name) is None:
-                raise ValueError(
-                    f"Checkpoint {self.stage} is missing {field_name}."
-                )
+                raise ValueError(f"Checkpoint {self.stage} is missing {field_name}.")
         return self
 
 
@@ -243,9 +241,7 @@ class CourseGenerationPipeline:
             research_plan = resume_checkpoint.research_plan
             evidence_set = resume_checkpoint.evidence_set
             course_plan = resume_checkpoint.course_plan
-            course_module_drafts = list(
-                resume_checkpoint.course_module_drafts
-            )
+            course_module_drafts = list(resume_checkpoint.course_module_drafts)
             course = resume_checkpoint.course
             review_pack = resume_checkpoint.review_pack
             assessment_blueprint = resume_checkpoint.assessment_blueprint
@@ -390,8 +386,7 @@ class CourseGenerationPipeline:
                         "learning_objectives": [
                             objective.model_dump(mode="json")
                             for objective in course_plan.learning_objectives
-                            if objective.objective_id
-                            in set(module_plan.objective_ids)
+                            if objective.objective_id in set(module_plan.objective_ids)
                         ],
                         "module_plan": module_plan.model_dump(mode="json"),
                         "evidence_version": evidence_set.evidence_version,
@@ -462,10 +457,7 @@ class CourseGenerationPipeline:
             requested_item_count=preferences.assessment_item_count,
             passing_percentage=preferences.passing_percentage,
         )
-        if (
-            resume_checkpoint is None
-            or resume_checkpoint.assessment_blueprint is None
-        ):
+        if resume_checkpoint is None or resume_checkpoint.assessment_blueprint is None:
             emit_checkpoint("design_assessment")
 
         # Stage 10b: author student and instructor forms against the already
@@ -492,8 +484,7 @@ class CourseGenerationPipeline:
             answer_key = assessment_package.answer_key
         if (
             assessment.blueprint != assessment_blueprint.entries
-            or assessment.passing_percentage
-            != assessment_blueprint.passing_percentage
+            or assessment.passing_percentage != assessment_blueprint.passing_percentage
             or assessment.course_id != assessment_blueprint.course_id
         ):
             raise PipelineGenerationError(
@@ -651,16 +642,12 @@ class CourseGenerationPipeline:
             is_retryable=lambda error: classify_runtime_error(error).retryable,
             retry_after_seconds=lambda _error: None,
         )
-        stage_retry_count = (
-            self._budget.snapshot().retries - retries_before_stage
-        )
+        stage_retry_count = self._budget.snapshot().retries - retries_before_stage
         if stage_retry_count == 0:
             return result
         return ValidatedTurnResult(
             artifact=result.artifact,
-            usage=result.usage.model_copy(
-                update={"retries": stage_retry_count}
-            ),
+            usage=result.usage.model_copy(update={"retries": stage_retry_count}),
             thread_id=result.thread_id,
             turn_id=result.turn_id,
         )
@@ -756,9 +743,7 @@ def _validate_module_draft(
             f"Module {module_plan.module_id} changed its section plan."
         )
     planned_objective_ids = set(module_plan.objective_ids)
-    known_evidence_ids = {
-        evidence.evidence_id for evidence in evidence_set.excerpts
-    }
+    known_evidence_ids = {evidence.evidence_id for evidence in evidence_set.excerpts}
     for section in module.sections:
         if not set(section.objective_ids) <= planned_objective_ids:
             raise PipelineGenerationError(
@@ -812,9 +797,7 @@ def _assemble_course(
             dict.fromkeys(
                 unresolved_claim
                 for module_draft in module_drafts
-                for unresolved_claim in (
-                    module_draft.unresolved_or_conflicting_claims
-                )
+                for unresolved_claim in (module_draft.unresolved_or_conflicting_claims)
             )
         ),
         evidence=evidence_set.excerpts,

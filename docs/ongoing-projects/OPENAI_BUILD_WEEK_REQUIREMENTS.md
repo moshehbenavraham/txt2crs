@@ -1,7 +1,7 @@
 # OpenAI Build Week Requirements
 
-**Last verified:** July 17, 2026  
-**Official event:** [OpenAI Build Week on Devpost](https://openai.devpost.com/)  
+**Last verified:** July 17, 2026<br>
+**Official event:** [OpenAI Build Week on Devpost](https://openai.devpost.com/)<br>
 **txt2crs track:** Education
 
 ## Build Requirements
@@ -54,4 +54,3 @@ Use the exact timestamp above as the deadline.
 - [ ] Capture the primary Codex `/feedback` Session ID.
 - [ ] Complete every required Devpost submission field.
 - [ ] Submit before the exact deadline above.
-

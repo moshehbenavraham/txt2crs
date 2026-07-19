@@ -135,6 +135,39 @@
 - Link relevant tickets or specifications
 - Review changes locally before requesting review
 
+## CI/CD
+
+Platform: GitHub Actions. Workflows use least-privilege job permissions,
+immutable third-party action commits, path-aware triggers where useful, and
+concurrency cancellation for repeated branch validation.
+
+| Bundle | Status | Workflows | Strategy |
+|--------|--------|-----------|----------|
+| Code Quality | Configured | `quality.yml` | Ruff, mypy, ty, Biome, TypeScript, backend tests, and the reusable engine suite feed one required quality gate. |
+| Build & Test | Configured | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | Test the shell, engine, generated contract, production Compose topology, and browser behavior. |
+| Security | Configured | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | Scan Git history, CodeQL languages, pull-request dependencies, Python/JavaScript advisories, and workflow supply-chain safety. |
+| Integration | Configured | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | Exercise service boundaries and browser flows, then flag merge conflicts without checking out untrusted pull-request code. |
+| Operations | Configured | `deploy-coolify.yml`, `deploy-staging.yml`, `deploy-production.yml`, `backup-db.yml` | Separate environment deployments from scheduled/manual PostgreSQL backups. |
+
+### CI Secrets
+
+No secret values belong in source control. The repository currently has no
+configured Actions secrets; operators provision only the names required by
+the workflow they enable.
+
+| Workflow | Required secret names |
+|----------|-----------------------|
+| `backup-db.yml` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
+| `deploy-coolify.yml` | `COOLIFY_API_TOKEN`, `COOLIFY_API_URL`, `BACKEND_APP_UUID`, `FRONTEND_APP_UUID` |
+| `deploy-staging.yml` | `DOMAIN_STAGING`, `STACK_NAME_STAGING`, `SECRET_KEY`, `FIRST_SUPERUSER`, `FIRST_SUPERUSER_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAILS_FROM_EMAIL`, `POSTGRES_PASSWORD`, `SENTRY_DSN` |
+| `deploy-production.yml` | `DOMAIN_PRODUCTION`, `STACK_NAME_PRODUCTION`, `SECRET_KEY`, `FIRST_SUPERUSER`, `FIRST_SUPERUSER_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAILS_FROM_EMAIL`, `POSTGRES_PASSWORD`, `SENTRY_DSN` |
+| `generate-client.yml` | `FULL_STACK_FASTAPI_TEMPLATE_REPO_TOKEN` for its optional upstream-template push |
+
+`GITHUB_TOKEN` in `security.yml` is the automatic per-run token and is not a
+manually provisioned repository secret. Current GitHub-hosted execution is
+recorded under `.spec_system/audit/known-issues.md` until Actions billing is
+restored; local equivalents remain mandatory before publishing.
+
 ## Code Review
 
 - Critique code, not people; raise concrete concerns
@@ -153,20 +186,21 @@
 | Category | Tool | Config |
 |----------|------|--------|
 | Formatter | Ruff and Biome | `backend/pyproject.toml`, `frontend/biome.json` |
-| Linter | Ruff and Biome | `backend/pyproject.toml`, `frontend/biome.json` |
-| Type Safety | mypy and TypeScript | `backend/pyproject.toml`, `frontend/tsconfig.json` |
-| Testing | pytest and Playwright | `backend/pyproject.toml`, `frontend/playwright.config.ts` |
-| Observability | OpenTelemetry | `backend/app/core/telemetry.py` |
+| Linter | Ruff, Biome, and typos | `backend/pyproject.toml`, `frontend/biome.json`, `_typos.toml` |
+| Type Safety | mypy, ty, and TypeScript | `backend/pyproject.toml`, `frontend/tsconfig.json` |
+| Testing | pytest, coverage, Vitest, and Playwright | `backend/pyproject.toml`, `frontend/package.json`, `frontend/playwright.config.ts` |
+| Observability | Structured logging, private local error capture, and OpenTelemetry | `backend/app/core/logging.py`, `backend/app/core/telemetry.py`, `logs/.gitignore` |
 | Git Hooks | pre-commit | `.pre-commit-config.yaml` |
 | Database | PostgreSQL, SQLite, Alembic | `docker-compose.yml`, `backend/alembic.ini` |
+| Dev Server | Docker Compose | `docker compose up -d` using `docker-compose.yml` and `docker-compose.override.yml` |
 
 ## Workspace Structure
 
-| Package | Path | Stack |
-|---------|------|-------|
-| backend-shell | `backend` | Python 3.14, FastAPI, SQLModel, PostgreSQL |
-| txt2crs-engine | `backend/packages/txt2crs` | Python 3.14, Pydantic v2, SQLite |
-| frontend | `frontend` | React 19, TypeScript, Vite, Tailwind CSS |
+| Package | Path | Stack | Formatter | Linter | Types | Tests |
+|---------|------|-------|-----------|--------|-------|-------|
+| backend-shell | `backend` | Python 3.14, FastAPI, SQLModel, PostgreSQL | Ruff | Ruff and typos | mypy and ty | pytest and coverage |
+| txt2crs-engine | `backend/packages/txt2crs` | Python 3.14, Pydantic v2, SQLite | Ruff | Ruff and typos | mypy | pytest |
+| frontend | `frontend` | React 19, TypeScript, Vite, Tailwind CSS | Biome | Biome and typos | TypeScript | Vitest and Playwright |
 
 ### Cross-Package Rules
 

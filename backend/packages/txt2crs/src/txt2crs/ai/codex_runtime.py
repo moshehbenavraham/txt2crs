@@ -154,8 +154,7 @@ class CodexSubscriptionRuntime:
         child_environment = {
             key: value
             for key, value in parent_environment.items()
-            if key.upper()
-            not in {*cls._REMOVED_CHILD_ENVIRONMENT_KEYS, "CODEX_HOME"}
+            if key.upper() not in {*cls._REMOVED_CHILD_ENVIRONMENT_KEYS, "CODEX_HOME"}
         }
         child_environment["CODEX_HOME"] = str(codex_home)
         return child_environment
@@ -175,9 +174,7 @@ class CodexSubscriptionRuntime:
                     ),
                     model_entitled=False,
                     subscription_quota_state=SubscriptionQuotaState.unknown,
-                    warnings=[
-                        "Subscription-only mode requires a ChatGPT account."
-                    ],
+                    warnings=["Subscription-only mode requires a ChatGPT account."],
                     recovery_actions=["Sign in with an eligible ChatGPT account."],
                 )
             available_model_ids = self._adapter.list_model_ids()
@@ -185,8 +182,7 @@ class CodexSubscriptionRuntime:
             classified_error = classify_runtime_error(readiness_error)
             credential_status = (
                 CredentialStatus.reauthentication_required
-                if classified_error.code
-                is RuntimeErrorCode.reauthentication_required
+                if classified_error.code is RuntimeErrorCode.reauthentication_required
                 else CredentialStatus.unknown
             )
             return RuntimeReadiness.create(
@@ -197,8 +193,7 @@ class CodexSubscriptionRuntime:
                 warnings=[classified_error.public_message],
                 recovery_actions=(
                     ["Sign in to ChatGPT again."]
-                    if credential_status
-                    is CredentialStatus.reauthentication_required
+                    if credential_status is CredentialStatus.reauthentication_required
                     else ["Retry the runtime readiness check."]
                 ),
             )
@@ -312,13 +307,8 @@ class OfficialCodexSdkAdapter:
             # cannot parse. Use a supported value at the version boundary.
             'model_reasoning_effort="high"',
         )
-        return (
-            baseline_overrides
-            + (
-                research_mcp.codex_config_overrides()
-                if research_mcp is not None
-                else ()
-            )
+        return baseline_overrides + (
+            research_mcp.codex_config_overrides() if research_mcp is not None else ()
         )
 
     @classmethod
@@ -347,9 +337,7 @@ class OfficialCodexSdkAdapter:
         config = CodexConfig(
             cwd=str(worker_directory),
             env=environment,
-            config_overrides=cls.build_config_overrides(
-                research_mcp=research_mcp
-            ),
+            config_overrides=cls.build_config_overrides(research_mcp=research_mcp),
             client_name="txt2crs",
             client_title="txt2crs Course Generator",
         )
