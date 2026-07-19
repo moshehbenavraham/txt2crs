@@ -2,21 +2,22 @@
 
 **Date:** 2026-07-19
 **Project:** txt2crs
-**Audit mode:** Phase-focused, Phase 00
-**Phase base:** `c26350a3f60f9b841762ad7ccbf52f65c2bdcbce`
+**Audit mode:** Phase-focused, Phase 01
+**Phase base:** `c56fa822e2f5f62d64ea427ae56739fd5c17ce4d`
 **Result:** PASS with two organizational decisions and one remote-CI blocker
 
 ## Scope
 
-The deterministic analyzer reports Phase 00 complete, one completed session,
-and three registered packages. The Phase 00 implementation notes and the diff
-from the first session's base commit supplied the change manifest.
+The deterministic analyzer reports Phase 01 complete with five completed
+sessions in `backend/packages/txt2crs` and three registered packages overall.
+The first Phase 01 session base plus `git diff --name-only` produced a
+145-file phase manifest that includes the engine sessions and the audit,
+pipeline, infrastructure, carryforward, and documentation transition work.
 
-During this audit, the owner corrected an inherited deployment assumption:
-repository-root Docker Compose is the complete project deployment scope.
-ADR-0008 now records that decision. Active hosted deployment workflows,
-platform tooling, and platform variables were removed. A future hosted
-platform is not selected and is not a documentation gap.
+This was a phase-focused audit. All five Phase 01 implementation notes were
+read. Deep updates target the engine application boundary, recovery tooling,
+master project status, and architecture. Standard root/docs/package coverage
+and the unchanged HTTP contract were still verified.
 
 ## Coverage
 
@@ -29,113 +30,89 @@ platform is not selected and is not a documentation gap.
 
 ## Files Created
 
-- `.spec_system/docs-audit.md`
-- `docs/adr/0008-local-only-deployment-scope.md`
-
-## Files Renamed
-
-- `docs/ENVIRONMENTS.md` to `docs/environments.md`
-- `docs/adr/README.md` to `docs/adr/README_adr.md`
-
-Both renames enforce the repository documentation naming rules.
+None. Every required documentation surface already exists.
 
 ## Files Updated
 
-### Entry Points and Package Guides
-
-- `README.md`
-- `CONTRIBUTING.md`
-- `llms.txt`
-- `backend/README_backend.md`
-- `backend/tests/README_backend_tests.md`
-- `backend/packages/txt2crs/README_txt2crs.md`
-- `backend/packages/txt2crs/docs/README_txt2crs_docs.md`
-- `backend/packages/txt2crs/docs/IMPLEMENTATION_COMPLIANCE.md`
-- `frontend/README_frontend.md`
-
-### Architecture, Development, and Operations
-
-- `docs/README_docs.md`
-- `docs/ARCHITECTURE.md`
-- `docs/CONFIGURATION.md`
-- `docs/environments.md`
-- `docs/FILE_ORGANIZATION.md`
-- `docs/TXT2CRS_FOLDER_ARCHITECTURE.md`
-- `docs/onboarding.md`
-- `docs/development.md`
-- `docs/deployment.md`
-- `docs/deployment-policy.md`
-- `docs/local-deploy.md`
-- `docs/runbooks/incident-response.md`
-- `docs/adr/README_adr.md`
-- `docs/adr/0007-coolify-deployment-platform.md`
-
-### API, Security, and Planning
-
-- `docs/api/README_api.md`
-- `docs/SECURITY.md`
-- `docs/CHANGELOG.md`
-- `docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md`
-- `.spec_system/PRD/PRD.md`
-- `.spec_system/CONSIDERATIONS.md`
-- `.spec_system/CONVENTIONS.md`
-- `.spec_system/SECURITY-COMPLIANCE.md`
-- `.spec_system/audit/known-issues.md`
-- `.spec_system/pipeline/pipeline.md`
-- `.spec_system/infra/infra.md`
+- `README.md` - Records Phases 00/01 complete, the public engine facade, and
+  the authoritative build-enabled one-command start.
+- `docs/ARCHITECTURE.md` - Replaces the planned facade with the implemented
+  application/factory, preparation, managed-provider, recovery, and
+  owner-erasure boundaries.
+- `backend/packages/txt2crs/README_txt2crs.md` - Corrects the two-stage
+  preparation flow, durable disabled-notification semantics, and exact
+  `learner_age_group` contract field.
+- `docs/development.md` - Links the complete PostgreSQL plus private-state
+  backup/restore procedure and warns that the legacy database-only helper is
+  incomplete.
+- `.spec_system/PRD/PRD.md` - Corrects phase progress and removes a stale fixed
+  release-version success criterion.
+- `docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md` - Marks Phase 01 and
+  all five sessions complete while relabeling the original repository survey
+  as historical starting-state evidence.
+- `docs/CHANGELOG.md` - Records the Phase 01 documentation synchronization.
+- `.spec_system/docs-audit.md` - Replaces the Phase 00 report with this
+  evidence-backed Phase 01 audit.
 
 ## Verified Current
 
-- Root and package licenses exist; no legal scope was invented.
-- The engine package README and implementation-compliance map match the
-  reusable package boundary.
-- The current HTTP docs list only routes returned by FastAPI OpenAPI; course
-  generation routes are explicitly absent.
-- The one-command quick start is repository-root Docker Compose.
-- Backend and frontend health paths match code and container checks.
-- The incident runbook preserves both named volumes by default.
-- All subdirectory documentation indexes use unique `README_<scope>.md`
-  names; only the repository root uses `README.md`.
-- Docker Compose is the only deployment target. GitHub Actions has validation
-  workflows but no environment-deployment workflow.
+- `CONTRIBUTING.md` still reflects tests-first work, package boundaries,
+  generated-client ownership, and current package commands.
+- Root and package licenses exist; no legal scope was invented or changed.
+- `backend/README_backend.md`, `frontend/README_frontend.md`, and
+  `docs/api/README_api.md` correctly state that generation routes and the
+  learner UI are not implemented yet.
+- The generated OpenAPI snapshot still contains only authentication, users,
+  temporary items, password recovery, health, and test-email paths.
+- `docs/onboarding.md` and the root quick start use repository-root Docker
+  Compose; the complete build/wait topology passed the Phase 01 transition
+  audit.
+- Deployment, local deployment, environment, security, and incident-response
+  docs match the validated complete backup/restore scripts and owner-only
+  bundle contract.
+- All registered packages have unique package README names. The root is the
+  only tracked authored `README.md`.
+- Current release metadata is synchronized at `0.5.0` across `VERSION`, the
+  engine manifest, lockfile, versioning guide, changelog, commit, and tag.
 
 ## External Decision Gaps
 
-1. `docs/CODEOWNERS` names `@aiwithapex`, but GitHub resolves neither a user
-   nor organization by that name. Replacing it requires the repository owner
-   to select an accountable GitHub identity.
-2. The repository has no verified security mailbox and GitHub private
-   vulnerability reporting is unavailable. The owner must select a durable
-   private reporting channel before any public release.
-3. GitHub Actions jobs cannot schedule because of the account billing/spending
-   limit. Local equivalents pass, but remote CodeQL remains unavailable.
+1. `docs/CODEOWNERS` names `@aiwithapex`, but GitHub currently resolves neither
+   a user nor organization by that name. Replacing it requires the repository
+   owner to choose an accountable GitHub identity.
+2. The private repository has no verified project security mailbox and its
+   private-vulnerability-reporting API endpoint is unavailable. The owner must
+   choose a durable private reporting channel before public release.
+3. GitHub Actions jobs still cannot schedule because account billing rejects
+   every job before runner assignment. Local equivalents pass, but remote
+   CodeQL remains unavailable.
 
-No hosted-platform decision is needed for this project: hosting is explicitly
-outside scope.
+No hosted-platform decision is required: local Docker is the explicit complete
+deployment scope under ADR-0008.
 
 ## Evidence Ledger
 
 | Area | Document | Codebase or Spec Evidence | Result |
 |------|----------|---------------------------|--------|
-| Project state | This report | `.spec_system/scripts/analyze-project.sh --json` | Phase 00 complete; 3 packages; 1 completed session |
-| Phase manifest | This report | First spec base plus `git diff --name-only c26350a3...HEAD` | Phase-focused scope established |
-| Product truth | `README.md`, `ARCHITECTURE.md` | Phase 00 implementation notes and current shell/package trees | Updated |
-| Quick start | `README.md`, onboarding, deployment | Isolated `docker compose ... up --detach --build --wait` | Backend, frontend, and database healthy |
-| Local deployment scope | Deployment docs, ADR-0008 | Owner direction; absence contract in `test_container_contract.py` | Hosted workflows/tooling removed; 10 tests pass |
-| Frontend health | Deployment docs and frontend README | `nginx.conf`, `frontend/Dockerfile`, focused Vitest | `/health` JSON and image check verified; 5 tests pass |
-| Backend health | Architecture and deployment docs | `backend/app/api/routes/utils.py`; isolated HTTP smoke | Readiness and liveness paths verified |
-| API contract | `docs/api/README_api.md` | `app.openapi()["paths"]` targeted inspection | Current auth, user, item, utility paths documented |
-| Environment behavior | Configuration and environments docs | `backend/app/core/config.py`, rate limiting, Compose files | Current local and inactive validation profiles documented |
-| Private state | Architecture and operations docs | Typed settings, Dockerfiles, Compose mount, replacement-container smoke | Fixed local paths and volume ownership documented |
-| Package coverage | Package READMEs | Analyzer `packages` array and package manifests | 3 of 3 present |
-| README naming | Documentation index and file guide | Filesystem search for subdirectory `README.md` | Root is the only authored `README.md` |
-| Workflow safety | Pipeline records | `actionlint .github/workflows/*.yml`; `zizmor` | 9 validation workflows pass, no Zizmor findings |
-| CODEOWNERS | `docs/CODEOWNERS` | GitHub user and organization API lookups for `aiwithapex` | External owner decision required |
-| Security contact | `docs/SECURITY.md` | Repository security endpoint inspection | External owner decision required |
-| Links and ASCII | All audited documentation | Local Markdown link scan and non-ASCII scan | PASS after this report was created |
+| Project state | This report | `.spec_system/scripts/analyze-project.sh --json` | Phase 01 complete; 3 packages; 5 Phase 01 sessions |
+| Phase manifest | This report | First spec base plus `git diff --name-only c56fa822...HEAD` | 145-file phase-focused scope |
+| Semantic changes | README, architecture, engine guide | All five Phase 01 `implementation-notes.md` files and implementation summaries | Current engine boundary documented |
+| Public application boundary | README and architecture | `application/config.py`, `facade.py`, `factories.py`, `owner_lifecycle.py`; 444-test final engine evidence | Updated |
+| Request/preparation flow | Engine guide | `jobs/requests.py`, `jobs/preparation.py`, `generation/pipeline.py` | Corrected exact field and stage ordering |
+| Quick start | Root README and onboarding | `docker-compose.yml`, override, Phase 01 audit isolated full-stack build/health proof | Current |
+| Complete recovery | Development and operations docs | `backup-local-state.sh`, `restore-local-state.sh`, safe archive helper, 6 contract tests, isolated two-store restore proof | Current |
+| API contract | API and backend guides | `jq '.paths' frontend/openapi.json`; deterministic generated-client hook | No generation route overstatement |
+| Package coverage | Package READMEs | Analyzer `packages` array and filesystem inspection | 3 of 3 present |
+| README naming | Documentation rules | `git ls-files` README inspection | Root is the only tracked `README.md` |
+| Version | PRD, system plan, versioning | `VERSION`, engine `pyproject.toml`, `uv.lock`, changelog, `v0.5.0` | Stale `0.4.0` target removed |
+| Link integrity | Audited Markdown | Local target scan over root, standard docs, and package guides | 120 local links resolve |
+| Encoding/format | Files changed in this gate | ASCII scan, LF/file inspection, `git diff --check` | PASS |
+| CODEOWNERS | `docs/CODEOWNERS` | `gh api users/aiwithapex`; `gh api orgs/aiwithapex` | Both return 404; external decision |
+| Security contact | `docs/SECURITY.md` | Private repository metadata and vulnerability-reporting endpoint inspection | External decision |
+| Remote CI | Known issues and pipeline report | Current zero-step GitHub runs plus local security equivalents | Billing blocker remains |
 
 ## Next Action
 
-PRD.md defines Phases 01 through 05 as not started, while state tracking
-currently ends at completed Phase 00. The two-source rule therefore selects
-`phasebuild`; that workflow owns reconciliation and Phase 01 creation.
+The master PRD defines Phases 02 through 05 as not started, while state
+tracking currently ends at completed Phase 01. The two-source rule therefore
+selects `phasebuild`; it owns reconciliation and creation of Phase 02.

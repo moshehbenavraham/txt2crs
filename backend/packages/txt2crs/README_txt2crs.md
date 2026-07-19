@@ -37,7 +37,8 @@ the application shell.
   private artifacts).
 - HMAC request verification, replay protection, consent/content policy,
   high-risk review gates, tenant-scoped SQLite state, cumulative per-stage and
-  per-module checkpoints, restored budgets, and idempotent notifications.
+  per-module checkpoints, restored budgets, and explicit durable
+  notification-disabled state.
 - Atomic filesystem delivery with non-identifying tenant paths, integrity
   manifests, owner-only modes, explicit deletion, and retention purging.
 - A fixed 13-category private evaluation corpus, dry-run planning, atomic
@@ -48,8 +49,10 @@ the application shell.
 
 ```text
 authorized request
-  -> content and consent policy
-  -> input ingestion
+  -> consent and request preflight
+  -> bounded input ingestion
+  -> normalized-content policy
+  -> durable preparation checkpoint
   -> research plan
   -> bounded search and extraction
   -> ranked frozen evidence
@@ -61,7 +64,7 @@ authorized request
   -> assessment and answer key
   -> cross-artifact validation
   -> deterministic rendering
-  -> atomic private delivery and one notification
+  -> atomic private delivery and durable notification-disabled state
 ```
 
 The canonical `Course` is the only source for downstream review and assessment
@@ -187,8 +190,9 @@ Important deployment rules:
 - The MCP HTTP listener must remain on loopback. Tavily credentials stay in the
   application-owned research process and are not inherited by the Codex
   worker.
-- Consent, `learner_age`, and any qualified high-risk review approval belong
-  in the strict `GenerationRequest`; the facade stores that exact request.
+- Consent, `learner_age_group`, and any qualified high-risk review approval
+  belong in the strict `GenerationRequest`; the facade stores that exact
+  request.
 - Every new job submission must declare a finite `AdmissionReservation`
   matching its configured run/research limits.
 - The included `FilesystemPrivateArtifactStore` is suitable for the current

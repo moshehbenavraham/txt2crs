@@ -234,7 +234,7 @@ This system delivers the product via phases. Each phase is implemented through
 
 ## Success Criteria
 
-- [ ] Phase 00 through Phase 04 exit gates pass.
+- [ ] Phase 00 through Phase 05 exit gates pass.
 - [ ] Every enabled input mode is reported truthfully by readiness and covered
   by deterministic tests.
 - [ ] New requests are durably committed before `202` and recover from exact
@@ -249,8 +249,9 @@ This system delivers the product via phases. Each phase is implemented through
 - [ ] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
 - [ ] Engine, backend, frontend, acceptance, Compose, and production Docker
   validation are green.
-- [ ] Release `0.4.0` is synchronized, built, tested, tagged, pushed, and
-  supported by one inspected live GPT-5.6 plus Tavily course.
+- [ ] The then-current exact SemVer release is synchronized, built, tested,
+  tagged, pushed, and supported by one inspected live GPT-5.6 plus Tavily
+  course.
 - [ ] Judge-ready README, license/access, public demo video, Codex feedback
   Session ID, Education-category fields, and Devpost submission are complete.
 
@@ -285,10 +286,9 @@ This system delivers the product via phases. Each phase is implemented through
 
 ### Conflict Resolutions
 
-- **Phase progress**: `docs/CHANGELOG.md` says the previous documentation pass
-  recorded Phase 1 complete before the spec workflow was reconciled. The
-  validated Phase 00 session and phase-transition evidence are authoritative:
-  Phase 00 is complete, and Phases 01-05 remain unfinished.
+- **Phase progress**: Validated session and phase-transition evidence is
+  authoritative. Phases 00 and 01 are complete; Phases 02-05 remain
+  unfinished.
 - **Phase 01 session count**: The implementation plan suggested two sessions,
   but those sessions combined fourteen substantial package gaps and exceeded
   the Apex Spec 12-25 task and 2-4 hour limits. Phase 01 therefore uses five

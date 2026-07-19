@@ -1,9 +1,10 @@
 # Input-to-Course System Implementation Plan
 
 > **Plan status:** Final - implementation-ready
-> **Delivery status:** Application shell partially integrated; P0 workflow not
-> implemented
-> **Baseline release:** 0.3.1
+> **Delivery status:** Engine application boundary complete; FastAPI
+> composition and the learner workflow are not implemented
+> **Initial baseline release:** 0.3.1
+> **Current release:** 0.5.0
 > **Created:** 2026-07-18
 > **Last verified:** 2026-07-19
 > **Owner:** txt2crs project
@@ -144,13 +145,13 @@ Do not implement the following before the submission gate:
   production-hosting decision requires an explicit owner-approved scope change
   and a new ADR.
 
-## 3. Verified repository state
+## 3. Starting repository state
 
-The earlier plan marked boilerplate adoption complete. That is not accurate
-against the current repository. The application shell is present, but the
-phase exit criteria are not yet satisfied.
+This table records the starting state inspected when the plan was adopted.
+It is historical baseline evidence, not a claim about the current repository;
+the phase statuses in Section 10 are the current delivery record.
 
-| Area | Verified state on 2026-07-19 | Consequence |
+| Area | Starting state on 2026-07-19 | Consequence |
 |---|---|---|
 | FastAPI auth/users and React shell | Present | Reuse |
 | `txt2crs` uv workspace dependency | Host import works | Reuse |
@@ -170,7 +171,7 @@ phase exit criteria are not yet satisfied.
 | Integrated YouTube dispatch | Adapter exists, but `InputType` and dispatcher do not distinguish YouTube from generic URL | Package gap must be closed |
 | Preference enforcement | UI concepts such as `Auto`, explicit level, and learning goals are not deterministic package contracts | Package gap must be closed or omitted |
 
-Therefore:
+At plan adoption:
 
 - Phase 0 below is **partially complete**, not complete.
 - Phases 1 through 5 are **not started**.
@@ -1218,7 +1219,7 @@ Suggested implementation session: **S01 - baseline container and state**.
 
 ### Phase 1 - close the engine application-boundary gaps
 
-**Status:** In progress (Session 1 of 5 complete).
+**Status:** Complete (5 of 5 sessions validated).
 
 Objective: expose every durable and safe operation the shell needs without
 letting FastAPI reach into engine internals.
@@ -1253,10 +1254,13 @@ Exit gate:
 - all engine lint, mypy, unit, contract, integration, build, and live-gated
   compatibility checks pass.
 
-Suggested implementation sessions:
+Implemented sessions:
 
-- **S02 - durable requests and recovery**
-- **S03 - safe queries, policy, artifacts, preferences, and runtime factories**
+- **S01 - durable requests and recovery**
+- **S02 - safe queries and artifact access**
+- **S03 - input preferences and policy gate**
+- **S04 - managed runtime and model policy**
+- **S05 - public facade and owner lifecycle**
 
 ### Phase 2 - composition root and readiness
 

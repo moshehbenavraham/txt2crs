@@ -91,6 +91,12 @@ ephemeral under `/tmp/txt2crs-worker`. The research MCP port is not published.
 Do not add replicas or multiple FastAPI workers while this serial SQLite
 topology remains.
 
+Complete backup and restore commands are documented in
+[Local deployment](local-deploy.md#backup-and-restore). The backup briefly
+stops the backend writer and captures PostgreSQL plus the complete private
+engine-state volume; the legacy `scripts/backup-db.sh` is not sufficient by
+itself.
+
 ## Mailcatcher
 
 Local Compose routes application email to `mailcatcher:1025`. View captured

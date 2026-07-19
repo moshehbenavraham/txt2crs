@@ -21,20 +21,21 @@ source.
 
 ## Current Status
 
-Phase 00, the reproducible application baseline, is complete. The backend
-images install the workspace-owned engine, run one non-root FastAPI process,
-and persist private SQLite job state, artifacts, and Codex-managed credentials
-under one owner-only state root. The frontend and backend have independent
-container health probes.
+Phases 00 and 01 are complete. The backend images install the workspace-owned
+engine, run one non-root FastAPI process, and persist private SQLite job state,
+artifacts, and Codex-managed credentials under one owner-only state root. The
+frontend and backend have independent container health probes.
 
 The independently installable engine at
 [`backend/packages/txt2crs/`](backend/packages/txt2crs/) already owns bounded
 ingestion, research, Codex execution, course generation, review and assessment
 creation, deterministic rendering, durable recovery, policy, private
-artifacts, and evaluation. The FastAPI shell currently exposes authentication,
-users, health, and the temporary donor `items` domain. Phase 01 will add the
-public engine application boundary; course-generation HTTP routes do not
-exist yet.
+artifacts, owner erasure, and evaluation. Its public application facade now
+supports strict real and deterministic factories, durable submission and
+recovery, safe job/artifact reads, exact GPT-5.6 policy, managed provider
+lifecycles, and owner purge. The FastAPI shell currently exposes
+authentication, users, health, and the temporary donor `items` domain;
+course-generation HTTP routes do not exist yet.
 
 See the
 [input-to-course system plan](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)
@@ -46,7 +47,7 @@ delivery sequence.
 ```bash
 cp .env.example .env
 # Replace SECRET_KEY, POSTGRES_PASSWORD, and FIRST_SUPERUSER_PASSWORD.
-docker compose up -d --wait
+docker compose up --detach --build --wait
 ```
 
 The frontend is available at <http://localhost:5183> and the backend API at

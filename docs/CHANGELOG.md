@@ -19,6 +19,8 @@ Archived entries are stored in [`archive/`](archive/).
 
 - Documented complete local recovery, retention, destructive confirmation, and
   encrypted off-host storage responsibilities.
+- Synchronized the project overview, architecture, engine guide, master PRD,
+  and system plan with the completed Phase 01 application facade.
 
 ### Deprecated
 

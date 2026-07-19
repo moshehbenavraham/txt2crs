@@ -3,9 +3,9 @@
 ## System Overview
 
 txt2crs is a three-package FastAPI/React monorepo. The reusable engine owns
-education-domain behavior; the application shell owns transport and identity.
-Phase 00 makes that boundary reproducible in containers, but the shell does
-not yet expose course-generation routes.
+education-domain behavior and exposes one framework-independent application
+facade; the application shell owns transport and identity. The shell does not
+yet compose that facade into course-generation routes.
 
 ```text
 React SPA
@@ -15,11 +15,11 @@ React SPA
 FastAPI shell
     |-- PostgreSQL: users and temporary donor items
     |-- private state volume: engine SQLite, artifacts, Codex home
-    `-- public txt2crs package facade (application boundary arrives in P01)
-            |-- bounded ingestion and policy
-            |-- loopback research MCP
-            |-- Codex subscription runtime
-            `-- generation, recovery, rendering, and private delivery
+    `-- public txt2crs application facade
+            |-- durable requests, recovery, and owner purge
+            |-- bounded ingestion, preferences, and two-stage policy
+            |-- managed loopback research MCP and Codex runtime
+            `-- generation, public projections, rendering, and private delivery
 ```
 
 The research MCP server is package-owned and loopback-only. The separate admin
@@ -31,7 +31,7 @@ surface; the two boundaries must never be merged.
 | Component | Location | Technology | Current responsibility |
 |-----------|----------|------------|------------------------|
 | Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, health, errors, and observability |
-| Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Ingestion, research, generation, policy, jobs, recovery, artifacts, rendering, and evaluation |
+| Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Public application facade/factories, ingestion, research, generation, policy, jobs, recovery, artifacts, owner lifecycle, rendering, and evaluation |
 | Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, temporary items, and current shell UI |
 | Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
 
@@ -41,6 +41,9 @@ surface; the two boundaries must never be merged.
   generation, research, policy, persistence, validation, or rendering.
 - PostgreSQL is authoritative for application users. Tenant-scoped engine
   SQLite is authoritative for generation jobs.
+- Engine owner erasure cancels tracked work, removes private artifacts, then
+  transactionally deletes SQLite job parents. A future shell account-deletion
+  flow must call that public operation before deleting the PostgreSQL user.
 - The backend image runs exactly one non-root FastAPI process while the serial
   worker and SQLite topology remain in use.
 - `/var/lib/txt2crs` is the image-owned persistent mount containing the job
@@ -64,6 +67,19 @@ See [deployment policy](deployment-policy.md) for the local source of truth
 and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
 
 ## Runtime Flows
+
+### Engine Application Boundary
+
+1. The shell will translate validated settings once into
+   `RealApplicationConfig` and own one `Txt2CrsApplication` for its lifespan.
+2. The facade delegates durable submission, recovery, safe public job and
+   artifact reads, readiness/authentication, executor creation, and owner purge
+   to package-owned services.
+3. Execution persists provider-free ingestion, policy, and preference
+   preparation before opening job-scoped Tavily, research MCP, and Codex
+   resources.
+4. The exact accepted request and checkpoints drive restart recovery; current
+   defaults and refetched source content do not reinterpret accepted work.
 
 ### Authentication
 
