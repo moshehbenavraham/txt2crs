@@ -2,8 +2,8 @@
 
 **Session ID**: `phase02-session04-system-readiness-and-auth-api`
 **Package**: backend
-**Status**: Not Started
-**Estimated Tasks**: ~12-25
+**Status**: Complete
+**Tasks**: 25
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -55,13 +55,13 @@ public engine contracts.
 
 ## Success Criteria
 
-- [ ] Authenticated users can read only the coarse readiness projection.
-- [ ] Non-superusers cannot start or inspect the device ceremony.
-- [ ] Device state exposes only bounded user-code, the validated OpenAI
+- [x] Authenticated users can read only the coarse readiness projection.
+- [x] Non-superusers cannot start or inspect the device ceremony.
+- [x] Device state exposes only bounded user-code, the validated OpenAI
   verification URL, and safe status/recovery fields. The pinned SDK exposes no
   expiry, so the API does not fabricate one.
-- [ ] Concurrent job ownership returns cached state or a safe busy response
+- [x] Concurrent job ownership returns cached state or a safe busy response
   without starting another runtime.
-- [ ] Failures use `AppException`, registered `ErrorCode` values, RFC 9457,
+- [x] Failures use `AppException`, registered `ErrorCode` values, RFC 9457,
   and trace IDs.
-- [ ] Backend tests, OpenAPI generation, type checks, and lint pass.
+- [x] Backend tests, OpenAPI generation, type checks, and lint pass.

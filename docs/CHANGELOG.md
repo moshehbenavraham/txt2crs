@@ -22,6 +22,43 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.5.4] - 2026-07-19
+
+### Added
+
+- Added authenticated cached readiness and superuser-only device
+  authentication start/status routes with strict browser-safe response
+  schemas, finite rate limits, semantic RFC 9457 errors, and generated
+  TypeScript operations.
+- Added a lifecycle-owned authentication coordinator that refreshes persisted
+  account state once and retains the shared runtime lease for the complete
+  background device ceremony.
+
+### Changed
+
+- FastAPI now starts authentication before readiness and the serial worker,
+  then closes the worker, readiness, authentication, runtime gate, and engine
+  facade in dependency-safe reverse order.
+- Exported the engine facade's existing safe authentication contracts through
+  the public application boundary.
+
+### Fixed
+
+- Prevented pre-lifecycle authentication calls from stranding runtime
+  ownership without a monitor.
+- Reported initial runtime contention as an explicit safe failed auth state
+  instead of a misleading signed-out result.
+- Removed private provider exception context from translated route failures.
+
+### Security
+
+- Restricted device start and status to current superusers while readiness
+  remains available only to active authenticated users.
+- Limited authentication responses and events to finite state, the validated
+  OpenAI verification URL, bounded user code, safe message, and reason codes;
+  account identity, tokens, provider payloads, paths, and exceptions remain
+  excluded.
+
 ## [0.5.3] - 2026-07-19
 
 ### Added

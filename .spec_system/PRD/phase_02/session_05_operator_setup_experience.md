@@ -37,7 +37,7 @@ CLI recovery without exposing credentials or provider internals.
 
 ## Prerequisites
 
-- [ ] Session 04 system routes and generated client are available.
+- [x] Session 04 system routes and generated client are available.
 - [ ] Existing frontend authentication and superuser identity are preserved.
 
 ---

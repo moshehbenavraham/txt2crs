@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 02 Session 03 (2026-07-19)
+> **Line budget**: 600 max | **Last updated**: Phase 02 Session 04 (2026-07-19)
 
 ---
 
@@ -107,6 +107,12 @@ Proven patterns and anti-patterns. Reference during implementation.
   methods, status, duration, finite codes, and attempt counts provide useful
   telemetry without retaining raw request, provider, exception, recipient, or
   infrastructure content.
+- [P02-backend] **A lease follows background work, not the request**: Device
+  authentication continues after its POST response, so one lifecycle monitor
+  retains runtime ownership until terminal state or bounded shutdown.
+- [P02-backend+frontend] **Auth polling reads only generated safe state**:
+  Persisted-account refresh belongs to startup; browser readiness/status
+  queries copy caches and cannot construct Codex, MCP, or credential work.
 
 ### What to Avoid
 
@@ -162,6 +168,7 @@ Recently closed items (buffer - rotates out after 2 phases).
 
 | Phase | Item | Resolution |
 |-------|------|------------|
+| P02 | Protected system API | Active users can read cached readiness; only current superusers can start or inspect a bounded device challenge. |
 | P02 | Raw request metadata in logs | Request, exception, telemetry, SMTP, and startup events now use bounded allowlists with focused privacy regressions. |
 | P02 | Composite readiness ownership | One public engine aggregate, immutable shell cache, and shared finite runtime owner now cover readiness without browser-side effects. |
 | P01 | Complete local recovery | One owner-only bundle now captures and restores PostgreSQL plus private engine state with pre-destructive validation. |

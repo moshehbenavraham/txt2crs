@@ -4,7 +4,7 @@
 **Sessions**: 5 (initial estimate)
 **Estimated Duration**: 3-5 days
 
-**Progress**: 3/5 sessions (60%)
+**Progress**: 4/5 sessions (80%)
 
 ---
 
@@ -25,7 +25,7 @@ provider work from browser polling.
 | 01 | Engine Composition Lifecycle | Complete | 24 | 2026-07-19 |
 | 02 | Serial Worker Supervisor | Complete | 25 | 2026-07-19 |
 | 03 | Cached Readiness and Observability | Complete | 25 | 2026-07-19 |
-| 04 | System Readiness and Auth API | Not Started | ~12-25 | - |
+| 04 | System Readiness and Auth API | Complete | 25 | 2026-07-19 |
 | 05 | Operator Setup Experience | Not Started | ~12-25 | - |
 
 ---
@@ -35,12 +35,13 @@ provider work from browser polling.
 - Session 01: Engine Composition Lifecycle - completed 2026-07-19
 - Session 02: Serial Worker Supervisor - completed 2026-07-19
 - Session 03: Cached Readiness and Observability - completed 2026-07-19
+- Session 04: System Readiness and Auth API - completed 2026-07-19
 
 ---
 
 ## Upcoming Sessions
 
-- Session 04: System Readiness and Auth API
+- Session 05: Operator Setup Experience
 
 ---
 

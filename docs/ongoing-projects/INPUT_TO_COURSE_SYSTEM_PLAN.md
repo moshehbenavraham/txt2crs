@@ -1264,7 +1264,7 @@ Implemented sessions:
 
 ### Phase 2 - composition root and readiness
 
-**Status:** In progress (3 of 5 sessions validated).
+**Status:** In progress (4 of 5 sessions validated).
 
 Objective: start, inspect, and safely stop one real engine worker graph.
 
@@ -1288,6 +1288,7 @@ Implemented sessions:
 - **S01 - engine composition lifecycle**
 - **S02 - serial worker supervisor**
 - **S03 - cached readiness and observability**
+- **S04 - system readiness and authentication API**
 
 Exit gate:
 
@@ -1299,8 +1300,7 @@ Exit gate:
 - new work is refused with `SYSTEM_NOT_READY` when any required dependency
   fails.
 
-Next implementation session: **S04 - system readiness and authentication
-API**.
+Next implementation session: **S05 - operator setup experience**.
 
 ### Phase 3 - durable jobs API and worker execution
 
