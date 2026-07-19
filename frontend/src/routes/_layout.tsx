@@ -53,6 +53,7 @@ const SECTION_LABELS: Record<string, string> = {
   "/": "Workspace",
   "/items": "Items",
   "/admin": "Admin",
+  "/setup": "System setup",
   "/settings": "Settings",
   "/forbidden": "Not authorized",
 }

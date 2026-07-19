@@ -8,7 +8,8 @@
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* — expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Implemented (shell, dashboard, tokens, motion, reduced-motion).
+> **Status**: Implemented (shell, dashboard, system setup, tokens, motion,
+> reduced-motion).
 > Last updated: 2026-07-19
 
 ## Table of Contents
@@ -521,6 +522,19 @@ dropdown).
 | `Pending/PendingDashboard` | Static, geometry-matched placeholders (no shimmer) |
 | `queries.ts` | Suspense query options on existing service + query-key conventions |
 
+### System setup (`frontend/src/components/SystemSetup/`, plus `Pending/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `ReadinessOverview` | One plain-language system verdict backed by the readiness API; never invents a score |
+| `AuthenticationPanel` | Starts the device-auth flow, presents only the safe challenge link/code, copies the code, and explains the current state |
+| `SystemChecklist` | Renders the API checks in a stable, numbered operator sequence, with human-readable input labels |
+| `RecoveryPanel` | Shows safe API warnings/actions and the exact terminal fallback command without exposing secrets or account data |
+| `SystemSetupWorkspace` | Loads readiness and authentication in parallel, owns device-auth mutation/cache coordination, and announces combined state changes |
+| `Pending/PendingSystemSetup` | Static, geometry-matched placeholders for the three setup regions |
+| `presentation.ts` | Finite API-state-to-copy mappings and the explicit readiness-check allowlist/order |
+| `queries.ts` | Suspense query options plus waiting-only, one-second authentication polling |
+
 ### Assets
 
 Icons: Lucide (primary), React Icons (auth-footer social only: GitHub,
@@ -541,10 +555,11 @@ LinkedIn, YouTube). SVGs in `frontend/public/assets/images/`: `apex-logo.svg`
 | `/items` | `_layout/items.tsx` | Items management with DataTable |
 | `/settings` | `_layout/settings.tsx` | User settings (tabbed) |
 | `/admin` | `_layout/admin.tsx` | Admin panel (superuser only) |
+| `/setup` | `_layout/setup.tsx` | System readiness and device authentication (superuser only) |
 
 ### Shared page header
 
-All product routes (Dashboard, Items, Admin, Settings) use
+All product routes (Dashboard, Items, Admin, Settings, System setup) use
 `Common/PageHeader.tsx`:
 
 ```tsx
@@ -615,6 +630,66 @@ description, source, and the actions menu.
   not disabled; direct-URL permission failures keep the Forbidden recovery
   path.
 
+### System setup
+
+**User job:** determine whether the local course-generation engine can run,
+complete authentication when necessary, and recover from a blocked check.
+**Primary action:** `Start authentication` only while authentication is
+required.
+
+Identity: eyebrow `Operations`, `h1` `System setup`, supporting copy that
+identifies this as the local engine preflight, and a `Refresh status` action.
+The screen is intentionally an operator field guide rather than a generic
+settings form.
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Operations                                                         │
+│ System setup                                      [Refresh status] │
+│ Confirm this installation can generate courses safely.            │
+├────────────────────────────────────────────────────────────────────┤
+│ SYSTEM VERDICT                                                     │
+│ Ready / Action required / Temporarily unavailable                  │
+│ One concise explanation; no readiness percentage or score         │
+├──────────────────────────────────────┬─────────────────────────────┤
+│ AUTHENTICATION                       │ RECOVERY                    │
+│ Signed out / Waiting / Authenticated │ API safe actions/warnings  │
+│ safe challenge link + code or CTA    │ exact CLI fallback         │
+├──────────────────────────────────────┴─────────────────────────────┤
+│ READINESS CHECKS                                                  │
+│ 01 Runtime … 02 Workspace … stable API-backed order              │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+On mobile, verdict, authentication, and recovery appear before the detailed
+checklist; card headings, badges, codes, and actions stack without making the
+operator scan horizontally. Long challenge URLs and the CLI command wrap
+safely. The authentication header switches from a two-column relationship to
+a vertical group so status copy cannot create document overflow.
+
+**States:**
+
+- **Pending** — static placeholders preserve the verdict, authentication,
+  checklist, and recovery geometry; the shell and page identity stay present.
+- **Ready** — one positive verdict, all returned checks remain inspectable,
+  and no authentication challenge is shown.
+- **Action required** — failed or signed-out authentication exposes one
+  `Start authentication` action and the exact CLI fallback.
+- **Waiting** — the challenge URL and user code are visible and copyable;
+  authentication status polls every one second while the API remains in
+  `waiting`, then stops immediately for `authenticated`, `signed_out`, or
+  `failed`.
+- **Unavailable / failed** — safe API warnings and recovery actions stay
+  visible; the live status announces the change without duplicating visible
+  headings or leaking exception details.
+- **Permission** — regular users are redirected before either system endpoint
+  is queried; the sidebar entry is absent for them.
+
+Only the API's safe readiness fields, input names, warnings/actions, device
+challenge URL/code, and coarse authentication state may render. Tokens,
+credentials, account identity, local paths, and raw exception details never
+appear in the browser.
+
 ### Items
 
 **Desktop:** table representation with Title over ID hierarchy and minimal
@@ -681,6 +756,21 @@ Open product questions (constrain copy, do not block work): the user-facing
 noun for "Item"; whether missing source/content/metadata is incomplete work
 or a valid item type; whether the backend adds timestamps and aggregates.
 
+### System setup contract
+
+| Setup content | API support | Rule |
+|---------------|-------------|------|
+| Overall verdict | `SystemReadinessResponse.status` | Map the finite API state to one plain-language verdict; never compute a score |
+| Readiness checks | `checks[].name`, `status`, `message`, `inputs` | Render only the explicit allowlisted checks in their stable operator order |
+| Safe recovery guidance | `warnings` and `actions` | Preserve safe API meaning; do not append exception, token, account, or filesystem data |
+| Authentication state | `SystemAuthStatusResponse.state` | Poll only while `waiting`; terminal states stop polling |
+| Device challenge | `SystemAuthStartResponse.verification_url` and `user_code` | Show only after an explicit superuser action; make both keyboard-accessible |
+| Terminal fallback | Engine CLI contract | Display exactly `uv run --package txt2crs txt2crs-system-auth` |
+
+The browser does not infer engine health from HTTP success alone. It also
+does not request authentication during page load: starting device auth is an
+explicit operator action.
+
 ---
 
 ## 10. Responsive Design
@@ -695,6 +785,7 @@ Tailwind default breakpoints: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 | Logo | Icon in command strip | Full logo in sidebar |
 | Page header | Stacked, stretched actions | Bottom-aligned identity + actions |
 | Dense tables | Feature record lists | TanStack tables |
+| System setup | Verdict → authentication → checks → recovery; stacked status header | Verdict first; authentication/checks share the workspace when space permits |
 | Auth layout | Single column | 2-column grid |
 
 Hard requirements: no document-level horizontal scroll at 320px or 200% zoom;
@@ -750,7 +841,8 @@ npx playwright test          # when the backend/test environment is available
 ```
 
 E2E coverage includes dashboard populated/empty/error/permission states,
-mobile header and record lists, and
+mobile header and record lists; system setup ready, action-required, waiting,
+authenticated, unavailable, failed, and permission states; and
 `page.emulateMedia({ reducedMotion: "reduce" })` checks that assert focus
 destination and enabled controls, not only screenshots. Selectors change only
 when copy or accessible names change intentionally, migrated in the same
@@ -763,6 +855,8 @@ light and dark, with keyboard, and under reduced motion:
 
 - Protected shell (expanded/collapsed) and the mobile navigation sheet
 - Dashboard pending / empty / populated / error
+- System setup pending / ready / action required / waiting / authenticated /
+  unavailable / failed / permission
 - Items filter + create action; desktop table and mobile record list
 - Admin desktop table and mobile record list
 - Settings tabs, forms, danger zone
@@ -793,6 +887,10 @@ permanent `will-change`.
 - Generated files, protected primitives, auth/query/form contracts, and test
   hooks remain intact; lint, typecheck, build, Playwright, and rendered QA
   pass.
+- System setup displays one truthful verdict, starts authentication only on
+  explicit superuser input, polls only while waiting, stops at terminal
+  states, exposes the exact CLI fallback, and never renders a secret, account
+  identity, raw exception, or local filesystem path.
 
 ---
 

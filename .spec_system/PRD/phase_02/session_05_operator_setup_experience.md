@@ -38,7 +38,7 @@ CLI recovery without exposing credentials or provider internals.
 ## Prerequisites
 
 - [x] Session 04 system routes and generated client are available.
-- [ ] Existing frontend authentication and superuser identity are preserved.
+- [x] Existing frontend authentication and superuser identity are preserved.
 
 ---
 
@@ -54,13 +54,13 @@ CLI recovery without exposing credentials or provider internals.
 
 ## Success Criteria
 
-- [ ] Superusers can start and finish the browser-guided device ceremony.
-- [ ] Other authenticated users cannot access operator setup.
-- [ ] Readiness communicates why work is unavailable and what an operator can
+- [x] Superusers can start and finish the browser-guided device ceremony.
+- [x] Other authenticated users cannot access operator setup.
+- [x] Readiness communicates why work is unavailable and what an operator can
   safely do next.
-- [ ] The UI never displays tokens, filesystem paths, raw provider errors, or
+- [x] The UI never displays tokens, filesystem paths, raw provider errors, or
   unbounded diagnostics.
-- [ ] Keyboard focus, live status announcements, contrast, and reduced motion
+- [x] Keyboard focus, live status announcements, contrast, and reduced motion
   satisfy the project accessibility contract.
-- [ ] Frontend tests, type checks, lint, build, and focused browser checks
+- [x] Frontend tests, type checks, lint, build, and focused browser checks
   pass.

@@ -15,6 +15,7 @@ import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as LayoutSetupRouteImport } from './routes/_layout/setup'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
@@ -49,6 +50,11 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutSetupRoute = LayoutSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/forbidden': typeof LayoutForbiddenRoute
   '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/setup': typeof LayoutSetupRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/forbidden': typeof LayoutForbiddenRoute
   '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/setup': typeof LayoutSetupRoute
   '/': typeof LayoutIndexRoute
 }
 export interface FileRoutesById {
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/_layout/forbidden': typeof LayoutForbiddenRoute
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
+  '/_layout/setup': typeof LayoutSetupRoute
   '/_layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/forbidden'
     | '/items'
     | '/settings'
+    | '/setup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/forbidden'
     | '/items'
     | '/settings'
+    | '/setup'
     | '/'
   id:
     | '__root__'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/_layout/forbidden'
     | '/_layout/items'
     | '/_layout/settings'
+    | '/_layout/setup'
     | '/_layout/'
   fileRoutesById: FileRoutesById
 }
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/setup': {
+      id: '/_layout/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof LayoutSetupRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/settings': {
       id: '/_layout/settings'
       path: '/settings'
@@ -230,6 +249,7 @@ interface LayoutRouteChildren {
   LayoutForbiddenRoute: typeof LayoutForbiddenRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
+  LayoutSetupRoute: typeof LayoutSetupRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
@@ -238,6 +258,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutForbiddenRoute: LayoutForbiddenRoute,
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
+  LayoutSetupRoute: LayoutSetupRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 
