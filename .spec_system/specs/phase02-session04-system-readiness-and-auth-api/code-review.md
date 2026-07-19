@@ -127,7 +127,7 @@ No findings.
 | Added-line security scan | Diff scan plus manual trust-boundary inspection | PASS | No secret assignment, command execution, unsafe query, or private provider projection |
 | Dependency/schema inventory | Base-to-head filename and manifest inspection | PASS | No dependency or Alembic change |
 | Patch integrity | `git diff --check "$BASE"` | PASS | No whitespace defect |
-| Complete validation | Session `validate` matrix | PENDING | Recorded in `validation.md` after the review checkpoint |
+| Complete validation | Session `validate` matrix | PASS | 760 deterministic tests, static/frontend/client gates, pre-commit, ASCII/LF, and diff integrity passed |
 
 ## Summary
 

@@ -2,7 +2,7 @@
 
 **Session ID**: `phase02-session04-system-readiness-and-auth-api`
 **Phase**: 02 - Composition and Readiness
-**Status**: Implemented
+**Status**: Validated
 **Created**: 2026-07-19
 **Base Commit**: 470b2609dc9701c9eae28a5db8cfe30c1f2faef8
 **Package**: backend
@@ -197,47 +197,47 @@ semantic `ErrorCode`, and the central public-package translator.
 
 ### Functional Requirements
 
-- [ ] Authenticated users receive the exact coarse cached readiness projection
+- [x] Authenticated users receive the exact coarse cached readiness projection
   without triggering a refresh or package call.
-- [ ] Missing, invalid, or inactive authentication receives existing semantic
+- [x] Missing, invalid, or inactive authentication receives existing semantic
   RFC 9457 errors before a system service is accessed.
-- [ ] Non-superusers receive `AUTH_INSUFFICIENT_PERMISSIONS` for both
+- [x] Non-superusers receive `AUTH_INSUFFICIENT_PERMISSIONS` for both
   device-auth routes and cannot infer challenge state.
-- [ ] A superuser can start one device-code attempt and poll a cached safe
+- [x] A superuser can start one device-code attempt and poll a cached safe
   snapshot until it reaches `authenticated` or `failed`.
-- [ ] Repeated start while waiting or authenticated returns current state and
+- [x] Repeated start while waiting or authenticated returns current state and
   never creates another provider runtime.
-- [ ] Execution or readiness ownership refuses a new auth start with
+- [x] Execution or readiness ownership refuses a new auth start with
   `SYSTEM_NOT_READY`; status polling remains side-effect free.
-- [ ] An active ceremony retains authentication ownership until terminal
+- [x] An active ceremony retains authentication ownership until terminal
   status, start failure, or lifecycle close.
-- [ ] Unconfigured/closed services fail with generic stable codes and no
+- [x] Unconfigured/closed services fail with generic stable codes and no
   provider, credential, path, port, or exception detail.
-- [ ] Every API response excludes account identity, OAuth tokens, quota,
+- [x] Every API response excludes account identity, OAuth tokens, quota,
   provider payloads, paths, and private exception context.
 
 ### Testing Requirements
 
-- [ ] Tests are written and observed failing before implementation.
-- [ ] Focused service, schema, route, dependency, settings, error, and lifespan
+- [x] Tests are written and observed failing before implementation.
+- [x] Focused service, schema, route, dependency, settings, error, and lifespan
   tests pass.
-- [ ] Complete deterministic backend shell and engine suites pass.
-- [ ] OpenAPI generation and generated-client verification pass.
+- [x] Complete deterministic backend shell and engine suites pass.
+- [x] OpenAPI generation and generated-client verification pass.
 
 ### Non-Functional Requirements
 
-- [ ] Monitor polling and shutdown are finite and bounded by typed settings.
-- [ ] Route reads are low-latency cache copies and do not wait on the provider.
-- [ ] Authentication/start/status logs use only finite state and reason codes.
-- [ ] Cleanup is idempotent, reverse ordered, and cannot mask an earlier
+- [x] Monitor polling and shutdown are finite and bounded by typed settings.
+- [x] Route reads are low-latency cache copies and do not wait on the provider.
+- [x] Authentication/start/status logs use only finite state and reason codes.
+- [x] Cleanup is idempotent, reverse ordered, and cannot mask an earlier
   startup or request failure.
 
 ### Quality Gates
 
-- [ ] All files are ASCII-encoded with Unix LF line endings.
-- [ ] Code includes intern-friendly comments for leases, cache side effects,
+- [x] All files are ASCII-encoded with Unix LF line endings.
+- [x] Code includes intern-friendly comments for leases, cache side effects,
   authorization, and cleanup.
-- [ ] Ruff format/check, strict mypy, ty, frontend checks, and repository
+- [x] Ruff format/check, strict mypy, ty, frontend checks, and repository
   pre-commit pass.
 
 ---
