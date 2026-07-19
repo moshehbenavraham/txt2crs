@@ -188,6 +188,22 @@ fallback.
 
 ---
 
+## Code Review Repairs
+
+Formal base-to-head review found and fixed two Medium issues:
+
+1. A `Thread.start()` failure now clears the unstarted thread reference and
+   leaves partial-startup cleanup idempotent.
+2. Every executor attempt now emits bounded structured start and terminal
+   lifecycle events without identity or exception content.
+
+The three review regressions failed before repair and now pass. The updated
+focused shell set passes 62 tests, and the complete shell suite passes 255
+tests with the same 63 pre-existing short-test-key warnings. The complete
+engine suite remains 458 passed with one explicit live gate skipped.
+
+---
+
 ## Next Step
 
 Run `creview` against base commit

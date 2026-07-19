@@ -12,6 +12,7 @@ from typing import cast
 
 import pytest
 
+import app.services.txt2crs_worker as worker_module
 from app.services.txt2crs_worker import (
     SerialTxt2CrsWorker,
     WorkerApplication,
@@ -224,6 +225,31 @@ def test_worker_imports_only_public_txt2crs_boundaries() -> None:
     }
 
 
+def test_failed_thread_start_resets_supervisor_for_safe_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """OS thread creation failure cannot leave an unjoinable worker reference."""
+
+    class FailingThread:
+        """Match construction but fail before any operating-system thread exists."""
+
+        def __init__(self, **_thread_options: object) -> None:
+            pass
+
+        def start(self) -> None:
+            raise RuntimeError("private thread creation failure")
+
+    monkeypatch.setattr(worker_module, "Thread", FailingThread)
+    worker = _worker(RecordingApplication())
+
+    with pytest.raises(RuntimeError, match="private thread creation failure"):
+        worker.start()
+
+    assert worker.snapshot().status is WorkerStatus.stopped
+    worker.close()
+    worker.close()
+
+
 def test_startup_scans_immediately_and_nudge_wakes_idle_poll() -> None:
     """Startup and missed-event recovery do not depend on an HTTP submission."""
 
@@ -255,6 +281,65 @@ def test_startup_scans_immediately_and_nudge_wakes_idle_poll() -> None:
     worker.close()
     assert first_executor.close_calls == 1
     assert second_executor.close_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("execute_error", "expected_event"),
+    [
+        (None, "txt2crs.execution_completed"),
+        (
+            RuntimeError("private provider failure at /tmp/worker"),
+            "txt2crs.execution_failed",
+        ),
+    ],
+)
+def test_worker_emits_bounded_execution_lifecycle_events(
+    monkeypatch: pytest.MonkeyPatch,
+    execute_error: Exception | None,
+    expected_event: str,
+) -> None:
+    """Execution observability identifies the transition without private data."""
+
+    recorded_events: list[tuple[str, dict[str, object] | None, str]] = []
+
+    def record_safe_event(
+        event_name: str,
+        *,
+        extra: dict[str, object] | None = None,
+        level: str = "info",
+    ) -> None:
+        """Capture only the bounded arguments handed to the logging boundary."""
+
+        recorded_events.append((event_name, extra, level))
+
+    monkeypatch.setattr(
+        worker_module,
+        "_log_worker_event_safely",
+        record_safe_event,
+    )
+    concurrency_counter = ConcurrencyCounter()
+    concurrency_lock = Lock()
+    executor = RecordingExecutor(
+        name="private-job-name",
+        concurrency_counter=concurrency_counter,
+        concurrency_lock=concurrency_lock,
+        execute_error=execute_error,
+    )
+    application = RecordingApplication()
+    application.add_runnable(_runnable(4321), executor)
+    worker = _worker(application)
+
+    worker.start()
+    assert executor.execution_finished.wait(timeout=2)
+    worker.close()
+
+    event_names = [event_name for event_name, _extra, _level in recorded_events]
+    serialized_events = str(recorded_events)
+    assert "txt2crs.execution_started" in event_names
+    assert expected_event in event_names
+    assert "4321" not in serialized_events
+    assert "private-job-name" not in serialized_events
+    assert "/tmp/worker" not in serialized_events
 
 
 def test_worker_never_overlaps_two_executor_graphs() -> None:

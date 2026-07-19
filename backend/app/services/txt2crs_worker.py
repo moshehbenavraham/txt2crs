@@ -181,7 +181,21 @@ class SerialTxt2CrsWorker:
                 daemon=True,
             )
             self._thread = worker_thread
-            worker_thread.start()
+            try:
+                worker_thread.start()
+            except BaseException:
+                # ``Thread.start`` can fail before an operating-system thread
+                # exists. Clear the unjoinable object so FastAPI's partial
+                # startup cleanup can close this supervisor idempotently.
+                self._thread = None
+                self._status = WorkerStatus.stopped
+                self._last_failure_code = WorkerFailureCode.worker_crashed
+                _log_worker_event_safely(
+                    "txt2crs.worker_failed",
+                    extra={"reason_code": WorkerFailureCode.worker_crashed.value},
+                    level="error",
+                )
+                raise
         _log_worker_event_safely("txt2crs.worker_started")
 
     def notify_runnable(self) -> None:
@@ -343,20 +357,39 @@ class SerialTxt2CrsWorker:
 
         execution_failed = False
         cleanup_failed = False
+        _log_worker_event_safely("txt2crs.execution_started")
         try:
             executor.execute()
         except Exception:
             # Process interruption intentionally reaches this branch. Once
             # shutdown has started it is an expected recovery path, not an
             # operational execution failure.
-            if not self._stop_requested.is_set():
+            if self._stop_requested.is_set():
+                _log_worker_event_safely(
+                    "txt2crs.execution_failed",
+                    extra={"reason_code": "application_shutdown"},
+                    level="error",
+                )
+            else:
                 execution_failed = True
+                _log_worker_event_safely(
+                    "txt2crs.execution_failed",
+                    extra={"reason_code": WorkerFailureCode.execution_failed.value},
+                    level="error",
+                )
                 self._record_failure(WorkerFailureCode.execution_failed)
+        else:
+            _log_worker_event_safely("txt2crs.execution_completed")
         finally:
             try:
                 executor.close()
             except Exception:
                 cleanup_failed = True
+                _log_worker_event_safely(
+                    "txt2crs.execution_cleanup_failed",
+                    extra={"reason_code": WorkerFailureCode.cleanup_failed.value},
+                    level="error",
+                )
                 self._record_failure(WorkerFailureCode.cleanup_failed)
             with self._lock:
                 if self._active_executor is executor:
