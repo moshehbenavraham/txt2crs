@@ -1,9 +1,15 @@
 """Static safety contracts for the repository security workflow."""
 
+import os
 import re
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+# The development container mounts only the public inputs required by these
+# static checks. Host runs continue to discover the checkout from this file.
+DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+REPOSITORY_ROOT = Path(
+    os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
+)
 SECURITY_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "security.yml"
 GITLEAKS_IGNORE_FILE = REPOSITORY_ROOT / ".gitleaksignore"
 

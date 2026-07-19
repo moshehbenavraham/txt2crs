@@ -89,9 +89,18 @@ services:
             - .venv
         - path: ./backend/pyproject.toml
           action: rebuild
-    # TODO: remove once coverage is done locally
     volumes:
-      - ./backend/htmlcov:/app/htmlcov
+      # Static repository-contract tests inspect these authored, non-secret
+      # files. Mount only their inputs instead of the whole checkout so the
+      # development API cannot read `.env`, `.git`, or unrelated host files.
+      - ./docker-compose.yml:/workspace/docker-compose.yml:ro
+      - ./docker-compose.override.yml:/workspace/docker-compose.override.yml:ro
+      - ./.env.example:/workspace/.env.example:ro
+      - ./.gitleaksignore:/workspace/.gitleaksignore:ro
+      - ./.github/workflows:/workspace/.github/workflows:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./backend/Dockerfile:/workspace/backend/Dockerfile:ro
+      - ./backend/scripts:/workspace/backend/scripts:ro
     environment:
       POSTGRES_PORT: "5432"
       SMTP_HOST: "mailcatcher"
@@ -106,6 +115,8 @@ services:
       OTEL_SERVICE_NAME: "${PROJECT_NAME:-txt2crs}"
       # Test-only user creation endpoint; config rejects this outside local mode.
       ENABLE_PRIVATE_DEV_ROUTES: "true"
+      # Tests use this explicit path only for the read-only mounts above.
+      TXT2CRS_REPOSITORY_ROOT: "/workspace"
 
   mailcatcher:
     image: sj26/mailcatcher:v0.10.0

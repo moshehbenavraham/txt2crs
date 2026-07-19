@@ -1,8 +1,14 @@
 """Static regression tests for deterministic OpenAPI client generation."""
 
+import os
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+# The development container mounts only the public inputs required by these
+# static checks. Host runs continue to discover the checkout from this file.
+DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+REPOSITORY_ROOT = Path(
+    os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
+)
 GENERATE_CLIENT_SCRIPT = REPOSITORY_ROOT / "scripts" / "generate-client.sh"
 VALIDATE_CHANGES_SCRIPT = REPOSITORY_ROOT / "scripts" / "validate-changes.sh"
 

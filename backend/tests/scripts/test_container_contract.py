@@ -1,9 +1,16 @@
 """Fast static regressions for the backend image and Compose topology."""
 
+import os
 import re
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+# Host test runs discover the checkout from this file. The development
+# container receives the same public contract files at a narrow read-only
+# location because the backend image intentionally does not contain repo CI.
+DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+REPOSITORY_ROOT = Path(
+    os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
+)
 BACKEND_DOCKERFILE = REPOSITORY_ROOT / "backend" / "Dockerfile"
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
@@ -139,6 +146,37 @@ def test_development_override_keeps_a_single_reload_process() -> None:
 
     assert "--reload" in backend_service
     assert "--workers" not in backend_service
+
+
+def test_development_override_exposes_only_repository_contract_inputs() -> None:
+    """Container tests may read public contracts without mounting secrets or Git."""
+
+    compose_override_text = _read_repository_file(COMPOSE_OVERRIDE_FILE)
+    backend_service = _compose_service(compose_override_text, "backend")
+
+    assert 'TXT2CRS_REPOSITORY_ROOT: "/workspace"' in backend_service
+    for read_only_contract_mount in (
+        "./docker-compose.yml:/workspace/docker-compose.yml:ro",
+        "./docker-compose.override.yml:/workspace/docker-compose.override.yml:ro",
+        "./.env.example:/workspace/.env.example:ro",
+        "./.gitleaksignore:/workspace/.gitleaksignore:ro",
+        "./.github/workflows:/workspace/.github/workflows:ro",
+        "./scripts:/workspace/scripts:ro",
+        "./backend/Dockerfile:/workspace/backend/Dockerfile:ro",
+        "./backend/scripts:/workspace/backend/scripts:ro",
+    ):
+        assert read_only_contract_mount in backend_service
+
+    # A development API process already receives its required settings through
+    # Compose. Giving it the source .env or Git history would add unnecessary
+    # secret and repository access merely to execute static contract tests.
+    assert "./.env:/workspace/.env" not in backend_service
+    assert "./.git:/workspace/.git" not in backend_service
+
+    # The application runs as UID 1001, while a host-created htmlcov directory
+    # commonly belongs to the developer's UID. Keeping coverage output in the
+    # container avoids a predictable permission failure at the end of test.sh.
+    assert "./backend/htmlcov:/app/htmlcov" not in backend_service
 
 
 def test_project_scope_contains_no_active_hosted_deployment_automation() -> None:
