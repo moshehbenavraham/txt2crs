@@ -13,6 +13,10 @@ from threading import Event, RLock, Thread
 from typing import Protocol
 
 from app.core.logging import get_logger
+from app.services.txt2crs_runtime import (
+    RuntimeOwner,
+    RuntimeOwnershipCoordinator,
+)
 
 logger = get_logger(__name__)
 
@@ -146,6 +150,7 @@ class SerialTxt2CrsWorker:
         application: WorkerApplication,
         poll_interval_seconds: float,
         shutdown_timeout_seconds: float,
+        runtime_ownership: RuntimeOwnershipCoordinator | None = None,
     ) -> None:
         if poll_interval_seconds <= 0 or poll_interval_seconds > 60:
             raise ValueError("Worker polling must be between 0 and 60 seconds.")
@@ -155,6 +160,7 @@ class SerialTxt2CrsWorker:
         self._application = application
         self._poll_interval_seconds = poll_interval_seconds
         self._shutdown_timeout_seconds = shutdown_timeout_seconds
+        self._runtime_ownership = runtime_ownership or RuntimeOwnershipCoordinator()
         self._lock = RLock()
         self._stop_requested = Event()
         self._wake_requested = Event()
@@ -286,22 +292,29 @@ class SerialTxt2CrsWorker:
                 self._status = WorkerStatus.idle
 
             while not self._stop_requested.is_set():
-                runnable_state = self._discover_next_runnable()
+                # Discovery and the complete executor lifetime share one
+                # provider-runtime owner. This prevents a readiness or device
+                # authentication graph from starting between a durable claim
+                # and the job-scoped provider open.
+                with self._runtime_ownership.acquire(RuntimeOwner.execution):
+                    if self._stop_requested.is_set():
+                        break
+                    runnable_state = self._discover_next_runnable()
+                    if runnable_state is None:
+                        did_attempt_fail = False
+                    else:
+                        executor = self._create_executor(runnable_state)
+                        if executor is None:
+                            did_attempt_fail = True
+                        elif self._stop_requested.is_set():
+                            self._close_unstarted_executor(executor)
+                            break
+                        else:
+                            did_attempt_fail = self._execute_one(executor)
+
                 if runnable_state is None:
                     self._wait_for_retry()
                     continue
-                if self._stop_requested.is_set():
-                    break
-
-                executor = self._create_executor(runnable_state)
-                if executor is None:
-                    self._wait_for_retry()
-                    continue
-                if self._stop_requested.is_set():
-                    self._close_unstarted_executor(executor)
-                    break
-
-                did_attempt_fail = self._execute_one(executor)
                 if did_attempt_fail and not self._stop_requested.is_set():
                     self._wait_for_retry()
         except BaseException:

@@ -79,13 +79,12 @@ def get_service_version() -> str:
             },
         )
         return fallback_version
-    except Exception as e:
+    except Exception:
         logger.warning(
             "telemetry.service_version_resolution_failed",
             extra={
                 "package_name": package_name,
                 "reason": "unexpected_error",
-                "error": str(e),
                 "fallback_version": fallback_version,
             },
         )
@@ -210,7 +209,7 @@ def setup_telemetry() -> bool:
             extra={
                 "service_name": service_name,
                 "service_version": service_version,
-                "endpoint": settings.OTLP_ENDPOINT,
+                "exporter_configured": True,
                 "sampling_rate": settings.OTEL_TRACES_SAMPLER_ARG,
                 "environment": settings.ENVIRONMENT,
             },
@@ -218,21 +217,19 @@ def setup_telemetry() -> bool:
 
         return True
 
-    except ImportError as e:
+    except ImportError:
         logger.warning(
             "telemetry.setup_failed",
             extra={
-                "error": str(e),
                 "reason": "missing_dependencies",
                 "hint": "Install opentelemetry packages: pip install opentelemetry-sdk opentelemetry-exporter-otlp",
             },
         )
         return False
-    except Exception as e:
+    except Exception:
         logger.error(
             "telemetry.setup_failed",
-            extra={"error": str(e), "error_type": type(e).__name__},
-            exc_info=True,
+            extra={"reason": "unexpected_error"},
         )
         return False
 
@@ -272,11 +269,10 @@ def instrument_app(app: FastAPI) -> None:
             "telemetry.fastapi_instrumentation_failed",
             extra={"reason": "missing_fastapi_instrumentation"},
         )
-    except Exception as e:
+    except Exception:
         logger.error(
             "telemetry.fastapi_instrumentation_failed",
-            extra={"error": str(e)},
-            exc_info=True,
+            extra={"reason": "unexpected_error"},
         )
 
 

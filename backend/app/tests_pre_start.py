@@ -24,15 +24,15 @@ def init(db_engine: Engine) -> None:
         # Try to create session to check if DB is awake
         with Session(db_engine) as session:
             session.exec(select(1))
-    except Exception as e:
-        logger.error(e)
-        raise e
+    except Exception:
+        logger.error("database.test_connection_failed")
+        raise
 
 
 def main() -> None:
-    logger.info("Initializing service")
+    logger.info("database.test_initialization_started")
     init(engine)
-    logger.info("Service finished initializing")
+    logger.info("database.test_initialization_completed")
 
 
 if __name__ == "__main__":

@@ -175,6 +175,15 @@ finally:
     application.close()
 ```
 
+`application.inspect_application_readiness()` is the complete safe integration
+probe. It returns coarse authentication, exact-model, reviewed research,
+SQLite, private-artifact, input-capability, and admission states without
+exposing paths, ports, credentials, provider payloads, or exception details.
+Because the real probe briefly starts the same managed provider/MCP graph used
+by a job and performs rollback/cleanup storage checks, application shells must
+run it only at startup and a bounded maintenance interval. Browser requests
+read the shell's last cached snapshot; they never call this method directly.
+
 `DeterministicApplicationFactory` exposes the same facade for offline tests. It
 uses scripted provider results while retaining production SQLite, preparation,
 pipeline, rendering, artifact, recovery, and owner-purge behavior. The

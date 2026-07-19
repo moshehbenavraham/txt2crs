@@ -66,6 +66,8 @@ class ErrorCode(StrEnum):
         - 3xxx: Item-related errors
         - 4xxx: Validation errors
         - 5xxx: Rate limiting errors
+        - 6xxx: System readiness and engine errors
+        - 7xxx: Durable course-job errors
         - 9xxx: Server/internal errors
 
     Example:
@@ -102,6 +104,16 @@ class ErrorCode(StrEnum):
 
     # Rate limiting (5xxx)
     RATE_LIMIT_EXCEEDED = "RATE_5001"
+
+    # System readiness and engine boundary errors (6xxx)
+    SYSTEM_NOT_READY = "SYSTEM_6001"
+    ENGINE_OPERATION_FAILED = "SYSTEM_6002"
+
+    # Durable course-job errors (7xxx)
+    JOB_NOT_FOUND = "JOB_7001"
+    JOB_ADMISSION_REJECTED = "JOB_7002"
+    JOB_IDEMPOTENCY_CONFLICT = "JOB_7003"
+    JOB_CONFLICT = "JOB_7004"
 
     # Server errors (9xxx)
     INTERNAL_ERROR = "SERVER_9001"
@@ -252,6 +264,12 @@ ERROR_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.MISSING_REQUIRED_FIELD: HTTPStatusCode.BAD_REQUEST,
     ErrorCode.INVALID_FORMAT: HTTPStatusCode.BAD_REQUEST,
     ErrorCode.RATE_LIMIT_EXCEEDED: HTTPStatusCode.TOO_MANY_REQUESTS,
+    ErrorCode.SYSTEM_NOT_READY: HTTPStatusCode.SERVICE_UNAVAILABLE,
+    ErrorCode.ENGINE_OPERATION_FAILED: HTTPStatusCode.INTERNAL_SERVER_ERROR,
+    ErrorCode.JOB_NOT_FOUND: HTTPStatusCode.NOT_FOUND,
+    ErrorCode.JOB_ADMISSION_REJECTED: HTTPStatusCode.TOO_MANY_REQUESTS,
+    ErrorCode.JOB_IDEMPOTENCY_CONFLICT: HTTPStatusCode.CONFLICT,
+    ErrorCode.JOB_CONFLICT: HTTPStatusCode.CONFLICT,
     ErrorCode.INTERNAL_ERROR: HTTPStatusCode.INTERNAL_SERVER_ERROR,
     ErrorCode.SERVICE_UNAVAILABLE: HTTPStatusCode.SERVICE_UNAVAILABLE,
     ErrorCode.DATABASE_ERROR: HTTPStatusCode.INTERNAL_SERVER_ERROR,

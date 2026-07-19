@@ -14,9 +14,9 @@ def init() -> None:
 
 
 def main() -> None:
-    logger.info("Creating initial data")
+    logger.info("database.initial_data_started")
     init()
-    logger.info("Initial data created")
+    logger.info("database.initial_data_completed")
 
 
 if __name__ == "__main__":

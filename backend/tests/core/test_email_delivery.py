@@ -1,4 +1,7 @@
+import logging
 from unittest.mock import call, patch
+
+import pytest
 
 from app.utils import send_email_with_retry
 
@@ -22,20 +25,30 @@ def test_send_email_with_retry_retries_then_succeeds() -> None:
     sleep_mock.assert_called_once_with(0.1)
 
 
-def test_send_email_with_retry_exhausts_attempts_without_raising() -> None:
+def test_send_email_with_retry_exhausts_attempts_without_raising(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     with (
         patch(
-            "app.utils.send_email", side_effect=RuntimeError("smtp down")
+            "app.utils.send_email",
+            side_effect=RuntimeError(
+                "SMTP rejected learner@example.com via private.provider:2525"
+            ),
         ) as send_email_mock,
         patch("app.utils.time.sleep", return_value=None) as sleep_mock,
         patch("app.core.config.settings.SMTP_MAX_ATTEMPTS", 3),
         patch("app.core.config.settings.SMTP_RETRY_BACKOFF_SECONDS", 0.2),
     ):
-        send_email_with_retry(
-            email_to="user@example.com",
-            subject="subject",
-            html_content="<p>body</p>",
-        )
+        with caplog.at_level(logging.WARNING):
+            send_email_with_retry(
+                email_to="user@example.com",
+                subject="subject",
+                html_content="<p>body</p>",
+            )
 
     assert send_email_mock.call_count == 3
     assert sleep_mock.call_args_list == [call(0.2), call(0.4)]
+    rendered = " ".join(str(record.__dict__) for record in caplog.records)
+    assert "learner@example.com" not in rendered
+    assert "private.provider" not in rendered
+    assert "2525" not in rendered

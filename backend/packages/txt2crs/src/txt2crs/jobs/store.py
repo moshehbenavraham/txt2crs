@@ -117,10 +117,60 @@ class SqliteJobStore:
     def migration_version(self) -> int:
         """Return the highest applied local schema version."""
 
-        row = self._connection.execute(
-            "SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations"
-        ).fetchone()
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations"
+            ).fetchone()
         return int(row["version"])
+
+    def probe_readiness(self) -> bool:
+        """
+        Verify current migrations and rollback-only SQLite writability.
+
+        The probe takes SQLite's writer lock and exercises a temporary table,
+        but always rolls the transaction back. Browser requests never call
+        this method; the application readiness coordinator invokes it only on
+        its bounded maintenance schedule.
+        """
+
+        with self._lock:
+            if self.migration_version != _MIGRATION_VERSION:
+                return False
+            try:
+                self._connection.execute("BEGIN IMMEDIATE")
+                self._connection.execute(
+                    "CREATE TEMP TABLE txt2crs_readiness_probe(value INTEGER)"
+                )
+                self._connection.execute(
+                    "INSERT INTO txt2crs_readiness_probe(value) VALUES (1)"
+                )
+                row = self._connection.execute(
+                    "SELECT value FROM txt2crs_readiness_probe"
+                ).fetchone()
+            except Exception:
+                self._connection.execute("ROLLBACK")
+                return False
+            self._connection.execute("ROLLBACK")
+            return row is not None and int(row["value"]) == 1
+
+    def has_admission_capacity(
+        self,
+        *,
+        reservation: AdmissionReservation,
+    ) -> bool:
+        """Read whether one conservative reservation fits without writing."""
+
+        with self._lock:
+            violation = find_admission_limit_violation(
+                connection=self._connection,
+                # This fixed opaque value creates no row and represents a new
+                # owner whose per-user rolling counters are empty.
+                user_id="readiness-capacity-probe",
+                reservation=reservation,
+                limits=self._admission_limits,
+                timestamp=self._now_text(),
+            )
+        return violation is None
 
     def _apply_migrations(self) -> None:
         """Apply each not-yet-recorded migration exactly once."""

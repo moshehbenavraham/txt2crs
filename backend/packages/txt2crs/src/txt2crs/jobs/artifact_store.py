@@ -149,6 +149,39 @@ class FilesystemPrivateArtifactStore:
             if temporary_directory.exists():
                 shutil.rmtree(temporary_directory)
 
+    def probe_readiness(self) -> bool:
+        """
+        Atomically write, read, and remove a confined maintenance probe.
+
+        This deliberately avoids owner/job directory naming so no durable
+        learner-shaped state is created. The surrounding readiness cache runs
+        it only at startup and a bounded maintenance interval.
+        """
+
+        temporary_directory: Path | None = None
+        try:
+            temporary_directory = Path(
+                tempfile.mkdtemp(
+                    prefix=".txt2crs-readiness-",
+                    dir=self._root_directory,
+                )
+            )
+            temporary_directory.chmod(0o700)
+            staged_path = temporary_directory / "probe.staged"
+            published_path = temporary_directory / "probe.ready"
+            probe_content = b"txt2crs-readiness-v1"
+            self._write_private_file(staged_path, probe_content)
+            staged_path.replace(published_path)
+            if published_path.read_bytes() != probe_content:
+                return False
+            published_path.unlink()
+            return True
+        except Exception:
+            return False
+        finally:
+            if temporary_directory is not None and temporary_directory.exists():
+                shutil.rmtree(temporary_directory)
+
     def get(
         self,
         *,

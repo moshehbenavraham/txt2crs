@@ -183,14 +183,11 @@ def send_email(
         smtp_options["user"] = settings.SMTP_USER
     if settings.SMTP_PASSWORD:
         smtp_options["password"] = settings.SMTP_PASSWORD
-    response = message.send(to=email_to, smtp=smtp_options)
+    message.send(to=email_to, smtp=smtp_options)
     logger.info(
         "external.email_send_completed",
-        extra={
-            "smtp_host": settings.SMTP_HOST,
-            "smtp_port": settings.SMTP_PORT,
-            "response": str(response),
-        },
+        # SMTP responses can repeat recipient addresses or provider detail.
+        # Successful completion is the only globally safe fact needed here.
     )
 
 
@@ -215,7 +212,6 @@ def send_email_with_retry(
         extra={
             "max_attempts": max_attempts,
             "smtp_timeout_seconds": settings.SMTP_TIMEOUT_SECONDS,
-            "smtp_host": settings.SMTP_HOST,
         },
     )
 
@@ -249,7 +245,6 @@ def send_email_with_retry(
                         "attempt_elapsed_ms": attempt_elapsed_ms,
                         "backoff_seconds": backoff_seconds,
                     },
-                    exc_info=True,
                 )
                 if backoff_seconds > 0:
                     time.sleep(backoff_seconds)
@@ -264,7 +259,6 @@ def send_email_with_retry(
                     "attempt_elapsed_ms": attempt_elapsed_ms,
                     "total_elapsed_ms": total_elapsed_ms,
                 },
-                exc_info=True,
             )
             return
 

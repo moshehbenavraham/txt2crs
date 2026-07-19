@@ -15,7 +15,7 @@ import json
 from enum import StrEnum
 from hashlib import sha256
 from math import isfinite
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, cast
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -538,7 +538,7 @@ def _copy_finite_json_metadata(metadata: dict[str, object]) -> dict[str, object]
         # The public InputPayload type already guarantees a top-level mapping,
         # but keep this helper safe if that shared contract changes later.
         raise ValueError("metadata must contain only finite JSON values")
-    return normalized_metadata
+    return cast(dict[str, object], normalized_metadata)
 
 
 def _copy_finite_json_value(

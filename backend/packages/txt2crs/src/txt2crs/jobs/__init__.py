@@ -30,6 +30,15 @@ from txt2crs.jobs.requests import (
     RunExecutionLimits,
 )
 from txt2crs.jobs.stage_result import StageResult, StageStatus
+from txt2crs.jobs.store import (
+    AdmissionQuotaExceededError,
+    ConcurrencyConflictError,
+    IdempotencyConflictError,
+    InvalidJobSubmissionError,
+    JobNotFoundError,
+    JobRequestCompatibilityError,
+    JobStoreError,
+)
 
 _PUBLIC_QUERY_EXPORTS = frozenset(
     {
@@ -73,6 +82,8 @@ __all__ = [
     "ArtifactIntegrityError",
     "ArtifactManifest",
     "ArtifactMetadata",
+    "AdmissionQuotaExceededError",
+    "ConcurrencyConflictError",
     "CurriculumShapeLimits",
     "DeliveryNotificationMode",
     "DeliveryNotificationPolicy",
@@ -84,8 +95,13 @@ __all__ = [
     "GenerationRequest",
     "InputExecutionLimits",
     "InputIngestionService",
+    "IdempotencyConflictError",
+    "InvalidJobSubmissionError",
     "JobCheckpoint",
     "JobRecord",
+    "JobNotFoundError",
+    "JobRequestCompatibilityError",
+    "JobStoreError",
     "JobStatus",
     "LearnerAgeGroup",
     "LearningPreferenceDefaults",

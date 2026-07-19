@@ -43,7 +43,8 @@ class PdfAdapter:
 
             page_texts: list[str] = []
             locations: list[InputLocation] = []
-            for page_index, page in enumerate(pdf_document):
+            for page_index in range(pdf_document.page_count):
+                page = pdf_document.load_page(page_index)
                 page_text = str(page.get_text("text")).strip()
                 if not page_text:
                     continue

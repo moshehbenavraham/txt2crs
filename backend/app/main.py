@@ -14,7 +14,12 @@ from app.core.logging import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
 from app.core.rate_limit import limiter
 from app.core.telemetry import instrument_app, setup_telemetry
-from app.services import SerialTxt2CrsWorker, Txt2CrsApplicationLifecycle
+from app.services import (
+    CachedReadinessCoordinator,
+    RuntimeOwnershipCoordinator,
+    SerialTxt2CrsWorker,
+    Txt2CrsApplicationLifecycle,
+)
 
 # Configure structured logging based on environment
 log_format = "text" if settings.ENVIRONMENT == "local" else "json"
@@ -34,8 +39,17 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
 
 Txt2CrsLifecycleFactory = Callable[[Settings], Txt2CrsApplicationLifecycle]
 Txt2CrsWorkerFactory = Callable[
-    [Txt2CrsApplication, Settings],
+    [Txt2CrsApplication, Settings, RuntimeOwnershipCoordinator],
     SerialTxt2CrsWorker,
+]
+Txt2CrsReadinessFactory = Callable[
+    [
+        Txt2CrsApplication | None,
+        SerialTxt2CrsWorker | None,
+        RuntimeOwnershipCoordinator,
+        Settings,
+    ],
+    CachedReadinessCoordinator,
 ]
 
 
@@ -50,6 +64,7 @@ def build_txt2crs_lifecycle(
 def build_txt2crs_worker(
     application: Txt2CrsApplication,
     application_settings: Settings,
+    runtime_ownership: RuntimeOwnershipCoordinator,
 ) -> SerialTxt2CrsWorker:
     """Build the one-process serial worker from finite shell settings."""
 
@@ -59,6 +74,32 @@ def build_txt2crs_worker(
         shutdown_timeout_seconds=(
             application_settings.TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS
         ),
+        runtime_ownership=runtime_ownership,
+    )
+
+
+def build_txt2crs_readiness(
+    application: Txt2CrsApplication | None,
+    worker: SerialTxt2CrsWorker | None,
+    runtime_ownership: RuntimeOwnershipCoordinator,
+    application_settings: Settings,
+) -> CachedReadinessCoordinator:
+    """Build one cache over package and safe worker state."""
+
+    return CachedReadinessCoordinator(
+        application=application,
+        worker=worker,
+        runtime_ownership=runtime_ownership,
+        refresh_interval_seconds=(
+            application_settings.TXT2CRS_READINESS_REFRESH_SECONDS
+        ),
+        stale_after_seconds=(
+            application_settings.TXT2CRS_READINESS_STALE_AFTER_SECONDS
+        ),
+        shutdown_timeout_seconds=(
+            application_settings.TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS
+        ),
+        configured_model_id=application_settings.TXT2CRS_MODEL_ID,
     )
 
 
@@ -67,6 +108,7 @@ def create_app(
     application_settings: Settings = settings,
     txt2crs_lifecycle_factory: Txt2CrsLifecycleFactory = (build_txt2crs_lifecycle),
     txt2crs_worker_factory: Txt2CrsWorkerFactory = build_txt2crs_worker,
+    txt2crs_readiness_factory: Txt2CrsReadinessFactory = (build_txt2crs_readiness),
 ) -> FastAPI:
     """
     Construct a FastAPI application with an injectable engine lifecycle.
@@ -86,7 +128,11 @@ def create_app(
         txt2crs_lifecycle = txt2crs_lifecycle_factory(application_settings)
         fastapi_app.state.txt2crs_lifecycle = txt2crs_lifecycle
         fastapi_app.state.txt2crs_worker = None
+        fastapi_app.state.txt2crs_readiness = None
+        runtime_ownership = RuntimeOwnershipCoordinator()
+        fastapi_app.state.txt2crs_runtime_ownership = runtime_ownership
         txt2crs_worker: SerialTxt2CrsWorker | None = None
+        txt2crs_readiness: CachedReadinessCoordinator | None = None
         primary_error: BaseException | None = None
         try:
             txt2crs_lifecycle.start()
@@ -95,8 +141,22 @@ def create_app(
                 txt2crs_worker = txt2crs_worker_factory(
                     txt2crs_application,
                     application_settings,
+                    runtime_ownership,
                 )
                 fastapi_app.state.txt2crs_worker = txt2crs_worker
+
+            # Initial readiness owns the runtime before worker recovery can
+            # start. Browser reads later see only this cache plus safe worker
+            # state and can never launch provider or storage work.
+            txt2crs_readiness = txt2crs_readiness_factory(
+                txt2crs_application,
+                txt2crs_worker,
+                runtime_ownership,
+                application_settings,
+            )
+            fastapi_app.state.txt2crs_readiness = txt2crs_readiness
+            txt2crs_readiness.start()
+            if txt2crs_worker is not None:
                 txt2crs_worker.start()
             yield
         except BaseException as error:
@@ -112,14 +172,23 @@ def create_app(
                     txt2crs_worker.close()
                 except BaseException as error:
                     cleanup_error = error
-            # The worker must stop or receive its bounded interruption before
-            # the package facade closes its executor and persistence graph.
+            if txt2crs_readiness is not None:
+                try:
+                    txt2crs_readiness.close()
+                except BaseException as error:
+                    if cleanup_error is None:
+                        cleanup_error = error
+            runtime_ownership.close()
+            # Worker and maintenance must stop before the package facade
+            # closes its executor and persistence graph.
             try:
                 txt2crs_lifecycle.close()
             except BaseException as error:
                 if cleanup_error is None:
                     cleanup_error = error
             fastapi_app.state.txt2crs_worker = None
+            fastapi_app.state.txt2crs_readiness = None
+            fastapi_app.state.txt2crs_runtime_ownership = None
             if primary_error is None and cleanup_error is not None:
                 raise cleanup_error
 

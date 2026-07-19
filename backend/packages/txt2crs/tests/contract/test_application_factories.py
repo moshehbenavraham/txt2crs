@@ -16,6 +16,12 @@ from tests.factories import (
     valid_generation_request,
 )
 from txt2crs.ai.job_runtime import JobRuntimeResources, JobRuntimeResourcesFactory
+from txt2crs.ai.runtime_status import (
+    CredentialStatus,
+    RuntimeReadiness,
+    RuntimeReadinessStatus,
+)
+from txt2crs.ai.usage import SubscriptionQuotaState
 from txt2crs.application import (
     ApplicationAdmissionConfig,
     ApplicationFactory,
@@ -28,6 +34,7 @@ from txt2crs.application import (
     RealApplicationFactory,
     Txt2CrsApplication,
 )
+from txt2crs.application.readiness import ApplicationReadinessStatus
 
 
 def _storage(tmp_path: Path) -> ApplicationStorageConfig:
@@ -305,6 +312,53 @@ def test_real_factory_uses_explicit_database_and_artifact_paths(
         assert artifact_directory.is_dir()
         assert not (state_directory / "jobs.sqlite3").exists()
         assert not (state_directory / "artifacts").exists()
+    finally:
+        application.close()
+
+
+def test_real_factory_composes_complete_package_readiness(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The shell receives capabilities and storage state through the facade."""
+
+    monkeypatch.setattr(
+        "txt2crs.application.factories._RealReadinessInspector.inspect_readiness",
+        lambda _inspector: RuntimeReadiness.create(
+            status=RuntimeReadinessStatus.ready,
+            credential_status=CredentialStatus.valid,
+            model_entitled=True,
+            subscription_quota_state=SubscriptionQuotaState.unknown,
+            warnings=[],
+            recovery_actions=[],
+        ),
+    )
+    storage = _storage(tmp_path)
+    application = RealApplicationFactory(
+        RealApplicationConfig(
+            storage=storage,
+            admission=_admission(),
+            default_execution_profile=valid_execution_profile(),
+            codex_home=(tmp_path / "codex-home").resolve(),
+            worker_directory=(tmp_path / "worker").resolve(),
+            tavily_api_key=SecretStr("test-only"),
+        )
+    ).create()
+
+    try:
+        readiness = application.inspect_application_readiness()
+        assert readiness.status is ApplicationReadinessStatus.ready
+        assert {
+            "prompt",
+            "text",
+            "url",
+            "youtube",
+            "pdf",
+            "document",
+            "slides",
+        }.issubset(readiness.enabled_input_modes)
+        assert storage.artifact_directory is not None
+        assert list(storage.artifact_directory.iterdir()) == []
     finally:
         application.close()
 

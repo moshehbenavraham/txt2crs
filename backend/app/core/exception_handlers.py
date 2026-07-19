@@ -26,6 +26,7 @@ from app.core.constants import (
 )
 from app.core.exceptions import AppException, ProblemDetail
 from app.core.logging import get_logger, trace_id_var
+from app.core.middleware import get_safe_route_name
 
 logger = get_logger(__name__)
 
@@ -124,8 +125,7 @@ async def app_exception_handler(
         extra={
             "error_code": exc.code.value,
             "status": exc.status,
-            "detail": exc.detail,
-            "path": str(request.scope.get("path", "")),
+            "route_name": get_safe_route_name(request),
             "method": request.method,
         },
     )
@@ -171,9 +171,8 @@ async def validation_exception_handler(
         "validation.request_failed",
         extra={
             "error_count": len(errors),
-            "path": str(request.scope.get("path", "")),
+            "route_name": get_safe_route_name(request),
             "method": request.method,
-            "errors": errors,
         },
     )
 
@@ -202,8 +201,7 @@ async def http_exception_handler(
         extra={
             "error_code": code.value,
             "status": exc.status_code,
-            "detail": detail,
-            "path": str(request.scope.get("path", "")),
+            "route_name": get_safe_route_name(request),
             "method": request.method,
         },
     )
@@ -231,7 +229,7 @@ async def rate_limit_exception_handler(
         extra={
             "error_code": ErrorCode.RATE_LIMIT_EXCEEDED.value,
             "status": HTTPStatusCode.TOO_MANY_REQUESTS,
-            "path": str(request.scope.get("path", "")),
+            "route_name": get_safe_route_name(request),
             "method": request.method,
         },
     )
@@ -256,6 +254,10 @@ async def generic_exception_handler(
     Returns:
         JSONResponse with Problem Details format (generic server error)
     """
+    # The private exception is intentionally neither logged nor copied into
+    # the public response. Local explicit diagnostics use ``write_last_error``
+    # at an operator-selected boundary instead of global request logging.
+    del exc
     problem = _build_problem_detail(
         code=ErrorCode.INTERNAL_ERROR,
         status=HTTPStatusCode.INTERNAL_SERVER_ERROR,
@@ -265,12 +267,11 @@ async def generic_exception_handler(
     logger.error(
         "server.unhandled_exception",
         extra={
-            "exception_type": type(exc).__name__,
-            "exception_message": str(exc),
-            "path": str(request.scope.get("path", "")),
+            "error_code": ErrorCode.INTERNAL_ERROR.value,
+            "status": HTTPStatusCode.INTERNAL_SERVER_ERROR,
+            "route_name": get_safe_route_name(request),
             "method": request.method,
         },
-        exc_info=True,
     )
 
     return JSONResponse(

@@ -9,8 +9,15 @@ from fastapi.testclient import TestClient
 from txt2crs.application import Txt2CrsApplication
 
 from app.core.config import Settings
-from app.main import Txt2CrsLifecycleFactory, Txt2CrsWorkerFactory, create_app
+from app.main import (
+    Txt2CrsLifecycleFactory,
+    Txt2CrsReadinessFactory,
+    Txt2CrsWorkerFactory,
+    create_app,
+)
 from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
+from app.services.txt2crs_readiness import CachedReadinessCoordinator
+from app.services.txt2crs_runtime import RuntimeOwnershipCoordinator
 from app.services.txt2crs_worker import SerialTxt2CrsWorker
 
 
@@ -111,10 +118,25 @@ class RecordingWorkerFactory:
         self,
         application: Txt2CrsApplication,
         application_settings: Settings,
+        runtime_ownership: RuntimeOwnershipCoordinator,
     ) -> SerialTxt2CrsWorker:
+        del runtime_ownership
         self.applications.append(application)
         self.settings.append(application_settings)
         return cast(SerialTxt2CrsWorker, self._workers.pop(0))
+
+
+class RecordingReadiness:
+    """Observe cache lifecycle without running a maintenance thread."""
+
+    def __init__(self, events: list[str]) -> None:
+        self.events = events
+
+    def start(self) -> None:
+        self.events.append("readiness.start")
+
+    def close(self) -> None:
+        self.events.append("readiness.close")
 
 
 def _factory_for(
@@ -254,6 +276,51 @@ def test_configured_lifespan_starts_and_closes_worker_before_facade(
         "lifecycle.start",
         "worker.start",
         "worker.close",
+        "lifecycle.close",
+    ]
+
+
+def test_readiness_refresh_precedes_worker_and_closes_after_worker(
+    tmp_path: Path,
+) -> None:
+    """Startup probes cannot race recovery and shutdown follows dependencies."""
+
+    events: list[str] = []
+    lifecycle = RecordingLifecycle(is_configured=True, events=events)
+    worker = RecordingWorker(events=events)
+    readiness = RecordingReadiness(events)
+
+    def create_readiness(
+        _application: Txt2CrsApplication | None,
+        _worker: SerialTxt2CrsWorker | None,
+        _runtime_ownership: RuntimeOwnershipCoordinator,
+        _settings: Settings,
+    ) -> CachedReadinessCoordinator:
+        return cast(CachedReadinessCoordinator, readiness)
+
+    application = create_app(
+        application_settings=_test_settings(tmp_path),
+        txt2crs_lifecycle_factory=_factory_for(lifecycle),
+        txt2crs_worker_factory=_worker_factory_for(worker)[0],
+        txt2crs_readiness_factory=cast(
+            Txt2CrsReadinessFactory,
+            create_readiness,
+        ),
+    )
+
+    with TestClient(application):
+        assert events == [
+            "lifecycle.start",
+            "readiness.start",
+            "worker.start",
+        ]
+
+    assert events == [
+        "lifecycle.start",
+        "readiness.start",
+        "worker.start",
+        "worker.close",
+        "readiness.close",
         "lifecycle.close",
     ]
 

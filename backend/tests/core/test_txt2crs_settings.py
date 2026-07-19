@@ -24,6 +24,9 @@ TXT2CRS_COMPOSITION_ENVIRONMENT_NAMES = (
     "TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS",
     "TXT2CRS_WORKER_POLL_SECONDS",
     "TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS",
+    "TXT2CRS_READINESS_REFRESH_SECONDS",
+    "TXT2CRS_READINESS_STALE_AFTER_SECONDS",
+    "TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS",
     "TXT2CRS_MAX_INPUT_BYTES",
     "TXT2CRS_MAX_METADATA_BYTES",
     "TXT2CRS_MAX_NORMALIZED_CHARACTERS",
@@ -114,6 +117,9 @@ def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
     assert settings.TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS == 10
     assert settings.TXT2CRS_WORKER_POLL_SECONDS == 2
     assert settings.TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS == 30
+    assert settings.TXT2CRS_READINESS_REFRESH_SECONDS == 60
+    assert settings.TXT2CRS_READINESS_STALE_AFTER_SECONDS == 120
+    assert settings.TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS == 30
     assert settings.TXT2CRS_MAX_INPUT_BYTES == 20_971_520
     assert settings.TXT2CRS_MAX_METADATA_BYTES == 262_144
     assert settings.TXT2CRS_MAX_NORMALIZED_CHARACTERS == 200_000
@@ -176,6 +182,9 @@ def test_txt2crs_model_rejects_non_gpt56_identifier() -> None:
         ("TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS", 0),
         ("TXT2CRS_WORKER_POLL_SECONDS", 0),
         ("TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 301),
+        ("TXT2CRS_READINESS_REFRESH_SECONDS", 3_601),
+        ("TXT2CRS_READINESS_STALE_AFTER_SECONDS", 7_201),
+        ("TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS", 0),
         ("TXT2CRS_MAX_INPUT_BYTES", 0),
         ("TXT2CRS_MAX_PDF_PAGES", 0),
         ("TXT2CRS_ARTIFACT_MAX_JOB_BYTES", 1_000_000_001),
@@ -215,6 +224,14 @@ def test_txt2crs_research_mcp_requires_numeric_loopback(
 
 
 def test_txt2crs_cross_field_budgets_reject_impossible_profiles() -> None:
+    with pytest.raises(ValidationError, match="stale"):
+        Settings(
+            _env_file=None,
+            **_base_settings_payload(),
+            TXT2CRS_READINESS_REFRESH_SECONDS=120,
+            TXT2CRS_READINESS_STALE_AFTER_SECONDS=60,
+        )
+
     with pytest.raises(ValidationError, match="search and extract"):
         Settings(
             _env_file=None,

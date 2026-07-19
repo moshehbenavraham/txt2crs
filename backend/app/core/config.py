@@ -335,6 +335,27 @@ class Settings(BaseSettings):
     )
     """Maximum graceful drain before restart-safe worker interruption."""
 
+    TXT2CRS_READINESS_REFRESH_SECONDS: float = Field(
+        default=60,
+        gt=0,
+        le=3_600,
+    )
+    """Bounded interval between provider and destructive storage probes."""
+
+    TXT2CRS_READINESS_STALE_AFTER_SECONDS: float = Field(
+        default=120,
+        gt=0,
+        le=7_200,
+    )
+    """Maximum age accepted for the last complete readiness projection."""
+
+    TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
+        default=30,
+        gt=0,
+        le=300,
+    )
+    """Maximum finite join for the readiness maintenance thread."""
+
     TXT2CRS_MAX_INPUT_BYTES: int = Field(
         default=20_971_520,
         gt=0,
@@ -488,6 +509,14 @@ class Settings(BaseSettings):
         ensure the complete profile can pay for its own retry and provider
         actions and that per-user reservations fit inside global capacity.
         """
+        if (
+            self.TXT2CRS_READINESS_STALE_AFTER_SECONDS
+            < self.TXT2CRS_READINESS_REFRESH_SECONDS
+        ):
+            raise ValueError(
+                "TXT2CRS readiness stale bound must not be shorter than refresh."
+            )
+
         if self.TXT2CRS_RETRY_BASE_SECONDS > self.TXT2CRS_RETRY_MAXIMUM_SECONDS:
             raise ValueError(
                 "TXT2CRS_RETRY_BASE_SECONDS must not exceed "

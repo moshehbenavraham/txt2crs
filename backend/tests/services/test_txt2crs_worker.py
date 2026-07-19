@@ -13,6 +13,10 @@ from typing import cast
 import pytest
 
 import app.services.txt2crs_worker as worker_module
+from app.services.txt2crs_runtime import (
+    RuntimeOwner,
+    RuntimeOwnershipCoordinator,
+)
 from app.services.txt2crs_worker import (
     SerialTxt2CrsWorker,
     WorkerApplication,
@@ -196,6 +200,7 @@ def _worker(
     *,
     poll_interval_seconds: float = 0.01,
     shutdown_timeout_seconds: float = 0.2,
+    runtime_ownership: RuntimeOwnershipCoordinator | None = None,
 ) -> SerialTxt2CrsWorker:
     """Build one focused supervisor without provider or database access."""
 
@@ -203,7 +208,23 @@ def _worker(
         application=cast(WorkerApplication, application),
         poll_interval_seconds=poll_interval_seconds,
         shutdown_timeout_seconds=shutdown_timeout_seconds,
+        runtime_ownership=runtime_ownership,
     )
+
+
+def test_execution_waits_for_shared_runtime_ownership() -> None:
+    """Worker discovery cannot overlap a readiness or authentication owner."""
+
+    runtime_ownership = RuntimeOwnershipCoordinator()
+    application = RecordingApplication()
+    worker = _worker(application, runtime_ownership=runtime_ownership)
+
+    with runtime_ownership.acquire(RuntimeOwner.readiness):
+        worker.start()
+        assert application.discovery_called.wait(timeout=0.05) is False
+
+    assert application.discovery_called.wait(timeout=1)
+    worker.close()
 
 
 def test_worker_imports_only_public_txt2crs_boundaries() -> None:

@@ -12,6 +12,7 @@ from txt2crs.ai.runtime import CancellationToken
 from txt2crs.ai.runtime_status import RuntimeReadiness
 from txt2crs.ai.system_authentication import SystemAuthenticationSnapshot
 from txt2crs.application.owner_lifecycle import OwnerPurgeResult
+from txt2crs.application.readiness import ApplicationReadiness
 from txt2crs.jobs.artifact_queries import ArtifactManifest
 from txt2crs.jobs.models import JobRecord, ResumeState
 from txt2crs.jobs.public_queries import PublicJobSnapshot
@@ -37,6 +38,13 @@ class RuntimeReadinessInspector(Protocol):
 
     def inspect_readiness(self) -> RuntimeReadiness:
         """Return one browser-safe runtime projection."""
+
+
+class ApplicationReadinessInspector(Protocol):
+    """Complete safe readiness operation exposed through the facade."""
+
+    def inspect_readiness(self) -> ApplicationReadiness:
+        """Return one package-owned aggregate projection."""
 
 
 class SystemAuthenticator(Protocol):
@@ -207,6 +215,7 @@ class Txt2CrsApplication:
         executor_factory: PublicExecutorFactory,
         owner_lifecycle: OwnerLifecycle,
         close_callbacks: tuple[Callable[[], None], ...],
+        application_readiness_inspector: ApplicationReadinessInspector | None = None,
     ) -> None:
         self._job_service = job_service
         self._readiness_inspector = readiness_inspector
@@ -214,6 +223,7 @@ class Txt2CrsApplication:
         self._executor_factory = executor_factory
         self._owner_lifecycle = owner_lifecycle
         self._close_callbacks = close_callbacks
+        self._application_readiness_inspector = application_readiness_inspector
         self._lock = RLock()
         self._closed = False
         # A running worker or shell reference keeps its handle alive. Weak
@@ -309,6 +319,31 @@ class Txt2CrsApplication:
         with self._lock:
             self._require_open()
             return self._readiness_inspector.inspect_readiness()
+
+    def inspect_application_readiness(self) -> ApplicationReadiness:
+        """Probe every package-owned dependency through one safe contract."""
+
+        with self._lock:
+            self._require_open()
+            if self._application_readiness_inspector is not None:
+                return self._application_readiness_inspector.inspect_readiness()
+
+            # Compatibility callers that manually compose the facade retain a
+            # truthful fail-closed aggregate until they supply the complete
+            # inspector. Production factories always supply it.
+            runtime = self._readiness_inspector.inspect_readiness()
+            return ApplicationReadiness.create(
+                configured_model_id="gpt-5.6",
+                enabled_input_modes=("prompt", "text"),
+                runtime=runtime,
+                research_ready=False,
+                sqlite_ready=False,
+                artifacts_ready=False,
+                inputs_ready=False,
+                admission_ready=False,
+                warnings=["Complete application readiness is unavailable."],
+                recovery_actions=["Use a package application factory."],
+            )
 
     def start_system_authentication(self) -> SystemAuthenticationSnapshot:
         """Start or replay dedicated system device-code authentication."""

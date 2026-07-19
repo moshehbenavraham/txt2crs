@@ -48,6 +48,7 @@ from txt2crs.application.config import (
 )
 from txt2crs.application.facade import ApplicationExecutor, Txt2CrsApplication
 from txt2crs.application.owner_lifecycle import OwnerPurgeCoordinator
+from txt2crs.application.readiness import AggregateApplicationReadinessInspector
 from txt2crs.generation.pipeline import CourseGenerationPipeline
 from txt2crs.ingestion.documents import DocxAdapter, PptxAdapter
 from txt2crs.ingestion.media import (
@@ -70,7 +71,10 @@ from txt2crs.jobs.artifact_store import FilesystemPrivateArtifactStore
 from txt2crs.jobs.executor import DurablePipelineFactory, GenerationJobExecutor
 from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.preparation import GenerationPreparationService
-from txt2crs.jobs.quota import AdmissionLimits
+from txt2crs.jobs.quota import (
+    AdmissionLimits,
+    AdmissionReservation,
+)
 from txt2crs.jobs.requests import ExecutionProfile, GenerationRequest
 from txt2crs.jobs.service import JobService
 from txt2crs.jobs.store import SqliteJobStore
@@ -161,13 +165,14 @@ class _DeterministicResearchCoordinator:
 
     def collect(
         self,
-        _research_plan: object,
+        research_plan: object,
         cancellation: CancellationToken,
         *,
         high_risk_course: bool,
     ) -> FrozenEvidenceSet:
         """Check local policy and return a separately parsed evidence set."""
 
+        del research_plan
         if high_risk_course:
             raise PermissionError("Deterministic P0 research forbids high-risk work.")
         # Structural typing keeps this fake independent from SDK objects while
@@ -472,9 +477,10 @@ class DeterministicApplicationFactory:
             construction_cleanup.callback(store.close)
             authenticator = _DeterministicAuthenticator()
             construction_cleanup.callback(authenticator.close)
+            runtime_readiness_inspector = _DeterministicReadinessInspector()
             application = Txt2CrsApplication(
                 job_service=job_service,
-                readiness_inspector=_DeterministicReadinessInspector(),
+                readiness_inspector=runtime_readiness_inspector,
                 authenticator=authenticator,
                 executor_factory=_DeterministicExecutorFactory(
                     job_service=job_service,
@@ -486,6 +492,20 @@ class DeterministicApplicationFactory:
                     owner_store=store,
                 ),
                 close_callbacks=(store.close,),
+                application_readiness_inspector=(
+                    AggregateApplicationReadinessInspector(
+                        runtime_probe=runtime_readiness_inspector,
+                        sqlite_probe=store,
+                        artifact_probe=artifact_store,
+                        configured_model_id=(
+                            self._config.default_execution_profile.model_id
+                        ),
+                        enabled_input_modes=_enabled_input_modes({}),
+                        admission_reservation=_readiness_reservation(
+                            self._config.default_execution_profile
+                        ),
+                    )
+                ),
             )
             # Ownership has moved into Txt2CrsApplication.close().
             construction_cleanup.pop_all()
@@ -539,9 +559,10 @@ class RealApplicationFactory:
                 codex_home=self._config.codex_home,
             )
             construction_cleanup.callback(authenticator.close)
+            runtime_readiness_inspector = _RealReadinessInspector(self._config)
             application = Txt2CrsApplication(
                 job_service=job_service,
-                readiness_inspector=_RealReadinessInspector(self._config),
+                readiness_inspector=runtime_readiness_inspector,
                 authenticator=authenticator,
                 executor_factory=_RealExecutorFactory(
                     config=self._config,
@@ -554,6 +575,20 @@ class RealApplicationFactory:
                     owner_store=store,
                 ),
                 close_callbacks=(ingestion_http_client.close, store.close),
+                application_readiness_inspector=(
+                    AggregateApplicationReadinessInspector(
+                        runtime_probe=runtime_readiness_inspector,
+                        sqlite_probe=store,
+                        artifact_probe=artifact_store,
+                        configured_model_id=(
+                            self._config.default_execution_profile.model_id
+                        ),
+                        enabled_input_modes=_enabled_input_modes(ingestion_adapters),
+                        admission_reservation=_readiness_reservation(
+                            self._config.default_execution_profile
+                        ),
+                    )
+                ),
             )
             construction_cleanup.pop_all()
             return application
@@ -611,6 +646,35 @@ def _persistent_services(
         store.close()
         raise
     return store, artifact_store, job_service, artifact_renderer
+
+
+def _enabled_input_modes(adapters: dict[str, InputAdapter]) -> tuple[str, ...]:
+    """Project package adapter wiring into stable public capability names."""
+
+    enabled_modes = {"prompt", "text"}
+    for adapter_name in adapters:
+        enabled_modes.add(adapter_name)
+        # YouTube is intentionally routed through the URL adapter so it can
+        # never fall through to generic webpage extraction.
+        if adapter_name == "url":
+            enabled_modes.add("youtube")
+    return tuple(sorted(enabled_modes))
+
+
+def _readiness_reservation(
+    execution_profile: ExecutionProfile,
+) -> AdmissionReservation:
+    """Reserve the complete configured token ceiling for one future request."""
+
+    return AdmissionReservation(
+        maximum_input_tokens=execution_profile.run_limits.maximum_input_tokens,
+        maximum_output_tokens=execution_profile.run_limits.maximum_output_tokens,
+        # This is the shell's reviewed P0 worst-case Tavily allowance, not a
+        # claim about actual provider billing. The admission ledger reserves
+        # the ceiling before submission and separately keeps subscription
+        # quota telemetry honest when it is unknown.
+        maximum_research_cost_microusd=1_000_000,
+    )
 
 
 def _preparation_service(
