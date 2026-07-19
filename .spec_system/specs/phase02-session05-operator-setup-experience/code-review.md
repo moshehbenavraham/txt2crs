@@ -67,6 +67,13 @@ No findings.
   | Fix: Allow character-level wrapping for the bounded code. A 320px browser
   case verifies both element and document overflow remain zero. | Status:
   FIXED
+- `ReadinessOverview.tsx` and `SystemChecklist.tsx` - At 320px, status badges
+  retained desktop columns and reduced important descriptions to 116px and
+  roughly 80px word columns. Numeric overflow remained zero, so this escaped
+  the first automated layout check. | Fix: Stack the readiness status below
+  its description and move each check badge below its text before `sm`.
+  Browser regressions require at least 200px and 150px reading widths; the
+  repaired render measures 230px and 152px. | Status: FIXED
 
 ### Low
 
@@ -141,8 +148,8 @@ No findings.
 ## Summary
 
 1. Reviewed the complete base-to-implementation frontend surface.
-2. Found 0 critical, 0 high, 3 medium, and 2 low issues.
-3. Repaired all five findings with browser regressions.
+2. Found 0 critical, 0 high, 4 medium, and 2 low issues.
+3. Repaired all six findings with browser regressions.
 4. Focused tests, lint, typecheck, build, security scans, and patch checks
    pass.
 5. No unresolved code, security, privacy, accessibility, or workflow finding

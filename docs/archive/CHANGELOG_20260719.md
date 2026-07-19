@@ -22,6 +22,151 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.6.0] - 2026-07-19
+
+### Added
+
+- Added a superuser-only System Setup workspace with one truthful readiness
+  verdict, enabled input modes, a numbered coarse-check index, safe recovery
+  guidance, and the exact package authentication command.
+- Added a browser-guided ChatGPT device ceremony with generated API contracts,
+  an approved external verification link, bounded code copy, terminal
+  challenge cleanup, and live status.
+- Added presentation, polling, authorization, device-flow, privacy,
+  responsive, keyboard, dark-mode, reduced-motion, and real-backend browser
+  coverage.
+
+### Changed
+
+- Readiness and authentication cache reads now begin in parallel in the setup
+  route, and authentication polling runs once per second only while approval
+  is waiting.
+- The protected editorial workspace now includes a role-aware System Setup
+  navigation item and mobile-first operator field-guide composition.
+
+### Fixed
+
+- Prevented already-authenticated React StrictMode mounts from issuing
+  redundant readiness invalidations.
+- Kept bounded authentication messages, 64-character challenge codes, CLI
+  recovery, readiness copy, and check descriptions fully readable at 320px.
+- Cleared stale copy announcements at terminal auth state and avoided React
+  key collisions for repeated safe API values.
+
+### Security
+
+- Redirected non-superusers before either system endpoint mounts and kept the
+  browser surface limited to the generated coarse readiness/authentication
+  allowlist.
+- Kept tokens, credentials, account identity, raw provider payloads,
+  exceptions, filesystem paths, and durable browser storage out of the setup
+  experience.
+
+## [0.5.4] - 2026-07-19
+
+### Added
+
+- Added authenticated cached readiness and superuser-only device
+  authentication start/status routes with strict browser-safe response
+  schemas, finite rate limits, semantic RFC 9457 errors, and generated
+  TypeScript operations.
+- Added a lifecycle-owned authentication coordinator that refreshes persisted
+  account state once and retains the shared runtime lease for the complete
+  background device ceremony.
+
+### Changed
+
+- FastAPI now starts authentication before readiness and the serial worker,
+  then closes the worker, readiness, authentication, runtime gate, and engine
+  facade in dependency-safe reverse order.
+- Exported the engine facade's existing safe authentication contracts through
+  the public application boundary.
+
+### Fixed
+
+- Prevented pre-lifecycle authentication calls from stranding runtime
+  ownership without a monitor.
+- Reported initial runtime contention as an explicit safe failed auth state
+  instead of a misleading signed-out result.
+- Removed private provider exception context from translated route failures.
+
+### Security
+
+- Restricted device start and status to current superusers while readiness
+  remains available only to active authenticated users.
+- Limited authentication responses and events to finite state, the validated
+  OpenAI verification URL, bounded user code, safe message, and reason codes;
+  account identity, tokens, provider payloads, paths, and exceptions remain
+  excluded.
+
+## [0.5.3] - 2026-07-19
+
+### Added
+
+- Added one public aggregate engine-readiness projection for authentication,
+  exact GPT-5.6 discovery, managed research, SQLite, artifacts, P0 inputs, and
+  conservative admission capacity.
+- Added one immutable stale-while-busy shell readiness cache with immediate
+  startup inspection, finite maintenance refresh, explicit freshness, and
+  side-effect-free reads.
+- Added one shared finite runtime owner for readiness, authentication, and
+  serial job execution.
+- Added semantic system/job error codes and context-free public engine
+  exception translation.
+
+### Changed
+
+- FastAPI now starts readiness before the serial worker and closes worker,
+  readiness, runtime ownership, and the engine facade in reverse order.
+- The serial worker now holds runtime execution ownership from durable
+  discovery through executor cleanup.
+
+### Fixed
+
+- Prevented a closed readiness coordinator from relaunching provider work
+  during teardown.
+- Enforced exact GPT-5.6 identity at readiness-contract construction and
+  reported runtime contention as degraded instead of unavailable.
+
+### Security
+
+- Removed raw request paths, queries, client addresses, provider responses,
+  exception details, tracebacks, recipient identities, and infrastructure
+  locations from reviewed normal shell operational logs.
+- Added rollback-only SQLite and confined atomic artifact probes that leave no
+  persistent maintenance state.
+
+## [0.5.2] - 2026-07-19
+
+### Added
+
+- Added one FastAPI-owned serial worker that immediately recovers durable
+  runnable jobs, polls on a finite interval, accepts latency-only nudges, and
+  executes one public owner/job-bound handle at a time.
+- Added an immutable content-free worker snapshot for liveness, active work,
+  capacity, shutdown, and bounded failure state.
+- Added structured worker and execution lifecycle events with fixed names and
+  finite reason codes.
+
+### Changed
+
+- Distinguished application-shutdown interruption from learner-requested
+  cancellation so checkpointed non-terminal work remains restartable.
+- Changed FastAPI cleanup to stop the worker before closing the public engine
+  facade while preserving earlier startup and request errors.
+
+### Fixed
+
+- Reset supervisor state after operating-system thread creation fails, making
+  partial-startup cleanup idempotent.
+- Prevented shutdown races from claiming a second job after discovery or
+  executor construction.
+
+### Security
+
+- Kept job IDs, owner IDs, request content, provider details, exception text,
+  credentials, and filesystem paths out of worker snapshots and events.
+
 ## [0.5.1] - 2026-07-19
 
 ### Added

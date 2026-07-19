@@ -3,7 +3,7 @@
 **Session ID**: `phase02-session05-operator-setup-experience`
 **Package**: frontend
 **Started**: 2026-07-19 21:46
-**Last Updated**: 2026-07-19 22:29
+**Last Updated**: 2026-07-19 22:36
 
 ---
 
@@ -131,8 +131,19 @@ surface were implemented.
 ### Complete Frontend Suite
 
 - `npm run test:unit`: 33 passed.
-- `npm run test:e2e` with the local backend and isolated Mailcatcher: 74
+- `npm run test:e2e` with the local backend and isolated Mailcatcher: 76
   passed.
+
+### Complete Repository And Release
+
+- Backend shell on a fresh migrated database: 296 passed.
+- Engine deterministic suite: 464 passed; 1 explicit live credential gate
+  skipped.
+- Complete deterministic count: 869 passed.
+- Engine Ruff, strict mypy, and source-scoped ty: PASS.
+- Repository/package version, lockfile, version guide, and changelog:
+  `0.6.0`.
+- Wheel and source distribution: PASS; wheel metadata reports `0.6.0`.
 
 ### Static And Repository Gates
 
@@ -160,7 +171,9 @@ surface were implemented.
   `/tmp/txt2crs-session05-ready-desktop.png`,
   `/tmp/txt2crs-session05-waiting-desktop.png`,
   `/tmp/txt2crs-session05-unavailable-mobile-dark.png`, and
-  `/tmp/txt2crs-session05-real-unconfigured.png`.
+  `/tmp/txt2crs-session05-real-unconfigured.png`. The longest allowed code
+  and repeated safe values were inspected at
+  `/tmp/txt2crs-session05-long-code-320.png`.
 
 ---
 
@@ -179,6 +192,13 @@ surface were implemented.
   churn in protected generated files. That known invocation-only diff was
   reversed; the repository's generated-client pre-commit hook passed and the
   final protected client diff is empty.
+- The first complete shell run reused the browser-test database. More than 100
+  E2E-created users pushed a deliberately old pagination fixture off page one,
+  yielding one environment-only failure after 295 passes. A fresh isolated
+  database was migrated, passed 296/296, and was removed.
+- An unscoped engine `ty check` traversed the parent uv workspace and reported
+  known shell-test diagnostics. The project repository `ty` hook passed, and
+  the correctly source-scoped engine `ty check src` passed.
 - No API, database, Alembic migration, dependency, protected primitive,
   hand-edited client, learner screen, logout/account switch, or credential
   input was added.
@@ -198,7 +218,7 @@ descriptions contradicted unavailable badges. Tests now require a fully
 fitting command and state-neutral definitions; both repairs pass in the dark
 375x812 screenshot.
 
-Formal base-to-head review then resolved three Medium and two Low findings:
+Formal base-to-head review then resolved four Medium and two Low findings:
 
 1. Initial authenticated mounts no longer issue two StrictMode invalidations
    after the readiness request that just completed.
@@ -208,8 +228,11 @@ Formal base-to-head review then resolved three Medium and two Low findings:
    document overflow.
 4. Terminal state clears temporary copy feedback from the live announcement.
 5. Repeated safe input/warning/action values use collision-free React keys.
+6. Readiness and check statuses stack below their descriptions before `sm`,
+   preserving 230px and 152px reading widths at 320px instead of narrow word
+   columns.
 
-All five review repairs were observed failing in Playwright before their
+All six review repairs were observed failing in Playwright before their
 implementations. The repaired focused suite passes 7/7, and
 `code-review.md` records `Result: RESOLVED`.
 
@@ -217,4 +240,4 @@ implementations. The repaired focused suite passes 7/7, and
 
 ## Next Step
 
-Run `validate` against the repaired base-to-head surface.
+Phase 02 is complete. Plan Phase 03 durable jobs API work next.

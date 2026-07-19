@@ -1,10 +1,10 @@
 # PRD Phase 02: Composition and Readiness
 
-**Status**: In Progress
+**Status**: Complete
 **Sessions**: 5 (initial estimate)
 **Estimated Duration**: 3-5 days
 
-**Progress**: 4/5 sessions (80%)
+**Progress**: 5/5 sessions (100%)
 
 ---
 
@@ -26,7 +26,7 @@ provider work from browser polling.
 | 02 | Serial Worker Supervisor | Complete | 25 | 2026-07-19 |
 | 03 | Cached Readiness and Observability | Complete | 25 | 2026-07-19 |
 | 04 | System Readiness and Auth API | Complete | 25 | 2026-07-19 |
-| 05 | Operator Setup Experience | Not Started | ~12-25 | - |
+| 05 | Operator Setup Experience | Complete | 25 | 2026-07-19 |
 
 ---
 
@@ -36,12 +36,13 @@ provider work from browser polling.
 - Session 02: Serial Worker Supervisor - completed 2026-07-19
 - Session 03: Cached Readiness and Observability - completed 2026-07-19
 - Session 04: System Readiness and Auth API - completed 2026-07-19
+- Session 05: Operator Setup Experience - completed 2026-07-19
 
 ---
 
 ## Upcoming Sessions
 
-- Session 05: Operator Setup Experience
+- None. Phase 03 planning follows.
 
 ---
 
@@ -167,17 +168,17 @@ failure, cancellation, and shutdown.
 
 Phase complete when:
 
-- [ ] All 5 sessions completed.
+- [x] All 5 sessions completed.
 - [x] Unconfigured readiness is truthful, bounded, safe, and side-effect free.
 - [x] Configured readiness validates dedicated authentication, discovered
   GPT-5.6, research, storage, worker health, enabled inputs, and admission.
 - [x] The serial worker recovers runnable jobs, executes one job at a time,
   and closes every per-job resource.
-- [ ] A superuser can complete device-code setup through the browser while
+- [x] A superuser can complete device-code setup through the browser while
   non-superusers cannot access the ceremony.
 - [x] Shutdown and partial startup failures close all currently composed child
   resources.
-- [ ] Readiness-dependent admission fails with `SYSTEM_NOT_READY` when any
+- [x] Readiness-dependent admission fails with `SYSTEM_NOT_READY` when any
   required dependency is unavailable.
 - [x] Shell logs and error responses contain no raw personal, learner,
   provider, credential, or filesystem data.

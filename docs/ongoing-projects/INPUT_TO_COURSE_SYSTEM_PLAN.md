@@ -1,10 +1,10 @@
 # Input-to-Course System Implementation Plan
 
 > **Plan status:** Final - implementation-ready
-> **Delivery status:** Engine application boundary complete; FastAPI
-> composition and the learner workflow are not implemented
+> **Delivery status:** Engine application boundary and FastAPI composition/
+> readiness complete; the learner workflow is not implemented
 > **Initial baseline release:** 0.3.1
-> **Current release:** 0.5.0
+> **Current release:** 0.6.0
 > **Created:** 2026-07-18
 > **Last verified:** 2026-07-19
 > **Owner:** txt2crs project
@@ -1264,7 +1264,7 @@ Implemented sessions:
 
 ### Phase 2 - composition root and readiness
 
-**Status:** In progress (4 of 5 sessions validated).
+**Status:** Complete (5 of 5 sessions validated).
 
 Objective: start, inspect, and safely stop one real engine worker graph.
 
@@ -1289,6 +1289,7 @@ Implemented sessions:
 - **S02 - serial worker supervisor**
 - **S03 - cached readiness and observability**
 - **S04 - system readiness and authentication API**
+- **S05 - operator setup experience**
 
 Exit gate:
 
@@ -1300,7 +1301,8 @@ Exit gate:
 - new work is refused with `SYSTEM_NOT_READY` when any required dependency
   fails.
 
-Next implementation session: **S05 - operator setup experience**.
+Next implementation phase: **Phase 3 - durable jobs API and worker
+execution**.
 
 ### Phase 3 - durable jobs API and worker execution
 

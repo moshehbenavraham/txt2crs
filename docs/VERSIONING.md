@@ -8,7 +8,7 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `0.5.4`. Versions below
+The current repository and Python package release is `0.6.0`. Versions below
 `1.0.0` represent initial development, so the public API may still change. The
 first stable public API will be released as `1.0.0`.
 

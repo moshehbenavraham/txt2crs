@@ -245,6 +245,21 @@ test("bounded long codes and repeated safe values remain responsive without key 
   })
   await expect(authenticationCode).toBeVisible()
   expect(
+    await page
+      .getByText(
+        "Every required dependency is ready and the worker can accept another course.",
+        { exact: true },
+      )
+      .evaluate((element) => element.getBoundingClientRect().width),
+  ).toBeGreaterThanOrEqual(200)
+  expect(
+    await page
+      .getByText("Dedicated subscription identity for course generation.", {
+        exact: true,
+      })
+      .evaluate((element) => element.getBoundingClientRect().width),
+  ).toBeGreaterThanOrEqual(150)
+  expect(
     await authenticationCode.evaluate(
       (element) => element.scrollWidth - element.clientWidth,
     ),

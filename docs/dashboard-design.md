@@ -643,22 +643,22 @@ The screen is intentionally an operator field guide rather than a generic
 settings form.
 
 ```text
-┌────────────────────────────────────────────────────────────────────┐
-│ Operations                                                         │
-│ System setup                                      [Refresh status] │
-│ Confirm this installation can generate courses safely.            │
-├────────────────────────────────────────────────────────────────────┤
-│ SYSTEM VERDICT                                                     │
-│ Ready / Action required / Temporarily unavailable                  │
-│ One concise explanation; no readiness percentage or score         │
-├──────────────────────────────────────┬─────────────────────────────┤
-│ AUTHENTICATION                       │ RECOVERY                    │
-│ Signed out / Waiting / Authenticated │ API safe actions/warnings  │
-│ safe challenge link + code or CTA    │ exact CLI fallback         │
-├──────────────────────────────────────┴─────────────────────────────┤
-│ READINESS CHECKS                                                  │
-│ 01 Runtime … 02 Workspace … stable API-backed order              │
-└────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------+
+| Operations                                                         |
+| System setup                                      [Refresh status] |
+| Confirm this installation can generate courses safely.            |
++--------------------------------------------------------------------+
+| SYSTEM VERDICT                                                     |
+| Ready / Action required / Temporarily unavailable                  |
+| One concise explanation; no readiness percentage or score         |
++--------------------------------------+-----------------------------+
+| AUTHENTICATION                       | RECOVERY                    |
+| Signed out / Waiting / Authenticated | API safe actions/warnings  |
+| safe challenge link + code or CTA    | exact CLI fallback         |
++--------------------------------------+-----------------------------+
+| READINESS CHECKS                                                  |
+| 01 Runtime ... 02 Workspace ... stable API-backed order           |
++--------------------------------------------------------------------+
 ```
 
 On mobile, verdict, authentication, and recovery appear before the detailed
@@ -669,20 +669,20 @@ a vertical group so status copy cannot create document overflow.
 
 **States:**
 
-- **Pending** — static placeholders preserve the verdict, authentication,
+- **Pending** - static placeholders preserve the verdict, authentication,
   checklist, and recovery geometry; the shell and page identity stay present.
-- **Ready** — one positive verdict, all returned checks remain inspectable,
+- **Ready** - one positive verdict, all returned checks remain inspectable,
   and no authentication challenge is shown.
-- **Action required** — failed or signed-out authentication exposes one
+- **Action required** - failed or signed-out authentication exposes one
   `Start authentication` action and the exact CLI fallback.
-- **Waiting** — the challenge URL and user code are visible and copyable;
+- **Waiting** - the challenge URL and user code are visible and copyable;
   authentication status polls every one second while the API remains in
   `waiting`, then stops immediately for `authenticated`, `signed_out`, or
   `failed`.
-- **Unavailable / failed** — safe API warnings and recovery actions stay
+- **Unavailable / failed** - safe API warnings and recovery actions stay
   visible; the live status announces the change without duplicating visible
   headings or leaking exception details.
-- **Permission** — regular users are redirected before either system endpoint
+- **Permission** - regular users are redirected before either system endpoint
   is queried; the sidebar entry is absent for them.
 
 Only the API's safe readiness fields, input names, warnings/actions, device
@@ -785,7 +785,7 @@ Tailwind default breakpoints: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 | Logo | Icon in command strip | Full logo in sidebar |
 | Page header | Stacked, stretched actions | Bottom-aligned identity + actions |
 | Dense tables | Feature record lists | TanStack tables |
-| System setup | Verdict → authentication → checks → recovery; stacked status header | Verdict first; authentication/checks share the workspace when space permits |
+| System setup | Verdict to authentication to checks to recovery; stacked status header | Verdict first; authentication/checks share the workspace when space permits |
 | Auth layout | Single column | 2-column grid |
 
 Hard requirements: no document-level horizontal scroll at 320px or 200% zoom;

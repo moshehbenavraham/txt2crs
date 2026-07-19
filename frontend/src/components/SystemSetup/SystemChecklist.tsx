@@ -38,7 +38,7 @@ export function SystemChecklist({ checks }: SystemChecklistProps) {
             return (
               <div
                 key={definition.key}
-                className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-3 border-b border-border p-4 last:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0 md:[&:nth-child(odd)]:border-r"
+                className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 border-b border-border p-4 last:border-b-0 sm:grid-cols-[2rem_minmax(0,1fr)_auto] md:[&:nth-last-child(-n+2)]:border-b-0 md:[&:nth-child(odd)]:border-r"
               >
                 <span
                   aria-hidden="true"
@@ -54,7 +54,10 @@ export function SystemChecklist({ checks }: SystemChecklistProps) {
                     {definition.description}
                   </p>
                 </div>
-                <Badge variant={isReady ? "success" : "destructive"}>
+                <Badge
+                  className="col-start-2 sm:col-start-3 sm:row-start-1"
+                  variant={isReady ? "success" : "destructive"}
+                >
                   {isReady ? (
                     <CheckCircle2 aria-hidden="true" />
                   ) : (

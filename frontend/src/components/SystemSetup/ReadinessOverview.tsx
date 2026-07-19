@@ -34,8 +34,8 @@ export function ReadinessOverview({ readiness }: ReadinessOverviewProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div>
+      <CardHeader className="has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+        <div className="min-w-0">
           <p className="mb-1 text-caption font-semibold text-muted-foreground">
             Course system
           </p>
@@ -44,7 +44,7 @@ export function ReadinessOverview({ readiness }: ReadinessOverviewProps) {
           </CardTitle>
         </div>
         <CardDescription>{display.description}</CardDescription>
-        <CardAction>
+        <CardAction className="col-start-1 row-start-3 row-span-1 justify-self-start sm:col-start-2 sm:row-start-1 sm:row-span-2 sm:justify-self-end">
           <Badge variant={display.badgeVariant}>{display.label}</Badge>
         </CardAction>
       </CardHeader>

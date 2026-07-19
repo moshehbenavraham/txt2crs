@@ -1,6 +1,6 @@
 [project]
 name = "txt2crs"
-version = "0.5.4"
+version = "0.6.0"
 description = "Turn source material into researched courses, review packs, and assessments."
 readme = "README_txt2crs.md"
 requires-python = ">=3.12,<3.15"
@@ -38,8 +38,8 @@ dependencies = [
 ]
 
 [project.scripts]
-# Temporary operator bootstrap. The finished FastAPI setup screen will call
-# the same SDK-backed service directly and this entry point can then be removed.
+# Browser and terminal recovery both use the same package-owned authentication
+# service, so operators keep a supported fallback when the app is unavailable.
 txt2crs-system-auth = "txt2crs.ai.system_authentication_cli:main"
 
 [project.optional-dependencies]

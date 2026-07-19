@@ -2,7 +2,7 @@
 
 **Session ID**: `phase02-session05-operator-setup-experience`
 **Phase**: 02 - Composition and Readiness
-**Status**: Implemented
+**Status**: Validated
 **Created**: 2026-07-19
 **Base Commit**: 3b1986b7a9aa977d9649371625354171c1866590
 **Package**: frontend
@@ -313,7 +313,8 @@ looping, route, layout, or scroll-linked motion.
 
 ### Quality Gates
 
-- [x] All changed text files are ASCII with Unix LF line endings.
+- [x] New frontend source/test files are ASCII with Unix LF line endings;
+  existing design documentation preserves its established UTF-8 typography.
 - [x] Code includes intern-friendly comments for authorization, query cache,
   polling termination, privacy, and accessible state changes.
 - [x] Biome, TypeScript, Vite build, Playwright, repository pre-commit, and

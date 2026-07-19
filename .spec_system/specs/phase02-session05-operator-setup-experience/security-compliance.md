@@ -45,7 +45,7 @@ and the Apex security/compliance checklist.
 
 No unresolved session security finding.
 
-Formal review repaired three Medium and two Low behavior/accessibility
+Formal review repaired four Medium and two Low behavior/accessibility
 findings. None expanded privileges or exposed a secret, but the repairs reduce
 unnecessary endpoint traffic, prevent bounded challenge overflow, preserve
 complete safe messages, remove stale live-region guidance, and prevent

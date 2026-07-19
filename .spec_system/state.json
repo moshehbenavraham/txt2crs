@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 2,
-  "current_session": "phase02-session05-operator-setup-experience",
+  "current_session": null,
   "monorepo": true,
   "packages": [
     {
@@ -38,7 +38,7 @@
     "2": {
       "name": "Composition and Readiness",
       "description": "Compose one FastAPI-owned engine lifecycle, serial worker, safe readiness and authentication API, and operator setup experience.",
-      "status": "in_progress",
+      "status": "complete",
       "session_count": 5
     }
   },
@@ -82,21 +82,13 @@
     {
       "id": "phase02-session04-system-readiness-and-auth-api",
       "package": "backend"
+    },
+    {
+      "id": "phase02-session05-operator-setup-experience",
+      "package": "frontend"
     }
   ],
   "next_session_history": [
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session03-input-preferences-and-policy-gate",
-      "package": "backend/packages/txt2crs",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session04-managed-runtime-and-model-policy",
-      "package": "backend/packages/txt2crs",
-      "status": "planned"
-    },
     {
       "date": "2026-07-19",
       "session": "phase01-session04-managed-runtime-and-model-policy",
@@ -204,6 +196,18 @@
       "session": "phase02-session05-operator-setup-experience",
       "package": "frontend",
       "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session05-operator-setup-experience",
+      "package": "frontend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session05-operator-setup-experience",
+      "package": "frontend",
+      "status": "completed"
     }
   ]
 }
