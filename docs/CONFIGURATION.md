@@ -1,6 +1,6 @@
 # Configuration Guide
 
-> Environment variable documentation for the Python React Boilerplate
+> Environment variable documentation for the txt2crs application shell.
 
 ## Quick Start
 
@@ -14,20 +14,25 @@ cp .env.example .env
 
 ## Environment Variables
 
-### Required Variables
+### Required Base Variables
 
-These must be set for the application to function:
+These settings have no application default and must be present:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `SECRET_KEY` | JWT signing key (generate with `openssl rand -hex 32`) | `a1b2c3d4...` |
+| `PROJECT_NAME` | Application name used by the API, telemetry, and email | `txt2crs` |
+| `ENVIRONMENT` | Runtime profile: `local`, `staging`, or `production` | `local` |
 | `POSTGRES_SERVER` | PostgreSQL hostname | `db` or `localhost` |
-| `POSTGRES_PORT` | PostgreSQL port | `5432` |
-| `POSTGRES_DB` | Database name | `app` |
 | `POSTGRES_USER` | Database username | `postgres` |
-| `POSTGRES_PASSWORD` | Database password | `changethis` |
 | `FIRST_SUPERUSER` | Initial admin email | `admin@example.com` |
-| `FIRST_SUPERUSER_PASSWORD` | Initial admin password | `changethis` |
+| `FIRST_SUPERUSER_PASSWORD` | Initial admin password | A unique secret |
+
+The Docker Compose configuration also requires `SECRET_KEY`,
+`POSTGRES_PASSWORD`, and `POSTGRES_DB` in `.env`. The settings model can
+generate an ephemeral `SECRET_KEY` only for direct local execution. Staging and
+production require an explicit non-blank `SECRET_KEY`, and reject
+`changethis` for `SECRET_KEY`, `POSTGRES_PASSWORD`, and
+`FIRST_SUPERUSER_PASSWORD`.
 
 ### Optional Variables
 
@@ -35,27 +40,36 @@ These must be set for the application to function:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ENVIRONMENT` | `local` | Environment name: `local`, `staging`, `production` |
-| `PROJECT_NAME` | `Python React Boilerplate` | Application name shown in UI and emails |
 | `DOMAIN` | `localhost` | Domain for cookie settings and URLs |
 | `STACK_NAME` | `python-react-boilerplate` | Docker stack identifier |
+| `ENABLE_PRIVATE_DEV_ROUTES` | `False` | Register `/private/*` routes; accepted only in `local` |
 
 #### Frontend Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FRONTEND_HOST` | `http://localhost:5183` | Frontend URL for CORS and email links |
+| `FRONTEND_HOST` | `http://localhost:5181` | Frontend URL for CORS and email links; `.env.example` sets `http://localhost:5183` for Docker |
 
 #### Backend CORS
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BACKEND_CORS_ORIGINS` | (see below) | Comma-separated allowed origins |
+| `BACKEND_CORS_ORIGINS` | Empty list | Comma-separated or JSON-array additional origins |
 
-Default CORS origins:
+The effective allowlist is `FRONTEND_HOST` plus `BACKEND_CORS_ORIGINS`.
+`.env.example` supplies these additional local origins:
+
 ```
 http://localhost,http://localhost:5183,http://localhost:5184,http://localhost:8012,https://localhost,https://localhost:5183,https://localhost:5184
 ```
+
+#### Database Configuration
+
+| Variable | Runtime default | Description |
+|----------|-----------------|-------------|
+| `POSTGRES_PORT` | `5441` | Database server port; local Compose overrides the container connection to `5432` and publishes it on host port `5447` |
+| `POSTGRES_DB` | Empty string | Database name; Docker Compose requires a value |
+| `POSTGRES_PASSWORD` | Empty string | Database password; Docker Compose requires a value and non-local deployments must not use `changethis` |
 
 #### Email Configuration
 
@@ -70,9 +84,11 @@ http://localhost,http://localhost:5183,http://localhost:5184,http://localhost:80
 | `SMTP_TIMEOUT_SECONDS` | `10` | Timeout per SMTP delivery attempt |
 | `SMTP_MAX_ATTEMPTS` | `3` | Maximum bounded send attempts per email |
 | `SMTP_RETRY_BACKOFF_SECONDS` | `0.5` | Base exponential retry delay between attempts |
-| `EMAILS_FROM_EMAIL` | `info@example.com` | Sender email address |
+| `EMAILS_FROM_EMAIL` | (empty) | Sender email address; `.env.example` uses `info@example.com` |
 
-**Note**: Email functionality is optional for local development. If SMTP settings are not configured, email operations will be skipped.
+Email is optional in every environment. Delivery is enabled only when both
+`SMTP_HOST` and `EMAILS_FROM_EMAIL` are set. Local Docker Compose supplies
+Mailcatcher values through its override.
 
 #### Database Pool Tuning
 
@@ -102,8 +118,14 @@ Effective defaults when override values are empty:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SENTRY_DSN` | (empty) | Sentry DSN for error tracking |
+| `OTEL_ENABLED` | `False` | Opt in to OpenTelemetry tracing |
+| `OTLP_ENDPOINT` | (empty) | OTLP collector endpoint; required when tracing is enabled |
+| `OTEL_SERVICE_NAME` | `PROJECT_NAME` | Service name attached to exported traces |
+| `OTEL_TRACES_SAMPLER_ARG` | `1.0` | Trace sampling ratio from `0.0` to `1.0` |
 
-**Note**: Sentry is disabled if DSN is not set.
+Sentry is disabled locally and is enabled in staging or production only when a
+DSN is set. OpenTelemetry is independent of `ENVIRONMENT` and starts only when
+both `OTEL_ENABLED=true` and `OTLP_ENDPOINT` are configured.
 
 #### Deployment (Coolify)
 
@@ -132,12 +154,14 @@ POSTGRES_PORT=5447
 SECRET_KEY=development-secret-key-change-in-production
 ```
 
-**Behaviors in local:**
-- Rate limiting is disabled
-- Local-only `/private/*` routes are disabled unless `ENABLE_PRIVATE_DEV_ROUTES=true`
-- Sentry error tracking is disabled
-- Email sending is skipped if SMTP not configured
-- Detailed error messages are shown
+Behaviors in local:
+
+- Rate limiting is disabled.
+- Local-only `/private/*` routes are disabled unless
+  `ENABLE_PRIVATE_DEV_ROUTES=true`.
+- Sentry is disabled even when a DSN is present.
+- Logs use level `INFO` and human-readable text.
+- Local Docker Compose routes email to Mailcatcher.
 
 ### Staging
 
@@ -150,11 +174,14 @@ SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx
 ```
 
-**Behaviors in staging:**
-- Rate limiting is enabled
-- Sentry error tracking is enabled
-- Email functionality is enabled
-- Detailed error messages are hidden
+Behaviors in staging:
+
+- Rate limiting is enabled with the same limits as production.
+- Sentry starts only when `SENTRY_DSN` is set.
+- Email delivery starts only when SMTP is configured.
+- Logs use level `INFO` and structured JSON.
+- `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
+- `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
 
 ### Production
 
@@ -167,12 +194,17 @@ SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx
 ```
 
-**Behaviors in production:**
-- Rate limiting is enabled and stricter
-- Sentry error tracking is enabled
-- Email functionality is required
-- Minimal error details in responses
-- Secret key validation is enforced
+Behaviors in production:
+
+- Rate limiting is enabled with the same limits as staging.
+- Sentry starts only when `SENTRY_DSN` is set.
+- Email delivery starts only when SMTP is configured.
+- Logs use level `INFO` and structured JSON.
+- `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
+- `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
+
+See [Environment-specific behavior](ENVIRONMENTS.md) for the source-backed
+runtime matrix.
 
 ## Security Notes
 
@@ -202,19 +234,24 @@ SENTRY_DSN=https://xxx@sentry.io/xxx
 
 The application validates configuration on startup:
 
-1. **Required variables**: Application fails to start if missing
-2. **SECRET_KEY**: Must not be `changethis` in production
-3. **POSTGRES_PASSWORD**: Must not be `changethis` in production
-4. **CORS origins**: Must be valid URLs
+1. Required base variables must be present and valid.
+2. Staging and production require an explicit, non-blank `SECRET_KEY`.
+3. Non-local environments reject `changethis` for `SECRET_KEY`,
+   `POSTGRES_PASSWORD`, and `FIRST_SUPERUSER_PASSWORD`.
+4. Private development routes cannot be enabled outside `local`.
+5. CORS origins must be valid URLs.
 
 ## Loading Order
 
-Configuration is loaded in this order (later overrides earlier):
+Configuration precedence, from lowest to highest, is:
 
-1. Default values in `app/core/config.py`
-2. `.env` file in project root
-3. Environment variables from shell
-4. Docker Compose environment section
+1. Defaults in `backend/app/core/config.py`.
+2. The `.env` file resolved from the backend process working directory.
+3. Process environment variables.
+
+Docker Compose reads the repository-root `.env` and injects values through
+each service's `env_file` and `environment` sections. Values in a service's
+`environment` section take precedence over its `env_file`.
 
 ## Troubleshooting
 

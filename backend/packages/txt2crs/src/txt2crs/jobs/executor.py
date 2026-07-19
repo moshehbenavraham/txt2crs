@@ -6,7 +6,7 @@ import json
 from collections.abc import Callable
 from dataclasses import asdict
 from hashlib import sha256
-from typing import Protocol
+from typing import Protocol, cast
 
 from txt2crs.ai.runtime import CancellationToken
 from txt2crs.ai.usage import aggregate_usage
@@ -190,7 +190,12 @@ class GenerationJobExecutor:
                     cancellation=cancellation,
                 )
                 raise
-            if current_job.status is not JobStatus.rendering:
+            # ``persist_checkpoint`` reassigns ``current_job`` (nonlocal)
+            # while ``generate`` runs, so the status narrowing from the
+            # branch guard above no longer holds; cast back to the full
+            # enum so this re-check compares against the live value.
+            status_after_generation = cast(JobStatus, current_job.status)
+            if status_after_generation is not JobStatus.rendering:
                 raise JobExecutionStateError(
                     "Pipeline returned without a final accepted checkpoint."
                 )

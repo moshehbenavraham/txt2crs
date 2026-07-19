@@ -22,6 +22,38 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [0.3.2] - 2026-07-19
+
+### Changed
+
+- Reviewed `docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md` against the
+  repository state: repaired relative links broken by the move into
+  `docs/ongoing-projects/`, updated the header status from Proposed to
+  Adopted, and recorded per-phase progress (Phase 1 complete;
+  Phases 2–4 not started).
+- Extended `scripts/validate-changes.sh` with an engine section (ruff, mypy,
+  and the credential-free pytest suite for the `txt2crs` package, plus an
+  `engine` selector argument), closing the final open Phase 1 step of the
+  input-to-course plan.
+- Corrected the documented engine validation commands in `AGENTS.md` and
+  `backend/packages/txt2crs/README_txt2crs.md` to run from
+  `backend/packages/txt2crs/`: run from `backend/`, they resolved the
+  application shell's pyproject configuration, whose mypy `exclude` of
+  `packages/` silently checked zero engine files.
+
+### Fixed
+
+- Fixed a pre-existing argument-parsing bug in `scripts/validate-changes.sh`
+  where passing two section selectors (for example `backend frontend`)
+  disabled every section and the script reported success while running zero
+  checks; selectors now combine, running exactly the named sections.
+- Fixed two mypy 2.3 `comparison-overlap` errors in the engine, in the
+  executor's post-generation status re-check and the system authenticator's
+  post-refresh state re-check: both compare state that is legitimately
+  mutated out-of-band (a nonlocal checkpoint callback and a background
+  thread), so the stale-narrowed enum reads are now cast back to their full
+  enum types. No behavior change; the 223-test engine suite still passes.
+
 ## [0.3.1] - 2026-07-19
 
 ### Changed

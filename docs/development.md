@@ -1,26 +1,33 @@
-# Python React Boilerplate - Development
+# txt2crs Development
 
 ## Docker Compose
 
-* Start the local stack with Docker Compose:
+Start the local stack with Docker Compose:
 
 ```bash
 docker compose watch
 ```
 
-* Now you can open your browser and interact with these URLs:
+## Local Service Endpoints
 
-Frontend, built with Docker, with routes handled based on the path: <http://localhost:5183>
+Host tools and browsers use the published ports below. Containers communicate
+over the Docker network with the internal addresses shown in the last column.
 
-Backend, JSON based web API based on OpenAPI: <http://localhost:8012>
+| Service | Host address | Container address |
+|---------|--------------|-------------------|
+| Frontend | <http://localhost:5183> | `frontend:80` |
+| Backend API | <http://localhost:8012> | `backend:8000` |
+| Swagger UI | <http://localhost:8012/docs> | `backend:8000/docs` |
+| ReDoc | <http://localhost:8012/redoc> | `backend:8000/redoc` |
+| PostgreSQL | `localhost:5447` | `db:5432` |
+| Adminer | <http://localhost:8096> | `adminer:8080` |
+| Mailcatcher UI | <http://localhost:1081> | `mailcatcher:1080` |
+| Mailcatcher SMTP | `localhost:1026` | `mailcatcher:1025` |
+| Traefik dashboard | <http://localhost:8095> | `proxy:8080` |
+| Jaeger UI | <http://localhost:16686> | `jaeger:16686` |
 
-Automatic interactive documentation with Swagger UI (from the OpenAPI backend): <http://localhost:8012/docs>
-
-Adminer, database web administration: <http://localhost:8096>
-
-Traefik UI, to see how the routes are being handled by the proxy: <http://localhost:8095>
-
-**Note**: The first time you start your stack, it might take a minute for it to be ready. While the backend waits for the database to be ready and configures everything. You can check the logs to monitor it.
+The first startup may take a minute while the backend waits for PostgreSQL and
+runs its initialization. Use the logs to monitor progress.
 
 To check the logs, run (in another terminal):
 
@@ -36,7 +43,8 @@ docker compose logs backend
 
 ## Mailcatcher
 
-Mailcatcher is a simple SMTP server that catches all emails sent by the backend during local development. Instead of sending real emails, they are captured and displayed in a web interface.
+Mailcatcher captures email sent by the backend during local development and
+displays it in a web interface instead of delivering it externally.
 
 This is useful for:
 
@@ -44,7 +52,9 @@ This is useful for:
 * Verifying email content and formatting
 * Debugging email-related functionality without sending real emails
 
-The backend is automatically configured to use Mailcatcher when running with Docker Compose locally (SMTP on port 1026). All captured emails can be viewed at <http://localhost:1081>.
+The backend is automatically configured to use `mailcatcher:1025` inside
+Docker. Host-side SMTP clients can use `localhost:1026`. All captured emails
+can be viewed at <http://localhost:1081>.
 
 ## Local Development
 
@@ -177,25 +187,3 @@ ruff-format..............................................................Passed
 eslint...................................................................Passed
 prettier.................................................................Passed
 ```
-
-## URLs
-
-The production or staging URLs would use these same paths, but with your own domain.
-
-### Development URLs
-
-Development URLs, for local development.
-
-Frontend: <http://localhost:5183>
-
-Backend: <http://localhost:8012>
-
-Automatic Interactive Docs (Swagger UI): <http://localhost:8012/docs>
-
-Automatic Alternative Docs (ReDoc): <http://localhost:8012/redoc>
-
-Adminer: <http://localhost:8096>
-
-Traefik UI: <http://localhost:8095>
-
-MailCatcher: <http://localhost:1081>

@@ -4,6 +4,7 @@ repos:
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
     hooks:
       - id: check-added-large-files
+      - id: check-case-conflict
       - id: check-toml
       - id: check-yaml
         args:

@@ -16,6 +16,12 @@ package.
   categories.
 - [Versioning](VERSIONING.md) — Semantic Versioning policy, version-bump rules,
   and release checklist.
+- [Configuration](CONFIGURATION.md) — environment-variable catalog, runtime
+  defaults, deployment settings, and validation rules.
+- [Environment-specific behavior](ENVIRONMENTS.md) — source-backed differences
+  between local, staging, and production.
+- [Development](development.md) — local Docker workflow and authoritative
+  service endpoint table.
 - [AI usage needs derived from the Make.com scenarios](../backend/packages/txt2crs/docs/AI_USAGE_NEEDS.md) — current
   workflow inventory, evidence-backed gaps, prioritized requirements, target pipeline,
   and acceptance criteria.

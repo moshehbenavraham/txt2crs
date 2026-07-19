@@ -19,7 +19,7 @@ from collections.abc import Callable, Mapping
 from enum import StrEnum
 from pathlib import Path
 from threading import RLock, Thread
-from typing import Annotated, Protocol
+from typing import Annotated, Protocol, cast
 from urllib.parse import urlsplit
 
 from openai_codex import Codex, CodexConfig
@@ -261,7 +261,12 @@ class DedicatedSystemAuthenticator:
                 authentication_client.close()
 
         with self._lock:
-            if self._state is not SystemAuthenticationState.waiting_for_user:
+            # The completion thread may change ``self._state`` between the
+            # two lock acquisitions, so the narrowing from the first lock
+            # block no longer holds; cast back to the full enum so this
+            # re-check compares against the live value.
+            state_after_refresh = cast(SystemAuthenticationState, self._state)
+            if state_after_refresh is not SystemAuthenticationState.waiting_for_user:
                 if account_type == "chatgpt":
                     self._set_authenticated_locked()
                 else:

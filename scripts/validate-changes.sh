@@ -7,13 +7,16 @@
 #
 # Usage:
 #   ./scripts/validate-changes.sh          # Run all checks (human-readable)
-#   ./scripts/validate-changes.sh backend  # Backend only
+#   ./scripts/validate-changes.sh backend  # Backend shell only
+#   ./scripts/validate-changes.sh engine   # txt2crs engine package only
 #   ./scripts/validate-changes.sh frontend # Frontend only
+#   ./scripts/validate-changes.sh backend engine # Selectors combine
 #   ./scripts/validate-changes.sh --json   # Output structured JSON for AI parsing
 #
 # Expected execution times:
-#   - Full validation: ~30-45 seconds
+#   - Full validation: ~45-60 seconds
 #   - Backend only: ~15-20 seconds
+#   - Engine only: ~15-20 seconds
 #   - Frontend only: ~10-15 seconds
 #
 
@@ -23,18 +26,35 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Parse arguments
+# The txt2crs engine package's mypy and pytest must run with this directory
+# as the working directory so the engine's own pyproject.toml configuration
+# applies (backend/pyproject.toml excludes packages/ from its own checks).
+ENGINE_DIR="$PROJECT_ROOT/backend/packages/txt2crs"
+
+# Parse arguments.
+# With no section selectors, every section runs. The first selector switches
+# to opt-in mode (all sections off), then each selector turns its own section
+# back on — so selectors combine: "backend engine" runs those two sections.
 RUN_BACKEND=true
+RUN_ENGINE=true
 RUN_FRONTEND=true
 OUTPUT_JSON=false
+SECTIONS_SELECTED=false
 
 for arg in "$@"; do
     case $arg in
-        backend)
-            RUN_FRONTEND=false
-            ;;
-        frontend)
-            RUN_BACKEND=false
+        backend|engine|frontend)
+            if [ "$SECTIONS_SELECTED" = false ]; then
+                SECTIONS_SELECTED=true
+                RUN_BACKEND=false
+                RUN_ENGINE=false
+                RUN_FRONTEND=false
+            fi
+            case $arg in
+                backend) RUN_BACKEND=true ;;
+                engine) RUN_ENGINE=true ;;
+                frontend) RUN_FRONTEND=true ;;
+            esac
             ;;
         --json)
             OUTPUT_JSON=true
@@ -93,6 +113,13 @@ if [ "$OUTPUT_JSON" = true ]; then
         run_json_check "backend-lint" "uv run ruff check app" "$PROJECT_ROOT/backend"
         run_json_check "backend-format" "uv run ruff format --check app" "$PROJECT_ROOT/backend"
         run_json_check "backend-typecheck" "uv run mypy app --strict" "$PROJECT_ROOT/backend"
+    fi
+
+    # Run engine checks (txt2crs workspace package; credential-free suite)
+    if [ "$RUN_ENGINE" = true ]; then
+        run_json_check "engine-lint" "uv run --package txt2crs ruff check ." "$ENGINE_DIR"
+        run_json_check "engine-typecheck" "uv run --package txt2crs mypy" "$ENGINE_DIR"
+        run_json_check "engine-tests" "uv run --package txt2crs pytest -q" "$ENGINE_DIR"
     fi
 
     # Run frontend checks
@@ -178,6 +205,23 @@ if [ "$RUN_BACKEND" = true ]; then
         echo -e "${YELLOW}[INFO]${NC}    Backend unit tests require database. Skipping in standalone mode."
         echo -e "${YELLOW}[INFO]${NC}    Run 'docker compose exec backend bash scripts/test.sh' for full tests."
     fi
+
+    echo ""
+fi
+
+# Engine validation (txt2crs workspace package)
+if [ "$RUN_ENGINE" = true ]; then
+    echo -e "${BLUE}--- Engine Checks (txt2crs) ---${NC}"
+
+    # Linting with ruff (engine's own ruff config)
+    run_check "Engine: Linting (ruff check)" "uv run --package txt2crs ruff check ." "$ENGINE_DIR"
+
+    # Type checking with mypy (engine's own strict config via files = src, tests)
+    run_check "Engine: Type checking (mypy)" "uv run --package txt2crs mypy" "$ENGINE_DIR"
+
+    # Full engine test suite (credential-free and network-free by default;
+    # the live subscription test stays skipped without TXT2CRS_RUN_LIVE_CODEX=1)
+    run_check "Engine: Test suite (pytest)" "uv run --package txt2crs pytest -q" "$ENGINE_DIR"
 
     echo ""
 fi

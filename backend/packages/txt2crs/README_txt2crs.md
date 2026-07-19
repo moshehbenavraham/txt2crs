@@ -149,15 +149,21 @@ private delivery lifecycle with deterministic providers.
 
 ## Develop and verify
 
-Run these commands from `backend/`:
+Run these commands from `backend/packages/txt2crs/`. The working directory
+matters: the application shell's `backend/pyproject.toml` excludes
+`packages/` from its own mypy configuration and carries its own pytest
+settings, so the engine's checks must resolve this package's
+`pyproject.toml` instead.
 
 ```bash
-uv run --package txt2crs pytest packages/txt2crs/tests
-uv run --package txt2crs ruff check packages/txt2crs
-uv run --package txt2crs mypy \
-  packages/txt2crs/src packages/txt2crs/tests
+uv run --package txt2crs pytest
+uv run --package txt2crs ruff check .
+uv run --package txt2crs mypy
 uv build --package txt2crs
 ```
+
+The repository-level `scripts/validate-changes.sh` runs the same three
+checks in its engine section (`./scripts/validate-changes.sh engine`).
 
 The default suite is credential-free and network-free. The separately marked
 live subscription acceptance test is skipped unless

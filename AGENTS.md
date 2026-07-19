@@ -91,10 +91,11 @@ uv run ruff check app                          # Lint
 uv run ruff format app                         # Format
 uv run alembic upgrade head                    # Run migrations
 
-# Engine (from backend/)
+# Engine (from backend/packages/txt2crs/ — the engine's own pyproject
+# config must apply; backend/pyproject.toml excludes packages/)
 uv run --package txt2crs pytest                # Engine test suite
-uv run --package txt2crs ruff check packages/txt2crs
-uv run --package txt2crs mypy packages/txt2crs/src packages/txt2crs/tests
+uv run --package txt2crs ruff check .
+uv run --package txt2crs mypy
 
 # Frontend (from frontend/)
 npm run dev                                    # Development server
