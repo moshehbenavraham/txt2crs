@@ -4,7 +4,7 @@
 **Sessions**: 3 (reconciled estimate)
 **Estimated Duration**: 2-3 days
 
-**Progress**: 1/3 sessions (33%)
+**Progress**: 2/3 sessions (67%)
 
 ---
 
@@ -30,7 +30,7 @@ recovery, projections, artifact integrity, and owner purge.
 | Session | Name | Status | Est. Tasks | Validated |
 |---------|------|--------|------------|-----------|
 | 01 | Durable Job Submission and Admission | Complete | 25 | 2026-07-20 |
-| 02 | Owner-Scoped Job Results and Recovery | Not Started | 25 | - |
+| 02 | Owner-Scoped Job Results and Recovery | Complete | 25 | 2026-07-20 |
 | 03 | Account Purge and Donor Retirement | Not Started | 24 | - |
 
 ---
@@ -38,12 +38,12 @@ recovery, projections, artifact integrity, and owner purge.
 ## Completed Sessions
 
 - Session 01: Durable Job Submission and Admission - completed 2026-07-20.
+- Session 02: Owner-Scoped Job Results and Recovery - completed 2026-07-20.
 
 ---
 
 ## Upcoming Sessions
 
-- Session 02: Owner-Scoped Job Results and Recovery
 - Session 03: Account Purge and Donor Retirement
 
 ---

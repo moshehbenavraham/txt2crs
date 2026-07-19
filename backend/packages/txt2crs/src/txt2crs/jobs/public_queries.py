@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import unquote, urlsplit, urlunsplit
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
@@ -32,7 +32,9 @@ from txt2crs.security.redaction import sanitize_public_text
 
 PublicDisplayText = Annotated[str, Field(min_length=1, max_length=500)]
 _PUBLIC_PROGRESS_UNIT_LIMIT = 108
-_PUBLIC_DEFAULT_TOTAL_UNITS = 12
+_PUBLIC_SOURCE_LIMIT = 12
+_PUBLIC_WARNING_LIMIT = 20
+_PUBLIC_CONFLICT_LIMIT = 20
 _PATH_SEPARATOR_PATTERN = re.compile(r"[/\\]+")
 
 
@@ -88,13 +90,15 @@ class PublicJobProgress(_PublicQueryContract):
     """Bounded accepted work units for a durable generation job."""
 
     completed_units: int = Field(ge=0, le=108)
-    total_units: int = Field(ge=0, le=108)
+    # The plan, not a UI guess, establishes how many module checkpoints exist.
+    # Keeping the value null before that point prevents a fabricated percentage.
+    total_units: int | None = Field(default=None, ge=0, le=108)
 
     @model_validator(mode="after")
     def completed_work_cannot_exceed_total(self) -> "PublicJobProgress":
         """Reject internally contradictory progress before it reaches a UI."""
 
-        if self.completed_units > self.total_units:
+        if self.total_units is not None and self.completed_units > self.total_units:
             raise ValueError("Completed progress cannot exceed total progress.")
         return self
 
@@ -104,7 +108,22 @@ class PublicInputSummary(_PublicQueryContract):
 
     input_type: InputType
     display_name: Annotated[str, Field(min_length=1, max_length=255)]
-    extraction_warnings: tuple[PublicDisplayText, ...] = Field(max_length=20)
+    size_bytes: int = Field(ge=0, le=1_000_000_000)
+    extraction_warnings: tuple[PublicDisplayText, ...] = Field(
+        max_length=_PUBLIC_WARNING_LIMIT
+    )
+    extraction_warnings_truncated: bool
+
+    @model_validator(mode="after")
+    def truncation_requires_a_full_warning_page(self) -> "PublicInputSummary":
+        """A truncation flag is credible only after the public page is full."""
+
+        if (
+            self.extraction_warnings_truncated
+            and len(self.extraction_warnings) != _PUBLIC_WARNING_LIMIT
+        ):
+            raise ValueError("Truncated warnings must fill the public warning page.")
+        return self
 
 
 class PublicSourceSummary(_PublicQueryContract):
@@ -143,6 +162,7 @@ class PublicJobSnapshot(_PublicQueryContract):
 
     schema_version: SchemaVersion
     job_id: Identifier
+    revision: int = Field(ge=0, le=9_223_372_036_854_775_807)
     status: JobStatus
     created_at: datetime
     updated_at: datetime
@@ -151,8 +171,15 @@ class PublicJobSnapshot(_PublicQueryContract):
     input: PublicInputSummary
     failure: PublicJobFailure | None
     course_title: PublicDisplayText | None
-    sources: tuple[PublicSourceSummary, ...] = Field(max_length=100)
-    conflicts: tuple[PublicDisplayText, ...] = Field(max_length=20)
+    resolved_audience: PublicDisplayText | None
+    resolved_level: Literal["beginner", "intermediate", "advanced", "mixed"] | None
+    resolved_language: Annotated[str, Field(min_length=2, max_length=35)] | None
+    objective_count: int | None = Field(default=None, ge=1, le=100)
+    module_count: int | None = Field(default=None, ge=1, le=100)
+    sources: tuple[PublicSourceSummary, ...] = Field(max_length=_PUBLIC_SOURCE_LIMIT)
+    sources_truncated: bool
+    conflicts: tuple[PublicDisplayText, ...] = Field(max_length=_PUBLIC_CONFLICT_LIMIT)
+    conflicts_truncated: bool
     artifacts: PublicArtifactAvailability
 
     @model_validator(mode="after")
@@ -168,6 +195,24 @@ class PublicJobSnapshot(_PublicQueryContract):
         }
         if has_public_failure != needs_public_failure:
             raise ValueError("Terminal failure state must match a public failure.")
+        result_leaves = (
+            self.course_title,
+            self.resolved_audience,
+            self.resolved_level,
+            self.resolved_language,
+            self.objective_count,
+            self.module_count,
+        )
+        has_any_result_leaf = any(value is not None for value in result_leaves)
+        has_every_result_leaf = all(value is not None for value in result_leaves)
+        if has_any_result_leaf != has_every_result_leaf:
+            raise ValueError("Public result fields must appear as one coherent set.")
+        if self.status is JobStatus.completed and self.progress.total_units is None:
+            raise ValueError("A completed job must have finite total progress.")
+        if self.sources_truncated and len(self.sources) != _PUBLIC_SOURCE_LIMIT:
+            raise ValueError("Truncated sources must fill the public source page.")
+        if self.conflicts_truncated and len(self.conflicts) != _PUBLIC_CONFLICT_LIMIT:
+            raise ValueError("Truncated conflicts must fill the public conflict page.")
         return self
 
 
@@ -238,24 +283,41 @@ def _build_public_job_snapshot(
         if validated_checkpoint is not None
         else None
     )
-    public_warnings = (
-        _bounded_public_texts(input_document.warnings, maximum_items=20)
+    public_warnings, warnings_truncated = (
+        _bounded_public_texts(
+            input_document.warnings,
+            maximum_items=_PUBLIC_WARNING_LIMIT,
+        )
         if input_document is not None
-        else ()
+        else ((), False)
     )
     input_type = resume_state.request.input_payload.input_type
+    input_value = resume_state.request.input_payload.value
     public_input = PublicInputSummary(
         input_type=input_type,
         display_name=_safe_input_display_name(
             input_type=input_type,
             file_name=resume_state.request.input_payload.file_name,
         ),
+        size_bytes=(
+            len(input_value)
+            if isinstance(input_value, bytes)
+            else len(input_value.encode("utf-8"))
+        ),
         extraction_warnings=public_warnings,
+        extraction_warnings_truncated=warnings_truncated,
     )
 
     course_title = _public_course_title(pipeline_checkpoint)
-    sources = _public_source_summaries(pipeline_checkpoint)
-    conflicts = _public_conflict_summaries(pipeline_checkpoint)
+    (
+        resolved_audience,
+        resolved_level,
+        resolved_language,
+        objective_count,
+        module_count,
+    ) = _public_result_leaves(pipeline_checkpoint)
+    sources, sources_truncated = _public_source_summaries(pipeline_checkpoint)
+    conflicts, conflicts_truncated = _public_conflict_summaries(pipeline_checkpoint)
     artifact_count = (
         len(artifact_manifest.artifacts) if artifact_manifest is not None else 0
     )
@@ -263,6 +325,7 @@ def _build_public_job_snapshot(
     return PublicJobSnapshot(
         schema_version="1.0",
         job_id=job.job_id,
+        revision=job.revision,
         status=job.status,
         created_at=job.created_at,
         updated_at=job.updated_at,
@@ -276,8 +339,15 @@ def _build_public_job_snapshot(
         input=public_input,
         failure=_public_failure(status=job.status, private_code=job.failure_code),
         course_title=course_title,
+        resolved_audience=resolved_audience,
+        resolved_level=resolved_level,
+        resolved_language=resolved_language,
+        objective_count=objective_count,
+        module_count=module_count,
         sources=sources,
+        sources_truncated=sources_truncated,
         conflicts=conflicts,
+        conflicts_truncated=conflicts_truncated,
         artifacts=PublicArtifactAvailability(
             available=artifact_count > 0,
             count=artifact_count,
@@ -364,7 +434,7 @@ def _public_progress(
     if validated_checkpoint is None:
         return PublicJobProgress(
             completed_units=0,
-            total_units=_PUBLIC_DEFAULT_TOTAL_UNITS,
+            total_units=None,
         )
     completed_units = min(
         _PUBLIC_PROGRESS_UNIT_LIMIT,
@@ -374,10 +444,10 @@ def _public_progress(
     if pipeline_checkpoint is None:
         return PublicJobProgress(
             completed_units=completed_units,
-            total_units=max(_PUBLIC_DEFAULT_TOTAL_UNITS, completed_units),
+            total_units=None,
         )
     if pipeline_checkpoint.course_plan is None:
-        total_units = max(_PUBLIC_DEFAULT_TOTAL_UNITS, completed_units)
+        total_units = None
     else:
         # The cumulative pipeline has eight fixed checkpoints plus one per
         # planned module. This mirrors its sequence function without exposing
@@ -387,7 +457,7 @@ def _public_progress(
             8 + len(pipeline_checkpoint.course_plan.modules),
         )
         total_units = max(total_units, completed_units)
-    if status is JobStatus.completed:
+    if status is JobStatus.completed and total_units is not None:
         completed_units = total_units
     return PublicJobProgress(
         completed_units=completed_units,
@@ -440,20 +510,51 @@ def _public_course_title(
     return _bounded_optional_public_text(private_title)
 
 
+def _public_result_leaves(
+    checkpoint: PipelineCheckpoint | None,
+) -> tuple[
+    str | None,
+    Literal["beginner", "intermediate", "advanced", "mixed"] | None,
+    str | None,
+    int | None,
+    int | None,
+]:
+    """Copy only the resolved plan leaves needed by the public result summary."""
+
+    if (
+        checkpoint is None
+        or checkpoint.course_plan is None
+        or checkpoint.resolved_preferences is None
+    ):
+        return None, None, None, None, None
+
+    # Learner intent may have used ``auto``. Only the accepted resolved
+    # preferences are truthful after the course plan has passed validation.
+    resolved_preferences = checkpoint.resolved_preferences
+    course_plan = checkpoint.course_plan
+    return (
+        _bounded_optional_public_text(resolved_preferences.audience),
+        resolved_preferences.level,
+        resolved_preferences.language,
+        len(course_plan.learning_objectives),
+        len(course_plan.modules),
+    )
+
+
 def _public_source_summaries(
     checkpoint: PipelineCheckpoint | None,
-) -> tuple[PublicSourceSummary, ...]:
+) -> tuple[tuple[PublicSourceSummary, ...], bool]:
     """Copy bibliographic leaves without evidence excerpts or source hashes."""
 
     if checkpoint is None:
-        return ()
+        return (), False
     if checkpoint.evidence_set is not None:
         source_records = checkpoint.evidence_set.sources
     elif checkpoint.course is not None:
         source_records = checkpoint.course.sources
     else:
         source_records = []
-    return tuple(
+    public_sources = tuple(
         PublicSourceSummary(
             title=(_bounded_optional_public_text(source.title) or "Untitled source"),
             canonical_url=_safe_public_source_url(source.canonical_url),
@@ -463,8 +564,9 @@ def _public_source_summaries(
             ),
             retrieved_at=source.retrieved_at,
         )
-        for source in source_records[:100]
+        for source in source_records[:_PUBLIC_SOURCE_LIMIT]
     )
+    return public_sources, len(source_records) > _PUBLIC_SOURCE_LIMIT
 
 
 def _safe_public_source_url(url: str) -> str | None:
@@ -510,11 +612,11 @@ def _safe_public_source_url(url: str) -> str | None:
 
 def _public_conflict_summaries(
     checkpoint: PipelineCheckpoint | None,
-) -> tuple[str, ...]:
+) -> tuple[tuple[str, ...], bool]:
     """Return unique accepted conflict summaries in deterministic order."""
 
     if checkpoint is None:
-        return ()
+        return (), False
     private_conflicts: list[str] = []
     for module_draft in checkpoint.course_module_drafts:
         private_conflicts.extend(module_draft.unresolved_or_conflicting_claims)
@@ -531,27 +633,30 @@ def _public_conflict_summaries(
         if normalized_conflict in normalized_conflicts:
             continue
         normalized_conflicts.add(normalized_conflict)
+        if len(public_conflicts) == _PUBLIC_CONFLICT_LIMIT:
+            # This is a further valid, unique public value. Invalid, empty, or
+            # duplicate private values above do not create false truncation.
+            return tuple(public_conflicts), True
         public_conflicts.append(public_conflict)
-        if len(public_conflicts) == 20:
-            break
-    return tuple(public_conflicts)
+    return tuple(public_conflicts), False
 
 
 def _bounded_public_texts(
     values: list[str],
     *,
     maximum_items: int,
-) -> tuple[str, ...]:
+) -> tuple[tuple[str, ...], bool]:
     """Sanitize, omit empty strings, and clamp one public display list."""
 
     public_values: list[str] = []
     for value in values:
         public_value = _bounded_optional_public_text(value)
-        if public_value is not None:
-            public_values.append(public_value)
+        if public_value is None:
+            continue
         if len(public_values) == maximum_items:
-            break
-    return tuple(public_values)
+            return tuple(public_values), True
+        public_values.append(public_value)
+    return tuple(public_values), False
 
 
 def _bounded_optional_public_text(value: str | None) -> str | None:

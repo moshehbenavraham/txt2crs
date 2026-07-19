@@ -136,6 +136,10 @@ def test_service_queries_survive_sqlite_and_filesystem_restart(
         artifact_root=artifact_root,
     )
     try:
+        reopened_resume_state = reopened_service.resume(
+            job_id=started_job.job_id,
+            user_id="owner-1",
+        )
         snapshot = reopened_service.get_public_snapshot(
             job_id=started_job.job_id,
             user_id="owner-1",
@@ -154,8 +158,18 @@ def test_service_queries_survive_sqlite_and_filesystem_restart(
         reopened_job_store.close()
 
     assert snapshot.status is JobStatus.researching
+    assert snapshot.revision == reopened_resume_state.job.revision
     assert snapshot.last_accepted_stage == "prepare_input"
+    assert snapshot.progress.completed_units == 1
+    assert snapshot.progress.total_units is None
+    assert snapshot.input.size_bytes == len(_PRIVATE_INPUT.encode("utf-8"))
     assert snapshot.input.extraction_warnings == ("Minor extraction warning",)
+    assert snapshot.input.extraction_warnings_truncated is False
+    assert snapshot.course_title is None
+    assert snapshot.resolved_audience is None
+    assert snapshot.objective_count is None
+    assert snapshot.sources_truncated is False
+    assert snapshot.conflicts_truncated is False
     assert snapshot.artifacts.available is True
     assert snapshot.artifacts.count == 1
     assert _PRIVATE_INPUT not in snapshot.model_dump_json()

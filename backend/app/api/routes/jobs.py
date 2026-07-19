@@ -1,19 +1,42 @@
 """Authenticated durable course-job submission endpoints."""
 
-from typing import Annotated
+from typing import Annotated, Any
+from urllib.parse import quote
 
-from fastapi import APIRouter, File, Form, Header, Request, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    Header,
+    Path,
+    Request,
+    Response,
+    UploadFile,
+)
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from txt2crs.jobs import JobRecord
 
-from app.api.deps import CurrentUser, Txt2CrsSubmissionDep
+from app.api.artifact_response import (
+    ArtifactStreamingResponse,
+    EnteredArtifactBody,
+)
+from app.api.deps import (
+    CurrentUser,
+    Txt2CrsApplicationDep,
+    Txt2CrsSubmissionDep,
+)
 from app.core.config import settings
-from app.core.constants import ErrorCode, HTTPStatusCode
+from app.core.constants import ContentTypes, ErrorCode, HTTPStatusCode
 from app.core.exceptions import AppException
+from app.core.logging import get_logger
 from app.core.rate_limit import JOB_SUBMISSION_RATE_LIMIT, limiter
+from app.core.txt2crs_errors import translate_txt2crs_exception
 from app.schemas.jobs import (
+    ArtifactManifestPublic,
     IdempotencyKey,
     JobAcceptedPublic,
+    JobIdentifier,
+    JobStatusPublic,
     JobSubmissionRequest,
     JobUploadMetadata,
     parse_job_upload_metadata,
@@ -24,6 +47,7 @@ from app.services.txt2crs_uploads import (
 )
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+logger = get_logger(__name__)
 
 IdempotencyHeader = Annotated[
     IdempotencyKey,
@@ -37,6 +61,85 @@ IdempotencyHeader = Annotated[
 ]
 OOXML_MAXIMUM_ARCHIVE_ENTRIES = 10_000
 OOXML_MAXIMUM_EXPANDED_BYTES = 52_428_800
+MARKDOWN_MEDIA_TYPE = "text/markdown"
+PDF_MEDIA_TYPE = "application/pdf"
+DOCX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
+JobPathIdentifier = Annotated[
+    JobIdentifier,
+    Path(
+        description="Opaque owner-scoped durable course job identifier.",
+    ),
+]
+ArtifactPathIdentifier = Annotated[
+    JobIdentifier,
+    Path(
+        description="Stable canonical artifact identifier.",
+    ),
+]
+_PRIVATE_RESPONSE_HEADERS = {
+    "Cache-Control": "private, no-store",
+    "Pragma": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
+_PRIVATE_READ_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    HTTPStatusCode.UNAUTHORIZED: {
+        "description": "Authentication is required.",
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+    HTTPStatusCode.NOT_FOUND: {
+        "description": "The owner-scoped course job was not found.",
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+    HTTPStatusCode.UNPROCESSABLE_ENTITY: {
+        "description": "A path identifier is invalid.",
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+    HTTPStatusCode.INTERNAL_SERVER_ERROR: {
+        "description": "The course result could not be read safely.",
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+}
+_ARTIFACT_DOWNLOAD_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **_PRIVATE_READ_ERROR_RESPONSES,
+    HTTPStatusCode.OK: {
+        "description": "Verified private artifact bytes.",
+        "content": {
+            # OpenAPI models text responses as strings and file formats through
+            # JSON Schema's contentMediaType keyword. The wildcard fallback
+            # preserves an honest string-or-file union in generators that pick
+            # only one content entry for a status code. The four exact entries
+            # document every media type emitted by the deterministic renderer.
+            "*/*": {
+                "schema": {
+                    "oneOf": [
+                        {"type": "string"},
+                        {
+                            "type": "string",
+                            "contentMediaType": "application/octet-stream",
+                        },
+                    ]
+                }
+            },
+            ContentTypes.TEXT_HTML: {"schema": {"type": "string"}},
+            MARKDOWN_MEDIA_TYPE: {"schema": {"type": "string"}},
+            PDF_MEDIA_TYPE: {
+                "schema": {
+                    "type": "string",
+                    "contentMediaType": PDF_MEDIA_TYPE,
+                }
+            },
+            DOCX_MEDIA_TYPE: {
+                "schema": {
+                    "type": "string",
+                    "contentMediaType": DOCX_MEDIA_TYPE,
+                }
+            },
+        },
+    },
+}
 
 
 @router.post(
@@ -196,6 +299,172 @@ def _accepted_response(
         revision=0,
         status_url=status_url,
     )
+
+
+@router.get(
+    "/{job_id}",
+    response_model=JobStatusPublic,
+    status_code=HTTPStatusCode.OK,
+    summary="Read current course job status and result",
+    description=(
+        "Returns one revisioned owner-scoped allowlist. Responses are private "
+        "and non-cacheable; P0 does not implement conditional cache validators."
+    ),
+    responses=_PRIVATE_READ_ERROR_RESPONSES,
+)
+def read_job(
+    job_id: JobPathIdentifier,
+    response: Response,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+) -> JobStatusPublic:
+    """Read through the package facade and map only its public snapshot."""
+
+    try:
+        public_snapshot = application.get_public_job(
+            job_id=job_id,
+            user_id=str(current_user.id),
+        )
+        public_response = JobStatusPublic.from_package(public_snapshot)
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    _set_private_response_headers(response)
+    return public_response
+
+
+@router.get(
+    "/{job_id}/artifacts",
+    response_model=ArtifactManifestPublic,
+    status_code=HTTPStatusCode.OK,
+    summary="Read the verified course artifact manifest",
+    description=(
+        "Returns owner-scoped path-free metadata grouped by educational "
+        "deliverable after package integrity verification."
+    ),
+    responses=_PRIVATE_READ_ERROR_RESPONSES,
+)
+def read_job_artifacts(
+    job_id: JobPathIdentifier,
+    response: Response,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+) -> ArtifactManifestPublic:
+    """Authorize and verify the manifest inside the package boundary."""
+
+    try:
+        package_manifest = application.get_artifact_manifest(
+            job_id=job_id,
+            user_id=str(current_user.id),
+        )
+        public_manifest = ArtifactManifestPublic.from_package(package_manifest)
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    _set_private_response_headers(response)
+    return public_manifest
+
+
+@router.get(
+    "/{job_id}/artifacts/{artifact_id}",
+    response_class=Response,
+    status_code=HTTPStatusCode.OK,
+    summary="Download one verified course artifact",
+    description=(
+        "Reauthorizes and verifies one canonical artifact before headers, then "
+        "streams its existing private descriptor without buffering."
+    ),
+    responses=_ARTIFACT_DOWNLOAD_RESPONSES,
+)
+def download_job_artifact(
+    job_id: JobPathIdentifier,
+    artifact_id: ArtifactPathIdentifier,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+) -> ArtifactStreamingResponse:
+    """Enter one verified package stream and transfer cleanup to its response."""
+
+    user_id = str(current_user.id)
+    try:
+        package_manifest = application.get_artifact_manifest(
+            job_id=job_id,
+            user_id=user_id,
+        )
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    selected_artifact = next(
+        (
+            artifact
+            for artifact in package_manifest.artifacts
+            if artifact.artifact_id == artifact_id
+        ),
+        None,
+    )
+    if selected_artifact is None:
+        # Missing IDs use the same job-level code and copy as missing/foreign
+        # jobs. The response cannot become an artifact-existence oracle.
+        raise AppException(
+            code=ErrorCode.JOB_NOT_FOUND,
+            detail="The requested course job was not found.",
+        )
+
+    try:
+        package_context = application.open_artifact(
+            job_id=job_id,
+            user_id=user_id,
+            artifact_id=artifact_id,
+        )
+        entered_body = EnteredArtifactBody.enter(package_context)
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    response_headers = {
+        **_PRIVATE_RESPONSE_HEADERS,
+        "Content-Type": selected_artifact.media_type,
+        "Content-Length": str(selected_artifact.size_bytes),
+        "Content-Disposition": _attachment_disposition(
+            selected_artifact.safe_file_name
+        ),
+    }
+    try:
+        return ArtifactStreamingResponse(
+            entered_body,
+            headers=response_headers,
+        )
+    except BaseException:
+        # A monkeypatch, future response option, or allocation failure can
+        # occur after context entry but before ASGI takes ownership.
+        _close_after_response_construction_failure(entered_body)
+        raise
+
+
+def _attachment_disposition(file_name: str) -> str:
+    """Encode every file name as an ASCII RFC 5987 attachment parameter."""
+
+    encoded_file_name = quote(file_name, safe="")
+    return f"attachment; filename*=utf-8''{encoded_file_name}"
+
+
+def _close_after_response_construction_failure(body: EnteredArtifactBody) -> None:
+    """Preserve the construction error while settling entered stream ownership."""
+
+    try:
+        body.close()
+    except BaseException:
+        # The active construction error remains authoritative. Log no
+        # filename, artifact identifier, hash, exception, or private path.
+        try:
+            logger.error("artifact.response_cleanup_failed")
+        except BaseException:
+            return
+
+
+def _set_private_response_headers(response: Response) -> None:
+    """Apply the fixed privacy policy shared by result and manifest JSON."""
+
+    for header_name, header_value in _PRIVATE_RESPONSE_HEADERS.items():
+        response.headers[header_name] = header_value
 
 
 __all__ = ["router"]

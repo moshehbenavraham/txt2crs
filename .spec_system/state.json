@@ -96,29 +96,15 @@
     {
       "id": "phase03-session01-durable-job-submission-and-admission",
       "package": "backend"
+    },
+    {
+      "id": "phase03-session02-owner-scoped-job-results-and-recovery",
+      "package": "backend"
     }
   ],
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase01-session05-public-facade-and-owner-lifecycle",
-      "package": "backend/packages/txt2crs",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session05-public-facade-and-owner-lifecycle",
-      "package": "backend/packages/txt2crs",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session01-engine-composition-lifecycle",
-      "package": "backend",
-      "status": "planned"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase02-session01-engine-composition-lifecycle",
       "package": "backend",
       "status": "validated"
@@ -216,6 +202,24 @@
     {
       "date": "2026-07-20",
       "session": "phase03-session01-durable-job-submission-and-admission",
+      "package": "backend",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session02-owner-scoped-job-results-and-recovery",
+      "package": "backend",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session02-owner-scoped-job-results-and-recovery",
+      "package": "backend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session02-owner-scoped-job-results-and-recovery",
       "package": "backend",
       "status": "completed"
     }

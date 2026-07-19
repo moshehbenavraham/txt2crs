@@ -13,6 +13,8 @@ REPOSITORY_ROOT = Path(
 GENERATE_CLIENT_SCRIPT = REPOSITORY_ROOT / "scripts" / "generate-client.sh"
 VALIDATE_CHANGES_SCRIPT = REPOSITORY_ROOT / "scripts" / "validate-changes.sh"
 OPENAPI_DOCUMENT = REPOSITORY_ROOT / "frontend" / "openapi.json"
+GENERATED_TYPES = REPOSITORY_ROOT / "frontend" / "src" / "client" / "types.gen.ts"
+GENERATED_CLIENT_ROOT = REPOSITORY_ROOT / "frontend" / "src" / "client"
 
 
 def test_generate_client_formats_openapi_document_and_generated_client() -> None:
@@ -20,8 +22,23 @@ def test_generate_client_formats_openapi_document_and_generated_client() -> None
 
     generation_script = GENERATE_CLIENT_SCRIPT.read_text(encoding="utf-8")
 
+    assert os.access(GENERATE_CLIENT_SCRIPT, os.X_OK)
     assert "openapi.json src/client" in generation_script
     assert "biome check --write" in generation_script
+
+
+def test_generated_client_uses_repository_ascii_and_lf_conventions() -> None:
+    """Upstream documentation copy cannot bypass repository text conventions."""
+
+    generated_files = sorted(
+        path for path in GENERATED_CLIENT_ROOT.rglob("*") if path.is_file()
+    )
+
+    assert generated_files
+    for generated_file in generated_files:
+        generated_bytes = generated_file.read_bytes()
+        assert generated_bytes.isascii(), generated_file
+        assert b"\r" not in generated_bytes, generated_file
 
 
 def test_fast_validation_includes_repository_workflow_contracts() -> None:
@@ -129,3 +146,112 @@ def test_job_openapi_contains_discriminated_inputs_and_allowlisted_response() ->
         "status_url",
     }
     assert "idempotency_key" not in schemas["JobAcceptedPublic"]["properties"]
+
+
+def test_job_read_routes_generate_owner_scoped_bounded_contracts() -> None:
+    """Status and manifest reads expose strict schemas under bearer auth."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    status_operation = openapi["paths"]["/api/v1/jobs/{job_id}"]["get"]
+    manifest_operation = openapi["paths"]["/api/v1/jobs/{job_id}/artifacts"]["get"]
+
+    assert status_operation["operationId"] == "jobs-read_job"
+    assert manifest_operation["operationId"] == "jobs-read_job_artifacts"
+    for operation, response_schema_name in (
+        (status_operation, "JobStatusPublic"),
+        (manifest_operation, "ArtifactManifestPublic"),
+    ):
+        assert operation["security"] == [{"OAuth2PasswordBearer": []}]
+        assert "requestBody" not in operation
+        assert operation["responses"]["200"]["content"]["application/json"][
+            "schema"
+        ] == {"$ref": f"#/components/schemas/{response_schema_name}"}
+        path_parameters = [
+            parameter
+            for parameter in operation["parameters"]
+            if parameter["in"] == "path"
+        ]
+        assert len(path_parameters) == 1
+        assert path_parameters[0]["name"] == "job_id"
+        assert path_parameters[0]["required"] is True
+        assert path_parameters[0]["schema"]["maxLength"] == 128
+        assert path_parameters[0]["schema"]["pattern"] == (
+            "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        )
+        assert set(operation["responses"]) >= {"200", "401", "404", "422", "500"}
+
+    status_properties = openapi["components"]["schemas"]["JobStatusPublic"][
+        "properties"
+    ]
+    assert set(status_properties) == {
+        "schema_version",
+        "job_id",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "progress",
+        "input",
+        "failure",
+        "result",
+        "artifacts",
+    }
+    assert "etag" not in json.dumps(status_operation).casefold()
+
+
+def test_artifact_download_generates_format_accurate_auth_contract() -> None:
+    """Generated clients reflect text and binary artifacts without ETag."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    operation = openapi["paths"]["/api/v1/jobs/{job_id}/artifacts/{artifact_id}"]["get"]
+
+    assert operation["operationId"] == "jobs-download_job_artifact"
+    assert operation["security"] == [{"OAuth2PasswordBearer": []}]
+    assert "requestBody" not in operation
+    assert set(operation["responses"]) >= {"200", "401", "404", "422", "500"}
+    artifact_content = operation["responses"]["200"]["content"]
+    assert artifact_content == {
+        # The wildcard fallback gives code generators one honest union for an
+        # endpoint whose runtime Content-Type varies by the selected artifact.
+        "*/*": {
+            "schema": {
+                "oneOf": [
+                    {"type": "string"},
+                    {
+                        "type": "string",
+                        "contentMediaType": "application/octet-stream",
+                    },
+                ]
+            }
+        },
+        "text/html": {"schema": {"type": "string"}},
+        "text/markdown": {"schema": {"type": "string"}},
+        "application/pdf": {
+            "schema": {
+                "type": "string",
+                "contentMediaType": "application/pdf",
+            }
+        },
+        ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"): {
+            "schema": {
+                "type": "string",
+                "contentMediaType": (
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+            }
+        },
+    }
+    generated_types = GENERATED_TYPES.read_text(encoding="utf-8")
+    assert "200: string | Blob | File" in generated_types
+    parameter_by_name = {
+        parameter["name"]: parameter
+        for parameter in operation["parameters"]
+        if parameter["in"] == "path"
+    }
+    assert set(parameter_by_name) == {"job_id", "artifact_id"}
+    for parameter in parameter_by_name.values():
+        assert parameter["required"] is True
+        assert parameter["schema"]["maxLength"] == 128
+        assert parameter["schema"]["pattern"] == ("^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+    assert "etag" not in json.dumps(operation).casefold()

@@ -9,12 +9,14 @@ from txt2crs.application import (
 )
 from txt2crs.jobs import (
     AdmissionQuotaExceededError,
+    ArtifactIntegrityError,
     ConcurrencyConflictError,
     IdempotencyConflictError,
     InvalidJobSubmissionError,
     JobNotFoundError,
     JobRequestCompatibilityError,
     PreparationPolicyError,
+    PublicJobProjectionError,
 )
 
 from app.core.constants import ErrorCode
@@ -72,7 +74,13 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
         )
     elif isinstance(
         error,
-        (ApplicationCloseError, JobRequestCompatibilityError, OwnerPurgeError),
+        (
+            ApplicationCloseError,
+            ArtifactIntegrityError,
+            JobRequestCompatibilityError,
+            OwnerPurgeError,
+            PublicJobProjectionError,
+        ),
     ):
         translated = AppException(
             code=ErrorCode.ENGINE_OPERATION_FAILED,

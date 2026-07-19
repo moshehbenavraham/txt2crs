@@ -99,6 +99,54 @@ The restore validates checksums and both archive formats before destructive
 replacement, then restarts and waits for a previously running backend. Verify
 both health endpoints and inspect correlated logs after recovery.
 
+## Stalled Durable Job Or Worker Replacement
+
+1. Preserve the affected response `trace_id`, job status, public `revision`,
+   and timestamps. Do not copy learner input, artifact bytes, provider
+   payloads, or private paths into the incident record.
+2. Check the cached course-system readiness verdict and correlated
+   `txt2crs.worker_*` / `txt2crs.execution_*` log events.
+3. Confirm that exactly one backend process and serial worker own the private
+   SQLite state. Do not add replicas or extra Uvicorn workers.
+4. If the process is unhealthy, restart only the backend. A fresh worker
+   discovers durable accepted jobs at startup and resumes active jobs from
+   their last accepted checkpoint; it does not require the original in-memory
+   wake event.
+5. Poll `GET /api/v1/jobs/{job_id}` as the authenticated owner. Verify that
+   `revision` advances or that a terminal `completed`, `failed`, or
+   `cancelled` status is returned. Do not infer progress from elapsed time.
+6. A job already at final validation may replay rendering, and one interrupted
+   during delivery may republish artifacts. Neither boundary should start new
+   provider turns.
+7. If the same revision remains stalled after the backend is healthy, stop
+   new admission, capture a consistent backup, and escalate with redacted
+   correlated logs. Do not edit the engine SQLite database manually.
+
+## Artifact Integrity Or Delivery Failure
+
+A safe `SYSTEM_6002` response from a status projection, manifest read, or
+artifact download indicates that private state could not be represented or
+verified. Treat repeated failures as P1 because the route deliberately fails
+closed.
+
+1. Preserve the response `trace_id`, HTTP status, public job ID, and request
+   time. Do not print the artifact, hash, filename, private path, or exception.
+2. Check correlated `artifact.*_failed` and engine events. Cleanup events are
+   intentionally sparse; do not enable raw exception or request-body logging.
+3. Retry the owner-scoped manifest once. A missing/foreign job or artifact
+   returns `JOB_7001`; do not use alternate accounts to probe existence.
+4. If metadata succeeds but a download fails, stop serving that job's
+   artifacts and create a consistent private-state backup before inspection.
+   Never replace a stored hash, byte length, or file merely to make the check
+   pass.
+5. Restarting the backend is safe but must not be treated as an integrity
+   repair. Verified completed artifacts should reopen with identical metadata
+   and bytes.
+6. Restore only from a reviewed, checksum-validated backup. After recovery,
+   read the manifest and download representative HTML, PDF, and DOCX outputs
+   as the owner; confirm exact `Content-Type`, `Content-Length`,
+   `Content-Disposition`, and private/no-store headers.
+
 ## Course-System Readiness or Authentication Failure
 
 1. Log in as a superuser and open `/setup`; do not copy provider credentials

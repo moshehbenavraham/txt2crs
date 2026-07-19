@@ -26,6 +26,15 @@ import type {
   GetApiV1ItemsData,
   GetApiV1ItemsErrors,
   GetApiV1ItemsResponses,
+  GetApiV1JobsByJobIdArtifactsByArtifactIdData,
+  GetApiV1JobsByJobIdArtifactsByArtifactIdErrors,
+  GetApiV1JobsByJobIdArtifactsByArtifactIdResponses,
+  GetApiV1JobsByJobIdArtifactsData,
+  GetApiV1JobsByJobIdArtifactsErrors,
+  GetApiV1JobsByJobIdArtifactsResponses,
+  GetApiV1JobsByJobIdData,
+  GetApiV1JobsByJobIdErrors,
+  GetApiV1JobsByJobIdResponses,
   GetApiV1SystemAuthStatusData,
   GetApiV1SystemAuthStatusResponses,
   GetApiV1SystemReadinessData,
@@ -976,6 +985,87 @@ export class JobsService {
         "Content-Type": null,
         ...options.headers,
       },
+    })
+  }
+
+  /**
+   * Read current course job status and result
+   *
+   * Returns one revisioned owner-scoped allowlist. Responses are private and non-cacheable; P0 does not implement conditional cache validators.
+   */
+  public static readJob<ThrowOnError extends boolean = true>(
+    options: Options<GetApiV1JobsByJobIdData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1JobsByJobIdResponses,
+    GetApiV1JobsByJobIdErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options.client ?? client).get<
+      GetApiV1JobsByJobIdResponses,
+      GetApiV1JobsByJobIdErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs/{job_id}",
+      ...options,
+    })
+  }
+
+  /**
+   * Read the verified course artifact manifest
+   *
+   * Returns owner-scoped path-free metadata grouped by educational deliverable after package integrity verification.
+   */
+  public static readJobArtifacts<ThrowOnError extends boolean = true>(
+    options: Options<GetApiV1JobsByJobIdArtifactsData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1JobsByJobIdArtifactsResponses,
+    GetApiV1JobsByJobIdArtifactsErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options.client ?? client).get<
+      GetApiV1JobsByJobIdArtifactsResponses,
+      GetApiV1JobsByJobIdArtifactsErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs/{job_id}/artifacts",
+      ...options,
+    })
+  }
+
+  /**
+   * Download one verified course artifact
+   *
+   * Reauthorizes and verifies one canonical artifact before headers, then streams its existing private descriptor without buffering.
+   */
+  public static downloadJobArtifact<ThrowOnError extends boolean = true>(
+    options: Options<
+      GetApiV1JobsByJobIdArtifactsByArtifactIdData,
+      ThrowOnError
+    >,
+  ): RequestResult<
+    GetApiV1JobsByJobIdArtifactsByArtifactIdResponses,
+    GetApiV1JobsByJobIdArtifactsByArtifactIdErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options.client ?? client).get<
+      GetApiV1JobsByJobIdArtifactsByArtifactIdResponses,
+      GetApiV1JobsByJobIdArtifactsByArtifactIdErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs/{job_id}/artifacts/{artifact_id}",
+      ...options,
     })
   }
 }

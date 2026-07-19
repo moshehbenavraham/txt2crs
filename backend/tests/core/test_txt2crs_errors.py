@@ -7,9 +7,11 @@ from txt2crs.application import (
 )
 from txt2crs.jobs import (
     AdmissionQuotaExceededError,
+    ArtifactIntegrityError,
     IdempotencyConflictError,
     JobNotFoundError,
     PreparationPolicyError,
+    PublicJobProjectionError,
 )
 from txt2crs.security.policy import PolicyDecision, PolicyOutcome, PolicyStage
 
@@ -39,6 +41,14 @@ def test_known_package_errors_map_to_stable_shell_codes() -> None:
         ),
         (
             OwnerPurgeError("private filesystem path"),
+            ErrorCode.ENGINE_OPERATION_FAILED,
+        ),
+        (
+            ArtifactIntegrityError("private artifact path and hash"),
+            ErrorCode.ENGINE_OPERATION_FAILED,
+        ),
+        (
+            PublicJobProjectionError("private checkpoint projection"),
             ErrorCode.ENGINE_OPERATION_FAILED,
         ),
         (

@@ -1,8 +1,9 @@
 # txt2crs API
 
 The current FastAPI shell exposes authentication, user administration,
-durable course-job submission, cached course-system readiness, privileged
-device authentication, temporary item CRUD, email testing, and health.
+durable course-job submission and owner-scoped results, cached course-system
+readiness, privileged device authentication, temporary item CRUD, email
+testing, and health.
 
 ## OpenAPI
 
@@ -64,8 +65,11 @@ its Phase 03 replacement.
 |--------|------|---------------|---------|
 | POST | `/api/v1/jobs` | Authenticated | Durably accept one prompt, pasted-text, URL, or YouTube course request |
 | POST | `/api/v1/jobs/upload` | Authenticated | Durably accept one PDF, DOCX, or PPTX course request |
+| GET | `/api/v1/jobs/{job_id}` | Authenticated owner | Read one bounded, revisioned status/result projection |
+| GET | `/api/v1/jobs/{job_id}/artifacts` | Authenticated owner | Read the verified, path-free artifact manifest |
+| GET | `/api/v1/jobs/{job_id}/artifacts/{artifact_id}` | Authenticated owner | Download one reauthorized and integrity-verified artifact |
 
-Both routes require an owner-scoped retry key:
+Both submission routes require an owner-scoped retry key:
 
 ```http
 Idempotency-Key: course-request-018
@@ -146,8 +150,83 @@ Referrer-Policy: no-referrer
 ```
 
 The response never includes the owner, retry key, input, provider, model,
-budgets, policy reasoning, or filesystem details. The status URL is reserved
-for the owner-scoped job-read route delivered in Phase 03 Session 02.
+budgets, policy reasoning, or filesystem details.
+
+#### Status and result polling
+
+`GET /api/v1/jobs/{job_id}` returns the current durable revision and a strict
+allowlist. Clients should poll the `status_url` from the accepted response and
+compare `revision` values; this P0 contract deliberately has no ETag,
+conditional request, or `304 Not Modified` behavior. Every successful read
+uses `Cache-Control: private, no-store`, `Pragma: no-cache`,
+`X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
+
+The response contains:
+
+- one of the nine durable statuses and fixed browser-safe progress copy;
+- `completed_units` and a nullable `total_units`, each bounded to 0-108. The
+  total remains `null` until the accepted course plan establishes it;
+- input type, a safe display name, exact UTF-8/source byte count, at most 20
+  extraction warnings, and an explicit warning-truncation flag; never the
+  source body or URL;
+- either a complete result summary or `null`. A summary has a bounded title,
+  resolved audience/level/language, 1-100 objectives, 1-100 modules, at most
+  12 bibliographic sources, at most 20 conflicts, and explicit truncation
+  flags;
+- a safe failure code/message or `null`; and
+- artifact availability, a 0-16 count, and the manifest URL only after
+  private publication succeeds.
+
+The owner check happens inside the package query. A nonexistent job and a job
+owned by another user both return the same `JOB_7001` `404` Problem Details
+response, so the route cannot be used as an ownership oracle. Path
+identifiers are 1-128 characters and permit only ASCII letters, digits,
+periods, underscores, colons, and hyphens after an alphanumeric first
+character.
+
+#### Artifact manifest and downloads
+
+`GET /api/v1/jobs/{job_id}/artifacts` verifies the private artifact topology
+and stored metadata before returning it. The manifest groups the four
+canonical educational products (`course`, `review_pack`, `assessment`, and
+`answer_key`) in stable order. Each group contains up to four canonical
+formats: `html`, `markdown`, `pdf`, and `docx`.
+
+Each artifact entry contains only:
+
+- its stable identifier and format;
+- a safe display filename and media type;
+- byte length and `sha256:<64 lowercase hex digits>` content hash; and
+- an owner-scoped download URL.
+
+Private storage paths never cross the API boundary. The manifest is also
+private/no-store and has no ETag behavior.
+
+The download route independently reauthorizes both the job and artifact, then
+opens and integrity-verifies the existing private descriptor before sending
+headers. Its response includes the artifact's exact `Content-Type` and
+`Content-Length`, an ASCII RFC 5987 `Content-Disposition: attachment` value,
+and the same no-store/privacy headers. The response owns the entered stream
+and closes it exactly once on completion, client disconnect, iterator error,
+send error, or construction failure. Generated clients expose HTML and
+Markdown downloads as text and PDF and DOCX downloads as binary `Blob | File`
+content, matching their exact response media types. Missing artifact IDs use
+the same `JOB_7001` response as missing or foreign jobs.
+
+An integrity or projection inconsistency fails closed as `SYSTEM_6002` with a
+safe `500` Problem Details response; no filename, hash, source value, artifact
+bytes, private path, or underlying exception is returned.
+
+#### Restart and replay behavior
+
+The serial worker discovers previously accepted jobs when a replacement
+process starts; it does not depend on an in-memory wake event. Active work
+resumes from the last accepted package checkpoint using the exact durable
+request and execution profile. A replacement after final validation replays
+only deterministic rendering, and a replacement during delivery
+deterministically rerenders and republishes the final validated bundle without
+another model turn. Completed manifests and bytes remain identical after the
+application is reopened.
 
 ### Operations
 
@@ -209,6 +288,8 @@ and 500 safe internal failure. Submission-specific stable errors are:
 
 | Code | HTTP | Meaning |
 |------|------|---------|
+| `SYSTEM_6002` | 500 | A private engine result failed safe projection or integrity validation |
+| `JOB_7001` | 404 | The requested job or owner-visible artifact was not found |
 | `SYSTEM_6001` | 503 | Cached course-system readiness does not permit admission |
 | `JOB_7002` | 429 | Owner or global admission capacity is exhausted |
 | `JOB_7003` | 409 | The retry key was reused for different request content |

@@ -1,13 +1,32 @@
-"""Tests for the strict public job-submission transport contracts."""
+"""Tests for strict durable job write and read transport contracts."""
 
+from datetime import UTC, datetime
 from typing import cast
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
+from txt2crs.jobs import (
+    ArtifactDeliverable,
+    ArtifactFormat,
+    ArtifactManifest,
+    ArtifactMetadata,
+    JobStatus,
+    PublicArtifactAvailability,
+    PublicFailureCode,
+    PublicInputSummary,
+    PublicJobFailure,
+    PublicJobProgress,
+    PublicJobSnapshot,
+    PublicSourceSummary,
+)
 
 from app.schemas.jobs import (
+    ArtifactManifestPublic,
     IdempotencyKey,
     JobAcceptedPublic,
+    JobResultPublic,
+    JobSourcePublic,
+    JobStatusPublic,
     JobSubmissionRequest,
     JobUploadMetadata,
     PromptJobInput,
@@ -279,4 +298,226 @@ def test_accepted_response_is_frozen_bounded_and_allowlisted() -> None:
             status="accepted",
             revision=cast(int, -1),
             status_url="/api/v1/jobs/job-123",
+        )
+
+
+def _public_snapshot(
+    *,
+    status: JobStatus = JobStatus.completed,
+    last_accepted_stage: str | None = "cross_validate_artifacts",
+) -> PublicJobSnapshot:
+    """Return one complete package projection for explicit mapper tests."""
+
+    has_failure = status in {JobStatus.failed, JobStatus.cancelled}
+    failure_code = (
+        PublicFailureCode.cancelled
+        if status is JobStatus.cancelled
+        else PublicFailureCode.generation_failed
+    )
+    return PublicJobSnapshot(
+        schema_version="1.0",
+        job_id="job-results-1",
+        revision=14,
+        status=status,
+        created_at=datetime(2026, 7, 20, 8, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+        last_accepted_stage=last_accepted_stage,
+        progress=PublicJobProgress(
+            completed_units=9,
+            total_units=9,
+        ),
+        input=PublicInputSummary(
+            input_type="pdf",
+            display_name="course.pdf",
+            size_bytes=2_048,
+            extraction_warnings=("One page used OCR.",),
+            extraction_warnings_truncated=False,
+        ),
+        failure=(
+            PublicJobFailure(
+                code=failure_code,
+                message=(
+                    "Course generation was cancelled."
+                    if status is JobStatus.cancelled
+                    else "Course generation could not be completed."
+                ),
+            )
+            if has_failure
+            else None
+        ),
+        course_title="Python Foundations",
+        resolved_audience="First-year students",
+        resolved_level="beginner",
+        resolved_language="en",
+        objective_count=3,
+        module_count=2,
+        sources=(
+            PublicSourceSummary(
+                title="Python documentation",
+                canonical_url="https://docs.python.org/3/",
+                publisher="Python Software Foundation",
+                retrieved_at=datetime(2026, 7, 20, 7, 0, tzinfo=UTC),
+            ),
+        ),
+        sources_truncated=False,
+        conflicts=("One source uses older terminology.",),
+        conflicts_truncated=False,
+        artifacts=PublicArtifactAvailability(available=True, count=16),
+    )
+
+
+def test_status_response_maps_only_reviewed_package_projection_fields() -> None:
+    """The shell nests useful public leaves without serializing private state."""
+
+    response = JobStatusPublic.from_package(_public_snapshot())
+    serialized_response = response.model_dump(mode="json")
+
+    assert set(serialized_response) == {
+        "schema_version",
+        "job_id",
+        "status",
+        "revision",
+        "created_at",
+        "updated_at",
+        "progress",
+        "input",
+        "failure",
+        "result",
+        "artifacts",
+    }
+    assert response.progress.stage == "ready"
+    assert response.progress.message == "Your course materials are ready."
+    assert response.input.size_bytes == 2_048
+    assert response.input.warnings_truncated is False
+    assert response.failure is None
+    assert response.result is not None
+    assert response.result.title == "Python Foundations"
+    assert response.result.audience == "First-year students"
+    assert response.result.objective_count == 3
+    assert response.result.sources[0].url == "https://docs.python.org/3/"
+    assert response.artifacts.manifest_url == ("/api/v1/jobs/job-results-1/artifacts")
+    assert "last_accepted_stage" not in serialized_response
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_stage", "expected_message"),
+    [
+        (JobStatus.accepted, "queued", "Your course is queued securely."),
+        (JobStatus.researching, "researching", "Researching the course source."),
+        (JobStatus.drafting, "drafting", "Writing the course modules."),
+        (JobStatus.validating, "validating", "Checking all course materials."),
+        (JobStatus.rendering, "rendering", "Creating publication formats."),
+        (JobStatus.delivering, "delivering", "Securing the finished files."),
+        (JobStatus.completed, "ready", "Your course materials are ready."),
+        (JobStatus.failed, "failed", "Course generation stopped safely."),
+        (JobStatus.cancelled, "cancelled", "Course generation was cancelled."),
+    ],
+)
+def test_status_mapper_exhaustively_uses_fixed_safe_progress_copy(
+    status: JobStatus,
+    expected_stage: str,
+    expected_message: str,
+) -> None:
+    """Every package status maps to reviewed copy rather than private text."""
+
+    response = JobStatusPublic.from_package(_public_snapshot(status=status))
+
+    assert response.status == status.value
+    assert response.progress.stage == expected_stage
+    assert response.progress.message == expected_message
+
+
+def test_status_and_result_contracts_reject_unknown_or_unbounded_fields() -> None:
+    """Polling contracts stay strict even when called outside FastAPI."""
+
+    response_payload = JobStatusPublic.from_package(_public_snapshot()).model_dump()
+    with pytest.raises(ValidationError, match="extra"):
+        JobStatusPublic.model_validate(
+            {**response_payload, "checkpoint": {"private": True}}
+        )
+
+    source = JobSourcePublic(
+        title="Reviewed source",
+        url=None,
+        publisher="Publisher",
+        retrieved_at=datetime(2026, 7, 20, 7, 0, tzinfo=UTC),
+    )
+    with pytest.raises(ValidationError):
+        JobResultPublic(
+            title="Course",
+            audience="Learners",
+            level="beginner",
+            language="en",
+            objective_count=1,
+            module_count=1,
+            sources=cast(tuple[JobSourcePublic, ...], (source,) * 13),
+            sources_truncated=True,
+            conflicts=(),
+            conflicts_truncated=False,
+        )
+    with pytest.raises(ValidationError, match="extra"):
+        JobSourcePublic.model_validate(
+            {**source.model_dump(), "evidence_excerpt": "private"}
+        )
+
+
+def _artifact_manifest() -> ArtifactManifest:
+    """Return one unordered-by-deliverable but ID-sorted package manifest."""
+
+    artifact_rows = (
+        ("answer_key_html", ArtifactDeliverable.answer_key, ArtifactFormat.html),
+        ("assessment_pdf", ArtifactDeliverable.assessment, ArtifactFormat.pdf),
+        ("course_docx", ArtifactDeliverable.course, ArtifactFormat.docx),
+        ("course_pdf", ArtifactDeliverable.course, ArtifactFormat.pdf),
+        (
+            "review_pack_markdown",
+            ArtifactDeliverable.review_pack,
+            ArtifactFormat.markdown,
+        ),
+    )
+    return ArtifactManifest(
+        schema_version="1.0",
+        job_id="job-results-1",
+        created_at=datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+        artifacts=tuple(
+            ArtifactMetadata(
+                artifact_id=artifact_id,
+                deliverable=deliverable,
+                format=artifact_format,
+                safe_file_name=f"{artifact_id}.{artifact_format.value}",
+                media_type="application/octet-stream",
+                size_bytes=1_024,
+                content_hash="sha256:" + ("a" * 64),
+            )
+            for artifact_id, deliverable, artifact_format in artifact_rows
+        ),
+    )
+
+
+def test_manifest_mapper_groups_stable_path_free_download_metadata() -> None:
+    """The shell groups package metadata without bodies or private paths."""
+
+    response = ArtifactManifestPublic.from_package(_artifact_manifest())
+
+    assert [group.deliverable for group in response.deliverables] == [
+        "course",
+        "review_pack",
+        "assessment",
+        "answer_key",
+    ]
+    assert [
+        artifact.artifact_id for artifact in response.deliverables[0].artifacts
+    ] == [
+        "course_docx",
+        "course_pdf",
+    ]
+    artifact = response.deliverables[0].artifacts[0]
+    assert artifact.file_name == "course_docx.docx"
+    assert artifact.download_url == ("/api/v1/jobs/job-results-1/artifacts/course_docx")
+    serialized_response = response.model_dump_json()
+    assert "path" not in serialized_response
+    assert "content" not in artifact.model_dump()
+    with pytest.raises(ValidationError, match="extra"):
+        type(artifact).model_validate(
+            {**artifact.model_dump(), "filesystem_path": "/private/result"}
         )

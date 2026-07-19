@@ -7,8 +7,9 @@ education-domain behavior and exposes one framework-independent application
 facade; the application shell owns transport and identity. The shell composes
 one facade, serial worker, readiness cache, and system-authentication
 coordinator for its complete lifespan. Phase 03 now exposes authenticated,
-durable learner submission routes; owner-scoped reads, artifact delivery,
-account purge integration, and the learner UI remain later-session work.
+durable learner submission plus owner-scoped status, result, manifest, and
+artifact delivery routes. Account purge integration and the learner UI remain
+later-session work.
 
 ```text
 React SPA
@@ -18,7 +19,7 @@ React SPA
 FastAPI shell
     |-- PostgreSQL: users and temporary donor items
     |-- private state volume: engine SQLite, artifacts, Codex home
-    |-- authenticated course submission and readiness APIs
+    |-- authenticated course submission, result, artifact, and readiness APIs
     |-- superuser setup API
     `-- lifespan-owned course-system services
             |-- public txt2crs application facade
@@ -87,6 +88,31 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
    resources.
 4. The exact accepted request and checkpoints drive restart recovery; current
    defaults and refetched source content do not reinterpret accepted work.
+5. Owner-scoped status reads expose a finite public projection with a durable
+   revision. The package performs ownership lookup and public-state coherence
+   checks; the shell adds fixed progress copy and transport links.
+6. Manifest and byte reads reauthorize through the package separately.
+   Metadata is path-free, and the byte context verifies stored size and hash
+   before the shell sends headers.
+7. The ASGI response owns an already-entered artifact context and closes it
+   exactly once after success, disconnect, send/iterator error, or response
+   construction failure.
+
+### Durable Recovery And Artifact Replay
+
+1. Submission commits the exact request, execution profile, admission
+   reservation, and accepted row before the shell returns `202`.
+2. The single serial worker discovers durable accepted work at startup in
+   addition to processing in-memory wake events.
+3. Each accepted generation stage atomically persists a package checkpoint
+   and revision. A replacement builds fresh runtime resources and consumes
+   only the provider turns that follow that checkpoint.
+4. The final cross-validated bundle is durable before rendering. Rendering
+   and delivery are deterministic local operations, so replacements at those
+   boundaries do not repeat model or research work.
+5. Artifact publication is verified on every manifest and byte read. A
+   topology, metadata, size, or hash mismatch fails closed instead of serving
+   partial or unverified output.
 
 ### Authentication
 
@@ -111,7 +137,9 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
 
 Backend failures use RFC 9457 Problem Details with stable application error
 codes and trace IDs. Shell errors use `AppException` and
-`app.core.constants.ErrorCode`.
+`app.core.constants.ErrorCode`. Missing and foreign job/artifact reads share
+the same `JOB_7001` response; projection and artifact-integrity failures map
+to the safe `SYSTEM_6002` response.
 
 ## Observability and Security
 

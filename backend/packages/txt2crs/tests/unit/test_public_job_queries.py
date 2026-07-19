@@ -183,17 +183,27 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
     serialized_snapshot = snapshot.model_dump_json()
 
     assert snapshot.job_id == "job-public-query"
+    assert snapshot.revision == 7
     assert snapshot.status is JobStatus.validating
     assert snapshot.last_accepted_stage == "cross_validate_artifacts"
     assert snapshot.progress.completed_units == 9
     assert snapshot.progress.total_units == 9
     assert snapshot.input.input_type == "pdf"
     assert snapshot.input.display_name == "course-source.pdf"
+    assert snapshot.input.size_bytes == len(b"bounded-private-input")
+    assert snapshot.input.extraction_warnings_truncated is False
     assert snapshot.course_title == "Python Basics"
+    assert snapshot.resolved_audience == "First-year computer-science students"
+    assert snapshot.resolved_level == "beginner"
+    assert snapshot.resolved_language == "en"
+    assert snapshot.objective_count == 1
+    assert snapshot.module_count == 1
     assert snapshot.sources[0].canonical_url == "https://docs.python.org/3/tutorial/"
     assert snapshot.sources[0].title == "The Python Tutorial [REDACTED]"
+    assert snapshot.sources_truncated is False
     assert snapshot.conflicts[0] == "Conflicting duration guidance"
     assert snapshot.conflicts[1] == "Private diagnostic at [PRIVATE_PATH]"
+    assert snapshot.conflicts_truncated is False
     assert snapshot.artifacts.available is False
     assert snapshot.artifacts.count == 0
 
@@ -214,6 +224,7 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
     assert set(snapshot.model_dump(mode="json")) == {
         "schema_version",
         "job_id",
+        "revision",
         "status",
         "created_at",
         "updated_at",
@@ -222,8 +233,15 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
         "input",
         "failure",
         "course_title",
+        "resolved_audience",
+        "resolved_level",
+        "resolved_language",
+        "objective_count",
+        "module_count",
         "sources",
+        "sources_truncated",
         "conflicts",
+        "conflicts_truncated",
         "artifacts",
     }
 
@@ -239,10 +257,11 @@ def test_public_snapshot_bounds_messages_lists_and_progress() -> None:
 
     assert len(snapshot.input.extraction_warnings) == 2
     assert all(len(warning) <= 500 for warning in snapshot.input.extraction_warnings)
+    assert snapshot.progress.total_units is not None
     assert 0 <= snapshot.progress.completed_units <= snapshot.progress.total_units
     assert snapshot.progress.total_units <= 108
     assert all(len(conflict) <= 500 for conflict in snapshot.conflicts)
-    assert len(snapshot.sources) <= 100
+    assert len(snapshot.sources) <= 12
 
 
 def test_public_snapshot_truncates_lists_and_omits_credential_urls() -> None:
@@ -266,12 +285,45 @@ def test_public_snapshot_truncates_lists_and_omits_credential_urls() -> None:
     assert len(snapshot.input.extraction_warnings) == 20
     assert snapshot.input.extraction_warnings[0] == "Extraction warning 0"
     assert snapshot.input.extraction_warnings[-1] == "Extraction warning 19"
+    assert snapshot.input.extraction_warnings_truncated is True
     assert len(snapshot.conflicts) == 20
     assert snapshot.conflicts[0] == "Unresolved conflict 0"
     assert snapshot.conflicts[-1] == "Unresolved conflict 19"
+    assert snapshot.conflicts_truncated is True
     assert snapshot.sources[0].canonical_url is None
     assert "private-user" not in snapshot.model_dump_json()
     assert "private-password" not in snapshot.model_dump_json()
+
+
+def test_public_snapshot_caps_sources_and_reports_omitted_valid_items() -> None:
+    """The polling projection cannot grow with a large valid evidence set."""
+
+    checkpoint_data = valid_pipeline_checkpoint().model_dump(mode="json")
+    source_records: list[dict[str, object]] = []
+    for source_index in range(13):
+        source_record = valid_source_data()
+        source_record.update(
+            {
+                "source_id": f"src-public-{source_index:02d}",
+                "canonical_url": f"https://example.test/source/{source_index}",
+                "title": f"Public source {source_index}",
+            }
+        )
+        source_records.append(source_record)
+    checkpoint_data["evidence_set"]["sources"] = source_records
+    checkpoint_data["evidence_set"]["excerpts"][0]["source_id"] = "src-public-00"
+    checkpoint = PipelineCheckpoint.model_validate(checkpoint_data)
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=checkpoint),
+        artifact_manifest=None,
+    )
+
+    assert len(snapshot.sources) == 12
+    assert snapshot.sources[0].title == "Public source 0"
+    assert snapshot.sources[-1].title == "Public source 11"
+    assert snapshot.sources_truncated is True
+    assert "Public source 12" not in snapshot.model_dump_json()
 
 
 def test_public_snapshot_omits_secret_shaped_url_paths() -> None:
@@ -306,12 +358,62 @@ def test_accepted_snapshot_uses_fixed_display_copy_without_raw_input() -> None:
     assert snapshot.status is JobStatus.accepted
     assert snapshot.last_accepted_stage is None
     assert snapshot.progress.completed_units == 0
+    assert snapshot.progress.total_units is None
     assert snapshot.input.display_name == "course-source.pdf"
+    assert snapshot.input.size_bytes == len(b"%PDF-private-raw-bytes")
     assert snapshot.input.extraction_warnings == ()
+    assert snapshot.input.extraction_warnings_truncated is False
     assert snapshot.course_title is None
+    assert snapshot.resolved_audience is None
+    assert snapshot.resolved_level is None
+    assert snapshot.resolved_language is None
+    assert snapshot.objective_count is None
+    assert snapshot.module_count is None
     assert snapshot.sources == ()
+    assert snapshot.sources_truncated is False
     assert snapshot.conflicts == ()
+    assert snapshot.conflicts_truncated is False
     assert "%PDF-private-raw-bytes" not in snapshot.model_dump_json()
+
+
+def test_text_input_size_counts_utf8_bytes_without_exposing_text() -> None:
+    """Display metadata measures transport bytes, not Unicode code points."""
+
+    private_text = "Course input with \N{GREEK SMALL LETTER PI}."
+    request = valid_generation_request(value=private_text)
+    resume_state = ResumeState(
+        job=_job(
+            status=JobStatus.accepted,
+            request_hash=request.request_hash,
+        ),
+        request=request,
+        checkpoint=None,
+    )
+
+    snapshot = project_public_job_snapshot(
+        resume_state=resume_state,
+        artifact_manifest=None,
+    )
+
+    assert snapshot.input.size_bytes == len(private_text.encode("utf-8"))
+    assert private_text not in snapshot.model_dump_json()
+
+
+def test_completed_snapshot_reports_the_finite_course_plan_total() -> None:
+    """Completion fills every checkpoint unit in the accepted course plan."""
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(
+            job=_job(status=JobStatus.completed),
+            checkpoint=valid_pipeline_checkpoint(),
+        ),
+        artifact_manifest=None,
+    )
+
+    assert snapshot.progress.total_units == 9
+    assert snapshot.progress.completed_units == 9
+    assert snapshot.objective_count == 1
+    assert snapshot.module_count == 1
 
 
 def test_public_snapshot_rejects_job_and_request_identity_mismatch() -> None:
@@ -380,7 +482,7 @@ def test_preparation_only_snapshot_exposes_progress_without_private_state() -> N
 
     assert snapshot.last_accepted_stage == "prepare_input"
     assert snapshot.progress.completed_units == 1
-    assert snapshot.progress.total_units == 12
+    assert snapshot.progress.total_units is None
     assert snapshot.input.input_type == "text"
     assert snapshot.input.display_name == "Pasted text"
     assert snapshot.sources == ()

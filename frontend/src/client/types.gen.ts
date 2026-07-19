@@ -5,6 +5,94 @@ export type ClientOptions = {
 }
 
 /**
+ * ArtifactDeliverable
+ *
+ * Canonical educational products generated for one accepted course.
+ */
+export type ArtifactDeliverable =
+  | "course"
+  | "review_pack"
+  | "assessment"
+  | "answer_key"
+
+/**
+ * ArtifactDeliverableGroupPublic
+ *
+ * One educational deliverable with at most four canonical formats.
+ */
+export type ArtifactDeliverableGroupPublic = {
+  deliverable: ArtifactDeliverable
+  /**
+   * Artifacts
+   */
+  artifacts: Array<ArtifactMetadataPublic>
+}
+
+/**
+ * ArtifactFormat
+ *
+ * Portable output formats emitted by the deterministic renderer.
+ */
+export type ArtifactFormat = "html" | "markdown" | "pdf" | "docx"
+
+/**
+ * ArtifactManifestPublic
+ *
+ * Verified canonical metadata grouped as four educational products.
+ */
+export type ArtifactManifestPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Job Id
+   */
+  job_id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Deliverables
+   */
+  deliverables: Array<ArtifactDeliverableGroupPublic>
+}
+
+/**
+ * ArtifactMetadataPublic
+ *
+ * Path-free metadata and stable download URL for one rendered artifact.
+ */
+export type ArtifactMetadataPublic = {
+  /**
+   * Artifact Id
+   */
+  artifact_id: string
+  format: ArtifactFormat
+  /**
+   * File Name
+   */
+  file_name: string
+  /**
+   * Media Type
+   */
+  media_type: string
+  /**
+   * Size Bytes
+   */
+  size_bytes: number
+  /**
+   * Content Hash
+   */
+  content_hash: string
+  /**
+   * Download Url
+   */
+  download_url: string
+}
+
+/**
  * Body_jobs-submit_job_upload
  */
 export type BodyJobsSubmitJobUpload = {
@@ -245,6 +333,76 @@ export type JobAcceptedPublic = {
 }
 
 /**
+ * JobArtifactAvailabilityPublic
+ *
+ * Link to the verified manifest only after package publication.
+ */
+export type JobArtifactAvailabilityPublic = {
+  /**
+   * Available
+   */
+  available: boolean
+  /**
+   * Count
+   */
+  count: number
+  /**
+   * Manifest Url
+   */
+  manifest_url: string | null
+}
+
+/**
+ * JobFailurePublic
+ *
+ * Reviewed package failure code and fixed safe learner-facing message.
+ */
+export type JobFailurePublic = {
+  code: PublicFailureCode
+  /**
+   * Message
+   */
+  message: string
+}
+
+/**
+ * JobInputPublic
+ *
+ * Bounded input display metadata without learner-provided source content.
+ */
+export type JobInputPublic = {
+  /**
+   * Type
+   */
+  type:
+    | "prompt"
+    | "text"
+    | "url"
+    | "pdf"
+    | "document"
+    | "slides"
+    | "image"
+    | "audio"
+    | "video"
+  /**
+   * Display Name
+   */
+  display_name: string
+  /**
+   * Size Bytes
+   */
+  size_bytes: number
+  /**
+   * Extraction Warnings
+   */
+  extraction_warnings: Array<string>
+  /**
+   * Warnings Truncated
+   */
+  warnings_truncated: boolean
+}
+
+/**
  * JobLearnerAgeGroup
  *
  * Privacy-minimized age context passed to package policy.
@@ -286,6 +444,165 @@ export type JobPreferences = {
    * Language
    */
   language: string
+}
+
+/**
+ * JobProgressPublic
+ *
+ * Monotonic accepted work with fixed browser-safe explanatory copy.
+ */
+export type JobProgressPublic = {
+  stage: JobProgressStage
+  /**
+   * Message
+   */
+  message: string
+  /**
+   * Completed Units
+   */
+  completed_units: number
+  /**
+   * Total Units
+   */
+  total_units?: number | null
+}
+
+/**
+ * JobProgressStage
+ *
+ * Stable browser stages that never reflect a private checkpoint label.
+ */
+export type JobProgressStage =
+  | "queued"
+  | "researching"
+  | "drafting"
+  | "validating"
+  | "rendering"
+  | "delivering"
+  | "ready"
+  | "failed"
+  | "cancelled"
+
+/**
+ * JobResultPublic
+ *
+ * Coherent bounded result summary once an accepted course plan exists.
+ */
+export type JobResultPublic = {
+  /**
+   * Title
+   */
+  title: string
+  /**
+   * Audience
+   */
+  audience: string
+  /**
+   * Level
+   */
+  level: "beginner" | "intermediate" | "advanced" | "mixed"
+  /**
+   * Language
+   */
+  language: string
+  /**
+   * Objective Count
+   */
+  objective_count: number
+  /**
+   * Module Count
+   */
+  module_count: number
+  /**
+   * Sources
+   */
+  sources: Array<JobSourcePublic>
+  /**
+   * Sources Truncated
+   */
+  sources_truncated: boolean
+  /**
+   * Conflicts
+   */
+  conflicts: Array<string>
+  /**
+   * Conflicts Truncated
+   */
+  conflicts_truncated: boolean
+}
+
+/**
+ * JobSourcePublic
+ *
+ * Display-safe bibliographic metadata with no evidence body.
+ */
+export type JobSourcePublic = {
+  /**
+   * Title
+   */
+  title: string
+  /**
+   * Url
+   */
+  url: string | null
+  /**
+   * Publisher
+   */
+  publisher: string
+  /**
+   * Retrieved At
+   */
+  retrieved_at: string
+}
+
+/**
+ * JobStatus
+ *
+ * Explicit job states visible to the authorized owner.
+ */
+export type JobStatus =
+  | "accepted"
+  | "researching"
+  | "drafting"
+  | "validating"
+  | "rendering"
+  | "delivering"
+  | "completed"
+  | "failed"
+  | "cancelled"
+
+/**
+ * JobStatusPublic
+ *
+ * Complete owner-scoped polling response built from one package snapshot.
+ */
+export type JobStatusPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Job Id
+   */
+  job_id: string
+  status: JobStatus
+  /**
+   * Revision
+   */
+  revision: number
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  progress: JobProgressPublic
+  input: JobInputPublic
+  failure: JobFailurePublic | null
+  result: JobResultPublic | null
+  artifacts: JobArtifactAvailabilityPublic
 }
 
 /**
@@ -377,6 +694,20 @@ export type PromptJobInput = {
    */
   value: string
 }
+
+/**
+ * PublicFailureCode
+ *
+ * Reviewed stable failure categories the application may translate.
+ */
+export type PublicFailureCode =
+  | "provider_consent_required"
+  | "age_inappropriate"
+  | "copyright_reproduction"
+  | "high_risk_review_required"
+  | "stage_not_accepted"
+  | "generation_failed"
+  | "cancelled"
 
 /**
  * ReadinessCheckState
@@ -1655,6 +1986,141 @@ export type PostApiV1JobsUploadResponses = {
 
 export type PostApiV1JobsUploadResponse =
   PostApiV1JobsUploadResponses[keyof PostApiV1JobsUploadResponses]
+
+export type GetApiV1JobsByJobIdData = {
+  body?: never
+  path: {
+    /**
+     * Job Id
+     *
+     * Opaque owner-scoped durable course job identifier.
+     */
+    job_id: string
+  }
+  query?: never
+  url: "/api/v1/jobs/{job_id}"
+}
+
+export type GetApiV1JobsByJobIdErrors = {
+  /**
+   * Authentication is required.
+   */
+  401: unknown
+  /**
+   * The owner-scoped course job was not found.
+   */
+  404: unknown
+  /**
+   * A path identifier is invalid.
+   */
+  422: unknown
+  /**
+   * The course result could not be read safely.
+   */
+  500: unknown
+}
+
+export type GetApiV1JobsByJobIdResponses = {
+  /**
+   * Successful Response
+   */
+  200: JobStatusPublic
+}
+
+export type GetApiV1JobsByJobIdResponse =
+  GetApiV1JobsByJobIdResponses[keyof GetApiV1JobsByJobIdResponses]
+
+export type GetApiV1JobsByJobIdArtifactsData = {
+  body?: never
+  path: {
+    /**
+     * Job Id
+     *
+     * Opaque owner-scoped durable course job identifier.
+     */
+    job_id: string
+  }
+  query?: never
+  url: "/api/v1/jobs/{job_id}/artifacts"
+}
+
+export type GetApiV1JobsByJobIdArtifactsErrors = {
+  /**
+   * Authentication is required.
+   */
+  401: unknown
+  /**
+   * The owner-scoped course job was not found.
+   */
+  404: unknown
+  /**
+   * A path identifier is invalid.
+   */
+  422: unknown
+  /**
+   * The course result could not be read safely.
+   */
+  500: unknown
+}
+
+export type GetApiV1JobsByJobIdArtifactsResponses = {
+  /**
+   * Successful Response
+   */
+  200: ArtifactManifestPublic
+}
+
+export type GetApiV1JobsByJobIdArtifactsResponse =
+  GetApiV1JobsByJobIdArtifactsResponses[keyof GetApiV1JobsByJobIdArtifactsResponses]
+
+export type GetApiV1JobsByJobIdArtifactsByArtifactIdData = {
+  body?: never
+  path: {
+    /**
+     * Job Id
+     *
+     * Opaque owner-scoped durable course job identifier.
+     */
+    job_id: string
+    /**
+     * Artifact Id
+     *
+     * Stable canonical artifact identifier.
+     */
+    artifact_id: string
+  }
+  query?: never
+  url: "/api/v1/jobs/{job_id}/artifacts/{artifact_id}"
+}
+
+export type GetApiV1JobsByJobIdArtifactsByArtifactIdErrors = {
+  /**
+   * Authentication is required.
+   */
+  401: unknown
+  /**
+   * The owner-scoped course job was not found.
+   */
+  404: unknown
+  /**
+   * A path identifier is invalid.
+   */
+  422: unknown
+  /**
+   * The course result could not be read safely.
+   */
+  500: unknown
+}
+
+export type GetApiV1JobsByJobIdArtifactsByArtifactIdResponses = {
+  /**
+   * Verified private artifact bytes.
+   */
+  200: string | Blob | File
+}
+
+export type GetApiV1JobsByJobIdArtifactsByArtifactIdResponse =
+  GetApiV1JobsByJobIdArtifactsByArtifactIdResponses[keyof GetApiV1JobsByJobIdArtifactsByArtifactIdResponses]
 
 export type GetApiV1SystemReadinessData = {
   body?: never
