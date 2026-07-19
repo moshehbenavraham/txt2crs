@@ -75,12 +75,6 @@
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase00-session01-baseline-container-and-state",
-      "package": null,
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase01-session01-durable-requests-and-recovery",
       "package": "backend/packages/txt2crs",
       "status": "planned"
@@ -192,6 +186,12 @@
       "session": "phase02-session02-serial-worker-supervisor",
       "package": "backend",
       "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase02-session02-serial-worker-supervisor",
+      "package": "backend",
+      "status": "validated"
     }
   ]
 }
