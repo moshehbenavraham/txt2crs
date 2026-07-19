@@ -3,7 +3,7 @@ import {
   useQueryClient,
   useSuspenseQueries,
 } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { SystemService } from "@/client"
 import { getApiErrorMessage } from "@/lib/api-error"
@@ -34,6 +34,7 @@ export function SystemSetupWorkspace() {
   const authentication = authenticationQuery.data
   const readinessDisplay = getReadinessDisplay(readiness)
   const authenticationDisplay = getAuthenticationDisplay(authentication.state)
+  const previousAuthenticationState = useRef(authentication.state)
 
   const startAuthentication = useMutation({
     mutationFn: () => SystemService.startSystemAuthentication(),
@@ -52,9 +53,23 @@ export function SystemSetupWorkspace() {
   })
 
   useEffect(() => {
-    if (authentication.state === "authenticated") {
+    const authenticationJustCompleted =
+      previousAuthenticationState.current !== "authenticated" &&
+      authentication.state === "authenticated"
+    previousAuthenticationState.current = authentication.state
+
+    if (authentication.state !== "waiting_for_user") {
+      // Copy feedback describes the temporary challenge. Clear it as soon as
+      // the challenge reaches a terminal state so the live region cannot
+      // announce stale instructions beside the new authentication result.
+      setCopyAnnouncement("")
+    }
+
+    if (authenticationJustCompleted) {
       // A completed ceremony may change aggregate readiness. Refresh only the
       // detached readiness endpoint; never infer readiness from auth alone.
+      // Initial authenticated page loads deliberately do not invalidate the
+      // readiness query that just resolved in parallel.
       queryClient.invalidateQueries({
         queryKey: SYSTEM_READINESS_QUERY_KEY,
       })

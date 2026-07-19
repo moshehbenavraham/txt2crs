@@ -3,7 +3,7 @@
 **Session ID**: `phase02-session05-operator-setup-experience`
 **Package**: frontend
 **Started**: 2026-07-19 21:46
-**Last Updated**: 2026-07-19 22:21
+**Last Updated**: 2026-07-19 22:29
 
 ---
 
@@ -123,7 +123,8 @@ surface were implemented.
 ### Focused Tests
 
 - Vitest presentation/query and existing source tests: 33 passed.
-- Focused Playwright setup project: 5 passed, including auth setup.
+- Focused Playwright setup project: 7 passed, including auth setup and two
+  formal-review edge cases.
 - Visual repair regressions: unit 33 passed; focused failed/mobile case 2
   passed including auth setup.
 
@@ -197,8 +198,23 @@ descriptions contradicted unavailable badges. Tests now require a fully
 fitting command and state-neutral definitions; both repairs pass in the dark
 375x812 screenshot.
 
+Formal base-to-head review then resolved three Medium and two Low findings:
+
+1. Initial authenticated mounts no longer issue two StrictMode invalidations
+   after the readiness request that just completed.
+2. Authentication messages override the shared one-line clamp and remain
+   fully readable.
+3. The schema's longest allowed device code wraps at 320px without element or
+   document overflow.
+4. Terminal state clears temporary copy feedback from the live announcement.
+5. Repeated safe input/warning/action values use collision-free React keys.
+
+All five review repairs were observed failing in Playwright before their
+implementations. The repaired focused suite passes 7/7, and
+`code-review.md` records `Result: RESOLVED`.
+
 ---
 
 ## Next Step
 
-Run `creview` against the implemented base-to-head surface.
+Run `validate` against the repaired base-to-head surface.

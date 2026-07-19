@@ -84,7 +84,9 @@ export function AuthenticationPanel({
           ) : (
             <KeyRound aria-hidden="true" />
           )}
-          <AlertTitle>{authentication.message}</AlertTitle>
+          <AlertTitle className="line-clamp-none break-words">
+            {authentication.message}
+          </AlertTitle>
           <AlertDescription>
             {authentication.state === "waiting_for_user"
               ? "The page updates automatically when approval finishes."
@@ -98,7 +100,7 @@ export function AuthenticationPanel({
               <p className="text-caption font-semibold text-muted-foreground">
                 Authentication code
               </p>
-              <p className="font-mono text-2xl font-medium tracking-wider text-foreground sm:text-3xl">
+              <p className="break-all font-mono text-2xl font-medium tracking-wider text-foreground sm:text-3xl">
                 {authentication.user_code}
               </p>
             </div>

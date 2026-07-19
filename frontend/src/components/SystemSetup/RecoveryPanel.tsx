@@ -41,15 +41,15 @@ export function RecoveryPanel({ readiness }: RecoveryPanelProps) {
               <div className="flex flex-col gap-3">
                 {readiness.warnings.length > 0 ? (
                   <ul className="list-disc pl-4">
-                    {readiness.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
+                    {readiness.warnings.map((warning, warningIndex) => (
+                      <li key={`${warning}-${warningIndex}`}>{warning}</li>
                     ))}
                   </ul>
                 ) : null}
                 {readiness.recovery_actions.length > 0 ? (
                   <ol className="list-decimal pl-4">
-                    {readiness.recovery_actions.map((action) => (
-                      <li key={action}>{action}</li>
+                    {readiness.recovery_actions.map((action, actionIndex) => (
+                      <li key={`${action}-${actionIndex}`}>{action}</li>
                     ))}
                   </ol>
                 ) : null}

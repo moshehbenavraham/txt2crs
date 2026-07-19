@@ -103,8 +103,14 @@ export function ReadinessOverview({ readiness }: ReadinessOverviewProps) {
             Enabled source inputs
           </h2>
           <div className="flex flex-wrap gap-2">
-            {readiness.enabled_input_modes.map((inputMode) => (
-              <Badge key={inputMode} variant="outline">
+            {readiness.enabled_input_modes.map((inputMode, inputModeIndex) => (
+              <Badge
+                // The safe API bounds this list but does not promise unique
+                // values. Include position so repeated capabilities cannot
+                // trigger React key warnings in development.
+                key={`${inputMode}-${inputModeIndex}`}
+                variant="outline"
+              >
                 {getInputModeLabel(inputMode)}
               </Badge>
             ))}

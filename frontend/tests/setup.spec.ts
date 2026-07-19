@@ -138,11 +138,13 @@ test("device ceremony starts, copies safe code, polls, and removes terminal chal
   page,
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
+  let readinessReads = 0
   let statusReads = 0
   let ceremonyStarted = false
-  await page.route("**/api/v1/system/readiness", (route) =>
-    route.fulfill({ status: 200, json: readySystem }),
-  )
+  await page.route("**/api/v1/system/readiness", (route) => {
+    readinessReads += 1
+    return route.fulfill({ status: 200, json: readySystem })
+  })
   await page.route("**/api/v1/system/auth/start", (route) => {
     ceremonyStarted = true
     return route.fulfill({ status: 200, json: waiting })
@@ -177,9 +179,84 @@ test("device ceremony starts, copies safe code, polls, and removes terminal chal
   await expect(
     page.getByRole("heading", { name: "ChatGPT connected" }),
   ).toBeVisible({ timeout: 5000 })
+  await expect(page.getByRole("status")).not.toContainText("Code copied")
   await expect(page.getByText("ABCD-1234", { exact: true })).toHaveCount(0)
   await expect(verificationLink).toHaveCount(0)
   expect(statusReads).toBeGreaterThanOrEqual(3)
+  expect(readinessReads).toBeGreaterThanOrEqual(2)
+})
+
+test("an already-authenticated page does not refetch readiness on mount", async ({
+  page,
+}) => {
+  let readinessReads = 0
+  await page.route("**/api/v1/system/readiness", (route) => {
+    readinessReads += 1
+    return route.fulfill({ status: 200, json: readySystem })
+  })
+  await page.route("**/api/v1/system/auth/status", (route) =>
+    route.fulfill({ status: 200, json: authenticated }),
+  )
+
+  await page.goto("/setup")
+  await expect(
+    page.getByRole("heading", { name: "ChatGPT connected" }),
+  ).toBeVisible()
+  // Give effects and query notifications time to settle so a duplicate
+  // invalidation cannot pass by briefly reporting only the first request.
+  await page.waitForTimeout(300)
+
+  expect(readinessReads).toBe(1)
+})
+
+test("bounded long codes and repeated safe values remain responsive without key warnings", async ({
+  page,
+}) => {
+  const repeatedValueReadiness: SystemReadinessPublic = {
+    ...readySystem,
+    enabled_input_modes: ["prompt", "prompt"],
+    warnings: ["Repeatable safe warning.", "Repeatable safe warning."],
+    recovery_actions: [
+      "Repeatable safe recovery action.",
+      "Repeatable safe recovery action.",
+    ],
+  }
+  const longestAllowedCode = "A".repeat(64)
+  const longCodeWaiting: SystemAuthenticationPublic = {
+    ...waiting,
+    user_code: longestAllowedCode,
+  }
+  const duplicateKeyWarnings: string[] = []
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes("same key")) {
+      duplicateKeyWarnings.push(message.text())
+    }
+  })
+  await page.setViewportSize({ width: 320, height: 700 })
+  await mockSystemState(page, {
+    readiness: repeatedValueReadiness,
+    authentication: longCodeWaiting,
+  })
+
+  await page.goto("/setup")
+
+  const authenticationCode = page.getByText(longestAllowedCode, {
+    exact: true,
+  })
+  await expect(authenticationCode).toBeVisible()
+  expect(
+    await authenticationCode.evaluate(
+      (element) => element.scrollWidth - element.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0)
+  expect(duplicateKeyWarnings).toEqual([])
 })
 
 test("unavailable and failed states stay actionable, responsive, dark, and still", async ({
@@ -220,6 +297,16 @@ test("unavailable and failed states stay actionable, responsive, dark, and still
   await expect(
     page.getByRole("button", { name: "Try connection again" }),
   ).toBeVisible()
+  const safeAuthenticationMessage = page.getByText(
+    "System authentication failed. Start a new attempt.",
+    { exact: true },
+  )
+  await expect(safeAuthenticationMessage).toBeVisible()
+  expect(
+    await safeAuthenticationMessage.evaluate(
+      (element) => getComputedStyle(element).webkitLineClamp,
+    ),
+  ).toBe("none")
   await expect(
     page.getByText("uv run --package txt2crs txt2crs-system-auth"),
   ).toBeVisible()
