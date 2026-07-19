@@ -180,6 +180,12 @@ class SystemAuthenticationCoordinator:
                     self._wake_requested.set()
                 else:
                     initial_lease.release()
+        else:
+            with self._lock:
+                self._snapshot = _safe_snapshot(
+                    state=SystemAuthenticationState.failed,
+                    message="System authentication status is temporarily unavailable.",
+                )
 
         monitor_thread = Thread(
             target=self._run,
@@ -217,6 +223,10 @@ class SystemAuthenticationCoordinator:
             if self._is_closed:
                 raise SystemAuthenticationClosedError(
                     "System authentication coordination is closed."
+                )
+            if not self._is_started:
+                raise SystemAuthenticationUnavailableError(
+                    "System authentication has not started."
                 )
             application = self._application
             if application is None:

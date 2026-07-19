@@ -98,6 +98,36 @@ def test_startup_refreshes_once_and_snapshot_never_calls_package() -> None:
     coordinator.close()
 
 
+def test_start_before_lifecycle_is_rejected_without_acquiring_runtime() -> None:
+    """A partial-startup service cannot strand a lease without its monitor."""
+
+    application = RecordingAuthenticationApplication()
+    ownership = RuntimeOwnershipCoordinator()
+    coordinator = _coordinator(application, ownership)
+
+    with pytest.raises(SystemAuthenticationUnavailableError):
+        coordinator.start_authentication()
+
+    assert application.start_calls == 0
+    assert ownership.snapshot().is_available is True
+    coordinator.close()
+
+
+def test_busy_initial_refresh_publishes_safe_failed_state() -> None:
+    """Contention cannot masquerade as a confirmed signed-out account."""
+
+    application = RecordingAuthenticationApplication()
+    ownership = RuntimeOwnershipCoordinator()
+    coordinator = _coordinator(application, ownership)
+
+    with ownership.acquire(RuntimeOwner.execution):
+        coordinator.start()
+        assert coordinator.snapshot().state is SystemAuthenticationState.failed
+        assert application.status_refreshes == []
+
+    coordinator.close()
+
+
 def test_startup_retains_lease_for_an_existing_waiting_attempt() -> None:
     """A coordinator replacement cannot overlap a package ceremony in memory."""
 

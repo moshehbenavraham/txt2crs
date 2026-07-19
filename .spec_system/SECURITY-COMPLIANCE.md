@@ -1,7 +1,7 @@
 # Security & Compliance
 
 > Cumulative security posture and GDPR compliance record. Updated between phases via carryforward.
-> **Line budget**: 1000 max | **Last updated**: Phase 02 Session 03 (2026-07-19)
+> **Line budget**: 1000 max | **Last updated**: Phase 02 Session 04 (2026-07-19)
 
 ---
 
@@ -17,11 +17,13 @@
 | Phases Audited | 3 |
 | Last Clean Phase | -- |
 
-All five Phase 01 engine sessions and the first three Phase 02 composition
+All five Phase 01 engine sessions and the first four Phase 02 composition
 sessions passed their scoped security and GDPR reviews with no unresolved
 session finding. Session 03 removed raw request/provider/error content from
-normal shell logs. The cumulative application remains at risk only because
-remote CodeQL validation cannot run while GitHub Actions billing is disabled.
+normal shell logs, and Session 04 protects cached readiness/device
+authentication with active-user/superuser authorization and one finite shared
+runtime owner. The cumulative application remains at risk only because remote
+CodeQL validation cannot run while GitHub Actions billing is disabled.
 
 ---
 
@@ -122,7 +124,7 @@ Recently closed items. Compressed after 2 phases.
 
 | Phase | Sessions | Package Scope | Security | GDPR | Findings Opened | Findings Closed |
 |-------|----------|---------------|----------|------|-----------------|-----------------|
-| P02 | 3/5 | `backend` shell plus public engine boundary | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 1 |
+| P02 | 4/5 | `backend` shell plus public engine boundary | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 1 |
 | P01 | 5 | `backend/packages/txt2crs`: 5 | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 1 |
 | P00 | 1 | Cross-cutting: backend, engine, frontend | Session PASS; cumulative AT RISK | Session N/A; cumulative FAIL | 4 | 2 |
 

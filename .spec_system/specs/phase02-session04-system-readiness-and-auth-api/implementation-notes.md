@@ -158,7 +158,7 @@ container was changed. Shell tests used the project database at
 
 ---
 
-## Self-Review Repair
+## Self-Review Repairs
 
 Initial implementation started readiness before the auth cache and closed auth
 before readiness. Review found that releasing an active authentication lease
@@ -166,9 +166,15 @@ could let the still-live readiness thread start a provider probe before facade
 cleanup cancelled the package ceremony. Startup/teardown ordering was reversed
 at the cache layer, and a lifespan regression now protects the safe sequence.
 
+Formal review also found that a direct authentication call before lifecycle
+startup could retain a lease without a monitor, while initial runtime
+contention left the default cache looking definitively signed out. The service
+now rejects pre-start calls before gate/package access and publishes an
+explicit safe failed snapshot when its initial refresh cannot acquire the
+runtime. Focused regressions protect both paths.
+
 ---
 
 ## Next Step
 
-Run `creview` against base commit
-`470b2609dc9701c9eae28a5db8cfe30c1f2faef8`.
+Run `validate` against the repaired base-to-head surface.
