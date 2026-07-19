@@ -19,3 +19,6 @@ limiter = Limiter(
 # Rate limit strings for different endpoint types
 AUTH_RATE_LIMIT = "5/minute"  # Login, password recovery
 SIGNUP_RATE_LIMIT = "10/minute"  # User registration
+SYSTEM_READINESS_RATE_LIMIT = "60/minute"
+SYSTEM_AUTH_START_RATE_LIMIT = "5/minute"
+SYSTEM_AUTH_STATUS_RATE_LIMIT = "60/minute"

@@ -53,6 +53,7 @@ The application OpenAPI document is authoritative:
 | Authentication | `/api/v1/login/access-token`, `/api/v1/login/test-token`, `/api/v1/password-recovery`, `/api/v1/reset-password/` |
 | Users | `/api/v1/users/`, `/api/v1/users/me`, `/api/v1/users/me/password`, `/api/v1/users/signup`, `/api/v1/users/{user_id}` |
 | Temporary donor domain | `/api/v1/items/`, `/api/v1/items/{id}` |
+| System | `/api/v1/system/readiness`, `/api/v1/system/auth/start`, `/api/v1/system/auth/status` |
 | Operations | `/api/v1/utils/health/`, `/api/v1/utils/health-check/`, `/api/v1/utils/test-email/` |
 
 Course-generation routes do not exist yet. The `items` domain remains until
@@ -85,11 +86,11 @@ topology remain.
 
 ## Health
 
-- Readiness: `GET /api/v1/utils/health/` checks PostgreSQL and returns version.
+- Database health: `GET /api/v1/utils/health/` checks PostgreSQL and returns version.
 - Liveness: `GET /api/v1/utils/health-check/` proves the process responds.
-
-Phase 02 will add engine/provider/storage/worker capability readiness before
-new generation work can be admitted.
+- Course readiness: authenticated `GET /api/v1/system/readiness` returns only
+  the latest cached provider/research/storage/worker/input/admission state.
+  Browser reads never run the underlying probes.
 
 ## Dedicated-System Authentication
 
@@ -97,8 +98,15 @@ The engine provides `DedicatedSystemAuthenticator` and the temporary
 `txt2crs-system-auth` command. Both use the app-server binary bundled by the
 pinned Python dependency; no separate Codex installation is required.
 
-The temporary command is replaced when the FastAPI setup routes and operator
-screen call the same package service.
+Superusers can call `POST /api/v1/system/auth/start` and poll
+`GET /api/v1/system/auth/status`. The browser receives only the validated
+OpenAI verification URL, short user code, finite state, and safe recovery
+message. The temporary CLI remains the recovery path:
+
+```bash
+cd backend/packages/txt2crs
+uv run --package txt2crs txt2crs-system-auth
+```
 
 ## Docker and Database
 

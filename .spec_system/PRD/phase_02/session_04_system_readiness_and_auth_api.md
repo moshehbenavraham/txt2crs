@@ -39,7 +39,7 @@ public engine contracts.
 ## Prerequisites
 
 - [x] Session 03 provides cached readiness and safe error translation.
-- [ ] Session 01 exposes the package-owned authenticator lifecycle.
+- [x] Session 01 exposes the package-owned authenticator lifecycle.
 
 ---
 
@@ -57,8 +57,9 @@ public engine contracts.
 
 - [ ] Authenticated users can read only the coarse readiness projection.
 - [ ] Non-superusers cannot start or inspect the device ceremony.
-- [ ] Device state exposes only bounded user-code, verification guidance,
-  expiry, and safe status fields.
+- [ ] Device state exposes only bounded user-code, the validated OpenAI
+  verification URL, and safe status/recovery fields. The pinned SDK exposes no
+  expiry, so the API does not fabricate one.
 - [ ] Concurrent job ownership returns cached state or a safe busy response
   without starting another runtime.
 - [ ] Failures use `AppException`, registered `ErrorCode` values, RFC 9457,

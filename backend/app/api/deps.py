@@ -44,8 +44,10 @@ from app.core import security
 from app.core.config import settings
 from app.core.constants import ErrorCode, ErrorMessages
 from app.core.db import engine
-from app.core.exceptions import AuthenticationError, AuthorizationError
+from app.core.exceptions import AppException, AuthenticationError, AuthorizationError
 from app.models import TokenPayload, User
+from app.services.txt2crs_authentication import SystemAuthenticationCoordinator
+from app.services.txt2crs_readiness import CachedReadinessCoordinator
 
 # OAuth2 scheme for extracting Bearer tokens from Authorization header
 # Points to the login endpoint for automatic documentation
@@ -214,3 +216,39 @@ def validate_csrf_origin(request: Request) -> None:
 
 
 CsrfOriginDep = Annotated[None, Depends(validate_csrf_origin)]
+
+
+def get_txt2crs_readiness(request: Request) -> CachedReadinessCoordinator:
+    """Return the lifespan cache or fail closed before route work begins."""
+
+    readiness = getattr(request.app.state, "txt2crs_readiness", None)
+    if not isinstance(readiness, CachedReadinessCoordinator):
+        raise AppException(
+            code=ErrorCode.SYSTEM_NOT_READY,
+            detail="The course system is not ready.",
+        )
+    return readiness
+
+
+def get_txt2crs_authentication(
+    request: Request,
+) -> SystemAuthenticationCoordinator:
+    """Return the lifespan authentication cache without touching providers."""
+
+    authentication = getattr(request.app.state, "txt2crs_authentication", None)
+    if not isinstance(authentication, SystemAuthenticationCoordinator):
+        raise AppException(
+            code=ErrorCode.SYSTEM_NOT_READY,
+            detail="System authentication is unavailable.",
+        )
+    return authentication
+
+
+Txt2CrsReadinessDep = Annotated[
+    CachedReadinessCoordinator,
+    Depends(get_txt2crs_readiness),
+]
+Txt2CrsAuthenticationDep = Annotated[
+    SystemAuthenticationCoordinator,
+    Depends(get_txt2crs_authentication),
+]

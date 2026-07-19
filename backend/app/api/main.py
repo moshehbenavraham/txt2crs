@@ -4,6 +4,7 @@ from app.api.routes import (
     items,
     login,
     private,
+    system,
     users,
     utils,
 )
@@ -14,6 +15,7 @@ api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(items.router)
+api_router.include_router(system.router)
 
 
 if settings.private_dev_routes_enabled:

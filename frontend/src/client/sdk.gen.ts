@@ -25,6 +25,10 @@ import type {
   GetApiV1ItemsData,
   GetApiV1ItemsErrors,
   GetApiV1ItemsResponses,
+  GetApiV1SystemAuthStatusData,
+  GetApiV1SystemAuthStatusResponses,
+  GetApiV1SystemReadinessData,
+  GetApiV1SystemReadinessResponses,
   GetApiV1UsersByUserIdData,
   GetApiV1UsersByUserIdErrors,
   GetApiV1UsersByUserIdResponses,
@@ -65,6 +69,8 @@ import type {
   PostApiV1ResetPasswordData,
   PostApiV1ResetPasswordErrors,
   PostApiV1ResetPasswordResponses,
+  PostApiV1SystemAuthStartData,
+  PostApiV1SystemAuthStartResponses,
   PostApiV1UsersData,
   PostApiV1UsersErrors,
   PostApiV1UsersResponses,
@@ -898,6 +904,88 @@ export class ItemsService {
         "Content-Type": "application/json",
         ...options.headers,
       },
+    })
+  }
+}
+
+export class SystemService {
+  /**
+   * Read cached course-system readiness
+   *
+   * Returns the latest coarse cached system projection. This endpoint never starts Codex, MCP, provider, database, or artifact probe work.
+   */
+  public static readSystemReadiness<ThrowOnError extends boolean = true>(
+    options?: Options<GetApiV1SystemReadinessData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1SystemReadinessResponses,
+    unknown,
+    ThrowOnError,
+    "data"
+  > {
+    return (options?.client ?? client).get<
+      GetApiV1SystemReadinessResponses,
+      unknown,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/system/readiness",
+      ...options,
+    })
+  }
+
+  /**
+   * Start dedicated ChatGPT device authentication
+   *
+   * Superuser-only. Returns only the validated OpenAI verification URL, short user code, safe state, and recovery message.
+   */
+  public static startSystemAuthentication<ThrowOnError extends boolean = true>(
+    options?: Options<PostApiV1SystemAuthStartData, ThrowOnError>,
+  ): RequestResult<
+    PostApiV1SystemAuthStartResponses,
+    unknown,
+    ThrowOnError,
+    "data"
+  > {
+    return (options?.client ?? client).post<
+      PostApiV1SystemAuthStartResponses,
+      unknown,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/system/auth/start",
+      ...options,
+    })
+  }
+
+  /**
+   * Read cached dedicated ChatGPT authentication status
+   *
+   * Superuser-only. Reads a shell cache and never refreshes credentials or starts a second provider runtime.
+   */
+  public static readSystemAuthenticationStatus<
+    ThrowOnError extends boolean = true,
+  >(
+    options?: Options<GetApiV1SystemAuthStatusData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1SystemAuthStatusResponses,
+    unknown,
+    ThrowOnError,
+    "data"
+  > {
+    return (options?.client ?? client).get<
+      GetApiV1SystemAuthStatusResponses,
+      unknown,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/system/auth/status",
+      ...options,
     })
   }
 }

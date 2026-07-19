@@ -1,6 +1,10 @@
 """Tests-first mapping from public engine failures to safe shell errors."""
 
-from txt2crs.application import ApplicationClosedError, OwnerPurgeError
+from txt2crs.application import (
+    ApplicationClosedError,
+    OwnerPurgeError,
+    SystemAuthenticationError,
+)
 from txt2crs.jobs import (
     AdmissionQuotaExceededError,
     IdempotencyConflictError,
@@ -34,6 +38,10 @@ def test_known_package_errors_map_to_stable_shell_codes() -> None:
         (
             OwnerPurgeError("private filesystem path"),
             ErrorCode.ENGINE_OPERATION_FAILED,
+        ),
+        (
+            SystemAuthenticationError("Bearer private provider response"),
+            ErrorCode.SYSTEM_AUTH_FAILED,
         ),
     )
 

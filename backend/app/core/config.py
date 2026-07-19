@@ -356,6 +356,20 @@ class Settings(BaseSettings):
     )
     """Maximum finite join for the readiness maintenance thread."""
 
+    TXT2CRS_AUTH_MONITOR_POLL_SECONDS: float = Field(
+        default=0.5,
+        gt=0,
+        le=10,
+    )
+    """Finite interval for reading an active package ceremony's memory state."""
+
+    TXT2CRS_AUTH_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
+        default=10,
+        gt=0,
+        le=60,
+    )
+    """Maximum finite join for the shell authentication monitor."""
+
     TXT2CRS_MAX_INPUT_BYTES: int = Field(
         default=20_971_520,
         gt=0,

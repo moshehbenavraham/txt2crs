@@ -7,6 +7,11 @@ at the documented package boundary.
 """
 
 from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
+from app.services.txt2crs_authentication import (
+    SystemAuthenticationBusyError,
+    SystemAuthenticationCoordinator,
+    SystemAuthenticationFailureCode,
+)
 from app.services.txt2crs_readiness import (
     CachedReadinessCoordinator,
     ReadinessCheckState,
@@ -34,6 +39,9 @@ __all__ = [
     "RuntimeOwnershipCoordinator",
     "RuntimeOwnershipSnapshot",
     "SerialTxt2CrsWorker",
+    "SystemAuthenticationBusyError",
+    "SystemAuthenticationCoordinator",
+    "SystemAuthenticationFailureCode",
     "Txt2CrsApplicationLifecycle",
     "WorkerFailureCode",
     "WorkerSnapshot",

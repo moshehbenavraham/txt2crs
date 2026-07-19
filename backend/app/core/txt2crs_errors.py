@@ -5,6 +5,7 @@ from txt2crs.application import (
     ApplicationCloseError,
     ExecutorAlreadyUsedError,
     OwnerPurgeError,
+    SystemAuthenticationError,
 )
 from txt2crs.jobs import (
     AdmissionQuotaExceededError,
@@ -32,6 +33,11 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
         translated = AppException(
             code=ErrorCode.SYSTEM_NOT_READY,
             detail="The course system is not ready.",
+        )
+    elif isinstance(error, SystemAuthenticationError):
+        translated = AppException(
+            code=ErrorCode.SYSTEM_AUTH_FAILED,
+            detail="System authentication could not be completed.",
         )
     elif isinstance(error, AdmissionQuotaExceededError):
         translated = AppException(

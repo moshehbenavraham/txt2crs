@@ -108,6 +108,7 @@ class ErrorCode(StrEnum):
     # System readiness and engine boundary errors (6xxx)
     SYSTEM_NOT_READY = "SYSTEM_6001"
     ENGINE_OPERATION_FAILED = "SYSTEM_6002"
+    SYSTEM_AUTH_FAILED = "SYSTEM_6003"
 
     # Durable course-job errors (7xxx)
     JOB_NOT_FOUND = "JOB_7001"
@@ -266,6 +267,7 @@ ERROR_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.RATE_LIMIT_EXCEEDED: HTTPStatusCode.TOO_MANY_REQUESTS,
     ErrorCode.SYSTEM_NOT_READY: HTTPStatusCode.SERVICE_UNAVAILABLE,
     ErrorCode.ENGINE_OPERATION_FAILED: HTTPStatusCode.INTERNAL_SERVER_ERROR,
+    ErrorCode.SYSTEM_AUTH_FAILED: HTTPStatusCode.BAD_GATEWAY,
     ErrorCode.JOB_NOT_FOUND: HTTPStatusCode.NOT_FOUND,
     ErrorCode.JOB_ADMISSION_REJECTED: HTTPStatusCode.TOO_MANY_REQUESTS,
     ErrorCode.JOB_IDEMPOTENCY_CONFLICT: HTTPStatusCode.CONFLICT,

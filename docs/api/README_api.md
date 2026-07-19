@@ -1,8 +1,9 @@
 # txt2crs API
 
 The current FastAPI shell exposes authentication, user administration,
-temporary item CRUD, email testing, and health. Course-generation and jobs
-routes are not implemented yet.
+cached course-system readiness, privileged device authentication, temporary
+item CRUD, email testing, and health. Course-generation and jobs routes are
+not implemented yet.
 
 ## OpenAPI
 
@@ -64,6 +65,27 @@ its Phase 03 replacement.
 | GET | `/api/v1/utils/health/` | Readiness with PostgreSQL status and version |
 | GET | `/api/v1/utils/health-check/` | Process liveness |
 | POST | `/api/v1/utils/test-email/` | Superuser email-delivery test |
+
+### Course System
+
+| Method | Path | Authorization | Purpose |
+|--------|------|---------------|---------|
+| GET | `/api/v1/system/readiness` | Authenticated | Read the latest coarse cached dependency/worker/admission state |
+| POST | `/api/v1/system/auth/start` | Superuser | Start or replay one runtime-exclusive ChatGPT device-code attempt |
+| GET | `/api/v1/system/auth/status` | Superuser | Poll the cached browser-safe challenge or terminal state |
+
+Readiness and authentication-status GET requests are cache reads. They do not
+start Codex, MCP, credential refresh, SQLite, artifact, or provider work.
+Device start returns only the validated `auth.openai.com` HTTPS URL, bounded
+short code, finite state, and safe message. It never returns OAuth tokens,
+account identity, provider payloads, `CODEX_HOME`, paths, or ports.
+
+If browser setup is unavailable, an operator can run the package-owned CLI
+recovery command from `backend/packages/txt2crs/`:
+
+```bash
+uv run --package txt2crs txt2crs-system-auth
+```
 
 The separately deployed frontend exposes Nginx `GET /health`; it is not part
 of FastAPI OpenAPI.

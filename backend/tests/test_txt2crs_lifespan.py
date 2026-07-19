@@ -10,12 +10,14 @@ from txt2crs.application import Txt2CrsApplication
 
 from app.core.config import Settings
 from app.main import (
+    Txt2CrsAuthenticationFactory,
     Txt2CrsLifecycleFactory,
     Txt2CrsReadinessFactory,
     Txt2CrsWorkerFactory,
     create_app,
 )
 from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
+from app.services.txt2crs_authentication import SystemAuthenticationCoordinator
 from app.services.txt2crs_readiness import CachedReadinessCoordinator
 from app.services.txt2crs_runtime import RuntimeOwnershipCoordinator
 from app.services.txt2crs_worker import SerialTxt2CrsWorker
@@ -137,6 +139,19 @@ class RecordingReadiness:
 
     def close(self) -> None:
         self.events.append("readiness.close")
+
+
+class RecordingAuthentication:
+    """Observe cached authentication lifecycle without provider work."""
+
+    def __init__(self, events: list[str]) -> None:
+        self.events = events
+
+    def start(self) -> None:
+        self.events.append("authentication.start")
+
+    def close(self) -> None:
+        self.events.append("authentication.close")
 
 
 def _factory_for(
@@ -321,6 +336,64 @@ def test_readiness_refresh_precedes_worker_and_closes_after_worker(
         "worker.start",
         "worker.close",
         "readiness.close",
+        "lifecycle.close",
+    ]
+
+
+def test_authentication_starts_before_readiness_and_closes_after_it(
+    tmp_path: Path,
+) -> None:
+    """Startup refreshes both caches before work and reverses exact ownership."""
+
+    events: list[str] = []
+    lifecycle = RecordingLifecycle(is_configured=True, events=events)
+    worker = RecordingWorker(events=events)
+    readiness = RecordingReadiness(events)
+    authentication = RecordingAuthentication(events)
+
+    def create_readiness(
+        _application: Txt2CrsApplication | None,
+        _worker: SerialTxt2CrsWorker | None,
+        _runtime_ownership: RuntimeOwnershipCoordinator,
+        _settings: Settings,
+    ) -> CachedReadinessCoordinator:
+        return cast(CachedReadinessCoordinator, readiness)
+
+    def create_authentication(
+        _application: Txt2CrsApplication | None,
+        _runtime_ownership: RuntimeOwnershipCoordinator,
+        _settings: Settings,
+    ) -> SystemAuthenticationCoordinator:
+        return cast(SystemAuthenticationCoordinator, authentication)
+
+    application = create_app(
+        application_settings=_test_settings(tmp_path),
+        txt2crs_lifecycle_factory=_factory_for(lifecycle),
+        txt2crs_worker_factory=_worker_factory_for(worker)[0],
+        txt2crs_readiness_factory=cast(Txt2CrsReadinessFactory, create_readiness),
+        txt2crs_authentication_factory=cast(
+            Txt2CrsAuthenticationFactory,
+            create_authentication,
+        ),
+    )
+
+    with TestClient(application):
+        assert application.state.txt2crs_authentication is authentication
+        assert events == [
+            "lifecycle.start",
+            "authentication.start",
+            "readiness.start",
+            "worker.start",
+        ]
+
+    assert events == [
+        "lifecycle.start",
+        "authentication.start",
+        "readiness.start",
+        "worker.start",
+        "worker.close",
+        "readiness.close",
+        "authentication.close",
         "lifecycle.close",
     ]
 

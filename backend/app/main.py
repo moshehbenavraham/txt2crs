@@ -18,6 +18,7 @@ from app.services import (
     CachedReadinessCoordinator,
     RuntimeOwnershipCoordinator,
     SerialTxt2CrsWorker,
+    SystemAuthenticationCoordinator,
     Txt2CrsApplicationLifecycle,
 )
 
@@ -50,6 +51,14 @@ Txt2CrsReadinessFactory = Callable[
         Settings,
     ],
     CachedReadinessCoordinator,
+]
+Txt2CrsAuthenticationFactory = Callable[
+    [
+        Txt2CrsApplication | None,
+        RuntimeOwnershipCoordinator,
+        Settings,
+    ],
+    SystemAuthenticationCoordinator,
 ]
 
 
@@ -103,12 +112,32 @@ def build_txt2crs_readiness(
     )
 
 
+def build_txt2crs_authentication(
+    application: Txt2CrsApplication | None,
+    runtime_ownership: RuntimeOwnershipCoordinator,
+    application_settings: Settings,
+) -> SystemAuthenticationCoordinator:
+    """Build one cached system-auth owner over the public facade."""
+
+    return SystemAuthenticationCoordinator(
+        application=application,
+        runtime_ownership=runtime_ownership,
+        monitor_poll_seconds=(application_settings.TXT2CRS_AUTH_MONITOR_POLL_SECONDS),
+        shutdown_timeout_seconds=(
+            application_settings.TXT2CRS_AUTH_SHUTDOWN_TIMEOUT_SECONDS
+        ),
+    )
+
+
 def create_app(
     *,
     application_settings: Settings = settings,
     txt2crs_lifecycle_factory: Txt2CrsLifecycleFactory = (build_txt2crs_lifecycle),
     txt2crs_worker_factory: Txt2CrsWorkerFactory = build_txt2crs_worker,
     txt2crs_readiness_factory: Txt2CrsReadinessFactory = (build_txt2crs_readiness),
+    txt2crs_authentication_factory: Txt2CrsAuthenticationFactory = (
+        build_txt2crs_authentication
+    ),
 ) -> FastAPI:
     """
     Construct a FastAPI application with an injectable engine lifecycle.
@@ -129,10 +158,12 @@ def create_app(
         fastapi_app.state.txt2crs_lifecycle = txt2crs_lifecycle
         fastapi_app.state.txt2crs_worker = None
         fastapi_app.state.txt2crs_readiness = None
+        fastapi_app.state.txt2crs_authentication = None
         runtime_ownership = RuntimeOwnershipCoordinator()
         fastapi_app.state.txt2crs_runtime_ownership = runtime_ownership
         txt2crs_worker: SerialTxt2CrsWorker | None = None
         txt2crs_readiness: CachedReadinessCoordinator | None = None
+        txt2crs_authentication: SystemAuthenticationCoordinator | None = None
         primary_error: BaseException | None = None
         try:
             txt2crs_lifecycle.start()
@@ -145,9 +176,18 @@ def create_app(
                 )
                 fastapi_app.state.txt2crs_worker = txt2crs_worker
 
-            # Initial readiness owns the runtime before worker recovery can
-            # start. Browser reads later see only this cache plus safe worker
-            # state and can never launch provider or storage work.
+            # Refresh cached account state first. Readiness and worker startup
+            # then use the same gate, so no two app-servers can overlap.
+            txt2crs_authentication = txt2crs_authentication_factory(
+                txt2crs_application,
+                runtime_ownership,
+                application_settings,
+            )
+            fastapi_app.state.txt2crs_authentication = txt2crs_authentication
+            txt2crs_authentication.start()
+
+            # Browser reads see only this cache plus safe worker state and can
+            # never launch provider or storage work.
             txt2crs_readiness = txt2crs_readiness_factory(
                 txt2crs_application,
                 txt2crs_worker,
@@ -178,6 +218,12 @@ def create_app(
                 except BaseException as error:
                     if cleanup_error is None:
                         cleanup_error = error
+            if txt2crs_authentication is not None:
+                try:
+                    txt2crs_authentication.close()
+                except BaseException as error:
+                    if cleanup_error is None:
+                        cleanup_error = error
             runtime_ownership.close()
             # Worker and maintenance must stop before the package facade
             # closes its executor and persistence graph.
@@ -188,6 +234,7 @@ def create_app(
                     cleanup_error = error
             fastapi_app.state.txt2crs_worker = None
             fastapi_app.state.txt2crs_readiness = None
+            fastapi_app.state.txt2crs_authentication = None
             fastapi_app.state.txt2crs_runtime_ownership = None
             if primary_error is None and cleanup_error is not None:
                 raise cleanup_error

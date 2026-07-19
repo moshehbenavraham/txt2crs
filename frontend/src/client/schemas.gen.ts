@@ -419,6 +419,202 @@ export const PasswordRecoveryRequestSchema = {
     "Request body for initiating password recovery.\n\nUses JSON body input (instead of URL path parameters) to avoid exposing\nemail addresses in route paths captured by access logs and browser history.",
 } as const
 
+export const ReadinessCheckStateSchema = {
+  type: "string",
+  enum: ["ready", "unavailable"],
+  title: "ReadinessCheckState",
+  description: "Coarse state for one safe shell readiness dimension.",
+} as const
+
+export const ReadinessStatusSchema = {
+  type: "string",
+  enum: ["ready", "degraded", "unavailable"],
+  title: "ReadinessStatus",
+  description: "Overall cached state presented to later API schemas.",
+} as const
+
+export const SystemAuthenticationPublicSchema = {
+  properties: {
+    state: {
+      $ref: "#/components/schemas/SystemAuthenticationState",
+    },
+    verification_url: {
+      anyOf: [
+        {
+          type: "string",
+          maxLength: 2048,
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Verification Url",
+    },
+    user_code: {
+      anyOf: [
+        {
+          type: "string",
+          maxLength: 64,
+          minLength: 4,
+          pattern: "^[A-Za-z0-9-]+$",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "User Code",
+    },
+    message: {
+      type: "string",
+      maxLength: 500,
+      minLength: 1,
+      title: "Message",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: ["state", "verification_url", "user_code", "message"],
+  title: "SystemAuthenticationPublic",
+  description:
+    "Validated challenge or terminal state with no account/token data.",
+} as const
+
+export const SystemAuthenticationStateSchema = {
+  type: "string",
+  enum: ["signed_out", "waiting_for_user", "authenticated", "failed"],
+  title: "SystemAuthenticationState",
+  description: "Safe states that an application setup screen may display.",
+} as const
+
+export const SystemInputModeSchema = {
+  type: "string",
+  enum: ["prompt", "text", "url", "youtube", "pdf", "document", "slides"],
+  title: "SystemInputMode",
+  description: "Finite P0 input modes the generated client may display.",
+} as const
+
+export const SystemReadinessChecksPublicSchema = {
+  properties: {
+    authentication: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    model: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    research: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    storage: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    worker: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    inputs: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    admission: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+    runtime_ownership: {
+      $ref: "#/components/schemas/ReadinessCheckState",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: [
+    "authentication",
+    "model",
+    "research",
+    "storage",
+    "worker",
+    "inputs",
+    "admission",
+    "runtime_ownership",
+  ],
+  title: "SystemReadinessChecksPublic",
+  description: "Coarse dimensions with no infrastructure or provider detail.",
+} as const
+
+export const SystemReadinessPublicSchema = {
+  properties: {
+    schema_version: {
+      type: "string",
+      const: "1.0",
+      title: "Schema Version",
+    },
+    status: {
+      $ref: "#/components/schemas/ReadinessStatus",
+    },
+    accepting_jobs: {
+      type: "boolean",
+      title: "Accepting Jobs",
+    },
+    configured_model_id: {
+      type: "string",
+      enum: ["gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+      title: "Configured Model Id",
+    },
+    enabled_input_modes: {
+      items: {
+        $ref: "#/components/schemas/SystemInputMode",
+      },
+      type: "array",
+      maxItems: 20,
+      title: "Enabled Input Modes",
+    },
+    checks: {
+      $ref: "#/components/schemas/SystemReadinessChecksPublic",
+    },
+    warnings: {
+      items: {
+        type: "string",
+        maxLength: 500,
+        minLength: 1,
+      },
+      type: "array",
+      maxItems: 20,
+      title: "Warnings",
+    },
+    recovery_actions: {
+      items: {
+        type: "string",
+        maxLength: 500,
+        minLength: 1,
+      },
+      type: "array",
+      maxItems: 20,
+      title: "Recovery Actions",
+    },
+    checked_at: {
+      type: "string",
+      format: "date-time",
+      title: "Checked At",
+    },
+    is_fresh: {
+      type: "boolean",
+      title: "Is Fresh",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: [
+    "schema_version",
+    "status",
+    "accepting_jobs",
+    "configured_model_id",
+    "enabled_input_modes",
+    "checks",
+    "warnings",
+    "recovery_actions",
+    "checked_at",
+    "is_fresh",
+  ],
+  title: "SystemReadinessPublic",
+  description:
+    "HTTP projection of one immutable side-effect-free readiness snapshot.",
+} as const
+
 export const TokenSchema = {
   properties: {
     access_token: {

@@ -2,6 +2,11 @@
 
 """Public framework-independent application composition boundary."""
 
+from txt2crs.ai.system_authentication import (
+    SystemAuthenticationError,
+    SystemAuthenticationSnapshot,
+    SystemAuthenticationState,
+)
 from txt2crs.application.config import (
     ApplicationAdmissionConfig,
     ApplicationStorageConfig,
@@ -57,5 +62,8 @@ __all__ = [
     "OwnerPurgeResult",
     "RealApplicationConfig",
     "RealApplicationFactory",
+    "SystemAuthenticationError",
+    "SystemAuthenticationSnapshot",
+    "SystemAuthenticationState",
     "Txt2CrsApplication",
 ]

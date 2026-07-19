@@ -243,6 +243,128 @@ export type PasswordRecoveryRequest = {
 }
 
 /**
+ * ReadinessCheckState
+ *
+ * Coarse state for one safe shell readiness dimension.
+ */
+export type ReadinessCheckState = "ready" | "unavailable"
+
+/**
+ * ReadinessStatus
+ *
+ * Overall cached state presented to later API schemas.
+ */
+export type ReadinessStatus = "ready" | "degraded" | "unavailable"
+
+/**
+ * SystemAuthenticationPublic
+ *
+ * Validated challenge or terminal state with no account/token data.
+ */
+export type SystemAuthenticationPublic = {
+  state: SystemAuthenticationState
+  /**
+   * Verification Url
+   */
+  verification_url: string | null
+  /**
+   * User Code
+   */
+  user_code: string | null
+  /**
+   * Message
+   */
+  message: string
+}
+
+/**
+ * SystemAuthenticationState
+ *
+ * Safe states that an application setup screen may display.
+ */
+export type SystemAuthenticationState =
+  | "signed_out"
+  | "waiting_for_user"
+  | "authenticated"
+  | "failed"
+
+/**
+ * SystemInputMode
+ *
+ * Finite P0 input modes the generated client may display.
+ */
+export type SystemInputMode =
+  | "prompt"
+  | "text"
+  | "url"
+  | "youtube"
+  | "pdf"
+  | "document"
+  | "slides"
+
+/**
+ * SystemReadinessChecksPublic
+ *
+ * Coarse dimensions with no infrastructure or provider detail.
+ */
+export type SystemReadinessChecksPublic = {
+  authentication: ReadinessCheckState
+  model: ReadinessCheckState
+  research: ReadinessCheckState
+  storage: ReadinessCheckState
+  worker: ReadinessCheckState
+  inputs: ReadinessCheckState
+  admission: ReadinessCheckState
+  runtime_ownership: ReadinessCheckState
+}
+
+/**
+ * SystemReadinessPublic
+ *
+ * HTTP projection of one immutable side-effect-free readiness snapshot.
+ */
+export type SystemReadinessPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  status: ReadinessStatus
+  /**
+   * Accepting Jobs
+   */
+  accepting_jobs: boolean
+  /**
+   * Configured Model Id
+   */
+  configured_model_id:
+    | "gpt-5.6"
+    | "gpt-5.6-sol"
+    | "gpt-5.6-terra"
+    | "gpt-5.6-luna"
+  /**
+   * Enabled Input Modes
+   */
+  enabled_input_modes: Array<SystemInputMode>
+  checks: SystemReadinessChecksPublic
+  /**
+   * Warnings
+   */
+  warnings: Array<string>
+  /**
+   * Recovery Actions
+   */
+  recovery_actions: Array<string>
+  /**
+   * Checked At
+   */
+  checked_at: string
+  /**
+   * Is Fresh
+   */
+  is_fresh: boolean
+}
+
+/**
  * Token
  */
 export type Token = {
@@ -1276,3 +1398,54 @@ export type PutApiV1ItemsByIdResponses = {
 
 export type PutApiV1ItemsByIdResponse =
   PutApiV1ItemsByIdResponses[keyof PutApiV1ItemsByIdResponses]
+
+export type GetApiV1SystemReadinessData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/api/v1/system/readiness"
+}
+
+export type GetApiV1SystemReadinessResponses = {
+  /**
+   * Successful Response
+   */
+  200: SystemReadinessPublic
+}
+
+export type GetApiV1SystemReadinessResponse =
+  GetApiV1SystemReadinessResponses[keyof GetApiV1SystemReadinessResponses]
+
+export type PostApiV1SystemAuthStartData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/api/v1/system/auth/start"
+}
+
+export type PostApiV1SystemAuthStartResponses = {
+  /**
+   * Successful Response
+   */
+  200: SystemAuthenticationPublic
+}
+
+export type PostApiV1SystemAuthStartResponse =
+  PostApiV1SystemAuthStartResponses[keyof PostApiV1SystemAuthStartResponses]
+
+export type GetApiV1SystemAuthStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/api/v1/system/auth/status"
+}
+
+export type GetApiV1SystemAuthStatusResponses = {
+  /**
+   * Successful Response
+   */
+  200: SystemAuthenticationPublic
+}
+
+export type GetApiV1SystemAuthStatusResponse =
+  GetApiV1SystemAuthStatusResponses[keyof GetApiV1SystemAuthStatusResponses]

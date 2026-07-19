@@ -76,6 +76,9 @@ from txt2crs.application import (
     OwnerPurgeResult,
     RealApplicationConfig,
     RealApplicationFactory,
+    SystemAuthenticationError,
+    SystemAuthenticationSnapshot,
+    SystemAuthenticationState,
     Txt2CrsApplication,
 )
 assert all(
@@ -90,6 +93,9 @@ assert all(
         OwnerPurgeResult,
         RealApplicationConfig,
         RealApplicationFactory,
+        SystemAuthenticationError,
+        SystemAuthenticationSnapshot,
+        SystemAuthenticationState,
         Txt2CrsApplication,
     )
 )
