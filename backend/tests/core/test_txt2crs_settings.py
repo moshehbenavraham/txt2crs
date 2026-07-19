@@ -134,9 +134,7 @@ def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
     assert settings.TXT2CRS_ADMISSION_WINDOW_SECONDS == 86_400
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER == 2
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL == 5
-    assert (
-        settings.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER == 1_500_000
-    )
+    assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER == 1_500_000
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL == 3_750_000
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER == 2_000_000
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL == 5_000_000
@@ -243,10 +241,7 @@ def test_tavily_secret_is_optional_trimmed_and_hidden() -> None:
 
     assert whitespace_settings.TAVILY_API_KEY is None
     assert configured_settings.TAVILY_API_KEY is not None
-    assert (
-        configured_settings.TAVILY_API_KEY.get_secret_value()
-        == "private-tavily-key"
-    )
+    assert configured_settings.TAVILY_API_KEY.get_secret_value() == "private-tavily-key"
     assert "private-tavily-key" not in repr(configured_settings)
 
 

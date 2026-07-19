@@ -46,6 +46,7 @@ Note:
 """
 
 import secrets
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
@@ -56,7 +57,9 @@ from pydantic import (
     Field,
     HttpUrl,
     PostgresDsn,
+    SecretStr,
     computed_field,
+    field_validator,
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -92,6 +95,22 @@ def parse_cors(v: Any) -> list[str] | str:
     elif isinstance(v, list | str):
         return v
     raise ValueError(v)
+
+
+def parse_optional_secret(value: Any) -> SecretStr | None:
+    """
+    Normalize an optional provider secret without retaining whitespace.
+
+    Operator setup and OpenAPI must load before Tavily is configured. Treating
+    an empty dotenv placeholder as ``None`` gives the composition service one
+    explicit unconfigured state instead of constructing a fake credential.
+    """
+    if value is None:
+        return None
+    secret_value = (
+        value.get_secret_value() if isinstance(value, SecretStr) else str(value)
+    ).strip()
+    return SecretStr(secret_value) if secret_value else None
 
 
 def _path_uses_existing_symlink(path: Path) -> bool:
@@ -269,6 +288,268 @@ class Settings(BaseSettings):
 
     TXT2CRS_WORKER_ROOT: Path = Path("/tmp/txt2crs-worker")
     """Empty ephemeral working directory used by the read-only Codex sandbox."""
+
+    # === txt2crs Application Composition ===
+    #
+    # These finite defaults are copied into the immutable execution profile
+    # stored with each accepted job. Changing an environment default later
+    # therefore cannot reinterpret already-durable work after a restart.
+    TXT2CRS_MODEL_ID: Literal[
+        "gpt-5.6",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-5.6-luna",
+    ] = "gpt-5.6"
+    """Exact reviewed GPT-5.6 family model; no older-model fallback exists."""
+
+    TXT2CRS_RESEARCH_ENABLED: bool = True
+    """Disable-only operator switch for package-owned Tavily research."""
+
+    TXT2CRS_RESEARCH_MCP_HOST: str = "127.0.0.1"
+    """Numeric loopback host for the private package-owned research MCP."""
+
+    TXT2CRS_RESEARCH_MCP_PORT: int = Field(default=8765, ge=0, le=65_535)
+    """Private MCP port; zero is retained for isolated dynamic-port tests."""
+
+    TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS: float = Field(
+        default=10,
+        gt=0,
+        le=60,
+    )
+    """Maximum bounded wait for the two-tool research MCP to become ready."""
+
+    TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
+        default=10,
+        gt=0,
+        le=60,
+    )
+    """Maximum bounded wait for managed research MCP shutdown."""
+
+    TXT2CRS_MAX_INPUT_BYTES: int = Field(
+        default=20_971_520,
+        gt=0,
+        le=1_000_000_000,
+    )
+    """Maximum raw payload size stored with one generation request."""
+
+    TXT2CRS_MAX_METADATA_BYTES: int = Field(
+        default=262_144,
+        gt=0,
+        le=10_000_000,
+    )
+    """Maximum canonical input metadata size stored with one request."""
+
+    TXT2CRS_MAX_NORMALIZED_CHARACTERS: int = Field(
+        default=200_000,
+        gt=0,
+        le=2_000_000,
+    )
+    """Maximum normalized text length after bounded ingestion."""
+
+    TXT2CRS_MAX_PDF_PAGES: int = Field(default=200, gt=0, le=10_000)
+    """Maximum pages accepted from one PDF."""
+
+    TXT2CRS_ARTIFACT_MAX_JOB_BYTES: int = Field(
+        default=104_857_600,
+        gt=0,
+        le=1_000_000_000,
+    )
+    """Maximum complete private publication bundle for one job."""
+
+    TXT2CRS_HTML_PREVIEW_MAX_BYTES: int = Field(
+        default=5_242_880,
+        gt=0,
+        le=100_000_000,
+    )
+    """Maximum HTML artifact bytes a later browser preview may read."""
+
+    TXT2CRS_RETRY_MAXIMUM_ATTEMPTS: int = Field(default=3, ge=2, le=10)
+    """Total attempts allowed by the shared provider retry policy."""
+
+    TXT2CRS_RETRY_BASE_SECONDS: float = Field(default=1, gt=0, le=60)
+    """Initial retry backoff in seconds."""
+
+    TXT2CRS_RETRY_MAXIMUM_SECONDS: float = Field(default=15, gt=0, le=300)
+    """Maximum retry backoff in seconds."""
+
+    TXT2CRS_RETRY_JITTER_RATIO: float = Field(default=0.2, ge=0, le=1)
+    """Bounded jitter ratio used by deterministic retry calculations."""
+
+    TXT2CRS_RUN_MAXIMUM_TURNS: int = Field(default=20, gt=0, le=10_000)
+    TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS: int = Field(default=12, gt=0, le=10_000)
+    TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS: int = Field(default=6, gt=0, le=10_000)
+    TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS: int = Field(default=6, gt=0, le=10_000)
+    TXT2CRS_RUN_MAXIMUM_SOURCES: int = Field(default=12, gt=0, le=1_000)
+    TXT2CRS_RUN_MAXIMUM_EXTRACTED_BYTES: int = Field(
+        default=2_000_000,
+        gt=0,
+        le=100_000_000,
+    )
+    TXT2CRS_RUN_MAXIMUM_INPUT_TOKENS: int = Field(
+        default=600_000,
+        gt=0,
+        le=10_000_000,
+    )
+    TXT2CRS_RUN_MAXIMUM_OUTPUT_TOKENS: int = Field(
+        default=150_000,
+        gt=0,
+        le=10_000_000,
+    )
+    TXT2CRS_RUN_MAXIMUM_RETRIES: int = Field(default=3, ge=0, le=1_000)
+    TXT2CRS_RUN_MAXIMUM_REPAIRS: int = Field(default=3, ge=0, le=1_000)
+    TXT2CRS_RUN_MAXIMUM_ELAPSED_SECONDS: float = Field(
+        default=2_700,
+        gt=0,
+        le=86_400,
+    )
+
+    TXT2CRS_ADMISSION_WINDOW_SECONDS: int = Field(
+        default=86_400,
+        gt=0,
+        le=2_592_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER: int = Field(
+        default=2,
+        gt=0,
+        le=10_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL: int = Field(
+        default=5,
+        gt=0,
+        le=100_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER: int = Field(
+        default=1_500_000,
+        gt=0,
+        le=1_000_000_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL: int = Field(
+        default=3_750_000,
+        gt=0,
+        le=10_000_000_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER: int = Field(
+        default=2_000_000,
+        ge=0,
+        le=1_000_000_000_000,
+    )
+    TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL: int = Field(
+        default=5_000_000,
+        ge=0,
+        le=10_000_000_000_000,
+    )
+
+    TAVILY_API_KEY: Annotated[
+        SecretStr | None,
+        BeforeValidator(parse_optional_secret),
+    ] = None
+    """Optional research secret; absence keeps the shell safely unconfigured."""
+
+    TAVILY_TIMEOUT_SECONDS: float = Field(default=20, gt=0, le=60)
+    """Timeout for each package-owned Tavily HTTP request."""
+
+    @field_validator("TXT2CRS_RESEARCH_MCP_HOST")
+    @classmethod
+    def _require_numeric_loopback_research_host(cls, configured_host: str) -> str:
+        """
+        Keep the research MCP off wildcard, DNS, and external interfaces.
+
+        A numeric address makes the security decision independent of mutable
+        host resolution. Both IPv4 and IPv6 loopback addresses remain valid.
+        """
+        try:
+            parsed_address = ip_address(configured_host)
+        except ValueError:
+            raise ValueError(
+                "TXT2CRS_RESEARCH_MCP_HOST must be a numeric loopback address."
+            ) from None
+        if not parsed_address.is_loopback:
+            raise ValueError(
+                "TXT2CRS_RESEARCH_MCP_HOST must be a numeric loopback address."
+            )
+        return str(parsed_address)
+
+    @model_validator(mode="after")
+    def _validate_txt2crs_composition_budgets(self) -> Self:
+        """
+        Reject finite settings that cannot produce one internally valid job.
+
+        Pydantic validates each individual bound above. These relationships
+        ensure the complete profile can pay for its own retry and provider
+        actions and that per-user reservations fit inside global capacity.
+        """
+        if self.TXT2CRS_RETRY_BASE_SECONDS > self.TXT2CRS_RETRY_MAXIMUM_SECONDS:
+            raise ValueError(
+                "TXT2CRS_RETRY_BASE_SECONDS must not exceed "
+                "TXT2CRS_RETRY_MAXIMUM_SECONDS."
+            )
+
+        maximum_retry_count = self.TXT2CRS_RETRY_MAXIMUM_ATTEMPTS - 1
+        if self.TXT2CRS_RUN_MAXIMUM_RETRIES < maximum_retry_count:
+            raise ValueError(
+                "TXT2CRS_RUN_MAXIMUM_RETRIES must cover the configured retry policy."
+            )
+
+        planned_research_calls = (
+            self.TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS
+            + self.TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS
+        )
+        if planned_research_calls > self.TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS:
+            raise ValueError(
+                "TXT2CRS search and extract call limits must fit within "
+                "TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS."
+            )
+
+        if self.TXT2CRS_HTML_PREVIEW_MAX_BYTES > (self.TXT2CRS_ARTIFACT_MAX_JOB_BYTES):
+            raise ValueError(
+                "TXT2CRS_HTML_PREVIEW_MAX_BYTES must not exceed "
+                "TXT2CRS_ARTIFACT_MAX_JOB_BYTES."
+            )
+
+        admission_pairs = (
+            (
+                "jobs",
+                self.TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER,
+                self.TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL,
+            ),
+            (
+                "reserved tokens",
+                self.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER,
+                self.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL,
+            ),
+            (
+                "research allowance",
+                self.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER,
+                self.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL,
+            ),
+        )
+        for capacity_name, per_user_capacity, global_capacity in admission_pairs:
+            if per_user_capacity > global_capacity:
+                raise ValueError(
+                    f"TXT2CRS admission {capacity_name} per user must not "
+                    "exceed global capacity."
+                )
+
+        reserved_job_tokens = (
+            self.TXT2CRS_RUN_MAXIMUM_INPUT_TOKENS
+            + self.TXT2CRS_RUN_MAXIMUM_OUTPUT_TOKENS
+        )
+        if reserved_job_tokens > (
+            self.TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER
+        ):
+            raise ValueError(
+                "TXT2CRS per-user reserved tokens must admit one complete job."
+            )
+
+        reserved_job_research_microusd = 1_000_000
+        if reserved_job_research_microusd > (
+            self.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER
+        ):
+            raise ValueError(
+                "TXT2CRS per-user research allowance must admit one complete job."
+            )
+
+        return self
 
     @model_validator(mode="after")
     def _derive_txt2crs_persistent_path_defaults(self) -> Self:

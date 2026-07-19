@@ -30,51 +30,51 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0201]` session 
 
 ## Foundation (5 tasks)
 
-- [ ] T008 [S0201] Add grouped typed settings for model, research, MCP, storage retention, retry, input, run, and admission limits (`backend/app/core/config.py`)
-- [ ] T009 [S0201] Validate finite ranges, cross-field budgets, GPT-5.6 family values, loopback topology, and optional external secret normalization at settings construction (`backend/app/core/config.py`)
-- [ ] T010 [S0201] Implement one detached P0 `ExecutionProfile` builder from the validated shell settings (`backend/app/services/txt2crs_application.py`)
-- [ ] T011 [S0201] Implement storage, admission, and real application configuration translation using only public package contracts (`backend/app/services/txt2crs_application.py`)
-- [ ] T012 [S0201] Define the coarse configured/unconfigured lifecycle state and injectable public factory protocols (`backend/app/services/txt2crs_application.py`)
+- [x] T008 [S0201] Add grouped typed settings for model, research, MCP, storage retention, retry, input, run, and admission limits (`backend/app/core/config.py`)
+- [x] T009 [S0201] Validate finite ranges, cross-field budgets, GPT-5.6 family values, loopback topology, and optional external secret normalization at settings construction (`backend/app/core/config.py`)
+- [x] T010 [S0201] Implement one detached P0 `ExecutionProfile` builder from the validated shell settings (`backend/app/services/txt2crs_application.py`)
+- [x] T011 [S0201] Implement storage, admission, and real application configuration translation using only public package contracts (`backend/app/services/txt2crs_application.py`)
+- [x] T012 [S0201] Define the coarse configured/unconfigured lifecycle state and injectable public factory protocols (`backend/app/services/txt2crs_application.py`)
 
 ---
 
 ## Implementation (6 tasks)
 
-- [ ] T013 [S0201] Implement configured facade creation and safe unconfigured startup without a synthetic secret (`backend/app/services/txt2crs_application.py`)
-- [ ] T014 [S0201] Implement idempotent lifecycle close and partial-startup cleanup without masking the primary construction failure (`backend/app/services/txt2crs_application.py`)
-- [ ] T015 [S0201] Add structured composition startup, unconfigured, completion, shutdown, and failure events with approved coarse fields only (`backend/app/services/txt2crs_application.py`)
-- [ ] T016 [S0201] Export the documented shell composition service without exporting engine internals (`backend/app/services/__init__.py`)
-- [ ] T017 [S0201] Add an injectable FastAPI lifespan owner that stores only the shell lifecycle service on application state (`backend/app/main.py`)
-- [ ] T018 [S0201] Preserve middleware, exception handlers, router registration, telemetry, limiter, and the exported global application while enabling isolated lifespan tests (`backend/app/main.py`)
+- [x] T013 [S0201] Implement configured facade creation and safe unconfigured startup without a synthetic secret (`backend/app/services/txt2crs_application.py`)
+- [x] T014 [S0201] Implement idempotent lifecycle close and partial-startup cleanup without masking the primary construction failure (`backend/app/services/txt2crs_application.py`)
+- [x] T015 [S0201] Add structured composition startup, unconfigured, completion, shutdown, and failure events with approved coarse fields only (`backend/app/services/txt2crs_application.py`)
+- [x] T016 [S0201] Export the documented shell composition service without exporting engine internals (`backend/app/services/__init__.py`)
+- [x] T017 [S0201] Add an injectable FastAPI lifespan owner that stores only the shell lifecycle service on application state (`backend/app/main.py`)
+- [x] T018 [S0201] Preserve middleware, exception handlers, router registration, telemetry, limiter, and the exported global application while enabling isolated lifespan tests (`backend/app/main.py`)
 
 ---
 
 ## Operator Configuration (1 task)
 
-- [ ] T019 [S0201] Document every new finite setting and blank Tavily secret without committing credentials (`backend/.env.example`)
+- [x] T019 [S0201] Document every new finite setting and blank Tavily secret without committing credentials (`backend/.env.example`)
 
 ---
 
 ## Testing And Completion (5 tasks)
 
-- [ ] T020 [S0201] Format and lint the changed backend Python files (`backend/pyproject.toml`)
-- [ ] T021 [S0201] Run the focused settings, composition-service, and lifespan tests to green (`backend/tests/core/test_txt2crs_settings.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
-- [ ] T022 [S0201] Run the complete deterministic backend test suite (`backend/tests/`)
-- [ ] T023 [S0201] Run backend mypy and ty checks for the new public-boundary types (`backend/app/`)
-- [ ] T024 [S0201] Verify ASCII, Unix LF, diff cleanliness, and no private txt2crs imports in shell code (`backend/app/services/txt2crs_application.py`, `backend/app/main.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
+- [x] T020 [S0201] Format and lint the changed backend Python files (`backend/pyproject.toml`)
+- [x] T021 [S0201] Run the focused settings, composition-service, and lifespan tests to green (`backend/tests/core/test_txt2crs_settings.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
+- [x] T022 [S0201] Run the complete deterministic backend test suite (`backend/tests/`)
+- [x] T023 [S0201] Run backend mypy and ty checks for the new public-boundary types (`backend/app/`)
+- [x] T024 [S0201] Verify ASCII, Unix LF, diff cleanliness, and no private txt2crs imports in shell code (`backend/app/services/txt2crs_application.py`, `backend/app/main.py`, `backend/tests/services/test_txt2crs_application.py`, `backend/tests/test_txt2crs_lifespan.py`)
 
 ---
 
 ## Completion Checklist
 
-- [ ] All tasks marked `[x]`
-- [ ] All tests and checks passing
-- [ ] All files ASCII-encoded with LF line endings
-- [ ] implementation-notes.md updated
-- [ ] Ready for `creview` (next step in the implement -> creview -> validate sequence)
+- [x] All tasks marked `[x]`
+- [x] All tests and checks passing
+- [x] All files ASCII-encoded with LF line endings
+- [x] implementation-notes.md updated
+- [x] Ready for `creview` (next step in the implement -> creview -> validate sequence)
 
 ---
 
 ## Next Steps
 
-Run the `implement` workflow step.
+Run the `creview` workflow step.

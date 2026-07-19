@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import Txt2CrsLifecycleFactory, create_app
+from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
 
 
 def _test_settings(tmp_path: Path, *, is_configured: bool = True) -> Settings:
@@ -141,4 +141,3 @@ def test_startup_failure_still_closes_the_partial_lifecycle(
 
     assert lifecycle.start_calls == 1
     assert lifecycle.close_calls == 1
-

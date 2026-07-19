@@ -458,6 +458,8 @@ class DeterministicApplicationFactory:
             artifact_renderer,
         ) = _persistent_services(
             state_directory=self._config.storage.state_directory,
+            job_database_path=self._config.storage.job_database_path,
+            artifact_directory=self._config.storage.artifact_directory,
             maximum_artifact_job_bytes=(
                 self._config.storage.maximum_artifact_job_bytes
             ),
@@ -506,6 +508,8 @@ class RealApplicationFactory:
             artifact_renderer,
         ) = _persistent_services(
             state_directory=self._config.storage.state_directory,
+            job_database_path=self._config.storage.job_database_path,
+            artifact_directory=self._config.storage.artifact_directory,
             maximum_artifact_job_bytes=(
                 self._config.storage.maximum_artifact_job_bytes
             ),
@@ -554,6 +558,8 @@ class RealApplicationFactory:
 def _persistent_services(
     *,
     state_directory: Path,
+    job_database_path: Path | None,
+    artifact_directory: Path | None,
     maximum_artifact_job_bytes: int,
     artifact_retention_days: int,
     admission_limits: AdmissionLimits,
@@ -569,14 +575,23 @@ def _persistent_services(
         raise ValueError("Application state directory cannot be a symlink.")
     state_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     state_directory.chmod(0o700)
-    resolved_state_directory = state_directory.resolve(strict=True)
+    if job_database_path is None or artifact_directory is None:
+        # Public config validation always resolves these compatibility fields.
+        # Keeping a defensive guard here prevents an invalid manually-created
+        # object from falling back to an unintended working-directory path.
+        raise ValueError("Application storage paths must be resolved.")
+
+    resolved_job_database_path = job_database_path.resolve(strict=False)
+    resolved_artifact_directory = artifact_directory.resolve(strict=False)
+    resolved_job_database_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    resolved_job_database_path.parent.chmod(0o700)
     store = SqliteJobStore(
-        resolved_state_directory / "jobs.sqlite3",
+        resolved_job_database_path,
         admission_limits=admission_limits,
     )
     try:
         artifact_store = FilesystemPrivateArtifactStore(
-            root_directory=resolved_state_directory / "artifacts",
+            root_directory=resolved_artifact_directory,
             maximum_job_bytes=maximum_artifact_job_bytes,
             retention_days=artifact_retention_days,
         )
@@ -684,7 +699,7 @@ def _managed_real_provider_factory(
 ) -> ManagedProviderSessionFactory:
     """Build closures that create every provider resource only on context entry."""
 
-    workers_directory = config.storage.state_directory / "workers"
+    workers_directory = config.worker_directory
     workers_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     workers_directory.chmod(0o700)
 

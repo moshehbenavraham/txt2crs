@@ -1,17 +1,10 @@
 """Tests-first contract for the FastAPI-owned txt2crs composition root."""
 
 import ast
-import logging
 from pathlib import Path
 from typing import cast
 
 import pytest
-from app.services.txt2crs_application import (
-    ApplicationFactoryBuilder,
-    Txt2CrsApplicationLifecycle,
-    build_execution_profile,
-    build_real_application_config,
-)
 from txt2crs.application import (
     ApplicationFactory,
     RealApplicationConfig,
@@ -19,6 +12,12 @@ from txt2crs.application import (
 )
 
 from app.core.config import Settings
+from app.services.txt2crs_application import (
+    ApplicationFactoryBuilder,
+    Txt2CrsApplicationLifecycle,
+    build_execution_profile,
+    build_real_application_config,
+)
 
 
 def _settings_payload(tmp_path: Path) -> dict[str, object]:
@@ -135,7 +134,7 @@ def test_build_execution_profile_translates_every_finite_p0_limit(
     }
     assert execution_profile.preference_defaults.duration_minutes == 120
     assert execution_profile.preference_defaults.assessment_item_count == 15
-    assert execution_profile.preference_defaults.passing_score_percent == 70
+    assert execution_profile.preference_defaults.passing_percentage == 70
     assert execution_profile.curriculum_shape_limits.minimum_objectives == 5
     assert execution_profile.curriculum_shape_limits.maximum_modules == 6
 
@@ -149,13 +148,9 @@ def test_build_real_application_config_translates_public_boundaries(
 
     assert application_config is not None
     assert application_config.storage.state_directory == settings.TXT2CRS_STATE_ROOT
+    assert application_config.storage.job_database_path == settings.TXT2CRS_JOB_DB_PATH
     assert (
-        application_config.storage.job_database_path
-        == settings.TXT2CRS_JOB_DB_PATH
-    )
-    assert (
-        application_config.storage.artifact_directory
-        == settings.TXT2CRS_ARTIFACT_ROOT
+        application_config.storage.artifact_directory == settings.TXT2CRS_ARTIFACT_ROOT
     )
     assert application_config.storage.maximum_artifact_job_bytes == 104_857_600
     # P0 has no operator-configurable time purge. The package maximum keeps
@@ -171,15 +166,13 @@ def test_build_real_application_config_translates_public_boundaries(
         "maximum_research_cost_microusd_global": 5_000_000,
     }
     assert application_config.codex_home == settings.TXT2CRS_CODEX_HOME
+    assert application_config.worker_directory == settings.TXT2CRS_WORKER_ROOT
     assert application_config.managed_mcp_host == "127.0.0.1"
     assert application_config.managed_mcp_port == 8765
     assert application_config.managed_mcp_startup_timeout_seconds == 10
     assert application_config.managed_mcp_shutdown_timeout_seconds == 10
     assert application_config.http_timeout_seconds == 20
-    assert (
-        application_config.tavily_api_key.get_secret_value()
-        == "private-tavily-key"
-    )
+    assert application_config.tavily_api_key.get_secret_value() == "private-tavily-key"
     assert "private-tavily-key" not in application_config.model_dump_json()
 
 
@@ -310,8 +303,35 @@ def test_close_failure_clears_owned_reference_and_is_not_retried(
 
 def test_lifecycle_events_do_not_log_secret_path_or_exception_text(
     tmp_path: Path,
-    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    class RecordingLogger:
+        """Capture event names and structured fields without root handlers."""
+
+        def __init__(self) -> None:
+            self.events: list[tuple[str, dict[str, object] | None]] = []
+
+        def info(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            self.events.append((event_name, extra))
+
+        def error(
+            self,
+            event_name: str,
+            *,
+            extra: dict[str, object] | None = None,
+        ) -> None:
+            self.events.append((event_name, extra))
+
+    recording_logger = RecordingLogger()
+    monkeypatch.setattr(
+        "app.services.txt2crs_application.logger",
+        recording_logger,
+    )
     application = RecordingApplication()
     factory = RecordingApplicationFactory(
         application=application,
@@ -325,11 +345,10 @@ def test_lifecycle_events_do_not_log_secret_path_or_exception_text(
         ),
     )
 
-    with caplog.at_level(logging.INFO):
-        with pytest.raises(RuntimeError):
-            lifecycle.start()
+    with pytest.raises(RuntimeError):
+        lifecycle.start()
 
-    rendered_logs = caplog.text
+    rendered_logs = repr(recording_logger.events)
     assert "txt2crs.composition_started" in rendered_logs
     assert "txt2crs.composition_failed" in rendered_logs
     assert "private-tavily-key" not in rendered_logs

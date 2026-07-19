@@ -51,6 +51,8 @@ class ApplicationStorageConfig(FrozenApplicationConfig):
     """Private SQLite/artifact state owned by one application process."""
 
     state_directory: Path
+    job_database_path: Path | None = None
+    artifact_directory: Path | None = None
     maximum_artifact_job_bytes: int = Field(gt=0, le=1_000_000_000)
     artifact_retention_days: int = Field(gt=0, le=36_500)
 
@@ -63,6 +65,60 @@ class ApplicationStorageConfig(FrozenApplicationConfig):
             state_directory,
             field_name="state_directory",
         )
+
+    @model_validator(mode="after")
+    def resolve_and_confine_storage_paths(self) -> Self:
+        """
+        Derive legacy defaults and confine explicit paths to one private root.
+
+        Earlier package callers supplied only ``state_directory``. Keeping
+        those derived locations preserves compatibility, while the application
+        shell can pass the exact SQLite and artifact paths already validated
+        for backup, recovery, and container ownership.
+        """
+        state_directory = self.state_directory.resolve(strict=False)
+        configured_job_database_path = (
+            self.job_database_path or state_directory / "jobs.sqlite3"
+        )
+        configured_artifact_directory = (
+            self.artifact_directory or state_directory / "artifacts"
+        )
+        job_database_path = _require_absolute_unambiguous_path(
+            configured_job_database_path,
+            field_name="job_database_path",
+        ).resolve(strict=False)
+        artifact_directory = _require_absolute_unambiguous_path(
+            configured_artifact_directory,
+            field_name="artifact_directory",
+        ).resolve(strict=False)
+
+        for field_name, child_path in (
+            ("job_database_path", job_database_path),
+            ("artifact_directory", artifact_directory),
+        ):
+            if (
+                child_path == state_directory
+                or state_directory not in child_path.parents
+            ):
+                raise ValueError(
+                    f"{field_name} must be a strict child of state_directory"
+                )
+
+        database_overlaps_artifacts = (
+            job_database_path == artifact_directory
+            or artifact_directory in job_database_path.parents
+            or job_database_path in artifact_directory.parents
+        )
+        if database_overlaps_artifacts:
+            raise ValueError("job_database_path and artifact_directory cannot overlap")
+
+        # Frozen public models prevent caller mutation after validation.
+        # object.__setattr__ is limited to this validator so the two optional
+        # compatibility inputs become canonical, non-optional runtime values.
+        object.__setattr__(self, "state_directory", state_directory)
+        object.__setattr__(self, "job_database_path", job_database_path)
+        object.__setattr__(self, "artifact_directory", artifact_directory)
+        return self
 
 
 class ApplicationAdmissionConfig(FrozenApplicationConfig):
@@ -187,6 +243,7 @@ class RealApplicationConfig(_BaseApplicationConfig):
     """Values required to compose the real subscription/research application."""
 
     codex_home: Path
+    worker_directory: Path = Path("/tmp/txt2crs-worker")
     tavily_api_key: SecretStr
     managed_mcp_host: str = "127.0.0.1"
     managed_mcp_port: int = Field(default=0, ge=0, le=65_535)
@@ -233,15 +290,58 @@ class RealApplicationConfig(_BaseApplicationConfig):
             field_name="codex_home",
         )
         resolved_codex_home = codex_home.resolve(strict=False)
+        worker_directory = _require_absolute_unambiguous_path(
+            self.worker_directory,
+            field_name="worker_directory",
+        ).resolve(strict=False)
         resolved_state_directory = self.storage.state_directory.resolve(strict=False)
+        job_database_path = self.storage.job_database_path
+        artifact_directory = self.storage.artifact_directory
+        # ApplicationStorageConfig canonicalizes both optional compatibility
+        # inputs in its model validator before this outer validator runs.
+        if job_database_path is None or artifact_directory is None:
+            raise ValueError("storage paths were not resolved")
+
+        # A Codex home may be a distinct child of the same owner-only volume or
+        # a completely disjoint private root. It may not equal or contain the
+        # engine state root because that would give credentials ownership of
+        # unrelated durable data.
         if (
             resolved_codex_home == resolved_state_directory
-            or resolved_state_directory in resolved_codex_home.parents
             or resolved_codex_home in resolved_state_directory.parents
         ):
+            raise ValueError("codex_home cannot equal or contain state_directory")
+
+        codex_overlaps_artifacts = (
+            resolved_codex_home == artifact_directory
+            or artifact_directory in resolved_codex_home.parents
+            or resolved_codex_home in artifact_directory.parents
+        )
+        codex_overlaps_database = (
+            resolved_codex_home == job_database_path
+            or job_database_path in resolved_codex_home.parents
+            or resolved_codex_home in job_database_path.parents
+        )
+        if codex_overlaps_artifacts or codex_overlaps_database:
+            raise ValueError("codex_home cannot overlap engine data paths")
+
+        worker_overlaps_state = (
+            worker_directory == resolved_state_directory
+            or resolved_state_directory in worker_directory.parents
+            or worker_directory in resolved_state_directory.parents
+        )
+        worker_overlaps_codex = (
+            worker_directory == resolved_codex_home
+            or resolved_codex_home in worker_directory.parents
+            or worker_directory in resolved_codex_home.parents
+        )
+        if worker_overlaps_state or worker_overlaps_codex:
             raise ValueError(
-                "codex_home and state_directory must be separate private roots"
+                "worker_directory must remain outside persistent private state"
             )
+
+        object.__setattr__(self, "codex_home", resolved_codex_home)
+        object.__setattr__(self, "worker_directory", worker_directory)
         if not self.tavily_api_key.get_secret_value().strip():
             raise ValueError("tavily_api_key cannot be empty")
         Gpt56ModelPolicy(configured_model_id=self.default_execution_profile.model_id)

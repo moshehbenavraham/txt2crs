@@ -151,25 +151,65 @@ def test_real_config_rejects_ambiguous_private_paths(
         )
 
 
-def test_real_config_rejects_nested_or_symlinked_private_roots(
+def test_real_config_accepts_distinct_paths_in_one_private_state_root(
     tmp_path: Path,
 ) -> None:
-    """Credential and engine state cannot alias through nesting or symlinks."""
+    """Shell paths may share one backup root without overlapping each other."""
 
     state_directory = (tmp_path / "state").resolve()
+    config = RealApplicationConfig(
+        storage=ApplicationStorageConfig(
+            state_directory=state_directory,
+            job_database_path=state_directory / "jobs.sqlite3",
+            artifact_directory=state_directory / "artifacts",
+            maximum_artifact_job_bytes=1_000,
+            artifact_retention_days=1,
+        ),
+        admission=_admission(),
+        default_execution_profile=valid_execution_profile(),
+        codex_home=state_directory / "codex-home",
+        worker_directory=(tmp_path / "worker").resolve(),
+        tavily_api_key=SecretStr("test-only"),
+    )
+
+    assert config.storage.job_database_path == state_directory / "jobs.sqlite3"
+    assert config.storage.artifact_directory == state_directory / "artifacts"
+    assert config.codex_home == state_directory / "codex-home"
+    assert config.worker_directory == (tmp_path / "worker").resolve()
+
+
+@pytest.mark.parametrize(
+    "codex_relative_path",
+    [".", "artifacts", "artifacts/codex-home", "jobs.sqlite3"],
+)
+def test_real_config_rejects_overlapping_same_root_paths(
+    tmp_path: Path,
+    codex_relative_path: str,
+) -> None:
+    state_directory = (tmp_path / "state").resolve()
+
     with pytest.raises(ValidationError):
         RealApplicationConfig(
             storage=ApplicationStorageConfig(
                 state_directory=state_directory,
+                job_database_path=state_directory / "jobs.sqlite3",
+                artifact_directory=state_directory / "artifacts",
                 maximum_artifact_job_bytes=1_000,
                 artifact_retention_days=1,
             ),
             admission=_admission(),
             default_execution_profile=valid_execution_profile(),
-            codex_home=state_directory / "codex-home",
+            codex_home=state_directory / codex_relative_path,
             tavily_api_key=SecretStr("test-only"),
         )
 
+
+def test_storage_config_rejects_symlinked_or_escaping_explicit_paths(
+    tmp_path: Path,
+) -> None:
+    """Every explicit durable child stays under the canonical private root."""
+
+    state_directory = (tmp_path / "state").resolve()
     real_parent = tmp_path / "real-parent"
     real_parent.mkdir()
     linked_parent = tmp_path / "linked-parent"
@@ -180,6 +220,93 @@ def test_real_config_rejects_nested_or_symlinked_private_roots(
             maximum_artifact_job_bytes=1_000,
             artifact_retention_days=1,
         )
+
+    with pytest.raises(ValidationError):
+        ApplicationStorageConfig(
+            state_directory=state_directory,
+            job_database_path=tmp_path / "outside.sqlite3",
+            artifact_directory=state_directory / "artifacts",
+            maximum_artifact_job_bytes=1_000,
+            artifact_retention_days=1,
+        )
+
+    state_directory.mkdir()
+    real_artifacts = state_directory / "real-artifacts"
+    real_artifacts.mkdir()
+    linked_artifacts = state_directory / "artifacts"
+    linked_artifacts.symlink_to(real_artifacts, target_is_directory=True)
+    with pytest.raises(ValidationError):
+        ApplicationStorageConfig(
+            state_directory=state_directory,
+            job_database_path=state_directory / "jobs.sqlite3",
+            artifact_directory=linked_artifacts,
+            maximum_artifact_job_bytes=1_000,
+            artifact_retention_days=1,
+        )
+
+
+@pytest.mark.parametrize(
+    "worker_relative_path",
+    ["relative-worker", "state/worker", "state/codex-home/worker"],
+)
+def test_real_config_rejects_unsafe_worker_directory(
+    tmp_path: Path,
+    worker_relative_path: str,
+) -> None:
+    state_directory = (tmp_path / "state").resolve()
+    worker_directory = (
+        Path(worker_relative_path)
+        if worker_relative_path == "relative-worker"
+        else tmp_path / worker_relative_path
+    )
+
+    with pytest.raises(ValidationError):
+        RealApplicationConfig(
+            storage=ApplicationStorageConfig(
+                state_directory=state_directory,
+                maximum_artifact_job_bytes=1_000,
+                artifact_retention_days=1,
+            ),
+            admission=_admission(),
+            default_execution_profile=valid_execution_profile(),
+            codex_home=state_directory / "codex-home",
+            worker_directory=worker_directory,
+            tavily_api_key=SecretStr("test-only"),
+        )
+
+
+def test_real_factory_uses_explicit_database_and_artifact_paths(
+    tmp_path: Path,
+) -> None:
+    """Package composition honors shell paths instead of deriving duplicates."""
+
+    state_directory = (tmp_path / "state").resolve()
+    job_database_path = state_directory / "database" / "jobs.sqlite3"
+    artifact_directory = state_directory / "published-artifacts"
+    application = RealApplicationFactory(
+        RealApplicationConfig(
+            storage=ApplicationStorageConfig(
+                state_directory=state_directory,
+                job_database_path=job_database_path,
+                artifact_directory=artifact_directory,
+                maximum_artifact_job_bytes=1_000,
+                artifact_retention_days=1,
+            ),
+            admission=_admission(),
+            default_execution_profile=valid_execution_profile(),
+            codex_home=state_directory / "codex-home",
+            worker_directory=(tmp_path / "worker").resolve(),
+            tavily_api_key=SecretStr("test-only"),
+        )
+    ).create()
+
+    try:
+        assert job_database_path.is_file()
+        assert artifact_directory.is_dir()
+        assert not (state_directory / "jobs.sqlite3").exists()
+        assert not (state_directory / "artifacts").exists()
+    finally:
+        application.close()
 
 
 @pytest.mark.parametrize("unsafe_host", ["0.0.0.0", "localhost", "192.0.2.10"])
