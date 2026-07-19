@@ -189,6 +189,27 @@ class FailingGenerationPipeline:
         raise RuntimeError("simulated generation failure")
 
 
+class ShutdownInterruptedPipeline:
+    """Represent cooperative process shutdown during provider-backed work."""
+
+    def generate(
+        self,
+        *,
+        preparation: GenerationPreparation,
+        cancellation: CancellationToken,
+        resume_checkpoint: PipelineCheckpoint | None = None,
+        checkpoint_sink: Callable[[PipelineCheckpoint], None] | None = None,
+    ) -> PipelineResult:
+        """Interrupt after preparation without claiming the learner cancelled."""
+
+        assert preparation
+        assert resume_checkpoint is None
+        assert checkpoint_sink is not None
+        cancellation.interrupt_for_shutdown()
+        cancellation.raise_if_cancelled()
+        raise AssertionError("The interruption must stop before output is accepted.")
+
+
 class FailingResultExtractionPipeline:
     """Return a result whose artifact read requires the provider context."""
 
@@ -568,6 +589,43 @@ def test_pipeline_context_closes_after_generation_failure_or_cancellation(
     settled_job = service.resume(job_id=job_id, user_id="user-1").job
     assert settled_job.status is expected_status
     assert settled_job.failure_code == expected_failure_code
+    assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
+
+
+def test_application_shutdown_keeps_interrupted_job_runnable(
+    tmp_path: Path,
+) -> None:
+    """Deployment interruption preserves the exact durable recovery checkpoint."""
+
+    service = _job_service(tmp_path / "jobs.sqlite3")
+    job_id, _request = _submit_pipeline_request(
+        service,
+        idempotency_key="application-shutdown",
+    )
+    pipeline_factory = RecordingPipelineFactory((ShutdownInterruptedPipeline(),))
+    executor = _executor(
+        service=service,
+        preparation_service=_preparation_service(
+            RecordingIngestionService(normalized_text="Teach Python variables.")
+        ),
+        pipeline_factory=pipeline_factory,
+    )
+
+    with pytest.raises(RuntimeError, match="cancelled"):
+        executor.execute(
+            job_id=job_id,
+            user_id="user-1",
+            cancellation=CancellationToken(),
+        )
+
+    resume_state = service.resume(job_id=job_id, user_id="user-1")
+    next_runnable = service.next_runnable()
+    assert resume_state.job.status is JobStatus.researching
+    assert resume_state.job.failure_code is None
+    assert resume_state.checkpoint is not None
+    assert resume_state.checkpoint.stage == "prepare_input"
+    assert next_runnable is not None
+    assert next_runnable.job.job_id == job_id
     assert pipeline_factory.lifecycle_events == ["pipeline.open", "pipeline.close"]
 
 

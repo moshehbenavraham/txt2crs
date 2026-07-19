@@ -7,5 +7,17 @@ at the documented package boundary.
 """
 
 from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
+from app.services.txt2crs_worker import (
+    SerialTxt2CrsWorker,
+    WorkerFailureCode,
+    WorkerSnapshot,
+    WorkerStatus,
+)
 
-__all__ = ["Txt2CrsApplicationLifecycle"]
+__all__ = [
+    "SerialTxt2CrsWorker",
+    "Txt2CrsApplicationLifecycle",
+    "WorkerFailureCode",
+    "WorkerSnapshot",
+    "WorkerStatus",
+]

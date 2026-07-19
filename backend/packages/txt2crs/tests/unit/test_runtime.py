@@ -15,7 +15,12 @@ from txt2crs.ai.codex_runtime import (
 )
 from txt2crs.ai.fake_runtime import FakeRuntime, ScriptedTurn
 from txt2crs.ai.model_policy import Gpt56ModelPolicy
-from txt2crs.ai.runtime import CancellationToken, CodexAdapterResult, TurnRequest
+from txt2crs.ai.runtime import (
+    CancellationReason,
+    CancellationToken,
+    CodexAdapterResult,
+    TurnRequest,
+)
 from txt2crs.ai.runtime_status import (
     CredentialStatus,
     RuntimeReadinessStatus,
@@ -270,3 +275,39 @@ def test_cancelled_fake_turn_never_returns_an_artifact() -> None:
             artifact_model=Course,
             cancellation=cancellation,
         )
+
+
+def test_cancellation_token_records_user_request_by_default() -> None:
+    """Existing direct cancellation keeps its terminal user-action meaning."""
+
+    cancellation = CancellationToken()
+
+    cancellation.cancel()
+
+    assert cancellation.is_cancelled is True
+    assert cancellation.reason is CancellationReason.user_requested
+
+
+@pytest.mark.parametrize(
+    ("first_action", "expected_reason"),
+    [
+        ("user", CancellationReason.user_requested),
+        ("shutdown", CancellationReason.application_shutdown),
+    ],
+)
+def test_cancellation_token_keeps_the_first_authoritative_reason(
+    first_action: str,
+    expected_reason: CancellationReason,
+) -> None:
+    """A later cleanup path cannot rewrite why active work was interrupted."""
+
+    cancellation = CancellationToken()
+
+    if first_action == "user":
+        cancellation.cancel()
+        cancellation.interrupt_for_shutdown()
+    else:
+        cancellation.interrupt_for_shutdown()
+        cancellation.cancel()
+
+    assert cancellation.reason is expected_reason

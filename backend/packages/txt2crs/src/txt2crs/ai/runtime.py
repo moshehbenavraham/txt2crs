@@ -3,7 +3,8 @@
 """Provider-neutral model-turn contracts used by the generation pipeline."""
 
 from dataclasses import dataclass
-from threading import Event
+from enum import StrEnum
+from threading import Event, Lock
 from typing import Any, Protocol
 
 from pydantic import Field
@@ -11,11 +12,20 @@ from pydantic import Field
 from txt2crs.domain.models import Identifier, StrictContract
 
 
+class CancellationReason(StrEnum):
+    """Authoritative reason the first caller stopped one execution."""
+
+    user_requested = "user_requested"
+    application_shutdown = "application_shutdown"
+
+
 class CancellationToken:
-    """A small thread-safe cancellation flag checked at every hard boundary."""
+    """A thread-safe stop flag whose first reason cannot be rewritten."""
 
     def __init__(self) -> None:
         self._cancelled = Event()
+        self._reason_lock = Lock()
+        self._reason: CancellationReason | None = None
 
     @property
     def is_cancelled(self) -> bool:
@@ -23,10 +33,36 @@ class CancellationToken:
 
         return self._cancelled.is_set()
 
-    def cancel(self) -> None:
-        """Request cancellation without waiting for provider cooperation."""
+    @property
+    def reason(self) -> CancellationReason | None:
+        """Return why execution stopped, or ``None`` while it may continue."""
 
-        self._cancelled.set()
+        with self._reason_lock:
+            return self._reason
+
+    def cancel(self) -> None:
+        """Record an explicit user cancellation without waiting for providers."""
+
+        self._request_stop(CancellationReason.user_requested)
+
+    def interrupt_for_shutdown(self) -> None:
+        """Stop for process replacement without claiming the user cancelled."""
+
+        self._request_stop(CancellationReason.application_shutdown)
+
+    def _request_stop(self, reason: CancellationReason) -> None:
+        """
+        Publish only the first stop reason.
+
+        Owner cancellation and application cleanup can race. The first caller
+        is authoritative because rewriting a user cancellation as deployment
+        shutdown, or the reverse, would persist the wrong durable outcome.
+        """
+        with self._reason_lock:
+            if self._reason is not None:
+                return
+            self._reason = reason
+            self._cancelled.set()
 
     def raise_if_cancelled(self) -> None:
         """Stop before accepting output from a cancelled operation."""

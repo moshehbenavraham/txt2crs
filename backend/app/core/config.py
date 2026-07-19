@@ -325,6 +325,16 @@ class Settings(BaseSettings):
     )
     """Maximum bounded wait for managed research MCP shutdown."""
 
+    TXT2CRS_WORKER_POLL_SECONDS: float = Field(default=2, gt=0, le=60)
+    """Durable queue scan interval; in-process nudges only reduce latency."""
+
+    TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
+        default=30,
+        gt=0,
+        le=300,
+    )
+    """Maximum graceful drain before restart-safe worker interruption."""
+
     TXT2CRS_MAX_INPUT_BYTES: int = Field(
         default=20_971_520,
         gt=0,

@@ -145,16 +145,31 @@ class ApplicationExecutor:
                 self._condition.notify_all()
 
     def close(self) -> None:
-        """Request cancellation, wait for execution, and close idempotently."""
+        """Request restart-safe interruption, wait, and close idempotently."""
 
         with self._condition:
             if not self._closed:
                 self._closed = True
-                self._cancellation.cancel()
+                self._cancellation.interrupt_for_shutdown()
             # Cancellation is cooperative, so the configured provider's finite
             # timeouts bound this wait if it is currently inside external work.
             while self._executing:
                 self._condition.wait()
+
+    def request_shutdown(self) -> None:
+        """
+        Signal process interruption without waiting for provider cooperation.
+
+        The shell supervisor first gives active work a finite drain interval.
+        If it expires, this non-blocking method lets the worker leave its last
+        accepted checkpoint runnable while FastAPI continues reverse cleanup.
+        A later ``close`` still joins the execution before resources disappear.
+        """
+        with self._condition:
+            if self._closed:
+                return
+            self._closed = True
+            self._cancellation.interrupt_for_shutdown()
 
     def _is_bound_to_owner(self, *, user_id: str) -> bool:
         """Return whether this immutable handle belongs to one owner."""

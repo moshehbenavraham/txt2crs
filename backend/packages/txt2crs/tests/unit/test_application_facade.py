@@ -16,7 +16,7 @@ from tests.factories import (
     standard_admission_reservation,
     valid_generation_request,
 )
-from txt2crs.ai.runtime import CancellationToken
+from txt2crs.ai.runtime import CancellationReason, CancellationToken
 from txt2crs.ai.runtime_status import (
     CredentialStatus,
     RuntimeReadiness,
@@ -219,6 +219,12 @@ class ObservableCancellationToken(CancellationToken):
         """Set both the production token and the test synchronization event."""
 
         super().cancel()
+        self._cancellation_observed.set()
+
+    def interrupt_for_shutdown(self) -> None:
+        """Observe facade cleanup's restart-safe interruption path."""
+
+        super().interrupt_for_shutdown()
         self._cancellation_observed.set()
 
 
@@ -456,6 +462,44 @@ def test_executor_is_bound_one_shot_and_close_requests_cancellation(
     executor.close()
     executor.close()
     assert executor.cancellation.is_cancelled is True
+    assert executor.cancellation.reason is CancellationReason.application_shutdown
+
+
+def test_executor_shutdown_request_is_non_blocking_and_close_still_joins(
+    tmp_path: Any,
+) -> None:
+    """The supervisor can signal restart-safe interruption before a bounded join."""
+
+    application, job_service, *_rest = _application(tmp_path)
+    runnable = job_service.next_runnable()
+    assert runnable is not None
+    execution_entered = Event()
+    release_execution = Event()
+    executor = ApplicationExecutor(
+        executor=BlockingGenerationExecutor(
+            result=runnable.job,
+            execution_entered=execution_entered,
+            release_execution=release_execution,
+        ),
+        job_id=runnable.job.job_id,
+        user_id=runnable.job.user_id,
+        cancellation=CancellationToken(),
+    )
+    execution_thread = Thread(target=executor.execute)
+    execution_thread.start()
+    assert execution_entered.wait(timeout=2)
+
+    executor.request_shutdown()
+
+    assert executor.cancellation.is_cancelled is True
+    assert executor.cancellation.reason is CancellationReason.application_shutdown
+    assert execution_thread.is_alive() is True
+
+    release_execution.set()
+    executor.close()
+    execution_thread.join(timeout=2)
+    assert execution_thread.is_alive() is False
+    application.close()
 
 
 def test_closed_executor_is_not_retained_for_application_lifetime(
@@ -567,6 +611,7 @@ def test_application_close_is_reverse_order_idempotent_and_blocks_later_use(
 
     assert authenticator.events == ["auth-close"]
     assert executor.cancellation.is_cancelled is True
+    assert executor.cancellation.reason is CancellationReason.application_shutdown
     with pytest.raises(ApplicationClosedError, match="application is closed"):
         application.next_runnable()
     with pytest.raises(ApplicationClosedError, match="application is closed"):

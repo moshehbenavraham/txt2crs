@@ -9,7 +9,7 @@ from dataclasses import asdict
 from hashlib import sha256
 from typing import Protocol
 
-from txt2crs.ai.runtime import CancellationToken
+from txt2crs.ai.runtime import CancellationReason, CancellationToken
 from txt2crs.ai.usage import aggregate_usage
 from txt2crs.domain.validation import validate_artifact_bundle
 from txt2crs.generation.pipeline import PipelineCheckpoint, PipelineResult
@@ -338,8 +338,13 @@ class GenerationJobExecutor:
         current_job: JobRecord,
         cancellation: CancellationToken,
     ) -> None:
-        """Expose cancellation separately from all other generation failures."""
+        """Expose user cancellation without terminalizing process interruption."""
 
+        if cancellation.reason is CancellationReason.application_shutdown:
+            # A deployment replacement is not a learner action. The already
+            # accepted job and checkpoint remain non-terminal so the next
+            # process can discover and resume them exactly.
+            return
         if cancellation.is_cancelled:
             self._job_service.cancel(
                 job_id=current_job.job_id,
