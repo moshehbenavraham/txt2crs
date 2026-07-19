@@ -44,6 +44,10 @@
     {
       "id": "phase01-session01-durable-requests-and-recovery",
       "package": "backend/packages/txt2crs"
+    },
+    {
+      "id": "phase01-session02-safe-queries-and-artifact-access",
+      "package": "backend/packages/txt2crs"
     }
   ],
   "next_session_history": [
@@ -78,6 +82,24 @@
     {
       "date": "2026-07-19",
       "session": "phase01-session01-durable-requests-and-recovery",
+      "package": "backend/packages/txt2crs",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session02-safe-queries-and-artifact-access",
+      "package": "backend/packages/txt2crs",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session02-safe-queries-and-artifact-access",
+      "package": "backend/packages/txt2crs",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase01-session02-safe-queries-and-artifact-access",
       "package": "backend/packages/txt2crs",
       "status": "completed"
     }

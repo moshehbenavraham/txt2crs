@@ -8,17 +8,17 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `0.3.4`. Versions below
+The current repository and Python package release is `0.3.5`. Versions below
 `1.0.0` represent initial development, so the public API may still change. The
 first stable public API will be released as `1.0.0`.
 
 ## Choosing the next version
 
-- **PATCH** (`0.1.0` → `0.1.1`): backward-compatible fixes.
-- **MINOR** (`0.1.0` → `0.2.0`): backward-compatible features. Before `1.0.0`,
+- **PATCH** (`0.1.0` -> `0.1.1`): backward-compatible fixes.
+- **MINOR** (`0.1.0` -> `0.2.0`): backward-compatible features. Before `1.0.0`,
   use a minor bump for intentional breaking changes and explain them in the
   changelog.
-- **MAJOR** (`1.0.0` → `2.0.0`): breaking public-API changes after `1.0.0`.
+- **MAJOR** (`1.0.0` -> `2.0.0`): breaking public-API changes after `1.0.0`.
 - **Pre-release** (`0.1.0-alpha.1`, `0.1.0-beta.1`, or `0.1.0-rc.1`): builds
   that are not yet stable.
 

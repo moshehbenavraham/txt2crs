@@ -1,0 +1,376 @@
+# SPDX-License-Identifier: MIT-0
+
+"""Tests for bounded private-to-public durable job projections."""
+
+from dataclasses import asdict
+from datetime import UTC, datetime
+
+import pytest
+
+from tests.factories import (
+    valid_generation_request,
+    valid_pipeline_checkpoint,
+    valid_source_data,
+)
+from txt2crs.generation.pipeline import PipelineCheckpoint
+from txt2crs.ingestion.models import InputPayload
+from txt2crs.jobs.models import JobCheckpoint, JobRecord, JobStatus, ResumeState
+from txt2crs.jobs.public_queries import (
+    PublicJobProjectionError,
+    project_public_job_snapshot,
+)
+
+_PRIVATE_INPUT = "PRIVATE NORMALIZED LEARNER INPUT SENTINEL"
+_PRIVATE_EVIDENCE = "PRIVATE EVIDENCE EXCERPT SENTINEL"
+_PRIVATE_PROVIDER_ID = "provider-private-model-id"
+_PRIVATE_PATH = "/home/ada/private/course-source.pdf"
+_HASH = "sha256:" + ("a" * 64)
+
+
+def _job(
+    *,
+    status: JobStatus = JobStatus.validating,
+    failure_code: str | None = None,
+) -> JobRecord:
+    """Return one authorized durable job with stable public timestamps."""
+
+    return JobRecord(
+        schema_version="1.0",
+        job_id="job-public-query",
+        user_id="owner-1",
+        idempotency_key="private-idempotency-key",
+        request_hash="sha256:" + ("b" * 64),
+        status=status,
+        revision=7,
+        failure_code=failure_code,
+        created_at=datetime(2026, 7, 19, 10, 0, tzinfo=UTC),
+        updated_at=datetime(2026, 7, 19, 10, 15, tzinfo=UTC),
+    )
+
+
+def _complete_pipeline_checkpoint() -> PipelineCheckpoint:
+    """Build accepted cumulative state containing both public and private data."""
+
+    source_data = valid_source_data()
+    source_data["canonical_url"] = (
+        "https://docs.python.org/3/tutorial/?access_token=private#section"
+    )
+    source_data["title"] = "The Python Tutorial token-secret123456"
+    source_data["publisher_or_author"] = "Python Software Foundation"
+
+    private_evidence_data = {
+        "schema_version": "1.0",
+        "evidence_id": "ev-private",
+        "source_id": source_data["source_id"],
+        "excerpt": _PRIVATE_EVIDENCE,
+        "location": {
+            "label": "Private source location",
+            "page": 4,
+            "timestamp_seconds": None,
+        },
+        "content_hash": _HASH,
+        "retrieval_method": "web_extract",
+        "prompt_injection_warning": True,
+    }
+
+    return valid_pipeline_checkpoint(
+        normalized_text=_PRIVATE_INPUT,
+        input_type="pdf",
+        media_type="application/pdf",
+        input_metadata={
+            "private_path": _PRIVATE_PATH,
+            "provider_request_id": "provider-private-request-id",
+        },
+        warnings=[
+            f"Recovered OCR warning from {_PRIVATE_PATH}",
+            "x" * 2_000,
+        ],
+        source_data=source_data,
+        evidence_data=private_evidence_data,
+        unresolved_conflicts=[
+            "Conflicting duration guidance",
+            f"Private diagnostic at {_PRIVATE_PATH}",
+        ],
+        usage_records=[
+            {
+                "billing_source": "chatgpt_subscription",
+                "token_usage_state": "reported",
+                "subscription_quota_state": "available",
+                "input_tokens": 987,
+                "output_tokens": 654,
+                "estimated_api_cost": None,
+                "model_id": _PRIVATE_PROVIDER_ID,
+                "latency_ms": 123,
+                "retries": 1,
+            }
+        ],
+    )
+
+
+def _resume_state(
+    *,
+    job: JobRecord | None = None,
+    checkpoint: PipelineCheckpoint | None = None,
+) -> ResumeState:
+    """Wrap a complete request and optional pipeline checkpoint for projection."""
+
+    request = valid_generation_request(
+        input_payload=InputPayload(
+            input_type="pdf",
+            value=b"%PDF-private-raw-bytes",
+            media_type="application/pdf",
+            file_name="../../private/course-source.pdf",
+            metadata={"private_path": _PRIVATE_PATH},
+        )
+    )
+    durable_checkpoint = (
+        JobCheckpoint(
+            schema_version="1.0",
+            checkpoint_id="checkpoint-public-query-9",
+            job_id=(job or _job()).job_id,
+            stage=checkpoint.stage,
+            sequence=checkpoint.sequence,
+            artifact_version=_HASH,
+            evidence_version=_HASH,
+            artifact=checkpoint.model_dump(mode="json"),
+            budget_snapshot=asdict(checkpoint.budget_snapshot),
+        )
+        if checkpoint is not None
+        else None
+    )
+    return ResumeState(
+        job=job or _job(),
+        request=request,
+        checkpoint=durable_checkpoint,
+    )
+
+
+def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> None:
+    """A realistic cumulative checkpoint cannot leak through public JSON."""
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=_complete_pipeline_checkpoint()),
+        artifact_manifest=None,
+    )
+    serialized_snapshot = snapshot.model_dump_json()
+
+    assert snapshot.job_id == "job-public-query"
+    assert snapshot.status is JobStatus.validating
+    assert snapshot.last_accepted_stage == "cross_validate_artifacts"
+    assert snapshot.progress.completed_units == 9
+    assert snapshot.progress.total_units == 9
+    assert snapshot.input.input_type == "pdf"
+    assert snapshot.input.display_name == "course-source.pdf"
+    assert snapshot.course_title == "Python Basics"
+    assert snapshot.sources[0].canonical_url == "https://docs.python.org/3/tutorial/"
+    assert snapshot.sources[0].title == "The Python Tutorial [REDACTED]"
+    assert snapshot.conflicts[0] == "Conflicting duration guidance"
+    assert snapshot.conflicts[1] == "Private diagnostic at [PRIVATE_PATH]"
+    assert snapshot.artifacts.available is False
+    assert snapshot.artifacts.count == 0
+
+    for private_value in (
+        _PRIVATE_INPUT,
+        _PRIVATE_EVIDENCE,
+        _PRIVATE_PROVIDER_ID,
+        _PRIVATE_PATH,
+        "private-idempotency-key",
+        "provider-private-request-id",
+        "access_token",
+        "private-raw-bytes",
+        "987",
+        "654",
+    ):
+        assert private_value not in serialized_snapshot
+
+    assert set(snapshot.model_dump(mode="json")) == {
+        "schema_version",
+        "job_id",
+        "status",
+        "created_at",
+        "updated_at",
+        "last_accepted_stage",
+        "progress",
+        "input",
+        "failure",
+        "course_title",
+        "sources",
+        "conflicts",
+        "artifacts",
+    }
+
+
+def test_public_snapshot_bounds_messages_lists_and_progress() -> None:
+    """Untrusted display strings and counters stay finite and coherent."""
+
+    checkpoint = _complete_pipeline_checkpoint()
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=checkpoint),
+        artifact_manifest=None,
+    )
+
+    assert len(snapshot.input.extraction_warnings) == 2
+    assert all(len(warning) <= 500 for warning in snapshot.input.extraction_warnings)
+    assert 0 <= snapshot.progress.completed_units <= snapshot.progress.total_units
+    assert snapshot.progress.total_units <= 108
+    assert all(len(conflict) <= 500 for conflict in snapshot.conflicts)
+    assert len(snapshot.sources) <= 100
+
+
+def test_public_snapshot_truncates_lists_and_omits_credential_urls() -> None:
+    """Maximum private lists and credential URLs cannot expand public output."""
+
+    credential_source = valid_source_data()
+    credential_source["canonical_url"] = (
+        "https://private-user:private-password@example.test/source?token=private"
+    )
+    checkpoint = valid_pipeline_checkpoint(
+        warnings=[f"Extraction warning {index}" for index in range(100)],
+        unresolved_conflicts=[f"Unresolved conflict {index}" for index in range(100)],
+        source_data=credential_source,
+    )
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=checkpoint),
+        artifact_manifest=None,
+    )
+
+    assert len(snapshot.input.extraction_warnings) == 20
+    assert snapshot.input.extraction_warnings[0] == "Extraction warning 0"
+    assert snapshot.input.extraction_warnings[-1] == "Extraction warning 19"
+    assert len(snapshot.conflicts) == 20
+    assert snapshot.conflicts[0] == "Unresolved conflict 0"
+    assert snapshot.conflicts[-1] == "Unresolved conflict 19"
+    assert snapshot.sources[0].canonical_url is None
+    assert "private-user" not in snapshot.model_dump_json()
+    assert "private-password" not in snapshot.model_dump_json()
+
+
+def test_public_snapshot_omits_secret_shaped_url_paths() -> None:
+    """A path segment must not become a second way to reflect URL credentials."""
+
+    private_path_token = "token-secret123456"
+    credential_source = valid_source_data()
+    credential_source["canonical_url"] = (
+        f"https://example.test/course/{private_path_token}/lesson"
+    )
+    checkpoint = valid_pipeline_checkpoint(source_data=credential_source)
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=checkpoint),
+        artifact_manifest=None,
+    )
+
+    assert snapshot.sources[0].canonical_url is None
+    assert private_path_token not in snapshot.model_dump_json()
+
+
+def test_accepted_snapshot_uses_fixed_display_copy_without_raw_input() -> None:
+    """A request without a checkpoint exposes only a safe source label."""
+
+    resume_state = _resume_state(job=_job(status=JobStatus.accepted))
+
+    snapshot = project_public_job_snapshot(
+        resume_state=resume_state,
+        artifact_manifest=None,
+    )
+
+    assert snapshot.status is JobStatus.accepted
+    assert snapshot.last_accepted_stage is None
+    assert snapshot.progress.completed_units == 0
+    assert snapshot.input.display_name == "course-source.pdf"
+    assert snapshot.input.extraction_warnings == ()
+    assert snapshot.course_title is None
+    assert snapshot.sources == ()
+    assert snapshot.conflicts == ()
+    assert "%PDF-private-raw-bytes" not in snapshot.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    ("failure_code", "public_code", "public_message"),
+    [
+        (
+            "provider_consent_required",
+            "provider_consent_required",
+            "Permission to use the configured providers is required.",
+        ),
+        (
+            "private_provider_failure_code",
+            "generation_failed",
+            "Course generation could not be completed.",
+        ),
+        (
+            "cancelled",
+            "cancelled",
+            "Course generation was cancelled.",
+        ),
+    ],
+)
+def test_public_failure_mapping_never_reflects_private_codes(
+    failure_code: str,
+    public_code: str,
+    public_message: str,
+) -> None:
+    """Only reviewed package failures cross the public projection boundary."""
+
+    status = JobStatus.cancelled if failure_code == "cancelled" else JobStatus.failed
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(job=_job(status=status, failure_code=failure_code)),
+        artifact_manifest=None,
+    )
+
+    assert snapshot.failure is not None
+    assert snapshot.failure.code == public_code
+    assert snapshot.failure.message == public_message
+    if failure_code == "private_provider_failure_code":
+        assert failure_code not in snapshot.model_dump_json()
+
+
+def test_failed_snapshot_cannot_report_a_cancelled_failure() -> None:
+    """A private code cannot contradict the durable public terminal status."""
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(
+            job=_job(status=JobStatus.failed, failure_code="cancelled")
+        ),
+        artifact_manifest=None,
+    )
+
+    assert snapshot.failure is not None
+    assert snapshot.failure.code == "generation_failed"
+    assert snapshot.failure.message == "Course generation could not be completed."
+
+
+def test_incompatible_checkpoint_raises_context_free_projection_error() -> None:
+    """Corrupt private checkpoint content is never echoed or chained publicly."""
+
+    private_sentinel = "PRIVATE MALFORMED CHECKPOINT SENTINEL"
+    resume_state = _resume_state(job=_job(status=JobStatus.drafting))
+    resume_state = ResumeState(
+        job=resume_state.job,
+        request=resume_state.request,
+        checkpoint=JobCheckpoint(
+            schema_version="1.0",
+            checkpoint_id="checkpoint-malformed",
+            job_id=resume_state.job.job_id,
+            stage="write_module:private",
+            sequence=5,
+            artifact_version=_HASH,
+            evidence_version=None,
+            artifact={"raw_private_payload": private_sentinel},
+            budget_snapshot={"private_tokens": 999},
+        ),
+    )
+
+    with pytest.raises(
+        PublicJobProjectionError,
+        match="public job snapshot",
+    ) as error_info:
+        project_public_job_snapshot(
+            resume_state=resume_state,
+            artifact_manifest=None,
+        )
+
+    assert private_sentinel not in str(error_info.value)
+    assert error_info.value.__cause__ is None
+    assert error_info.value.__context__ is None

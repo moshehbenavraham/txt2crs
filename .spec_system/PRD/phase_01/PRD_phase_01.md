@@ -4,7 +4,7 @@
 **Sessions**: 5
 **Estimated Duration**: 2-4 days
 
-**Progress**: 1/5 sessions (20%)
+**Progress**: 2/5 sessions (40%)
 
 ---
 
@@ -23,7 +23,7 @@ gaps that currently prevent application composition.
 | Session | Name | Status | Est. Tasks | Validated |
 |---------|------|--------|------------|-----------|
 | 01 | Durable Requests and Recovery | Complete | ~18-24 | 2026-07-19 |
-| 02 | Safe Queries and Artifact Access | Not Started | ~16-22 | - |
+| 02 | Safe Queries and Artifact Access | Complete | 22 | 2026-07-19 |
 | 03 | Input Preferences and Policy Gate | Not Started | ~20-25 | - |
 | 04 | Managed Runtime and Model Policy | Not Started | ~18-24 | - |
 | 05 | Public Facade and Owner Lifecycle | Not Started | ~16-22 | - |
@@ -33,12 +33,12 @@ gaps that currently prevent application composition.
 ## Completed Sessions
 
 - Session 01: Durable Requests and Recovery - completed 2026-07-19
+- Session 02: Safe Queries and Artifact Access - completed 2026-07-19
 
 ---
 
 ## Upcoming Sessions
 
-- Session 02: Safe Queries and Artifact Access
 - Session 03: Input Preferences and Policy Gate
 - Session 04: Managed Runtime and Model Policy
 - Session 05: Public Facade and Owner Lifecycle

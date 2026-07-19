@@ -2,6 +2,7 @@
 
 """Tests for accepted-only checkpoints and exactly-once private delivery."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -269,6 +270,159 @@ def test_completion_stores_private_artifacts_and_notifies_once(tmp_path: Path) -
     )
     with pytest.raises(JobNotFoundError):
         artifact_store.get(user_id="user-2", job_id=rendering_job.job_id)
+
+
+def test_in_memory_artifact_queries_are_owner_scoped_and_context_managed() -> None:
+    """The deterministic store matches real manifest and stream semantics."""
+
+    artifact_store = InMemoryPrivateArtifactStore()
+    artifact_store.save(
+        user_id="user-1",
+        job_id="job-in-memory",
+        artifacts={
+            "course_markdown": RenderedArtifact(
+                file_name="course.md",
+                media_type="text/markdown",
+                content=b"# In-memory course",
+            ),
+            "assessment_pdf": RenderedArtifact(
+                file_name="assessment.pdf",
+                media_type="application/pdf",
+                content=b"%PDF-assessment",
+            ),
+        },
+    )
+
+    manifest = artifact_store.get_manifest(
+        user_id="user-1",
+        job_id="job-in-memory",
+    )
+    with artifact_store.open_artifact(
+        user_id="user-1",
+        job_id="job-in-memory",
+        artifact_id="course_markdown",
+    ) as artifact_chunks:
+        streamed_content = b"".join(artifact_chunks)
+
+    assert [artifact.artifact_id for artifact in manifest.artifacts] == [
+        "assessment_pdf",
+        "course_markdown",
+    ]
+    assert streamed_content == b"# In-memory course"
+    messages: list[str] = []
+    for user_id, artifact_id in (
+        ("user-2", "course_markdown"),
+        ("user-1", "artifact-missing"),
+    ):
+        with pytest.raises(JobNotFoundError) as error_info:
+            with artifact_store.open_artifact(
+                user_id=user_id,
+                job_id="job-in-memory",
+                artifact_id=artifact_id,
+            ):
+                pytest.fail("Unauthorized or missing artifacts must not stream.")
+        messages.append(str(error_info.value))
+    assert messages[0] == messages[1]
+
+
+def test_in_memory_artifact_save_is_atomic_when_manifest_clock_fails() -> None:
+    """A timestamp failure cannot leave an unreadable half-created entry."""
+
+    clock_values = iter(
+        (
+            datetime(2026, 7, 19, 12, 0),
+            datetime(2026, 7, 19, 12, 1, tzinfo=UTC),
+        )
+    )
+    artifact_store = InMemoryPrivateArtifactStore(clock=lambda: next(clock_values))
+    artifacts = {
+        "course_markdown": RenderedArtifact(
+            file_name="course.md",
+            media_type="text/markdown",
+            content=b"# Course",
+        )
+    }
+
+    with pytest.raises(ValueError, match="timezone-aware"):
+        artifact_store.save(
+            user_id="user-1",
+            job_id="job-clock-retry",
+            artifacts=artifacts,
+        )
+    artifact_store.save(
+        user_id="user-1",
+        job_id="job-clock-retry",
+        artifacts=artifacts,
+    )
+
+    manifest = artifact_store.get_manifest(
+        user_id="user-1",
+        job_id="job-clock-retry",
+    )
+    assert [artifact.artifact_id for artifact in manifest.artifacts] == [
+        "course_markdown"
+    ]
+    assert artifact_store.save_count == 1
+
+
+def test_in_memory_artifact_save_rejects_empty_sets() -> None:
+    """The deterministic store matches the production store's nonempty rule."""
+
+    artifact_store = InMemoryPrivateArtifactStore()
+
+    with pytest.raises(ValueError, match="At least one"):
+        artifact_store.save(
+            user_id="user-1",
+            job_id="job-empty",
+            artifacts={},
+        )
+
+
+def test_in_memory_artifact_save_rejects_unsafe_metadata() -> None:
+    """Deterministic tests cannot accept data the production writer rejects."""
+
+    artifact_store = InMemoryPrivateArtifactStore()
+
+    with pytest.raises(ValueError, match="file name"):
+        artifact_store.save(
+            user_id="user-1",
+            job_id="job-unsafe-metadata",
+            artifacts={
+                "course_markdown": RenderedArtifact(
+                    file_name="course.md\r\nX-Injected: yes",
+                    media_type="text/markdown",
+                    content=b"# Course",
+                )
+            },
+        )
+
+
+def test_public_snapshot_reports_unpublished_artifacts_after_owner_check(
+    tmp_path: Path,
+) -> None:
+    """An authorized accepted job may safely have no artifact manifest yet."""
+
+    service, _artifact_store, _notification_sink = job_service(tmp_path)
+    submitted_job = service.submit(
+        user_id="user-1",
+        idempotency_key="snapshot-before-artifacts",
+        generation_request=valid_generation_request(),
+        admission_reservation=standard_admission_reservation(),
+    )
+
+    snapshot = service.get_public_snapshot(
+        job_id=submitted_job.job_id,
+        user_id="user-1",
+    )
+
+    assert snapshot.status is JobStatus.accepted
+    assert snapshot.artifacts.available is False
+    assert snapshot.artifacts.count == 0
+    with pytest.raises(JobNotFoundError):
+        service.get_public_snapshot(
+            job_id=submitted_job.job_id,
+            user_id="user-2",
+        )
 
 
 def test_delivery_resumes_after_worker_failure_in_delivering_state(

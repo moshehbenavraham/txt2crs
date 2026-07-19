@@ -11,7 +11,9 @@ from copy import deepcopy
 from hashlib import sha256
 from typing import Any
 
-from txt2crs.ingestion.models import InputPayload
+from txt2crs.ai.budgets import RunBudgetSnapshot
+from txt2crs.generation.pipeline import PipelineCheckpoint
+from txt2crs.ingestion.models import InputPayload, InputType
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
 from txt2crs.jobs.requests import (
     ExecutionProfile,
@@ -399,4 +401,123 @@ def valid_generation_request(
         learner_age_group=learner_age_group,
         policy_flags=policy_flags,
         execution_profile=execution_profile or valid_execution_profile(),
+    )
+
+
+def valid_pipeline_checkpoint(
+    *,
+    normalized_text: str = "Private normalized course input.",
+    input_type: InputType = "text",
+    media_type: str = "text/plain",
+    input_metadata: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
+    source_data: dict[str, Any] | None = None,
+    evidence_data: dict[str, Any] | None = None,
+    unresolved_conflicts: list[str] | None = None,
+    usage_records: list[dict[str, Any]] | None = None,
+) -> PipelineCheckpoint:
+    """Return one final cumulative checkpoint for public-query tests.
+
+    The helper deliberately permits tests to inject private sentinels into
+    nested state. Production projection tests can then prove those values stay
+    absent without rebuilding the pipeline's many referenced contracts.
+    """
+
+    retained_source = deepcopy(source_data or valid_source_data())
+    retained_evidence = deepcopy(evidence_data or valid_evidence_data())
+    course_data = valid_course_data()
+    course_data["sources"] = [retained_source]
+    course_data["evidence"] = [retained_evidence]
+    course_data["unresolved_or_conflicting_claims"] = list(unresolved_conflicts or [])
+
+    # Replacing an evidence fixture requires every course-local reference to
+    # point at the replacement ID so the checkpoint stays structurally valid.
+    replacement_evidence_id = retained_evidence["evidence_id"]
+    for module in course_data["modules"]:
+        for section in module["sections"]:
+            for content_block in section["content_blocks"]:
+                content_block["evidence_ids"] = [replacement_evidence_id]
+    for citation in course_data["citations"]:
+        citation["evidence_ids"] = [replacement_evidence_id]
+
+    module_draft_data = valid_course_module_draft_data()
+    module_draft_data["module"] = deepcopy(course_data["modules"][0])
+    module_draft_data["unresolved_or_conflicting_claims"] = list(
+        course_data["unresolved_or_conflicting_claims"]
+    )
+    module_draft_data["citations"] = deepcopy(course_data["citations"])
+
+    checkpoint_hash = _hash_text("valid public-query checkpoint")
+    return PipelineCheckpoint.model_validate(
+        {
+            "schema_version": "1.0",
+            "stage": "cross_validate_artifacts",
+            "sequence": 9,
+            "request_hash": checkpoint_hash,
+            "input_document": {
+                "schema_version": "1.0",
+                "document_id": "document-public-query",
+                "input_type": input_type,
+                "media_type": media_type,
+                "normalized_text": normalized_text,
+                "language": "en",
+                "metadata": input_metadata or {},
+                "content_hash": checkpoint_hash,
+                "warnings": warnings or [],
+                "locations": [],
+            },
+            "research_plan": {
+                "schema_version": "1.0",
+                "plan_id": "research-plan-public-query",
+                "questions": [
+                    {
+                        "question_id": "question-public-query",
+                        "question": "What reviewed evidence supports this course?",
+                        "preferred_source_types": ["official documentation"],
+                        "freshness_days": None,
+                    }
+                ],
+                "maximum_sources": 10,
+                "stop_criteria": ["Enough evidence supports the learning goals."],
+            },
+            "evidence_set": {
+                "schema_version": "1.0",
+                "evidence_version": checkpoint_hash,
+                "sources": [retained_source],
+                "excerpts": [retained_evidence],
+                "selection_scores": [],
+            },
+            "course_plan": {
+                "schema_version": "1.0",
+                "plan_id": "course-plan-public-query",
+                "course_id": course_data["course_id"],
+                "title": course_data["title"],
+                "language": course_data["language"],
+                "audience": course_data["audience"],
+                "level": course_data["level"],
+                "prerequisites": course_data["prerequisites"],
+                "duration_minutes": 120,
+                "accessibility_requirements": ["Semantic headings"],
+                "learning_objectives": course_data["learning_objectives"],
+                "modules": [
+                    {
+                        "module_id": course_data["modules"][0]["module_id"],
+                        "title": course_data["modules"][0]["title"],
+                        "objective_ids": course_data["modules"][0]["objective_ids"],
+                        "section_ids": [
+                            section["section_id"]
+                            for section in course_data["modules"][0]["sections"]
+                        ],
+                    }
+                ],
+            },
+            "course_module_drafts": [module_draft_data],
+            "course": course_data,
+            "review_pack": valid_review_pack_data(),
+            "assessment_blueprint": valid_assessment_blueprint_data(),
+            "assessment": valid_assessment_data(),
+            "answer_key": valid_answer_key_data(),
+            "usage_records": usage_records or [],
+            "budget_snapshot": RunBudgetSnapshot(),
+        }
     )

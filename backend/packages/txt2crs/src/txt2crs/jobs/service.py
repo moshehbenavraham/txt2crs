@@ -3,18 +3,31 @@
 """Owner-authorized job application service and private delivery boundary."""
 
 import json
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
+from datetime import UTC, datetime
 from hashlib import sha256
 from threading import RLock
 from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from txt2crs.jobs.artifact_queries import (
+    ARTIFACT_STREAM_CHUNK_BYTES,
+    ArtifactManifest,
+    _build_artifact_manifest_from_rendered,
+    _validate_private_rendered_artifact_metadata,
+)
 from txt2crs.jobs.models import (
     CompletedJobPayload,
     JobCheckpoint,
     JobRecord,
     JobStatus,
     ResumeState,
+)
+from txt2crs.jobs.public_queries import (
+    PublicJobSnapshot,
+    project_public_job_snapshot,
 )
 from txt2crs.jobs.quota import AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
@@ -28,7 +41,7 @@ from txt2crs.rendering.artifacts import RenderedArtifact
 
 
 class PrivateArtifactStore(Protocol):
-    """Store generated artifacts behind owner authorization."""
+    """Store and read generated artifacts behind owner authorization."""
 
     def save(
         self,
@@ -38,6 +51,23 @@ class PrivateArtifactStore(Protocol):
         artifacts: dict[str, RenderedArtifact],
     ) -> None:
         """Persist one idempotent private artifact set."""
+
+    def get_manifest(
+        self,
+        *,
+        user_id: str,
+        job_id: str,
+    ) -> ArtifactManifest:
+        """Return verified path-free metadata for one exact owner and job."""
+
+    def open_artifact(
+        self,
+        *,
+        user_id: str,
+        job_id: str,
+        artifact_id: str,
+    ) -> AbstractContextManager[Iterator[bytes]]:
+        """Open one verified bounded byte stream for the context lifetime."""
 
 
 class CompletionNotificationSink(Protocol):
@@ -56,12 +86,18 @@ class CompletionNotificationSink(Protocol):
 class InMemoryPrivateArtifactStore:
     """Owner-scoped deterministic artifact store for tests/local demos."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         self._artifacts: dict[
             tuple[str, str],
             dict[str, RenderedArtifact],
         ] = {}
+        self._created_at: dict[tuple[str, str], datetime] = {}
         self._lock = RLock()
+        self._clock = clock or (lambda: datetime.now(UTC))
         self.save_count = 0
 
     def save(
@@ -73,14 +109,22 @@ class InMemoryPrivateArtifactStore:
     ) -> None:
         """Save once; exact replays are harmless and conflicts fail closed."""
 
+        _validate_private_rendered_artifact_metadata(artifacts)
         storage_key = (user_id, job_id)
+        artifact_snapshot = dict(artifacts)
         with self._lock:
             existing_artifacts = self._artifacts.get(storage_key)
             if existing_artifacts is not None:
-                if existing_artifacts != artifacts:
+                if existing_artifacts != artifact_snapshot:
                     raise ValueError("A different private artifact set already exists.")
                 return
-            self._artifacts[storage_key] = dict(artifacts)
+            # Obtain and validate the timestamp before mutating either map.
+            # Otherwise a failing clock would leave an artifact entry with no
+            # corresponding manifest metadata, and an exact retry would return
+            # early from that permanently partial state.
+            created_at = self._now()
+            self._artifacts[storage_key] = artifact_snapshot
+            self._created_at[storage_key] = created_at
             self.save_count += 1
 
     def get(
@@ -96,6 +140,64 @@ class InMemoryPrivateArtifactStore:
             if artifacts is None:
                 raise JobNotFoundError("The requested artifacts were not found.")
             return dict(artifacts)
+
+    def get_manifest(
+        self,
+        *,
+        user_id: str,
+        job_id: str,
+    ) -> ArtifactManifest:
+        """Return canonical metadata from one immutable in-memory snapshot."""
+
+        storage_key = (user_id, job_id)
+        with self._lock:
+            artifacts = self._artifacts.get(storage_key)
+            created_at = self._created_at.get(storage_key)
+            if artifacts is None or created_at is None:
+                raise JobNotFoundError("The requested artifact was not found.")
+            artifact_snapshot = dict(artifacts)
+        return _build_artifact_manifest_from_rendered(
+            job_id=job_id,
+            created_at=created_at,
+            artifacts=artifact_snapshot,
+        )
+
+    @contextmanager
+    def open_artifact(
+        self,
+        *,
+        user_id: str,
+        job_id: str,
+        artifact_id: str,
+    ) -> Iterator[Iterator[bytes]]:
+        """Yield immutable bounded chunks for one exact owner and artifact ID."""
+
+        storage_key = (user_id, job_id)
+        with self._lock:
+            artifacts = self._artifacts.get(storage_key)
+            created_at = self._created_at.get(storage_key)
+            selected_artifact = (
+                artifacts.get(artifact_id) if artifacts is not None else None
+            )
+            if selected_artifact is None or created_at is None:
+                raise JobNotFoundError("The requested artifact was not found.")
+            # Validate the selected public ID/metadata through the same strict
+            # models used by the filesystem store before yielding its bytes.
+            _build_artifact_manifest_from_rendered(
+                job_id=job_id,
+                created_at=created_at,
+                artifacts={artifact_id: selected_artifact},
+            )
+            content_snapshot = bytes(selected_artifact.content)
+        yield _iter_in_memory_artifact_chunks(content_snapshot)
+
+    def _now(self) -> datetime:
+        """Return an aware UTC timestamp for immutable manifest metadata."""
+
+        current_time = self._clock()
+        if current_time.tzinfo is None:
+            raise ValueError("Artifact store clock must return a timezone-aware time.")
+        return current_time.astimezone(UTC)
 
 
 class JobService:
@@ -154,6 +256,64 @@ class JobService:
         """Return one exact worker item without exposing store queries."""
 
         return self._store.next_runnable_job()
+
+    def get_public_snapshot(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> PublicJobSnapshot:
+        """Return one owner-authorized allowlist without private resume state."""
+
+        # Authorize and snapshot the durable job first. Only an authorized
+        # caller may learn whether that job has a published artifact manifest.
+        resume_state = self._store.get_resume_state(
+            job_id=job_id,
+            user_id=user_id,
+        )
+        artifact_manifest: ArtifactManifest | None = None
+        try:
+            artifact_manifest = self._artifact_store.get_manifest(
+                user_id=user_id,
+                job_id=job_id,
+            )
+        except JobNotFoundError:
+            # A job can be accepted or actively generating before artifacts
+            # exist. Integrity failures remain visible and are never converted
+            # into a false "not available" result.
+            pass
+        return project_public_job_snapshot(
+            resume_state=resume_state,
+            artifact_manifest=artifact_manifest,
+        )
+
+    def get_artifact_manifest(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> ArtifactManifest:
+        """Return owner-scoped path-free artifact metadata."""
+
+        return self._artifact_store.get_manifest(
+            user_id=user_id,
+            job_id=job_id,
+        )
+
+    def open_artifact(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+        artifact_id: str,
+    ) -> AbstractContextManager[Iterator[bytes]]:
+        """Return the package-owned context for one verified private stream."""
+
+        return self._artifact_store.open_artifact(
+            user_id=user_id,
+            job_id=job_id,
+            artifact_id=artifact_id,
+        )
 
     def fail(
         self,
@@ -321,3 +481,10 @@ def _hash_completed_payload(payload: CompletedJobPayload) -> str:
         separators=(",", ":"),
     )
     return f"sha256:{sha256(canonical_json.encode('utf-8')).hexdigest()}"
+
+
+def _iter_in_memory_artifact_chunks(content: bytes) -> Iterator[bytes]:
+    """Yield the deterministic store's immutable bytes in production-sized chunks."""
+
+    for offset in range(0, len(content), ARTIFACT_STREAM_CHUNK_BYTES):
+        yield content[offset : offset + ARTIFACT_STREAM_CHUNK_BYTES]

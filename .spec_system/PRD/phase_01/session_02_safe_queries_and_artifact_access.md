@@ -2,8 +2,8 @@
 
 **Session ID**: `phase01-session02-safe-queries-and-artifact-access`
 **Package**: backend/packages/txt2crs
-**Status**: Not Started
-**Estimated Tasks**: ~16-22
+**Status**: Complete
+**Estimated Tasks**: 22
 **Estimated Duration**: 2-4 hours
 
 ---
@@ -38,8 +38,8 @@ private engine state, checkpoint payloads, or filesystem paths.
 
 ## Prerequisites
 
-- [ ] Session 01 request persistence and recovery contracts are validated.
-- [ ] Existing artifact-store integrity and bundle-read tests remain green.
+- [x] Session 01 request persistence and recovery contracts are validated.
+- [x] Existing artifact-store integrity and bundle-read tests remain green.
 
 ---
 
