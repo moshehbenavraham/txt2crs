@@ -20,10 +20,12 @@ from txt2crs.generation import (
     PreparedLearningPreferences,
 )
 from txt2crs.jobs import (
+    AdmissionReservation,
     CurriculumShapeLimits,
     GenerationPreparation,
     GenerationPreparationService,
     InputIngestionService,
+    InputPayload,
     LearningPreferenceDefaults,
     PreparationPolicyError,
 )
@@ -33,10 +35,12 @@ assert all(
         CourseGenerationPipeline,
         LearningPreferences,
         PreparedLearningPreferences,
+        AdmissionReservation,
         CurriculumShapeLimits,
         GenerationPreparation,
         GenerationPreparationService,
         InputIngestionService,
+        InputPayload,
         LearningPreferenceDefaults,
         PreparationPolicyError,
     )
@@ -79,6 +83,7 @@ from txt2crs.application import (
     SystemAuthenticationError,
     SystemAuthenticationSnapshot,
     SystemAuthenticationState,
+    SubmissionPreflightEvaluator,
     Txt2CrsApplication,
 )
 assert all(
@@ -96,6 +101,7 @@ assert all(
         SystemAuthenticationError,
         SystemAuthenticationSnapshot,
         SystemAuthenticationState,
+        SubmissionPreflightEvaluator,
         Txt2CrsApplication,
     )
 )

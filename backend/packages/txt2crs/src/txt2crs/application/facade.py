@@ -15,10 +15,12 @@ from txt2crs.application.owner_lifecycle import OwnerPurgeResult
 from txt2crs.application.readiness import ApplicationReadiness
 from txt2crs.jobs.artifact_queries import ArtifactManifest
 from txt2crs.jobs.models import JobRecord, ResumeState
+from txt2crs.jobs.preparation import PreparationPolicyError
 from txt2crs.jobs.public_queries import PublicJobSnapshot
 from txt2crs.jobs.quota import AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
+from txt2crs.security.policy import PolicyDecision, PolicyOutcome
 
 
 class ApplicationClosedError(RuntimeError):
@@ -45,6 +47,16 @@ class ApplicationReadinessInspector(Protocol):
 
     def inspect_readiness(self) -> ApplicationReadiness:
         """Return one package-owned aggregate projection."""
+
+
+class SubmissionPreflightEvaluator(Protocol):
+    """Evaluate the package's synchronous policy before a durable write."""
+
+    def evaluate_preflight(
+        self,
+        generation_request: GenerationRequest,
+    ) -> PolicyDecision:
+        """Return one safe package-owned submission decision."""
 
 
 class SystemAuthenticator(Protocol):
@@ -214,6 +226,8 @@ class Txt2CrsApplication:
         authenticator: SystemAuthenticator,
         executor_factory: PublicExecutorFactory,
         owner_lifecycle: OwnerLifecycle,
+        preflight_evaluator: SubmissionPreflightEvaluator,
+        admission_reservation: AdmissionReservation,
         close_callbacks: tuple[Callable[[], None], ...],
         application_readiness_inspector: ApplicationReadinessInspector | None = None,
     ) -> None:
@@ -222,6 +236,8 @@ class Txt2CrsApplication:
         self._authenticator = authenticator
         self._executor_factory = executor_factory
         self._owner_lifecycle = owner_lifecycle
+        self._preflight_evaluator = preflight_evaluator
+        self._admission_reservation = admission_reservation
         self._close_callbacks = close_callbacks
         self._application_readiness_inspector = application_readiness_inspector
         self._lock = RLock()
@@ -246,16 +262,33 @@ class Txt2CrsApplication:
         generation_request: GenerationRequest,
         admission_reservation: AdmissionReservation,
     ) -> JobRecord:
-        """Durably submit or replay one exact owner request."""
+        """Apply package policy, then durably submit or replay one exact request.
+
+        Preflight and persistence stay inside the same facade lock. This makes
+        the ordering an invariant for every shell consumer and prevents
+        application cleanup from racing between the policy decision and write.
+        """
 
         with self._lock:
             self._require_open()
+            policy_decision = self._preflight_evaluator.evaluate_preflight(
+                generation_request
+            )
+            if policy_decision.outcome is not PolicyOutcome.allowed:
+                raise PreparationPolicyError(decision=policy_decision)
             return self._job_service.submit(
                 user_id=user_id,
                 idempotency_key=idempotency_key,
                 generation_request=generation_request,
                 admission_reservation=admission_reservation,
             )
+
+    def default_admission_reservation(self) -> AdmissionReservation:
+        """Return the factory-reviewed finite reservation for new work."""
+
+        with self._lock:
+            self._require_open()
+            return self._admission_reservation
 
     def recover(self, *, job_id: str, user_id: str) -> ResumeState:
         """Return one owner-authorized exact recovery snapshot."""

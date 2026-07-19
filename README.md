@@ -21,8 +21,9 @@ source.
 
 ## Current Status
 
-Phases 00 and 01 are complete. The backend images install the workspace-owned
-engine, run one non-root FastAPI process, and persist private SQLite job state,
+Phases 00 through 02 are complete, and Phase 03 is underway. The backend
+images install the workspace-owned engine, run one non-root FastAPI process
+with one serial generation worker, and persist private SQLite job state,
 artifacts, and Codex-managed credentials under one owner-only state root. The
 frontend and backend have independent container health probes.
 
@@ -33,9 +34,13 @@ creation, deterministic rendering, durable recovery, policy, private
 artifacts, owner erasure, and evaluation. Its public application facade now
 supports strict real and deterministic factories, durable submission and
 recovery, safe job/artifact reads, exact GPT-5.6 policy, managed provider
-lifecycles, and owner purge. The FastAPI shell currently exposes
-authentication, users, health, and the temporary donor `items` domain;
-course-generation HTTP routes do not exist yet.
+lifecycles, and owner purge. The FastAPI shell now composes that facade for
+its complete lifespan and exposes cached course-system readiness plus
+superuser-only ChatGPT device authentication. The React application provides
+a protected operator setup workspace at `/setup`. Authenticated learner
+submission routes now durably accept bounded prompt, text, URL, YouTube, PDF,
+DOCX, and PPTX inputs; owner-scoped result reads and the learner workflow UI
+arrive in later sessions. The donor `items` domain remains temporary.
 
 See the
 [input-to-course system plan](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)
@@ -51,7 +56,9 @@ docker compose up --detach --build --wait
 ```
 
 The frontend is available at <http://localhost:5183> and the backend API at
-<http://localhost:8012>. Stop the stack without deleting persistent volumes:
+<http://localhost:8012>. Log in as the initial superuser and open
+<http://localhost:5183/setup> to inspect readiness and connect the dedicated
+ChatGPT identity. Stop the stack without deleting persistent volumes:
 
 ```bash
 docker compose down

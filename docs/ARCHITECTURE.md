@@ -4,8 +4,11 @@
 
 txt2crs is a three-package FastAPI/React monorepo. The reusable engine owns
 education-domain behavior and exposes one framework-independent application
-facade; the application shell owns transport and identity. The shell does not
-yet compose that facade into course-generation routes.
+facade; the application shell owns transport and identity. The shell composes
+one facade, serial worker, readiness cache, and system-authentication
+coordinator for its complete lifespan. Phase 03 now exposes authenticated,
+durable learner submission routes; owner-scoped reads, artifact delivery,
+account purge integration, and the learner UI remain later-session work.
 
 ```text
 React SPA
@@ -15,11 +18,14 @@ React SPA
 FastAPI shell
     |-- PostgreSQL: users and temporary donor items
     |-- private state volume: engine SQLite, artifacts, Codex home
-    `-- public txt2crs application facade
-            |-- durable requests, recovery, and owner purge
-            |-- bounded ingestion, preferences, and two-stage policy
-            |-- managed loopback research MCP and Codex runtime
-            `-- generation, public projections, rendering, and private delivery
+    |-- authenticated course submission and readiness APIs
+    |-- superuser setup API
+    `-- lifespan-owned course-system services
+            |-- public txt2crs application facade
+            |-- one serial recovery/execution worker
+            |-- side-effect-free cached readiness
+            |-- dedicated ChatGPT authentication coordinator
+            `-- managed loopback research MCP and Codex runtime
 ```
 
 The research MCP server is package-owned and loopback-only. The separate admin
@@ -30,9 +36,9 @@ surface; the two boundaries must never be merged.
 
 | Component | Location | Technology | Current responsibility |
 |-----------|----------|------------|------------------------|
-| Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, health, errors, and observability |
+| Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, facade composition, serial work, cached readiness, system authentication, errors, and observability |
 | Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Public application facade/factories, ingestion, research, generation, policy, jobs, recovery, artifacts, owner lifecycle, rendering, and evaluation |
-| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, temporary items, and current shell UI |
+| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, temporary items, and current shell UI |
 | Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
 
 ## Ownership Boundaries
@@ -42,8 +48,9 @@ surface; the two boundaries must never be merged.
 - PostgreSQL is authoritative for application users. Tenant-scoped engine
   SQLite is authoritative for generation jobs.
 - Engine owner erasure cancels tracked work, removes private artifacts, then
-  transactionally deletes SQLite job parents. A future shell account-deletion
-  flow must call that public operation before deleting the PostgreSQL user.
+  transactionally deletes SQLite job parents. Phase 03 must make the shell
+  account-deletion flow call that public operation before deleting the
+  PostgreSQL user.
 - The backend image runs exactly one non-root FastAPI process while the serial
   worker and SQLite topology remain in use.
 - `/var/lib/txt2crs` is the image-owned persistent mount containing the job
@@ -70,8 +77,8 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
 
 ### Engine Application Boundary
 
-1. The shell will translate validated settings once into
-   `RealApplicationConfig` and own one `Txt2CrsApplication` for its lifespan.
+1. The shell translates validated settings once into `RealApplicationConfig`
+   and owns one `Txt2CrsApplication` for its lifespan.
 2. The facade delegates durable submission, recovery, safe public job and
    artifact reads, readiness/authentication, executor creation, and owner purge
    to package-owned services.
@@ -96,8 +103,9 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
   when unavailable.
 - Backend liveness proves the HTTP process is responsive.
 - Frontend health is served directly by Nginx without loading React.
-- Phase 02 must extend readiness to engine storage, worker, research, model,
-  and capability status before generation admission exists.
+- Authenticated course-system readiness is served from a bounded cache covering
+  engine storage, worker, research, model, input capabilities, and admission.
+  Browser polling never performs provider or destructive storage probes.
 
 ### Error Contract
 
@@ -108,9 +116,10 @@ codes and trace IDs. Shell errors use `AppException` and
 ## Observability and Security
 
 Structured logging, optional OpenTelemetry, rate limiting outside local mode,
-private filesystem modes, and non-root containers are implemented. The
-cumulative security record currently flags raw request path/query/IP logging
-for remediation before public source submission.
+private filesystem modes, non-root containers, and redacted request metadata
+are implemented. Remote CodeQL remains unavailable while GitHub rejects
+Actions jobs before runner assignment; local deterministic security
+equivalents are recorded in the cumulative security report.
 
 See
 [`../.spec_system/SECURITY-COMPLIANCE.md`](../.spec_system/SECURITY-COMPLIANCE.md)

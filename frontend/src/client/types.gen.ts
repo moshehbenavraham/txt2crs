@@ -5,6 +5,24 @@ export type ClientOptions = {
 }
 
 /**
+ * Body_jobs-submit_job_upload
+ */
+export type BodyJobsSubmitJobUpload = {
+  /**
+   * Metadata
+   *
+   * Strict JSON course preferences, consent, and age group.
+   */
+  metadata: string
+  /**
+   * File
+   *
+   * One bounded PDF, DOCX, or PPTX source.
+   */
+  file: Blob | File
+}
+
+/**
  * Body_login-login_access_token
  */
 export type BodyLoginLoginAccessToken = {
@@ -199,6 +217,108 @@ export type ItemsPublic = {
 }
 
 /**
+ * JobAcceptedPublic
+ *
+ * Allowlisted response returned only after a durable package commit.
+ */
+export type JobAcceptedPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Job Id
+   */
+  job_id: string
+  /**
+   * Status
+   */
+  status: "accepted"
+  /**
+   * Revision
+   */
+  revision: number
+  /**
+   * Status Url
+   */
+  status_url: string
+}
+
+/**
+ * JobLearnerAgeGroup
+ *
+ * Privacy-minimized age context passed to package policy.
+ */
+export type JobLearnerAgeGroup = "minor" | "adult" | "not_provided"
+
+/**
+ * JobLearningLevel
+ *
+ * Reviewed P0 learner-selectable depth intent.
+ */
+export type JobLearningLevel =
+  | "auto"
+  | "beginner"
+  | "intermediate"
+  | "advanced"
+  | "mixed"
+
+/**
+ * JobPreferences
+ *
+ * Finite learning intent; all other generation defaults are server-owned.
+ */
+export type JobPreferences = {
+  level: JobLearningLevel
+  /**
+   * Audience
+   */
+  audience: string | null
+  /**
+   * Prior Knowledge
+   */
+  prior_knowledge: string | null
+  /**
+   * Learning Goals
+   */
+  learning_goals: Array<string>
+  /**
+   * Language
+   */
+  language: string
+}
+
+/**
+ * JobSubmissionRequest
+ *
+ * Strict JSON request with one discriminated source input.
+ */
+export type JobSubmissionRequest = {
+  preferences: JobPreferences
+  /**
+   * Consent To Ai Processing
+   */
+  consent_to_ai_processing: true
+  learner_age_group: JobLearnerAgeGroup
+  /**
+   * Input
+   */
+  input:
+    | ({
+        type: "prompt"
+      } & PromptJobInput)
+    | ({
+        type: "text"
+      } & TextJobInput)
+    | ({
+        type: "url"
+      } & UrlJobInput)
+    | ({
+        type: "youtube"
+      } & YouTubeJobInput)
+}
+
+/**
  * Message
  */
 export type Message = {
@@ -240,6 +360,22 @@ export type PasswordRecoveryRequest = {
    * Email
    */
   email: string
+}
+
+/**
+ * PromptJobInput
+ *
+ * A short topic or course-generation instruction.
+ */
+export type PromptJobInput = {
+  /**
+   * Type
+   */
+  type: "prompt"
+  /**
+   * Value
+   */
+  value: string
 }
 
 /**
@@ -365,6 +501,22 @@ export type SystemReadinessPublic = {
 }
 
 /**
+ * TextJobInput
+ *
+ * Finite learner-pasted source text.
+ */
+export type TextJobInput = {
+  /**
+   * Type
+   */
+  type: "text"
+  /**
+   * Value
+   */
+  value: string
+}
+
+/**
  * Token
  */
 export type Token = {
@@ -395,6 +547,22 @@ export type UpdatePassword = {
    * New Password
    */
   new_password: string
+}
+
+/**
+ * UrlJobInput
+ *
+ * A public URL whose safety and retrieval remain package-owned.
+ */
+export type UrlJobInput = {
+  /**
+   * Value
+   */
+  value: string
+  /**
+   * Type
+   */
+  type: "url"
 }
 
 /**
@@ -571,6 +739,22 @@ export type ValidationError = {
   ctx?: {
     [key: string]: unknown
   }
+}
+
+/**
+ * YouTubeJobInput
+ *
+ * YouTube intent routed through the package URL adapter.
+ */
+export type YouTubeJobInput = {
+  /**
+   * Value
+   */
+  value: string
+  /**
+   * Type
+   */
+  type: "youtube"
 }
 
 export type PostApiV1LoginAccessTokenData = {
@@ -956,6 +1140,10 @@ export type PostApiV1UsersSignupData = {
 }
 
 export type PostApiV1UsersSignupErrors = {
+  /**
+   * Public signup is disabled
+   */
+  403: unknown
   /**
    * User with this email already exists
    */
@@ -1398,6 +1586,75 @@ export type PutApiV1ItemsByIdResponses = {
 
 export type PutApiV1ItemsByIdResponse =
   PutApiV1ItemsByIdResponses[keyof PutApiV1ItemsByIdResponses]
+
+export type PostApiV1JobsData = {
+  body: JobSubmissionRequest
+  headers: {
+    /**
+     * Idempotency-Key
+     *
+     * Private owner-scoped retry key. Reuse only when retrying the same exact course request.
+     */
+    "Idempotency-Key": string
+  }
+  path?: never
+  query?: never
+  url: "/api/v1/jobs"
+}
+
+export type PostApiV1JobsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PostApiV1JobsError = PostApiV1JobsErrors[keyof PostApiV1JobsErrors]
+
+export type PostApiV1JobsResponses = {
+  /**
+   * Successful Response
+   */
+  202: JobAcceptedPublic
+}
+
+export type PostApiV1JobsResponse =
+  PostApiV1JobsResponses[keyof PostApiV1JobsResponses]
+
+export type PostApiV1JobsUploadData = {
+  body: BodyJobsSubmitJobUpload
+  headers: {
+    /**
+     * Idempotency-Key
+     *
+     * Private owner-scoped retry key. Reuse only when retrying the same exact course request.
+     */
+    "Idempotency-Key": string
+  }
+  path?: never
+  query?: never
+  url: "/api/v1/jobs/upload"
+}
+
+export type PostApiV1JobsUploadErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PostApiV1JobsUploadError =
+  PostApiV1JobsUploadErrors[keyof PostApiV1JobsUploadErrors]
+
+export type PostApiV1JobsUploadResponses = {
+  /**
+   * Successful Response
+   */
+  202: JobAcceptedPublic
+}
+
+export type PostApiV1JobsUploadResponse =
+  PostApiV1JobsUploadResponses[keyof PostApiV1JobsUploadResponses]
 
 export type GetApiV1SystemReadinessData = {
   body?: never

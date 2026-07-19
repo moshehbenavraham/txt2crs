@@ -12,7 +12,16 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added authenticated, rate-limited JSON and PDF/DOCX/PPTX course-job
+  submission APIs with strict schemas, bounded upload validation, atomic
+  admission, idempotent replay, and generated frontend client contracts.
+
 ### Changed
+
+- Synchronized Phase 02 operator, architecture, configuration, security, and
+  recovery documentation with the released composition and readiness system.
+- Made public signup an explicit local-only opt-in and documented its disabled
+  response in OpenAPI.
 
 ### Deprecated
 
@@ -21,3 +30,6 @@ Archived entries are stored in [`archive/`](archive/).
 ### Fixed
 
 ### Security
+
+- Hardened upload framing, metadata Unicode handling, OOXML archive path
+  validation, and terminal idempotent replay behavior.

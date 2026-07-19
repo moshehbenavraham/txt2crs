@@ -2,8 +2,9 @@
 
 The frontend is a React 19, TypeScript, Vite, TanStack Router/Query, Tailwind
 CSS 4, and shadcn/Radix application. It currently presents authentication,
-users, settings, administration, and the temporary donor `items` domain.
-Learner course-generation routes arrive in later phases.
+users, settings, administration, a superuser course-system setup workspace,
+and the temporary donor `items` domain. Learner course-generation routes
+arrive in later phases.
 
 ## Current Routes
 
@@ -16,6 +17,7 @@ Learner course-generation routes arrive in later phases.
 | `/reset-password` | Password reset |
 | `/items` | Temporary item management |
 | `/settings` | User settings |
+| `/setup` | Superuser course-system readiness, device login, and CLI recovery |
 | `/admin` | Superuser administration |
 
 Page titles and accessible product names use the shared

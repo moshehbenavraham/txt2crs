@@ -1,90 +1,83 @@
-# Phase Transition Infrastructure Report
+# Phase 02 Transition Infrastructure Report
 
 **Date:** 2026-07-19
 **Result:** PASS
-**Selected bundle:** Backup
+**Selected bundle:** none - validation only
 **Platform:** Repository-root Docker Compose
-**Scope:** Local-only PostgreSQL and private txt2crs engine state
+**Scope:** Local-only backend, frontend, PostgreSQL, and private engine state
 
 ## Scope Decision
 
 Repository-root Docker Compose remains the complete deployment scope under
-ADR-0008. The Phase 00 Health bundle is already configured and was revalidated
-through the Phase 01 audit and pipeline gates. The next incomplete
-infrastructure requirement was recoverability: the inherited
-`scripts/backup-db.sh` captured only PostgreSQL and omitted the engine's
-durable SQLite jobs, rendered artifacts, and Codex credential store.
+ADR-0008. All four infrastructure concerns are configured for that boundary:
 
-No hosted backup provider was selected. Local encrypted-copy location,
-off-host replication, and backup cadence remain operator responsibilities
-because the project has no hosted environment or remote storage boundary.
+- backend and frontend health probes;
+- application rate limiting outside explicit local mode;
+- complete local PostgreSQL and private engine-state backup/restore;
+- manual Compose release, rollback, and health verification.
 
-## Implemented Backup Contract
+A hosted WAF, domain, TLS boundary, remote backup store, and deployment
+webhook are not part of the approved product scope. Adding them would violate
+ADR-0008 and requires a future owner-approved hosting decision and new ADR.
+No skipped-infrastructure entry is therefore appropriate.
 
-1. `scripts/backup-local-state.sh` briefly quiesces the backend writer and
-   creates one timestamped bundle.
-2. PostgreSQL is stored as a validated custom-format dump.
-3. The concrete Compose-prefixed volume mounted at `/var/lib/txt2crs` is
-   discovered from the backend container and archived in full.
-4. `scripts/local_state_archive.py` accepts only directories and regular
-   files; symbolic links, traversal paths, duplicate paths, and special files
-   fail before restore can clear current state.
-5. `SHA256SUMS` covers both stores and the manifest. Bundle directories use
-   mode `0700`; files use mode `0600`.
-6. `scripts/restore-local-state.sh` requires
-   `TXT2CRS_RESTORE_CONFIRM=replace-local-state`, validates checksums and both
-   archive formats before destructive work, replaces both stores, and returns
-   a previously running backend to health.
-7. The default `backups/` directory is excluded from Git because bundles can
-   contain learner data, generated content, and Codex credentials.
+## Deployment Topology
 
-## Tests-First Record
+| Package | Role | Deploys independently | Local target |
+|---------|------|-----------------------|--------------|
+| `backend` | FastAPI API, engine host, serial worker | Yes | One non-root backend container |
+| `frontend` | Nginx-served React application | Yes | One frontend container |
+| `backend/packages/txt2crs` | Reusable engine library | No | Built into the backend image |
 
-Six contract tests were added before implementation. The initial focused run
-failed all six because the scripts, helper, and Git exclusion did not exist.
-After implementation, the suite passed.
-
-The first live backup then exposed a host-ownership defect: the root
-maintenance container produced a correctly private `0600` archive that the
-invoking host user could not checksum. A failing ownership regression was
-added before the fix. The script now transfers archive ownership back to the
-invoking host UID/GID while retaining mode `0600`.
+Shared infrastructure is PostgreSQL for users plus one private named volume
+for tenant SQLite jobs, artifacts, and Codex-managed credentials.
 
 ## Evidence Ledger
 
-| Bundle | Component | Validation target / command | Result | Fixes applied |
-|--------|-----------|-----------------------------|--------|---------------|
-| Backup | Safe archive helper | `uv run pytest --confcutdir=tests/scripts tests/scripts/test_local_backup_contract.py -q` | PASS: 6 | Added regular-file-only archive and validate-before-clear restore |
-| Backup | Shell syntax and repository baseline | `bash -n scripts/backup-local-state.sh scripts/restore-local-state.sh`; `./scripts/validate-changes.sh backend` | PASS | Added both scripts and baseline coverage |
-| Backup | Complete backup | Isolated `txt2crs-infra-backup` Compose project with PostgreSQL and engine-volume markers | PASS | Host UID/GID handoff fixed after first live attempt |
-| Restore | Destructive replacement | Mutated both stores, added a stale engine file, restored the bundle | PASS: database and volume returned to original markers; stale file removed |
-| Integrity | Bundle hashes and permissions | `sha256sum --check SHA256SUMS`; `stat`; `find -perm` | PASS: all 3 hashes; directory `0700`; all 4 files `0600` |
-| Health | Restored backend | Internal `/api/v1/utils/health/` after restore | PASS: healthy with PostgreSQL ready |
-| Quality | Repository hooks | `uv run --directory backend pre-commit run --all-files` | PASS: all hooks |
-| Cleanup | Isolated resources | Project-labelled container/volume checks after `docker compose down --volumes` | PASS: no proof containers, volumes, temporary bundles, or network remained |
+| Bundle | Component | Package | Validation target / command | Result | Fixes Applied | Remaining / Blocker |
+|--------|-----------|---------|-----------------------------|--------|---------------|---------------------|
+| Health | Backend readiness | `backend` | isolated container request to `/api/v1/utils/health/` | PASS: `healthy`, PostgreSQL ready | None | None |
+| Health | Frontend health | `frontend` | isolated container `curl http://127.0.0.1/health` | PASS: `healthy` | None | None |
+| Security | Finite route limits and RFC 9457 response | `backend` | focused login/system rapid-request tests | PASS: 2 | None | None |
+| Security | Environment activation policy | `backend` | complete shell suite security-default tests | PASS: enabled outside explicit `local` | None | None |
+| Backup | Complete backup | shared | isolated `txt2crs_infra` project plus `backup-local-state.sh` | PASS: PostgreSQL and engine state captured | None | None |
+| Backup | Hashes and permissions | shared | `sha256sum --check SHA256SUMS`; `stat`; `find` | PASS: 3 hashes; bundle `0700`; all files `0600` | None | None |
+| Backup | Destructive restore | shared | mutate both stores, add stale file, run `restore-local-state.sh` | PASS: original database and file restored; stale file absent | None | None |
+| Backup | Post-restore service | shared | backend and frontend internal health requests | PASS: both healthy | None | None |
+| Deploy | Compose topology | shared | `docker compose config --quiet` and isolated `up -d --wait backend frontend` | PASS: one healthy backend and frontend | None | None |
+| Cleanup | Disposable proof resources | root | Compose project container, volume, and network inspection after `down -v` | PASS: none remain | None | None |
 
-## Operator Recovery Model
+## Backup And Recovery Result
 
-The recovery point is the most recent manually retained complete bundle.
-Restore is a full local replacement, not a selective row or artifact recovery.
-Checksums detect accidental corruption but do not authenticate a bundle;
-operators must keep bundles in encrypted, access-controlled storage and review
-their source before restore.
+The proof created one owner-only bundle from a fresh isolated project. Before
+backup, PostgreSQL and the engine volume received distinct `original` markers.
+Both were changed after backup, and a stale engine file was added. Restore:
 
-`scripts/backup-db.sh` remains available only as a legacy PostgreSQL-only
-utility. It is explicitly documented as insufficient for application recovery.
+- verified all three SHA-256 entries before destructive work;
+- parsed the PostgreSQL and engine archives before replacement;
+- restored the database marker to `original`;
+- restored the engine marker to `original`;
+- removed the stale file; and
+- returned both deployable services to healthy state.
 
-## Remaining Infrastructure Work
+The proof bundle and every isolated container, network, volume, and temporary
+file were removed after validation.
 
-None is skipped for the approved local-only deployment target. Automated
-off-host replication, hosted disaster recovery, WAF, domains, TLS, managed
-secrets, and remote rollout are not silently deferred requirements; they
-require an explicit future hosting decision and new ADR.
+## Security Boundary
+
+The local development profile intentionally disables rate limiting for test
+speed. Focused tests explicitly enable the limiter and proved that repeated
+login and privileged authentication requests return the centralized RFC 9457
+`429` contract. Non-local environment defaults keep the limiter enabled.
+
+There is no public edge in the accepted deployment topology, so a hosted WAF
+would be fictitious infrastructure rather than a missing current control.
 
 ## Handoff
 
 `infra -> carryforward` is the required Phase Transition handoff. `documents`
-follows `carryforward`; the next implementation session is not planned until
-`phasebuild` creates the next phase.
+follows `carryforward`; Phase 03 planning begins only after `phasebuild`.
 
 **Next command:** `carryforward`
+**Reason:** every infrastructure component in the approved local-only target
+passes current health, security, backup/restore, and cleanup validation.

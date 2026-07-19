@@ -24,9 +24,10 @@ docker compose logs --tail=200 frontend
 docker compose logs --tail=200 db
 ```
 
-Preserve trace IDs from API responses and logs. Logs can contain request
-paths, query strings, and client IP addresses, so treat exports as personal
-data and restrict access.
+Preserve trace IDs from API responses and logs. Request middleware redacts raw
+query strings, path parameters, and client IP addresses, but other events can
+still contain account identifiers. Treat log exports as personal data and
+restrict access.
 
 ## Database Readiness Failure
 
@@ -97,6 +98,20 @@ TXT2CRS_RESTORE_CONFIRM=replace-local-state \
 The restore validates checksums and both archive formats before destructive
 replacement, then restarts and waits for a previously running backend. Verify
 both health endpoints and inspect correlated logs after recovery.
+
+## Course-System Readiness or Authentication Failure
+
+1. Log in as a superuser and open `/setup`; do not copy provider credentials
+   or private diagnostics into an incident report.
+2. Confirm whether the cached verdict reports authentication, research,
+   storage, worker, model, input, or admission as the blocking category.
+3. Verify `TAVILY_API_KEY` is configured only when research should be enabled,
+   and restart the backend after changing `.env`.
+4. Retry the browser device-login ceremony once no other ceremony is active.
+5. If browser setup remains unavailable, run the exact CLI recovery command
+   displayed on `/setup` from `backend/packages/txt2crs/`.
+6. Recheck `/setup`; do not add backend replicas or extra Uvicorn workers as a
+   recovery action.
 
 ## Local Rollback
 

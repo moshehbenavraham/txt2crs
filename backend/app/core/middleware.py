@@ -22,8 +22,11 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.constants import ContentTypes, ErrorCode
+from app.core.exceptions import AppException
 from app.core.logging import generate_trace_id, get_logger, trace_id_var
 from app.core.telemetry import get_current_trace_id, is_telemetry_enabled
 
@@ -32,6 +35,147 @@ _TRACE_ID_PATTERN = re.compile(r"[A-Za-z0-9-]{16,64}")
 
 # Type alias for the call_next function
 RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
+
+
+class _UploadBodyTooLarge(Exception):
+    """Private control flow raised while the downstream parser reads chunks."""
+
+
+class UploadBodyLimitMiddleware:
+    """Enforce one finite multipart route body before framework spooling.
+
+    This is pure ASGI middleware because ``BaseHTTPMiddleware`` may buffer or
+    transform request streams. The wrapper counts the exact bytes delivered to
+    FastAPI's multipart parser and therefore still protects requests with a
+    missing or dishonest ``Content-Length`` header.
+    """
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        maximum_body_bytes: int,
+        upload_path: str,
+    ) -> None:
+        if maximum_body_bytes <= 0:
+            raise ValueError("Upload body limit must be positive.")
+        if not upload_path.startswith("/"):
+            raise ValueError("Upload path must be absolute.")
+        self._app = app
+        self._maximum_body_bytes = maximum_body_bytes
+        self._upload_path = upload_path
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        """Reject malformed/oversize framing and count every request chunk."""
+
+        if (
+            scope["type"] != "http"
+            or scope.get("method") != "POST"
+            or scope.get("path") != self._upload_path
+        ):
+            await self._app(scope, receive, send)
+            return
+
+        content_lengths = [
+            header_value
+            for header_name, header_value in scope.get("headers", [])
+            if header_name.lower() == b"content-length"
+        ]
+        if len(content_lengths) > 1:
+            await self._send_invalid_framing(scope, receive, send)
+            return
+        if content_lengths:
+            raw_content_length = content_lengths[0]
+            # HTTP Content-Length uses only ASCII decimal digits. Python's
+            # ``int`` also accepts signs, whitespace, and underscores, which
+            # would make our framing decision disagree with stricter proxies.
+            if not raw_content_length or not raw_content_length.isdigit():
+                await self._send_invalid_framing(scope, receive, send)
+                return
+            declared_length = int(raw_content_length)
+            if declared_length > self._maximum_body_bytes:
+                await self._send_too_large(scope, receive, send)
+                return
+
+        received_body_bytes = 0
+
+        async def bounded_receive() -> Message:
+            """Forward one ASGI frame after applying the cumulative byte cap."""
+
+            nonlocal received_body_bytes
+            message = await receive()
+            if message["type"] == "http.request":
+                received_body_bytes += len(message.get("body", b""))
+                if received_body_bytes > self._maximum_body_bytes:
+                    raise _UploadBodyTooLarge
+            return message
+
+        try:
+            await self._app(scope, bounded_receive, send)
+        except _UploadBodyTooLarge:
+            # FastAPI consumes multipart input before a route can start a
+            # response, so it is safe to replace this framing failure with one
+            # complete Problem Details response.
+            await self._send_too_large(scope, receive, send)
+
+    @staticmethod
+    async def _send_problem(
+        *,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+        error: AppException,
+    ) -> None:
+        """Write one bounded RFC 9457 response without invoking route code."""
+
+        problem = error.to_problem_detail()
+        response = JSONResponse(
+            status_code=error.status,
+            content=problem.model_dump(exclude_none=True),
+            media_type=ContentTypes.PROBLEM_JSON,
+        )
+        await response(scope, receive, send)
+
+    async def _send_invalid_framing(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        """Reject ambiguous content lengths with a content-free 400."""
+
+        await self._send_problem(
+            scope=scope,
+            receive=receive,
+            send=send,
+            error=AppException(
+                code=ErrorCode.INVALID_FORMAT,
+                detail="Upload request framing is invalid.",
+            ),
+        )
+
+    async def _send_too_large(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        """Reject declared or observed overflow with the same stable 413."""
+
+        await self._send_problem(
+            scope=scope,
+            receive=receive,
+            send=send,
+            error=AppException(
+                code=ErrorCode.JOB_PAYLOAD_TOO_LARGE,
+                detail="Upload request body exceeds the configured limit.",
+            ),
+        )
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

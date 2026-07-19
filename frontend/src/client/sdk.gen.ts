@@ -3,6 +3,7 @@
 import {
   type Client,
   type ClientMeta,
+  formDataBodySerializer,
   type Options as Options2,
   type RequestResult,
   type TDataShape,
@@ -54,6 +55,12 @@ import type {
   PostApiV1ItemsData,
   PostApiV1ItemsErrors,
   PostApiV1ItemsResponses,
+  PostApiV1JobsData,
+  PostApiV1JobsErrors,
+  PostApiV1JobsResponses,
+  PostApiV1JobsUploadData,
+  PostApiV1JobsUploadErrors,
+  PostApiV1JobsUploadResponses,
   PostApiV1LoginAccessTokenData,
   PostApiV1LoginAccessTokenErrors,
   PostApiV1LoginAccessTokenResponses,
@@ -517,13 +524,15 @@ export class UsersService {
   }
 
   /**
-   * Register new user (Public)
+   * Register new user (Local opt-in)
    *
-   * Public registration endpoint for new user self-signup.
+   * Conditional registration endpoint for new user self-signup.
    *
    * **Rate Limited:** This endpoint is rate-limited to prevent abuse.
    *
-   * **No Authentication Required:** This is a public endpoint.
+   * **Local Opt-in:** No authentication is required only when
+   * `ENVIRONMENT=local` and `ENABLE_PUBLIC_SIGNUP=true`. Signup is disabled by
+   * default and cannot be enabled in staging or production.
    *
    * New users are created with:
    * - `is_active = True`
@@ -902,6 +911,69 @@ export class ItemsService {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...options.headers,
+      },
+    })
+  }
+}
+
+export class JobsService {
+  /**
+   * Submit a text or URL course job
+   *
+   * Validates one prompt, pasted text, URL, or YouTube intent and returns only after package policy, admission, and durable commit succeed.
+   */
+  public static submitJob<ThrowOnError extends boolean = true>(
+    options: Options<PostApiV1JobsData, ThrowOnError>,
+  ): RequestResult<
+    PostApiV1JobsResponses,
+    PostApiV1JobsErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options.client ?? client).post<
+      PostApiV1JobsResponses,
+      PostApiV1JobsErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    })
+  }
+
+  /**
+   * Submit a document course job
+   *
+   * Accepts exactly one strict metadata object and one bounded PDF, DOCX, or PPTX file, then returns only after durable package commit.
+   */
+  public static submitJobUpload<ThrowOnError extends boolean = true>(
+    options: Options<PostApiV1JobsUploadData, ThrowOnError>,
+  ): RequestResult<
+    PostApiV1JobsUploadResponses,
+    PostApiV1JobsUploadErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options.client ?? client).post<
+      PostApiV1JobsUploadResponses,
+      PostApiV1JobsUploadErrors,
+      ThrowOnError,
+      "data"
+    >({
+      ...formDataBodySerializer,
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs/upload",
+      ...options,
+      headers: {
+        "Content-Type": null,
         ...options.headers,
       },
     })

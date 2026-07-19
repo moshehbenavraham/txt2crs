@@ -37,7 +37,7 @@
 | Frontend static/build | Biome, TypeScript no-emit, Vite production build | PASS | 138 files; no type error; 2,204 modules built |
 | Generated contract | Repository generated-client hook and final diff | PASS | No generated API client drift |
 | Real shell | Authenticated `/setup` against current local backend | PASS | Readiness and auth status HTTP 200; truthful unavailable state |
-| Rendered QA | Playwright metrics plus inspected PNGs | PASS | One main, zero overflow, no console issues, full message/code/recovery |
+| Rendered QA | Playwright metrics plus inspected image captures | PASS | One main, zero overflow, no console issues, full message/code/recovery |
 | Security scan | Production added-line sinks, auth order, external-link attributes | PASS | No sink/secret marker; superuser guard precedes queries; noreferrer link |
 | Dependencies/schema | Base-to-head manifest, lock, primitives, models, migrations | PASS | Only engine version changed in package/lock; no dependency or schema change |
 | Package build | `uv build` and archive metadata/content inspection | PASS | Wheel/sdist `0.6.0`; README, license, notices, and pyproject present |

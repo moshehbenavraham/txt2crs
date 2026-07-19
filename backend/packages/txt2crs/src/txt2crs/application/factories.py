@@ -478,6 +478,9 @@ class DeterministicApplicationFactory:
             authenticator = _DeterministicAuthenticator()
             construction_cleanup.callback(authenticator.close)
             runtime_readiness_inspector = _DeterministicReadinessInspector()
+            admission_reservation = _readiness_reservation(
+                self._config.default_execution_profile
+            )
             application = Txt2CrsApplication(
                 job_service=job_service,
                 readiness_inspector=runtime_readiness_inspector,
@@ -491,6 +494,12 @@ class DeterministicApplicationFactory:
                     artifact_store=artifact_store,
                     owner_store=store,
                 ),
+                preflight_evaluator=ContentPolicy(
+                    policy_version=(
+                        self._config.default_execution_profile.policy_version
+                    )
+                ),
+                admission_reservation=admission_reservation,
                 close_callbacks=(store.close,),
                 application_readiness_inspector=(
                     AggregateApplicationReadinessInspector(
@@ -501,9 +510,7 @@ class DeterministicApplicationFactory:
                             self._config.default_execution_profile.model_id
                         ),
                         enabled_input_modes=_enabled_input_modes({}),
-                        admission_reservation=_readiness_reservation(
-                            self._config.default_execution_profile
-                        ),
+                        admission_reservation=admission_reservation,
                     )
                 ),
             )
@@ -560,6 +567,9 @@ class RealApplicationFactory:
             )
             construction_cleanup.callback(authenticator.close)
             runtime_readiness_inspector = _RealReadinessInspector(self._config)
+            admission_reservation = _readiness_reservation(
+                self._config.default_execution_profile
+            )
             application = Txt2CrsApplication(
                 job_service=job_service,
                 readiness_inspector=runtime_readiness_inspector,
@@ -574,6 +584,12 @@ class RealApplicationFactory:
                     artifact_store=artifact_store,
                     owner_store=store,
                 ),
+                preflight_evaluator=ContentPolicy(
+                    policy_version=(
+                        self._config.default_execution_profile.policy_version
+                    )
+                ),
+                admission_reservation=admission_reservation,
                 close_callbacks=(ingestion_http_client.close, store.close),
                 application_readiness_inspector=(
                     AggregateApplicationReadinessInspector(
@@ -584,9 +600,7 @@ class RealApplicationFactory:
                             self._config.default_execution_profile.model_id
                         ),
                         enabled_input_modes=_enabled_input_modes(ingestion_adapters),
-                        admission_reservation=_readiness_reservation(
-                            self._config.default_execution_profile
-                        ),
+                        admission_reservation=admission_reservation,
                     )
                 ),
             )

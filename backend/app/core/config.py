@@ -199,6 +199,21 @@ class Settings(BaseSettings):
         """True only when private development routes are explicitly enabled locally."""
         return self.ENVIRONMENT == "local" and self.ENABLE_PRIVATE_DEV_ROUTES
 
+    ENABLE_PUBLIC_SIGNUP: bool = False
+    """
+    Enable unauthenticated account registration only for local development.
+
+    The default remains false for the judge/demo profile, where an operator
+    provisions a bounded account instead of exposing the shared subscription.
+    """
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def public_signup_enabled(self) -> bool:
+        """True only for an explicit local developer-mode selection."""
+
+        return self.ENVIRONMENT == "local" and self.ENABLE_PUBLIC_SIGNUP
+
     # === CORS Configuration ===
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
@@ -915,6 +930,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "ENABLE_PRIVATE_DEV_ROUTES can only be enabled when "
                 'ENVIRONMENT="local".'
+            )
+
+        if self.ENVIRONMENT != "local" and self.ENABLE_PUBLIC_SIGNUP:
+            raise ValueError(
+                'ENABLE_PUBLIC_SIGNUP can only be enabled when ENVIRONMENT="local".'
             )
 
         return self

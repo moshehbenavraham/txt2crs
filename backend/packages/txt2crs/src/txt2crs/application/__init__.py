@@ -20,6 +20,7 @@ from txt2crs.application.facade import (
     ApplicationCloseError,
     ApplicationExecutor,
     ExecutorAlreadyUsedError,
+    SubmissionPreflightEvaluator,
     Txt2CrsApplication,
 )
 from txt2crs.application.factories import (
@@ -65,5 +66,6 @@ __all__ = [
     "SystemAuthenticationError",
     "SystemAuthenticationSnapshot",
     "SystemAuthenticationState",
+    "SubmissionPreflightEvaluator",
     "Txt2CrsApplication",
 ]

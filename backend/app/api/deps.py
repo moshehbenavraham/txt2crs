@@ -39,6 +39,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 from sqlmodel import Session
+from txt2crs.application import Txt2CrsApplication
 
 from app.core import security
 from app.core.config import settings
@@ -48,6 +49,8 @@ from app.core.exceptions import AppException, AuthenticationError, Authorization
 from app.models import TokenPayload, User
 from app.services.txt2crs_authentication import SystemAuthenticationCoordinator
 from app.services.txt2crs_readiness import CachedReadinessCoordinator
+from app.services.txt2crs_submission import Txt2CrsSubmissionService
+from app.services.txt2crs_worker import SerialTxt2CrsWorker
 
 # OAuth2 scheme for extracting Bearer tokens from Authorization header
 # Points to the login endpoint for automatic documentation
@@ -230,6 +233,43 @@ def get_txt2crs_readiness(request: Request) -> CachedReadinessCoordinator:
     return readiness
 
 
+def get_txt2crs_application(request: Request) -> Txt2CrsApplication:
+    """Return only the facade owned by the active FastAPI lifespan."""
+
+    lifecycle = getattr(request.app.state, "txt2crs_lifecycle", None)
+    application = getattr(lifecycle, "application", None)
+    if not isinstance(application, Txt2CrsApplication):
+        raise AppException(
+            code=ErrorCode.SYSTEM_NOT_READY,
+            detail="The course system is not ready.",
+        )
+    return application
+
+
+def get_txt2crs_worker(request: Request) -> SerialTxt2CrsWorker:
+    """Return the active serial worker or reject before route work."""
+
+    worker = getattr(request.app.state, "txt2crs_worker", None)
+    if not isinstance(worker, SerialTxt2CrsWorker):
+        raise AppException(
+            code=ErrorCode.SYSTEM_NOT_READY,
+            detail="The course worker is not ready.",
+        )
+    return worker
+
+
+def get_txt2crs_submission(request: Request) -> Txt2CrsSubmissionService:
+    """Return the startup-composed submission adapter without provider work."""
+
+    submission = getattr(request.app.state, "txt2crs_submission", None)
+    if not isinstance(submission, Txt2CrsSubmissionService):
+        raise AppException(
+            code=ErrorCode.SYSTEM_NOT_READY,
+            detail="Course job submission is unavailable.",
+        )
+    return submission
+
+
 def get_txt2crs_authentication(
     request: Request,
 ) -> SystemAuthenticationCoordinator:
@@ -247,6 +287,18 @@ def get_txt2crs_authentication(
 Txt2CrsReadinessDep = Annotated[
     CachedReadinessCoordinator,
     Depends(get_txt2crs_readiness),
+]
+Txt2CrsApplicationDep = Annotated[
+    Txt2CrsApplication,
+    Depends(get_txt2crs_application),
+]
+Txt2CrsWorkerDep = Annotated[
+    SerialTxt2CrsWorker,
+    Depends(get_txt2crs_worker),
+]
+Txt2CrsSubmissionDep = Annotated[
+    Txt2CrsSubmissionService,
+    Depends(get_txt2crs_submission),
 ]
 Txt2CrsAuthenticationDep = Annotated[
     SystemAuthenticationCoordinator,

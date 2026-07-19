@@ -14,6 +14,7 @@ from txt2crs.jobs import (
     InvalidJobSubmissionError,
     JobNotFoundError,
     JobRequestCompatibilityError,
+    PreparationPolicyError,
 )
 
 from app.core.constants import ErrorCode
@@ -48,6 +49,11 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
         translated = AppException(
             code=ErrorCode.JOB_IDEMPOTENCY_CONFLICT,
             detail="The request key was already used for different work.",
+        )
+    elif isinstance(error, PreparationPolicyError):
+        translated = AppException(
+            code=ErrorCode.JOB_POLICY_REJECTED,
+            detail="This course request cannot be processed automatically.",
         )
     elif isinstance(error, JobNotFoundError):
         translated = AppException(

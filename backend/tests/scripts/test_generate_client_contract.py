@@ -54,3 +54,78 @@ def test_system_routes_generate_safe_authenticated_contracts() -> None:
         "user_code",
         "message",
     }
+
+
+def test_job_submission_routes_generate_strict_authenticated_contracts() -> None:
+    """Both write routes expose one reviewed header and accepted projection."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    json_submission = openapi["paths"]["/api/v1/jobs"]["post"]
+    upload_submission = openapi["paths"]["/api/v1/jobs/upload"]["post"]
+
+    for operation in (json_submission, upload_submission):
+        assert operation["security"] == [{"OAuth2PasswordBearer": []}]
+        idempotency_parameters = [
+            parameter
+            for parameter in operation["parameters"]
+            if parameter["name"] == "Idempotency-Key"
+        ]
+        assert len(idempotency_parameters) == 1
+        idempotency_parameter = idempotency_parameters[0]
+        assert idempotency_parameter["in"] == "header"
+        assert idempotency_parameter["required"] is True
+        assert idempotency_parameter["schema"]["pattern"] == (
+            "^[A-Za-z0-9._:-]{1,128}$"
+        )
+        accepted_schema = operation["responses"]["202"]["content"]["application/json"][
+            "schema"
+        ]
+        assert accepted_schema == {"$ref": "#/components/schemas/JobAcceptedPublic"}
+
+    assert json_submission["operationId"] == "jobs-submit_job"
+    json_schema_ref = json_submission["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert json_schema_ref.endswith("/JobSubmissionRequest")
+
+    multipart_content = upload_submission["requestBody"]["content"]
+    assert set(multipart_content) == {"multipart/form-data"}
+    upload_schema_ref = multipart_content["multipart/form-data"]["schema"]["$ref"]
+    upload_schema_name = upload_schema_ref.rsplit("/", maxsplit=1)[-1]
+    upload_properties = openapi["components"]["schemas"][upload_schema_name][
+        "properties"
+    ]
+    assert upload_properties["metadata"]["type"] == "string"
+    assert upload_properties["file"] == {
+        "type": "string",
+        # OpenAPI 3.1 represents binary request content with the JSON Schema
+        # ``contentMediaType`` keyword. The generated TypeScript type is
+        # consequently ``Blob | File`` rather than a plain string.
+        "contentMediaType": "application/octet-stream",
+        "title": "File",
+        "description": "One bounded PDF, DOCX, or PPTX source.",
+    }
+
+
+def test_job_openapi_contains_discriminated_inputs_and_allowlisted_response() -> None:
+    """Generated clients retain input discrimination and private-field absence."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    schemas = openapi["components"]["schemas"]
+    input_schema = schemas["JobSubmissionRequest"]["properties"]["input"]
+
+    assert input_schema["discriminator"]["propertyName"] == "type"
+    assert set(input_schema["discriminator"]["mapping"]) == {
+        "prompt",
+        "text",
+        "url",
+        "youtube",
+    }
+    assert set(schemas["JobAcceptedPublic"]["properties"]) == {
+        "schema_version",
+        "job_id",
+        "status",
+        "revision",
+        "status_url",
+    }
+    assert "idempotency_key" not in schemas["JobAcceptedPublic"]["properties"]

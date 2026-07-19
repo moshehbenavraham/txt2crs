@@ -5,7 +5,7 @@ This module provides user CRUD operations, authentication, profile management,
 and self-service registration. Includes admin-only endpoints for superusers.
 
 Access Levels:
-- Public: /signup (rate limited)
+- Conditional public: /signup (local opt-in and rate limited)
 - Authenticated: /me endpoints for self-service
 - Superuser: Full user management (list, create, update, delete any user)
 """
@@ -413,13 +413,15 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     "/signup",
     response_model=UserPublic,
     status_code=201,
-    summary="Register new user (Public)",
+    summary="Register new user (Local opt-in)",
     description="""
-Public registration endpoint for new user self-signup.
+Conditional registration endpoint for new user self-signup.
 
 **Rate Limited:** This endpoint is rate-limited to prevent abuse.
 
-**No Authentication Required:** This is a public endpoint.
+**Local Opt-in:** No authentication is required only when
+`ENVIRONMENT=local` and `ENABLE_PUBLIC_SIGNUP=true`. Signup is disabled by
+default and cannot be enabled in staging or production.
 
 New users are created with:
 - `is_active = True`
@@ -440,6 +442,7 @@ New users are created with:
                 }
             },
         },
+        403: {"description": "Public signup is disabled"},
         409: {"description": "User with this email already exists"},
         422: {"description": "Validation error in request body"},
         429: {"description": "Rate limit exceeded"},
@@ -452,6 +455,14 @@ def register_user(
     user_in: UserRegister,
 ) -> Any:
     """Create new user without the need to be logged in."""
+    # Check the deployment mode before reading the submitted email from the
+    # database. Judge/demo deployments stay invite-only and do not reveal
+    # whether an account already exists.
+    if not settings.public_signup_enabled:
+        raise AuthorizationError(
+            code=ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS,
+            detail="Public signup is disabled.",
+        )
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise ConflictError(

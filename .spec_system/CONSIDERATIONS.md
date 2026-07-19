@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 02 Session 04 (2026-07-19)
+> **Line budget**: 600 max | **Last updated**: Phase 02 (2026-07-19)
 
 ---
 
@@ -52,11 +52,12 @@ Items requiring attention in upcoming phases. Review before each session.
   Regenerate and format `openapi.json` plus `src/client` together after API
   changes; never patch generated frontend files by hand.
 - [P01-backend+backend/packages/txt2crs] **Account erasure spans two owners**:
-  Phase 04 must stop/purge engine owner state before deleting the PostgreSQL
+  Phase 03 must stop/purge engine owner state before deleting the PostgreSQL
   user and must report any partial failure truthfully.
-- [P01-backend+backend/packages/txt2crs] **Worker recovery uses public handles**:
-  The serial worker must prefer recovered runnable jobs and use
-  `ApplicationExecutor` for cancellation and shutdown, never private stores.
+- [P02-backend+backend/packages/txt2crs] **Admission and recovery use public
+  handles**: Submit through the facade, return `202` only after its durable
+  commit, then nudge the worker; recovery and shutdown never read private
+  stores or reconstruct generation behavior in the shell.
 
 ---
 
@@ -110,9 +111,10 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P02-backend] **A lease follows background work, not the request**: Device
   authentication continues after its POST response, so one lifecycle monitor
   retains runtime ownership until terminal state or bounded shutdown.
-- [P02-backend+frontend] **Auth polling reads only generated safe state**:
-  Persisted-account refresh belongs to startup; browser readiness/status
-  queries copy caches and cannot construct Codex, MCP, or credential work.
+- [P02-backend+frontend] **Authorization and polling follow server state**:
+  Route guards run before feature queries mount; generated caches own server
+  state, polling exists only in waiting states, and refresh happens only on a
+  real transition rather than an initial StrictMode mount.
 
 ### What to Avoid
 

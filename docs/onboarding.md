@@ -57,6 +57,20 @@ curl --fail http://localhost:5183/health
 Log in with `FIRST_SUPERUSER` and the configured
 `FIRST_SUPERUSER_PASSWORD`.
 
+### 5. Complete course-system setup
+
+Open <http://localhost:5183/setup> as the initial superuser. The protected
+workspace shows the latest cached storage, worker, research, model, input, and
+admission checks. Use its ChatGPT connection action to authenticate the
+dedicated application identity. Configure `TAVILY_API_KEY` in `.env` when
+research should be ready, then restart the backend so it reads the new secret.
+
+If browser device authentication is unavailable, use the recovery command
+shown on the setup page from `backend/packages/txt2crs/`. The Phase 03 backend
+now accepts authenticated course submissions, while the learner generation
+form arrives in Phase 04. Phase 02 setup can therefore become ready before the
+learner UI is available.
+
 ## Manual Development
 
 Keep PostgreSQL and Mailcatcher in Docker:

@@ -361,7 +361,12 @@ def test_update_password_me_same_password_error(
     )
 
 
-def test_register_user(client: TestClient, db: Session) -> None:
+def test_register_user(
+    client: TestClient,
+    db: Session,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "ENABLE_PUBLIC_SIGNUP", True)
     username = random_email()
     password = random_lower_string()
     full_name = random_lower_string()
@@ -384,7 +389,11 @@ def test_register_user(client: TestClient, db: Session) -> None:
     assert verified
 
 
-def test_register_user_already_exists_error(client: TestClient) -> None:
+def test_register_user_already_exists_error(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "ENABLE_PUBLIC_SIGNUP", True)
     password = random_lower_string()
     full_name = random_lower_string()
     data = {
@@ -398,6 +407,37 @@ def test_register_user_already_exists_error(client: TestClient) -> None:
     )
     assert r.status_code == 409
     assert r.json()["detail"] == "The user with this email already exists in the system"
+
+
+def test_register_user_disabled_rejects_before_database_read(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    """Judge/demo mode stays invite-only without using submitted email."""
+
+    monkeypatch.setattr(settings, "ENABLE_PUBLIC_SIGNUP", False)
+    database_reads: list[str] = []
+
+    def reject_database_read(*_args, **_kwargs):
+        database_reads.append("read")
+        raise AssertionError("disabled signup reached the database")
+
+    monkeypatch.setattr(
+        "app.api.routes.users.crud.get_user_by_email",
+        reject_database_read,
+    )
+    response = client.post(
+        f"{settings.API_V1_STR}/users/signup",
+        json={
+            "email": random_email(),
+            "password": random_lower_string(),
+            "full_name": "Private Learner",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS.value
+    assert database_reads == []
 
 
 def test_update_user(

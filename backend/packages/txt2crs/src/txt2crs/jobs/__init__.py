@@ -4,6 +4,7 @@
 
 from typing import Any
 
+from txt2crs.ingestion.models import InputPayload
 from txt2crs.jobs.artifact_queries import (
     ArtifactDeliverable,
     ArtifactFormat,
@@ -18,6 +19,7 @@ from txt2crs.jobs.notifications import (
     DeliveryNotificationState,
     DeliveryNotificationStatus,
 )
+from txt2crs.jobs.quota import AdmissionReservation
 from txt2crs.jobs.requests import (
     CurriculumShapeLimits,
     ExecutionProfile,
@@ -82,6 +84,7 @@ __all__ = [
     "ArtifactIntegrityError",
     "ArtifactManifest",
     "ArtifactMetadata",
+    "AdmissionReservation",
     "AdmissionQuotaExceededError",
     "ConcurrencyConflictError",
     "CurriculumShapeLimits",
@@ -95,6 +98,7 @@ __all__ = [
     "GenerationRequest",
     "InputExecutionLimits",
     "InputIngestionService",
+    "InputPayload",
     "IdempotencyConflictError",
     "InvalidJobSubmissionError",
     "JobCheckpoint",

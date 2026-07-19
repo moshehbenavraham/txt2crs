@@ -188,8 +188,8 @@ This system delivers the product via phases. Each phase is implemented through
 |-------|------|----------|--------|
 | 00 | Application Baseline | 1 | Complete |
 | 01 | Engine Application Boundary | 5 | Complete |
-| 02 | Composition and Readiness | 5 | In Progress (4/5) |
-| 03 | Durable Jobs API | 2 | Not Started |
+| 02 | Composition and Readiness | 5 | Complete |
+| 03 | Durable Jobs API | 3 | Not Started |
 | 04 | Learner Experience | 2 | Not Started |
 | 05 | Hardening and Submission | 2 | Not Started |
 
@@ -235,6 +235,32 @@ This system delivers the product via phases. Each phase is implemented through
   device-auth routes, then regenerate the OpenAPI client.
 - **S05 - Operator Setup Experience**: Build the responsive, accessible
   superuser setup and device-login workflow.
+
+## Phase 03: Durable Jobs API
+
+### Objectives
+
+1. Accept strict JSON and multipart learner inputs only after bounded
+   transport validation, readiness, admission, and durable idempotent commit.
+2. Expose owner-scoped safe job, result, manifest, and integrity-checked
+   artifact reads with polling and private-delivery headers.
+3. Prove exact restart and delivery replay behavior through application
+   acceptance tests.
+4. Coordinate engine owner purge before PostgreSQL account deletion.
+5. Retire the donor `items` domain through a reversible schema migration and
+   regenerate the frontend API client.
+
+### Sessions
+
+- **S01 - Durable Job Submission and Admission**: Add tests-first JSON and
+  multipart intake, bounded streaming validation, canonical idempotency,
+  readiness/admission mapping, rate limits, and durable `202` semantics.
+- **S02 - Owner-Scoped Job Results and Recovery**: Add safe status, result,
+  manifest, and artifact routes plus ownership, headers, stream cleanup,
+  restart, checkpoint, and delivery-replay acceptance coverage.
+- **S03 - Account Purge and Donor Retirement**: Coordinate cross-store account
+  erasure, drop the donor item table through Alembic, remove item code and
+  admin tools, and regenerate the frontend contract.
 
 ## Technical Stack
 
@@ -311,9 +337,14 @@ This system delivers the product via phases. Each phase is implemented through
 ### Conflict Resolutions
 
 - **Phase progress**: Validated session and phase-transition evidence is
-  authoritative. Phases 00 and 01 are complete; Phases 02-05 remain
+  authoritative. Phases 00 through 02 are complete; Phases 03-05 remain
   unfinished.
 - **Phase 01 session count**: The implementation plan suggested two sessions,
   but those sessions combined fourteen substantial package gaps and exceeded
   the Apex Spec 12-25 task and 2-4 hour limits. Phase 01 therefore uses five
   dependency-ordered sessions without changing the phase scope.
+- **Phase 03 session count**: The implementation plan suggested two sessions,
+  but transport hardening, durable admission, safe reads and delivery,
+  restart replay, cross-store erasure, donor removal, migration verification,
+  and generated-client regeneration do not fit two bounded sessions. Phase 03
+  therefore uses three dependency-ordered sessions without changing scope.

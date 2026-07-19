@@ -43,6 +43,7 @@ production require an explicit non-blank `SECRET_KEY`, and reject
 | `DOMAIN` | `localhost` | Domain for cookie settings and URLs |
 | `STACK_NAME` | `.env.example`: `txt2crs` | Docker Compose stack identifier |
 | `ENABLE_PRIVATE_DEV_ROUTES` | `False` | Register `/private/*` routes; accepted only in `local` |
+| `ENABLE_PUBLIC_SIGNUP` | `False` | Permit unauthenticated `/users/signup`; accepted only in `local` |
 
 #### Frontend Configuration
 
@@ -70,6 +71,99 @@ http://localhost,http://localhost:5183,http://localhost:5184,http://localhost:80
 | `POSTGRES_PORT` | `5441` | Database server port; local Compose overrides the container connection to `5432` and publishes it on host port `5447` |
 | `POSTGRES_DB` | Empty string | Database name; Docker Compose requires a value |
 | `POSTGRES_PASSWORD` | Empty string | Database password; Docker Compose requires a value and non-local deployments must not use `changethis` |
+
+#### Course-System Storage and Runtime
+
+Docker Compose fixes the five paths below to image-owned locations. Override
+them only for host-only development, keep the database, artifacts, and Codex
+home as strict children of the state root, and keep worker scratch outside
+that persistent root.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_STATE_ROOT` | `/var/lib/txt2crs` | Private persistent engine-state root |
+| `TXT2CRS_JOB_DB_PATH` | `/var/lib/txt2crs/jobs.sqlite3` | Tenant-scoped SQLite job store |
+| `TXT2CRS_ARTIFACT_ROOT` | `/var/lib/txt2crs/artifacts` | Private rendered-artifact root |
+| `TXT2CRS_CODEX_HOME` | `/var/lib/txt2crs/codex-home` | Isolated dedicated Codex identity home |
+| `TXT2CRS_WORKER_ROOT` | `/tmp/txt2crs-worker` | Ephemeral job workspace outside persistent state |
+| `TXT2CRS_MODEL_ID` | `gpt-5.6` | Reviewed exact model: `gpt-5.6`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` |
+
+The shell owns one facade and one serial worker. These intervals bound durable
+discovery, graceful shutdown, cached readiness, and the in-memory device-login
+monitor:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_WORKER_POLL_SECONDS` | `2` | Durable runnable-job scan interval |
+| `TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS` | `30` | Maximum graceful worker drain |
+| `TXT2CRS_READINESS_REFRESH_SECONDS` | `60` | Interval between real readiness probes |
+| `TXT2CRS_READINESS_STALE_AFTER_SECONDS` | `120` | Oldest complete readiness snapshot accepted as current |
+| `TXT2CRS_READINESS_SHUTDOWN_TIMEOUT_SECONDS` | `30` | Maximum readiness-thread shutdown wait |
+| `TXT2CRS_AUTH_MONITOR_POLL_SECONDS` | `0.5` | Active device-login state observation interval |
+| `TXT2CRS_AUTH_SHUTDOWN_TIMEOUT_SECONDS` | `10` | Maximum authentication-monitor shutdown wait |
+
+#### Research
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_RESEARCH_ENABLED` | `True` | Disable-only switch for package-owned research |
+| `TXT2CRS_RESEARCH_MCP_HOST` | `127.0.0.1` | Numeric loopback address; wildcard, DNS, and external hosts are rejected |
+| `TXT2CRS_RESEARCH_MCP_PORT` | `8765` | Private two-tool research MCP port; not published by Compose |
+| `TXT2CRS_RESEARCH_MCP_STARTUP_TIMEOUT_SECONDS` | `10` | Maximum bounded startup wait |
+| `TXT2CRS_RESEARCH_MCP_SHUTDOWN_TIMEOUT_SECONDS` | `10` | Maximum bounded shutdown wait |
+| `TAVILY_API_KEY` | (empty) | Optional local secret; absence reports research as unconfigured |
+| `TAVILY_TIMEOUT_SECONDS` | `20` | Timeout per Tavily request |
+
+Secrets remain in `.env`; never commit a real `TAVILY_API_KEY`. Missing
+ChatGPT or Tavily authentication does not prevent startup or OpenAPI
+generation. It truthfully blocks generation admission in cached readiness.
+
+#### Generation Bounds and Retry Policy
+
+These finite values are copied into the immutable execution profile stored
+with each accepted job. Changing a default affects only later submissions.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_MAX_INPUT_BYTES` | `20971520` | Maximum raw input bytes |
+| `TXT2CRS_MAX_METADATA_BYTES` | `262144` | Maximum canonical input-metadata bytes |
+| `TXT2CRS_MAX_NORMALIZED_CHARACTERS` | `200000` | Maximum normalized text characters |
+| `TXT2CRS_MAX_PDF_PAGES` | `200` | Maximum PDF pages |
+| `TXT2CRS_ARTIFACT_MAX_JOB_BYTES` | `104857600` | Maximum complete artifact bundle bytes |
+| `TXT2CRS_HTML_PREVIEW_MAX_BYTES` | `5242880` | Maximum HTML preview bytes |
+| `TXT2CRS_RETRY_MAXIMUM_ATTEMPTS` | `3` | Total attempts allowed by the shared provider retry policy |
+| `TXT2CRS_RETRY_BASE_SECONDS` | `1` | Initial retry delay |
+| `TXT2CRS_RETRY_MAXIMUM_SECONDS` | `15` | Maximum retry delay |
+| `TXT2CRS_RETRY_JITTER_RATIO` | `0.2` | Bounded retry-jitter ratio |
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_RUN_MAXIMUM_TURNS` | `20` | Maximum Codex turns |
+| `TXT2CRS_RUN_MAXIMUM_RESEARCH_CALLS` | `12` | Maximum combined research calls |
+| `TXT2CRS_RUN_MAXIMUM_SEARCH_CALLS` | `6` | Maximum research searches |
+| `TXT2CRS_RUN_MAXIMUM_EXTRACT_CALLS` | `6` | Maximum source extractions |
+| `TXT2CRS_RUN_MAXIMUM_SOURCES` | `12` | Maximum retained sources |
+| `TXT2CRS_RUN_MAXIMUM_EXTRACTED_BYTES` | `2000000` | Maximum extracted research bytes |
+| `TXT2CRS_RUN_MAXIMUM_INPUT_TOKENS` | `600000` | Maximum input tokens |
+| `TXT2CRS_RUN_MAXIMUM_OUTPUT_TOKENS` | `150000` | Maximum output tokens |
+| `TXT2CRS_RUN_MAXIMUM_RETRIES` | `3` | Maximum run-level retries |
+| `TXT2CRS_RUN_MAXIMUM_REPAIRS` | `3` | Maximum validation repairs |
+| `TXT2CRS_RUN_MAXIMUM_ELAPSED_SECONDS` | `2700` | Maximum job elapsed time |
+
+#### Admission Capacity
+
+The public engine facade reserves rolling-window capacity before it accepts a
+job. Research currency is represented as integer micro-US-dollars.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TXT2CRS_ADMISSION_WINDOW_SECONDS` | `86400` | Rolling reservation window |
+| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER` | `2` | Maximum accepted jobs per owner in the window |
+| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL` | `5` | Maximum accepted jobs globally in the window |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER` | `1500000` | Per-owner reserved token ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL` | `3750000` | Global reserved token ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER` | `2000000` | Per-owner research-cost ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL` | `5000000` | Global research-cost ceiling |
 
 #### Email Configuration
 
@@ -141,6 +235,7 @@ validation behavior; they do not configure or imply a hosted deployment.
 ```env
 ENVIRONMENT=local
 ENABLE_PRIVATE_DEV_ROUTES=false
+ENABLE_PUBLIC_SIGNUP=true
 DOMAIN=localhost
 FRONTEND_HOST=http://localhost:5183
 POSTGRES_SERVER=db
@@ -153,6 +248,9 @@ Behaviors in local:
 - Rate limiting is disabled.
 - Local-only `/private/*` routes are disabled unless
   `ENABLE_PRIVATE_DEV_ROUTES=true`.
+- Public signup is disabled by default. The backend-only developer example
+  opts in with `ENABLE_PUBLIC_SIGNUP=true`; the root judge/demo example keeps
+  it false.
 - Sentry is disabled even when a DSN is present.
 - Logs use level `INFO` and human-readable text.
 - Local Docker Compose routes email to Mailcatcher.
@@ -176,6 +274,7 @@ Behaviors in staging:
 - Logs use level `INFO` and structured JSON.
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
+- `ENABLE_PUBLIC_SIGNUP=true` is rejected during startup.
 
 ### Production Runtime Profile (Not Deployed)
 
@@ -196,6 +295,7 @@ Behaviors in production:
 - Logs use level `INFO` and structured JSON.
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
+- `ENABLE_PUBLIC_SIGNUP=true` is rejected during startup.
 
 See [Environment-specific behavior](environments.md) for the source-backed
 runtime matrix.
@@ -233,6 +333,10 @@ The application validates configuration on startup:
    `POSTGRES_PASSWORD`, and `FIRST_SUPERUSER_PASSWORD`.
 4. Private development routes cannot be enabled outside `local`.
 5. CORS origins must be valid URLs.
+6. Course-system state paths must remain confined and non-overlapping.
+7. The research MCP host must be a numeric loopback address.
+8. Readiness, retry, run-budget, preview, and admission relationships must be
+   internally consistent.
 
 ## Loading Order
 
@@ -265,3 +369,10 @@ each service's `env_file` and `environment` sections. Values in a service's
 - Verify SMTP credentials
 - Check SMTP host is accessible from container network
 - Try with `SMTP_TLS=False` if having TLS issues
+
+**"Course system is not ready"**
+- Log in as a superuser and inspect `/setup`
+- Add `TAVILY_API_KEY` to `.env` when research is enabled
+- Complete the ChatGPT device-login flow or use the displayed CLI recovery
+  command
+- Restart the backend after changing environment variables

@@ -53,12 +53,24 @@ ENABLE_PRIVATE_DEV_ROUTES=false
 Setting `ENABLE_PRIVATE_DEV_ROUTES=true` outside `local` causes startup
 validation to fail.
 
+Public account creation is also an explicit local-only setting:
+
+```env
+ENABLE_PUBLIC_SIGNUP=false
+```
+
+The repository-root judge/demo example keeps signup closed. A backend-only
+developer can opt in with `ENABLE_PUBLIC_SIGNUP=true` while
+`ENVIRONMENT=local`; the same value in staging or production fails startup.
+When disabled, the signup route rejects before any account or email lookup.
+
 ## Runtime Behavior Matrix
 
 | Behavior | Local | Staging | Production |
 |----------|-------|---------|------------|
 | Rate limiting | Disabled | Enabled | Enabled |
 | Private `/private/*` routes | Disabled by default; explicit opt-in allowed | Disabled; opt-in rejected | Disabled; opt-in rejected |
+| Public `/users/signup` | Disabled by default; explicit opt-in allowed | Disabled; opt-in rejected | Disabled; opt-in rejected |
 | Sentry | Disabled | Enabled only when `SENTRY_DSN` is set | Enabled only when `SENTRY_DSN` is set |
 | Application logs | `INFO`, human-readable text | `INFO`, structured JSON | `INFO`, structured JSON |
 | Email delivery | Enabled when SMTP is configured; local Compose supplies Mailcatcher | Enabled when SMTP is configured | Enabled when SMTP is configured |
@@ -66,6 +78,7 @@ validation to fail.
 | JWT access-token lifetime | 24 hours | 24 hours | 24 hours |
 | Database pool defaults | Size 5, overflow 10 | Size 10, overflow 20 | Size 10, overflow 20 |
 | CORS origins | `FRONTEND_HOST` plus `BACKEND_CORS_ORIGINS` | Same rule | Same rule |
+| Course-system composition | One facade, serial worker, readiness cache, and authentication coordinator | Same single-process topology | Same single-process topology |
 
 The application does not automatically make production rate limits stricter
 than staging, require SMTP in non-local environments, or vary error details by
@@ -102,6 +115,7 @@ production currently use the same limits:
 | General API default | 100 requests per minute |
 | Authentication and password recovery | 5 requests per minute |
 | Registration | 10 requests per minute |
+| Course-job submission | 10 requests per minute |
 
 ### Private Development Routes
 
@@ -112,6 +126,19 @@ The `/private/*` router is registered only when both conditions are true:
 
 The setting defaults to `false`. Staging and production reject an enabled flag
 during startup rather than silently exposing the routes.
+
+### Public Signup
+
+`POST /api/v1/users/signup` accepts requests only when both conditions are
+true:
+
+1. `ENVIRONMENT=local`
+2. `ENABLE_PUBLIC_SIGNUP=true`
+
+The setting defaults to `false`. Staging and production reject an enabled flag
+during startup. A disabled request returns the shared insufficient-permission
+problem before querying whether the submitted email exists, which prevents
+the closed route from becoming an account-enumeration surface.
 
 ### Logging, Sentry, and Tracing
 
@@ -179,6 +206,21 @@ the `txt2crs-state` volume only at `/var/lib/txt2crs`. A complete local backup
 uses `scripts/backup-local-state.sh`, which briefly stops the backend writer
 and packages that volume with PostgreSQL in one checksum-protected bundle.
 
+### Course-System Readiness and Authentication
+
+Every environment owns the same single facade, serial worker, readiness
+maintenance thread, and system-authentication coordinator. Authenticated
+clients read the last complete safe readiness projection from
+`GET /api/v1/system/readiness`; only a current superuser can start or inspect
+the ChatGPT device-login ceremony. A browser poll never performs provider,
+filesystem mutation, or model discovery work.
+
+Missing ChatGPT or Tavily credentials produce an unconfigured readiness state
+instead of preventing OpenAPI generation or application startup. The
+configured readiness refresh and stale intervals remain finite in every
+environment. Multiple backend workers or replicas are unsupported while the
+serial worker and SQLite store share one process-owned lifecycle.
+
 ### CORS
 
 Allowed origins are the configured `FRONTEND_HOST` plus
@@ -188,13 +230,12 @@ use wildcard origins with credentials.
 
 ### Request Metadata and Privacy
 
-The current request middleware records the request path, query string, and
-client IP address. That metadata can contain personal information, including
-an email address in the password-recovery HTML route. Treat application logs
-as personal data, restrict access, and do not enable long retention by
-default. Redaction and a documented retention policy remain required before a
-production privacy review can pass; see
-[Security](SECURITY.md#known-security-and-compliance-gaps).
+Request middleware records the matched route name or a bounded redacted path
+shape. It does not log the raw query string, path parameters, client IP
+address, authorization header, or request body. Other application events may
+still contain account identifiers, so treat logs as personal data, restrict
+access, and define a retention policy before a production privacy review can
+pass; see [Security](SECURITY.md#known-security-and-compliance-gaps).
 
 ## Local Docker Addresses
 

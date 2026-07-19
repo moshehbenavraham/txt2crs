@@ -1,4 +1,4 @@
-# Phase 01 Transition CI/CD Pipeline Report
+# Phase 02 Transition CI/CD Pipeline Report
 
 **Date:** 2026-07-19
 **Result:** PASS with local fallback
@@ -15,77 +15,60 @@ The repository remains a mixed Python/TypeScript monorepo with no task runner:
   consumed by the shell;
 - `frontend` owns React, TypeScript, Vitest, and Playwright.
 
-The existing job-oriented strategy is appropriate: language-specific jobs run
+The existing job-oriented strategy is appropriate. Language-specific jobs run
 their own package tools, while shared backend or engine changes trigger the
-combined quality and integration workflows. All five pipeline bundles are
-already configured for the current local-only deployment scope, so this phase
+combined quality and integration workflows. All five pipeline bundles remain
+configured for the accepted local-only deployment scope, so this phase
 selected no new bundle and validated every existing workflow.
 
 `gh pr list --state open` returned no pull requests, failing PR checks,
-requested changes, or review threads. `gh secret list --app actions` returned
-no configured repository Actions secrets.
+requested changes, or review threads.
 
 ## Remote CI Status
 
-Commit `79993410c468dbe3fa84f81554e33baff16d68d6` triggered every
-push-enabled workflow. GitHub briefly reported them as queued, then rejected
-every job before any step started. Each failed job has `step_count=0`, matching
-the existing Actions billing/spending limitation rather than a source,
-configuration, or test failure.
+Commit `3dfbd01cf771a67d94b783fdfe269dcb9d357161` triggered every
+push-enabled workflow. GitHub rejected every job before any step started.
+Current check annotations state that recent account payments failed or the
+spending limit must be increased. This confirms the documented external
+billing condition rather than a source, workflow, or test failure.
 
 | Workflow | Run ID | Remote result |
 |----------|--------|---------------|
-| `quality.yml` | `29692537654` | Rejected before runner; zero-step jobs |
-| `test-backend.yml` | `29692537652` | Rejected before runner; zero-step job |
-| `test-docker-compose.yml` | `29692537650` | Rejected before runner; zero-step job |
-| `playwright.yml` | `29692537686` | Rejected before runner; zero-step gate job |
-| `security.yml` | `29692537667` | Rejected before runner; zero-step jobs; PR review skipped as expected |
-| `zizmor.yml` | `29692537676` | Rejected before runner; zero-step job |
-| `detect-conflicts.yml` | `29692537663` | Rejected before runner; zero-step job |
+| `quality.yml` | `29701210498` | Rejected before runner; zero-step jobs |
+| `test-backend.yml` | `29701210575` | Rejected before runner; zero-step job |
+| `test-docker-compose.yml` | `29701210507` | Rejected before runner; zero-step job |
+| `playwright.yml` | `29701210495` | Rejected before runner; zero-step gate job |
+| `security.yml` | `29701210520` | Rejected before runner; CodeQL and other jobs have zero steps |
+| `zizmor.yml` | `29701210546` | Rejected before runner; zero-step job |
+| `detect-conflicts.yml` | `29701210488` | Rejected before runner; zero-step job |
 
-`generate-client.yml` and `guard-dependencies.yml` are PR-only workflows. With
-no open PR, there is no applicable current run; their complete local
-equivalents and workflow definitions were validated.
-
-## Fix Applied
-
-The local workflow inspection found one source-controlled CI defect that the
-billing outage had hidden:
-
-- `test-docker-compose.yml` probed frontend port `5181`, while the
-  authoritative development mapping is `5183`.
-- Its backend smoke command used the compatibility liveness spelling rather
-  than the documented PostgreSQL-backed readiness endpoint.
-
-A failing regression was added first. The workflow now uses
-`curl --fail http://localhost:8012/api/v1/utils/health/` and
-`curl --fail http://localhost:5183/health`. The contract also rejects the old
-port. The complete backend suite increased to 195 tests and passes in both
-host and non-root container execution.
+`generate-client.yml` and `guard-dependencies.yml` are pull-request-only
+workflows. With no open pull request, no current run applies; their definitions
+and executable local equivalents were validated.
 
 ## Workflow Inventory
 
 | Bundle | Workflows | Local result | Remote result |
 |--------|-----------|--------------|---------------|
-| Code Quality | `quality.yml` | PASS for shell, engine, and frontend | Run `29692537654` rejected before runner |
-| Build & Test | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | PASS: builds, 195 backend, 444 engine, 22 unit, 70 browser, deterministic client | Push runs rejected before runner; PR-only client workflow not applicable |
-| Security | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | PASS for history, dependency, syntax, and workflow scanners | Runs rejected before runner; CodeQL remains remote-only |
-| Integration | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | PASS: browser, database, migration, full-stack health; no open PR | Push runs rejected before runner |
-| Operations | no hosted deployment workflows | PASS for intentional local-only policy | GitHub Actions intentionally does not deploy |
+| Code Quality | `quality.yml` | PASS for shell, engine, and frontend | Run `29701210498` rejected before runner |
+| Build & Test | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | PASS: builds, 296 backend, 464 engine, 33 unit, 76 browser, deterministic client | Push runs rejected before runner; PR-only client workflow not applicable |
+| Security | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | PASS for history, dependencies, syntax, and workflow scanners | Runs rejected before runner; CodeQL remains remote-only |
+| Integration | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | PASS: browser, database, migration, health, and no open PR | Push runs rejected before runner |
+| Operations | Dependabot plus local release/tag policy; no hosted deploy workflow | PASS for intentional local-only policy | GitHub Actions intentionally does not deploy |
 
 ## Evidence Ledger
 
 | Workflow | Run / local fallback | Result | Fixes Applied | Remaining / Blocker |
 |----------|----------------------|--------|---------------|---------------------|
-| `quality.yml` | Run `29692537654`; `backend/scripts/lint.sh`; engine Ruff/mypy/pytest; frontend Biome CI/tsc/Vitest/build | PASS (local fallback): shell types/lint clean, engine 444 + 1 live skip, frontend 22 and build | None | GitHub Actions billing |
-| `test-backend.yml` | Run `29692537652`; fresh PostgreSQL + Alembic + host pytest/coverage; UID 1001 `scripts/test.sh` | PASS (local fallback): 195 in both modes, 78% | Added current Compose-workflow regression | GitHub Actions billing |
-| `test-docker-compose.yml` | Run `29692537650`; `docker compose config --quiet`; isolated build/start/health/import checks; workflow contract | PASS (local fallback) | Corrected backend readiness and frontend health probes | GitHub Actions billing |
-| `playwright.yml` | Run `29692537686`; isolated API/Vite/PostgreSQL/Mailcatcher `npx playwright test --reporter=line` | PASS (local fallback): 70 | None | GitHub Actions billing |
-| `security.yml` | Run `29692537667`; `gitleaks detect --source . --redact --no-banner`; Python and npm audits | PASS (local fallback): 22 commits, no leaks or known dependency vulnerabilities | None | GitHub Actions billing; CodeQL execution is remote-only |
-| `zizmor.yml` | Run `29692537676`; `actionlint .github/workflows/*.yml`; `uv run --project backend zizmor .github/workflows` | PASS (local fallback): no findings | None | GitHub Actions billing |
-| `detect-conflicts.yml` | Run `29692537663`; `gh pr list --state open`; actionlint and Zizmor | PASS (local fallback): no open PR to compare | None | GitHub Actions billing |
-| `generate-client.yml` | PR-only; `scripts/generate-client.sh` followed by clean `frontend/src/client` and `openapi.json` diff | PASS (local fallback) | None | No open PR; GitHub Actions billing remains recorded |
-| `guard-dependencies.yml` | PR-only; actionlint, Zizmor, trigger/permission inspection, both dependency audits | PASS (local fallback) | None | No open dependency PR; GitHub Actions billing remains recorded |
+| `quality.yml` | Run `29701210498`; backend Ruff/mypy/ty/pytest; engine Ruff/mypy/pytest; frontend Biome/tsc/Vitest/build | PASS (local fallback): 296 shell, 464 engine plus 1 live skip, 33 frontend unit tests | None | GitHub Actions billing |
+| `test-backend.yml` | Run `29701210575`; fresh PostgreSQL, Alembic, pytest, and coverage | PASS (local fallback): 296 at 83% | None | GitHub Actions billing |
+| `test-docker-compose.yml` | Run `29701210507`; `docker compose config --quiet`; isolated database, migrations, backend health, and Vite startup | PASS (local fallback) | None | GitHub Actions billing |
+| `playwright.yml` | Run `29701210495`; isolated API/Vite/PostgreSQL/Mailcatcher `npx playwright test --reporter=line` | PASS (local fallback): 76 | None | GitHub Actions billing |
+| `security.yml` | Run `29701210520`; `gitleaks detect --source . --redact --no-banner`; Python and npm audits | PASS (local fallback): 49 commits, no leaks, no known dependency vulnerability | None | GitHub Actions billing; CodeQL execution is remote-only |
+| `zizmor.yml` | Run `29701210546`; `actionlint .github/workflows/*.yml`; `uv run --project backend zizmor .github/workflows` | PASS (local fallback): no finding | None | GitHub Actions billing |
+| `detect-conflicts.yml` | Run `29701210488`; `gh pr list --state open`; Actionlint and Zizmor | PASS (local fallback): no open PR | None | GitHub Actions billing |
+| `generate-client.yml` | PR-only; `bash scripts/generate-client.sh` followed by clean `frontend/openapi.json` and `frontend/src/client` diff | PASS (local fallback) | None | No open PR; GitHub Actions billing remains recorded |
+| `guard-dependencies.yml` | PR-only; Actionlint, Zizmor, author-policy inspection, Python and npm audits | PASS (local fallback) | None | No dependency PR; GitHub Actions billing remains recorded |
 
 ## Required Secrets
 
@@ -94,9 +77,9 @@ No secret value was created, printed, or committed.
 - Normal quality, test, security, and integration jobs require no manually
   configured secret.
 - Security analysis uses GitHub's automatic `GITHUB_TOKEN`.
-- Same-repository generated-client PR pushes reference
+- Same-repository generated-client pull request pushes reference
   `FULL_STACK_FASTAPI_TEMPLATE_REPO_TOKEN`; the name remains documented, and
-  the drift-check path works without it for forks.
+  fork drift checks do not require it.
 - There is no deploy or hosted-backup secret because hosted operations are
   outside the approved scope.
 
@@ -119,7 +102,7 @@ item remains.
 
 `pipeline -> infra` is the required Phase Transition handoff. `carryforward`
 comes only after `infra`, and implementation-session planning resumes only
-after `phasebuild` creates the next phase.
+after `phasebuild` creates Phase 03.
 
 **Next command:** `infra`
 **Reason:** all configured workflows pass their exact local fallbacks; remote

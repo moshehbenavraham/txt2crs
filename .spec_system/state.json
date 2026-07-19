@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
-  "current_phase": 2,
+  "current_phase": 3,
   "current_session": null,
   "monorepo": true,
   "packages": [
@@ -40,6 +40,12 @@
       "description": "Compose one FastAPI-owned engine lifecycle, serial worker, safe readiness and authentication API, and operator setup experience.",
       "status": "complete",
       "session_count": 5
+    },
+    "3": {
+      "name": "Durable Jobs API",
+      "description": "Expose durable learner submission, owner-scoped job and artifact delivery, restart recovery, coordinated account purge, and donor-domain retirement.",
+      "status": "in_progress",
+      "session_count": 3
     }
   },
   "completed_sessions": [
@@ -86,29 +92,15 @@
     {
       "id": "phase02-session05-operator-setup-experience",
       "package": "frontend"
+    },
+    {
+      "id": "phase03-session01-durable-job-submission-and-admission",
+      "package": "backend"
     }
   ],
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase01-session04-managed-runtime-and-model-policy",
-      "package": "backend/packages/txt2crs",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session04-managed-runtime-and-model-policy",
-      "package": "backend/packages/txt2crs",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase01-session05-public-facade-and-owner-lifecycle",
-      "package": "backend/packages/txt2crs",
-      "status": "planned"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase01-session05-public-facade-and-owner-lifecycle",
       "package": "backend/packages/txt2crs",
       "status": "validated"
@@ -207,6 +199,24 @@
       "date": "2026-07-19",
       "session": "phase02-session05-operator-setup-experience",
       "package": "frontend",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-19",
+      "session": "phase03-session01-durable-job-submission-and-admission",
+      "package": "backend",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session01-durable-job-submission-and-admission",
+      "package": "backend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session01-durable-job-submission-and-admission",
+      "package": "backend",
       "status": "completed"
     }
   ]

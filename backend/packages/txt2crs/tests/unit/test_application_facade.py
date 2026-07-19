@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from threading import Event, Thread
-from typing import Any, get_type_hints
+from typing import Any, cast, get_type_hints
 from weakref import ref
 
 import pytest
@@ -35,12 +35,13 @@ from txt2crs.application import (
     OwnerPurgeResult,
     Txt2CrsApplication,
 )
-from txt2crs.jobs import GenerationRequest
+from txt2crs.jobs import GenerationRequest, PreparationPolicyError
 from txt2crs.jobs.models import JobRecord
 from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.quota import AdmissionLimits, AdmissionReservation
 from txt2crs.jobs.service import InMemoryPrivateArtifactStore, JobService
 from txt2crs.jobs.store import SqliteJobStore
+from txt2crs.security.policy import ContentPolicy, PolicyDecision
 
 
 @dataclass(slots=True)
@@ -174,6 +175,48 @@ class RecordingOwnerLifecycle:
             deleted_job_count=1,
             deleted_artifact_job_count=1,
         )
+
+
+@dataclass(slots=True)
+class RecordingPreflightEvaluator:
+    """Evaluate real package policy while recording facade call ordering."""
+
+    events: list[str] = field(default_factory=list)
+
+    def evaluate_preflight(
+        self,
+        generation_request: GenerationRequest,
+    ) -> PolicyDecision:
+        """Record preflight before delegating to the package policy."""
+
+        self.events.append("preflight")
+        return ContentPolicy(
+            policy_version=generation_request.execution_profile.policy_version
+        ).evaluate_preflight(generation_request)
+
+
+@dataclass(slots=True)
+class RecordingSubmitService:
+    """Record whether durable submission ran after package preflight."""
+
+    result: JobRecord
+    events: list[str]
+    submit_calls: int = 0
+
+    def submit(
+        self,
+        *,
+        user_id: str,
+        idempotency_key: str,
+        generation_request: GenerationRequest,
+        admission_reservation: AdmissionReservation,
+    ) -> JobRecord:
+        """Return one sentinel job after recording the durable-write boundary."""
+
+        del user_id, idempotency_key, generation_request, admission_reservation
+        self.events.append("submit")
+        self.submit_calls += 1
+        return self.result
 
 
 class BlockingSubmitJobService(JobService):
@@ -369,6 +412,8 @@ def _application(
         authenticator=authenticator,
         executor_factory=executor_factory,
         owner_lifecycle=owner_lifecycle,
+        preflight_evaluator=RecordingPreflightEvaluator(),
+        admission_reservation=standard_admission_reservation(),
         close_callbacks=(store.close,),
     )
     return (
@@ -440,6 +485,93 @@ def test_facade_delegates_complete_public_job_lifecycle(tmp_path: Any) -> None:
     assert purged.deleted_job_count == 1
     assert purged.deleted_artifact_job_count == 1
     assert owner_lifecycle.calls == ["owner-123"]
+
+
+def test_facade_runs_package_preflight_before_durable_submission(
+    tmp_path: Any,
+) -> None:
+    """An allowed request reaches persistence only after package policy."""
+
+    (
+        original_application,
+        job_service,
+        _store,
+        readiness,
+        authenticator,
+        executor_factory,
+        owner_lifecycle,
+    ) = _application(tmp_path)
+    runnable = job_service.next_runnable()
+    assert runnable is not None
+    events: list[str] = []
+    preflight = RecordingPreflightEvaluator(events)
+    submit_service = RecordingSubmitService(runnable.job, events)
+    application = Txt2CrsApplication(
+        job_service=cast(JobService, submit_service),
+        readiness_inspector=readiness,
+        authenticator=authenticator,
+        executor_factory=executor_factory,
+        owner_lifecycle=owner_lifecycle,
+        preflight_evaluator=preflight,
+        admission_reservation=standard_admission_reservation(),
+        close_callbacks=(),
+    )
+
+    submitted = application.submit(
+        user_id="owner-123",
+        idempotency_key="allowed-request",
+        generation_request=valid_generation_request(),
+        admission_reservation=application.default_admission_reservation(),
+    )
+
+    assert submitted == runnable.job
+    assert events == ["preflight", "submit"]
+    application.close()
+    original_application.close()
+
+
+def test_facade_policy_refusal_never_reaches_durable_submission(
+    tmp_path: Any,
+) -> None:
+    """Consent refusal remains synchronous and creates no durable work."""
+
+    (
+        original_application,
+        job_service,
+        _store,
+        readiness,
+        authenticator,
+        executor_factory,
+        owner_lifecycle,
+    ) = _application(tmp_path)
+    runnable = job_service.next_runnable()
+    assert runnable is not None
+    events: list[str] = []
+    submit_service = RecordingSubmitService(runnable.job, events)
+    application = Txt2CrsApplication(
+        job_service=cast(JobService, submit_service),
+        readiness_inspector=readiness,
+        authenticator=authenticator,
+        executor_factory=executor_factory,
+        owner_lifecycle=owner_lifecycle,
+        preflight_evaluator=RecordingPreflightEvaluator(events),
+        admission_reservation=standard_admission_reservation(),
+        close_callbacks=(),
+    )
+
+    with pytest.raises(PreparationPolicyError) as error_info:
+        application.submit(
+            user_id="owner-123",
+            idempotency_key="refused-request",
+            generation_request=valid_generation_request(provider_consent=False),
+            admission_reservation=application.default_admission_reservation(),
+        )
+
+    assert error_info.value.reason_code == "provider_consent_required"
+    assert events == ["preflight"]
+    assert submit_service.submit_calls == 0
+    application.close()
+    original_application.close()
 
 
 def test_executor_is_bound_one_shot_and_close_requests_cancellation(
@@ -557,6 +689,8 @@ def test_owner_purge_cancels_and_waits_for_active_owner_executor(
             cancellation_observed=cancellation_observed,
         ),
         owner_lifecycle=ObservableOwnerLifecycle(purge_called),
+        preflight_evaluator=RecordingPreflightEvaluator(),
+        admission_reservation=standard_admission_reservation(),
         close_callbacks=(),
     )
     executor = application.create_executor(
@@ -648,6 +782,8 @@ def test_application_close_attempts_every_resource_and_returns_safe_error(
         authenticator=authenticator,
         executor_factory=executor_factory,
         owner_lifecycle=owner_lifecycle,
+        preflight_evaluator=RecordingPreflightEvaluator(),
+        admission_reservation=standard_admission_reservation(),
         close_callbacks=(fail_first_close, close_second),
     )
 
@@ -690,6 +826,8 @@ def test_application_close_waits_for_an_admitted_facade_call(
         authenticator=authenticator,
         executor_factory=executor_factory,
         owner_lifecycle=owner_lifecycle,
+        preflight_evaluator=RecordingPreflightEvaluator(),
+        admission_reservation=standard_admission_reservation(),
         close_callbacks=(close_completed.set,),
     )
 

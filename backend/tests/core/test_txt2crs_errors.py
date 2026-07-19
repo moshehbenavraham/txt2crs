@@ -9,9 +9,11 @@ from txt2crs.jobs import (
     AdmissionQuotaExceededError,
     IdempotencyConflictError,
     JobNotFoundError,
+    PreparationPolicyError,
 )
+from txt2crs.security.policy import PolicyDecision, PolicyOutcome, PolicyStage
 
-from app.core.constants import ErrorCode
+from app.core.constants import ERROR_STATUS_MAP, ErrorCode, HTTPStatusCode
 from app.core.txt2crs_errors import translate_txt2crs_exception
 
 
@@ -43,6 +45,19 @@ def test_known_package_errors_map_to_stable_shell_codes() -> None:
             SystemAuthenticationError("Bearer private provider response"),
             ErrorCode.SYSTEM_AUTH_FAILED,
         ),
+        (
+            PreparationPolicyError(
+                decision=PolicyDecision(
+                    policy_version="content-policy-v1",
+                    stage=PolicyStage.preflight,
+                    outcome=PolicyOutcome.rejected,
+                    reason_code="provider_consent_required",
+                    high_risk=False,
+                    public_message="Private policy response.",
+                )
+            ),
+            ErrorCode.JOB_POLICY_REJECTED,
+        ),
     )
 
     for package_error, expected_code in cases:
@@ -63,3 +78,20 @@ def test_unknown_package_failure_maps_to_generic_internal_error() -> None:
     assert translated.code is ErrorCode.INTERNAL_ERROR
     assert translated.detail == "An unexpected engine error occurred."
     assert "private-token" not in str(translated)
+
+
+def test_new_job_error_codes_preserve_released_range_and_statuses() -> None:
+    """Phase 03 extends the released 7xxx job range without renumbering it."""
+
+    assert ErrorCode.JOB_PAYLOAD_TOO_LARGE.value == "JOB_7005"
+    assert ErrorCode.JOB_UNSUPPORTED_MEDIA.value == "JOB_7006"
+    assert ErrorCode.JOB_POLICY_REJECTED.value == "JOB_7007"
+    assert ERROR_STATUS_MAP[ErrorCode.JOB_PAYLOAD_TOO_LARGE] == (
+        HTTPStatusCode.PAYLOAD_TOO_LARGE
+    )
+    assert ERROR_STATUS_MAP[ErrorCode.JOB_UNSUPPORTED_MEDIA] == (
+        HTTPStatusCode.UNSUPPORTED_MEDIA_TYPE
+    )
+    assert ERROR_STATUS_MAP[ErrorCode.JOB_POLICY_REJECTED] == (
+        HTTPStatusCode.UNPROCESSABLE_ENTITY
+    )

@@ -35,6 +35,7 @@ from txt2crs.application import (
     Txt2CrsApplication,
 )
 from txt2crs.application.readiness import ApplicationReadinessStatus
+from txt2crs.jobs import PreparationPolicyError
 
 
 def _storage(tmp_path: Path) -> ApplicationStorageConfig:
@@ -312,6 +313,40 @@ def test_real_factory_uses_explicit_database_and_artifact_paths(
         assert artifact_directory.is_dir()
         assert not (state_directory / "jobs.sqlite3").exists()
         assert not (state_directory / "artifacts").exists()
+    finally:
+        application.close()
+
+
+def test_deterministic_factory_rejects_preflight_before_durable_write(
+    tmp_path: Path,
+) -> None:
+    """Factory composition makes package policy part of every submission."""
+
+    application = DeterministicApplicationFactory(
+        DeterministicApplicationConfig(
+            storage=_storage(tmp_path),
+            admission=_admission(),
+            default_execution_profile=valid_execution_profile(),
+            scenario=_scenario(),
+        )
+    ).create()
+
+    try:
+        reservation = application.default_admission_reservation()
+        assert reservation.maximum_input_tokens == 600_000
+        assert reservation.maximum_output_tokens == 150_000
+        assert reservation.maximum_research_cost_microusd == 1_000_000
+
+        with pytest.raises(PreparationPolicyError) as error_info:
+            application.submit(
+                user_id="owner-123",
+                idempotency_key="missing-consent",
+                generation_request=valid_generation_request(provider_consent=False),
+                admission_reservation=reservation,
+            )
+
+        assert error_info.value.reason_code == "provider_consent_required"
+        assert application.next_runnable() is None
     finally:
         application.close()
 

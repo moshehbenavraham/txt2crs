@@ -11,7 +11,7 @@ from app.api.main import api_router
 from app.core.config import Settings, settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import setup_logging
-from app.core.middleware import RequestLoggingMiddleware
+from app.core.middleware import RequestLoggingMiddleware, UploadBodyLimitMiddleware
 from app.core.rate_limit import limiter
 from app.core.telemetry import instrument_app, setup_telemetry
 from app.services import (
@@ -20,6 +20,8 @@ from app.services import (
     SerialTxt2CrsWorker,
     SystemAuthenticationCoordinator,
     Txt2CrsApplicationLifecycle,
+    Txt2CrsSubmissionService,
+    build_execution_profile,
 )
 
 # Configure structured logging based on environment
@@ -60,6 +62,11 @@ Txt2CrsAuthenticationFactory = Callable[
     ],
     SystemAuthenticationCoordinator,
 ]
+
+# Multipart boundaries and headers are counted in the HTTP request body but
+# are not part of the learner file. This finite allowance lets one exact-limit
+# file plus bounded metadata pass while keeping parser overhead constrained.
+UPLOAD_MULTIPART_FRAMING_ALLOWANCE_BYTES = 65_536
 
 
 def build_txt2crs_lifecycle(
@@ -159,6 +166,7 @@ def create_app(
         fastapi_app.state.txt2crs_worker = None
         fastapi_app.state.txt2crs_readiness = None
         fastapi_app.state.txt2crs_authentication = None
+        fastapi_app.state.txt2crs_submission = None
         runtime_ownership = RuntimeOwnershipCoordinator()
         fastapi_app.state.txt2crs_runtime_ownership = runtime_ownership
         txt2crs_worker: SerialTxt2CrsWorker | None = None
@@ -196,6 +204,16 @@ def create_app(
             )
             fastapi_app.state.txt2crs_readiness = txt2crs_readiness
             txt2crs_readiness.start()
+            if txt2crs_application is not None and txt2crs_worker is not None:
+                # Compose this stateless adapter once from the exact facade,
+                # cache, worker, and startup-reviewed profile. Requests then
+                # retrieve it without rebuilding or probing provider state.
+                fastapi_app.state.txt2crs_submission = Txt2CrsSubmissionService(
+                    application=txt2crs_application,
+                    readiness=txt2crs_readiness,
+                    worker=txt2crs_worker,
+                    execution_profile=build_execution_profile(application_settings),
+                )
             if txt2crs_worker is not None:
                 txt2crs_worker.start()
             yield
@@ -235,6 +253,7 @@ def create_app(
             fastapi_app.state.txt2crs_worker = None
             fastapi_app.state.txt2crs_readiness = None
             fastapi_app.state.txt2crs_authentication = None
+            fastapi_app.state.txt2crs_submission = None
             fastapi_app.state.txt2crs_runtime_ownership = None
             if primary_error is None and cleanup_error is not None:
                 raise cleanup_error
@@ -261,6 +280,17 @@ def create_app(
             allow_headers=["*"],
         )
 
+    fastapi_app.add_middleware(
+        UploadBodyLimitMiddleware,
+        maximum_body_bytes=(
+            application_settings.TXT2CRS_MAX_INPUT_BYTES
+            + application_settings.TXT2CRS_MAX_METADATA_BYTES
+            + UPLOAD_MULTIPART_FRAMING_ALLOWANCE_BYTES
+        ),
+        upload_path=f"{application_settings.API_V1_STR}/jobs/upload",
+    )
+    # Add logging last so it is the outer middleware and assigns a trace ID
+    # even when the upload cap rejects a request before FastAPI routing.
     fastapi_app.add_middleware(RequestLoggingMiddleware)
     fastapi_app.include_router(
         api_router,

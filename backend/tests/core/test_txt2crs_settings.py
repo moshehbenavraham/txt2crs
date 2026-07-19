@@ -16,6 +16,7 @@ TXT2CRS_PATH_ENVIRONMENT_NAMES = (
 )
 
 TXT2CRS_COMPOSITION_ENVIRONMENT_NAMES = (
+    "ENABLE_PUBLIC_SIGNUP",
     "TXT2CRS_MODEL_ID",
     "TXT2CRS_RESEARCH_ENABLED",
     "TXT2CRS_RESEARCH_MCP_HOST",
@@ -154,6 +155,39 @@ def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL == 5_000_000
     assert settings.TAVILY_TIMEOUT_SECONDS == 20
     assert settings.TAVILY_API_KEY is None
+    assert settings.ENABLE_PUBLIC_SIGNUP is False
+    assert settings.public_signup_enabled is False
+
+
+def test_public_signup_requires_explicit_local_switch() -> None:
+    """Judge/demo defaults closed while an explicit developer mode may open."""
+
+    local_settings = Settings(
+        _env_file=None,
+        **_base_settings_payload(),
+        ENABLE_PUBLIC_SIGNUP=True,
+    )
+
+    assert local_settings.ENABLE_PUBLIC_SIGNUP is True
+    assert local_settings.public_signup_enabled is True
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+def test_non_local_configuration_rejects_public_signup(
+    environment: str,
+) -> None:
+    """An accidental deployment flag must fail startup instead of opening signup."""
+
+    payload = {
+        **_base_settings_payload(),
+        "ENVIRONMENT": environment,
+        "ENABLE_PUBLIC_SIGNUP": True,
+        "SECRET_KEY": "secure-production-secret-key",
+        "POSTGRES_PASSWORD": "secure-production-database-password",
+        "FIRST_SUPERUSER_PASSWORD": "secure-production-superuser-password",
+    }
+    with pytest.raises(ValidationError, match="ENABLE_PUBLIC_SIGNUP"):
+        Settings(_env_file=None, **payload)
 
 
 @pytest.mark.parametrize(
