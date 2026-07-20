@@ -24,10 +24,6 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Removed
 
-- Removed the submission-specific validator and parallel contract-test scope;
-  established product and release gates remain the technical verification
-  path.
-
 ### Fixed
 
 ### Security

@@ -114,21 +114,7 @@ TXT2CRS_MODEL_ID=gpt-5.6-sol
 Do not commit `.env`. The example intentionally disables public signup for
 the shared judge/demo profile.
 
-### 2. Authenticate the ChatGPT subscription
-
-The packaged Codex runtime uses a ChatGPT subscription identity, not API-key
-authentication. The short helper persists its device login in the private
-engine state mounted by Docker:
-
-```bash
-./scripts/auth-codex.sh --no-browser
-```
-
-Open the displayed device URL, enter the one-time code, and complete the
-ChatGPT account flow. The superuser setup page provides the same bounded
-readiness and device-login experience after the stack starts.
-
-### 3. Start the complete application
+### 2. Start the complete application
 
 ```bash
 docker compose up --detach --build --wait
@@ -140,9 +126,26 @@ Open:
 - Backend API: <http://localhost:8012>
 - Superuser setup: <http://localhost:5183/setup>
 
-Sign in with `FIRST_SUPERUSER` and `FIRST_SUPERUSER_PASSWORD`. The setup page
-must report authentication, exact model, research, storage, and worker
-readiness before accepting a live course.
+### 3. Connect the ChatGPT subscription
+
+The packaged Codex runtime uses a ChatGPT subscription identity, not API-key
+authentication. Sign in with `FIRST_SUPERUSER` and
+`FIRST_SUPERUSER_PASSWORD`, open the superuser setup page, and start its
+ChatGPT device login. Open the displayed verification URL, enter the one-time
+code, and complete the account flow. The setup page must then report
+authentication, exact model, research, storage, and worker readiness before
+accepting a live course.
+
+For host-only development, the short recovery helper runs the same packaged
+device flow and stores credentials under the ignored
+`.txt2crs-system/` directory:
+
+```bash
+./scripts/auth-codex.sh --no-browser
+```
+
+That host directory is separate from Docker's `txt2crs-state` volume. Use the
+setup page for the Docker Compose application.
 
 Stop containers while preserving PostgreSQL and private engine-state volumes:
 

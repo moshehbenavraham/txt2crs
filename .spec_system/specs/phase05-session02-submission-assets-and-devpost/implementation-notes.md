@@ -57,10 +57,8 @@ All external publication and submission actions are human-only. The agent
 prepares local assets and instructions; the human owns GitHub reviewer access,
 branch/tag publication, YouTube upload, Devpost entry, and platform receipts.
 
-An overengineered submission validator and its tests were removed. They added
-no product or submission value and duplicated existing release checks. The
-active session now measures the quality of the app, media, story, release
-evidence, and handoff.
+Submission-specific runtime code remains out of scope. The existing product
+and release gates verify the app, media, story, release evidence, and handoff.
 
 ### Documentation Reconciliation
 
@@ -118,8 +116,8 @@ evidence, and handoff.
 - 17 changed/new text deliverables: PASS - ASCII, LF, and relative links.
 - `git diff --check`: PASS.
 - Scoped Gitleaks scans: PASS - README, docs, and session files have no leak.
-- Removed-scope scan: PASS - no submission validator, receipt, or false AGPL
-  reference remains.
+- Removed-scope scan: PASS - no submission-specific validator/test file,
+  receipt deliverable, or false AGPL claim remains.
 - Media identity: PASS - six screenshot hashes/dimensions and ignored video
   hash/streams match their reviewed records.
 
@@ -159,8 +157,8 @@ evidence, and handoff.
   the final local release commit before any tag or push.
 - `docs/submission/RELEASE_RECONCILIATION.md` - Kept local commit preparation
   separate from human-only external release actions.
-- `docs/submission/PUBLIC_EVIDENCE_INDEX.md` - Described the synthetic
-  test-account display in the answer-key frame exactly.
+- `docs/submission/PUBLIC_EVIDENCE_INDEX.md` - Recorded the regenerated,
+  privacy-safe answer-key frame exactly.
 
 **Verification**:
 - Six original-resolution screenshot reviews: PASS - the journey is legible,

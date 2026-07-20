@@ -15,7 +15,7 @@ payloads or private generated files.
 | `03-progress.png` | Refresh-safe public stages and research activity | 1440x908 | `b39a32a3e27b8b0e11768bde167e529e1b571fbec932dff42ce5575cf896a963` | PASS |
 | `04-results.png` | Four publications, sixteen formats, sources, and conflicts | 1440x2028 | `54f85ddb41380f146a03ea48e4fa0fc64a78f21a5ebc6a7816a66099ffbdf3d3` | PASS |
 | `05-course-preview.png` | Integrity-checked synthetic course inside the empty sandbox | 1440x2028 | `9f4bbbc2d455e69e05020edfcaa840fe864ae2d56715e2339a2aa274879bd1d5` | PASS |
-| `06-answer-key.png` | Separate instructor downloads and source disclosure | 1440x2202 | `a828faa3741e4cff6c31b357d9c2a7615d6eb8e1cb2d5759bd6f08120f0337b4` | PASS |
+| `06-answer-key.png` | Separate instructor downloads and source disclosure | 1440x900 | `d38629d1602e0a4cdc9334d59d09330fa513943fb572af60f75e389d183022ef` | PASS |
 
 Only these six reviewed PNG files belong in the submission image set. Each is
 larger than the 1280x720 review floor.
@@ -23,11 +23,9 @@ larger than the 1280x720 review floor.
 The frames were captured from the repository's deterministic
 `chromium` Playwright project against a disposable migrated PostgreSQL 18
 database. Before capture, the test-owned account control and opaque private
-job reference were hidden from the primary journey frames. The final
-answer-key frame retains only the synthetic test account's display name and
-initials; it contains no email, identifier, or open account menu. All
-conditional capture hooks were then removed; the normal Playwright source
-remains unchanged.
+job reference were hidden from the reviewed journey frames. All conditional
+capture hooks were then removed; the normal Playwright source remains
+unchanged.
 
 ## Release Evidence
 

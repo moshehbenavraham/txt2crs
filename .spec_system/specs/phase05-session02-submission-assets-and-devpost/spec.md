@@ -4,6 +4,7 @@
 **Status**: In Progress
 **Package**: Cross-cutting
 **Release**: `1.0.0`
+**Base Commit**: a47a61804e7eda353020957d8b344b67e737da42
 
 ## Objective
 
