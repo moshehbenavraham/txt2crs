@@ -34,7 +34,7 @@ REVIEWED_MODEL_ID_ADAPTER: TypeAdapter[ReviewedModelId] = TypeAdapter(ReviewedMo
 
 
 class SystemInputMode(StrEnum):
-    """Finite P0 input modes the generated client may display."""
+    """Finite reviewed input modes the generated client may display."""
 
     prompt = "prompt"
     text = "text"
@@ -43,6 +43,9 @@ class SystemInputMode(StrEnum):
     pdf = "pdf"
     document = "document"
     slides = "slides"
+    image = "image"
+    audio = "audio"
+    video = "video"
 
 
 class _StrictPublicModel(BaseModel):

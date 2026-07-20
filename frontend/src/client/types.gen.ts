@@ -626,7 +626,7 @@ export type SystemAuthenticationState =
 /**
  * SystemInputMode
  *
- * Finite P0 input modes the generated client may display.
+ * Finite reviewed input modes the generated client may display.
  */
 export type SystemInputMode =
   | "prompt"
@@ -636,6 +636,9 @@ export type SystemInputMode =
   | "pdf"
   | "document"
   | "slides"
+  | "image"
+  | "audio"
+  | "video"
 
 /**
  * SystemReadinessChecksPublic

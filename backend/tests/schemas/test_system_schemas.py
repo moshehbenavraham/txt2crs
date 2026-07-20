@@ -67,6 +67,42 @@ def test_readiness_projection_copies_only_explicit_safe_fields() -> None:
     )
 
 
+def test_readiness_projection_accepts_every_engine_source_mode() -> None:
+    """A package capability must remain safe to expose through readiness."""
+
+    snapshot = _readiness_snapshot().model_copy(
+        update={
+            "enabled_input_modes": (
+                "prompt",
+                "text",
+                "url",
+                "youtube",
+                "pdf",
+                "document",
+                "slides",
+                "image",
+                "audio",
+                "video",
+            )
+        }
+    )
+
+    public = SystemReadinessPublic.from_snapshot(snapshot)
+
+    assert tuple(mode.value for mode in public.enabled_input_modes) == (
+        "prompt",
+        "text",
+        "url",
+        "youtube",
+        "pdf",
+        "document",
+        "slides",
+        "image",
+        "audio",
+        "video",
+    )
+
+
 def test_readiness_projection_rejects_unknown_input_and_naive_time() -> None:
     payload = SystemReadinessPublic.from_snapshot(_readiness_snapshot()).model_dump()
     with pytest.raises(ValidationError):

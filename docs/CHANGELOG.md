@@ -22,6 +22,25 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.0.4] - 2026-07-21
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Kept the public system-readiness input-mode contract synchronized with the
+  engine's optional image, audio, and video adapters so an enabled media
+  source no longer turns the System setup workspace into an HTTP 500/CORS
+  fallback, and added complete setup labels for those capabilities.
+
+### Security
+
 ## [1.0.3] - 2026-07-21
 
 ### Added

@@ -19,6 +19,9 @@ const readySystem: SystemReadinessPublic = {
     "pdf",
     "document",
     "slides",
+    "image",
+    "audio",
+    "video",
   ],
   checks: {
     authentication: "ready",
@@ -93,6 +96,9 @@ test("superuser navigation opens the complete safe setup workspace", async ({
     page.getByText("Ready for course work", { exact: true }),
   ).toBeVisible()
   await expect(page.getByText("gpt-5.6-sol", { exact: true })).toBeVisible()
+  await expect(page.getByText("Image", { exact: true })).toBeVisible()
+  await expect(page.getByText("Audio", { exact: true })).toBeVisible()
+  await expect(page.getByText("Video", { exact: true })).toBeVisible()
   await expect(
     page.getByRole("heading", { name: "System checks" }),
   ).toBeVisible()

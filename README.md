@@ -329,8 +329,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.0.3`. The human release
-operator creates the final annotated `v1.0.3` tag only after all tracked judge
+The current synchronized release version is `1.0.4`. The human release
+operator creates the final annotated `v1.0.4` tag only after all tracked judge
 assets are final and the exact commit passes the existing distribution,
 production-image, health, replacement, and privacy checks.
 

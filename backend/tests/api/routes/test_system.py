@@ -37,7 +37,21 @@ class RecordingReadiness:
             status=ReadinessStatus.degraded,
             accepting_jobs=False,
             configured_model_id="gpt-5.6-sol",
-            enabled_input_modes=("prompt", "text"),
+            # Keep this route contract aligned with every source mode the
+            # package can advertise. A newly enabled adapter must not turn a
+            # safe cached readiness response into an unhandled HTTP 500.
+            enabled_input_modes=(
+                "prompt",
+                "text",
+                "url",
+                "youtube",
+                "pdf",
+                "document",
+                "slides",
+                "image",
+                "audio",
+                "video",
+            ),
             checks=ReadinessChecks(
                 **dict.fromkeys(ReadinessChecks.model_fields, ReadinessCheckState.ready)
             ),
@@ -104,6 +118,18 @@ def test_readiness_requires_auth_and_returns_only_cached_projection(
 
     assert response.status_code == 200
     assert response.json()["status"] == "degraded"
+    assert response.json()["enabled_input_modes"] == [
+        "prompt",
+        "text",
+        "url",
+        "youtube",
+        "pdf",
+        "document",
+        "slides",
+        "image",
+        "audio",
+        "video",
+    ]
     assert "private_path" not in response.text
     assert readiness.snapshot_calls == 1
 

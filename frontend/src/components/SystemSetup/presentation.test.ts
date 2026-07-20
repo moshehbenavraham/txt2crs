@@ -132,6 +132,11 @@ describe("system setup presentation", () => {
     expect(getInputModeLabel("youtube")).toBe("YouTube")
     expect(getInputModeLabel("document")).toBe("Document")
     expect(getInputModeLabel("slides")).toBe("Slides")
+    // Media adapters are optional capabilities, but an enabled one must still
+    // render meaningful copy instead of an empty setup badge.
+    expect(getInputModeLabel("image")).toBe("Image")
+    expect(getInputModeLabel("audio")).toBe("Audio")
+    expect(getInputModeLabel("video")).toBe("Video")
     expect(SYSTEM_SETUP_CLI_COMMAND).toBe(
       "uv run --package txt2crs txt2crs-system-auth",
     )

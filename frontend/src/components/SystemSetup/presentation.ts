@@ -107,6 +107,9 @@ const INPUT_MODE_LABELS: Record<SystemInputMode, string> = {
   pdf: "PDF",
   document: "Document",
   slides: "Slides",
+  image: "Image",
+  audio: "Audio",
+  video: "Video",
 }
 
 export const SYSTEM_SETUP_CLI_COMMAND =

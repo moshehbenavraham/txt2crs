@@ -969,9 +969,20 @@ export const SystemAuthenticationStateSchema = {
 
 export const SystemInputModeSchema = {
   type: "string",
-  enum: ["prompt", "text", "url", "youtube", "pdf", "document", "slides"],
+  enum: [
+    "prompt",
+    "text",
+    "url",
+    "youtube",
+    "pdf",
+    "document",
+    "slides",
+    "image",
+    "audio",
+    "video",
+  ],
   title: "SystemInputMode",
-  description: "Finite P0 input modes the generated client may display.",
+  description: "Finite reviewed input modes the generated client may display.",
 } as const
 
 export const SystemReadinessChecksPublicSchema = {
