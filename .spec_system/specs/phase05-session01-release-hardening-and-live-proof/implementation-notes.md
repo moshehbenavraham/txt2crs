@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 10:21 IDT
+**Last Updated**: 2026-07-20 10:28 IDT
 
 ---
 
@@ -13,11 +13,74 @@
 |--------|-------|
 | Tasks Completed | 19 / 25 |
 | Estimated Remaining | 1-2 hours plus external live prerequisites |
-| Blockers | Tavily credential and GPT-5.6 entitlement; deterministic work continues |
+| Blockers | Tavily credential and GPT-5.6 entitlement; provider-independent work complete |
 
 ---
 
 ## Task Log
+
+### Task T024 - Repeat Candidate Gates (Provider-Independent Portion)
+
+**Started**: 2026-07-20 10:21 IDT
+**Status**: Partial - final live evidence and exact candidate revision blocked
+
+**Notes**:
+- Repeated version validation and both distribution builds from detached
+  revision `c72137e13ee1c6770d06b4a77655e4722041ffa9`. The distribution hashes
+  and sizes were byte-identical to T013.
+- The first backend repeat exposed a real reproducibility defect: nested
+  package type-check and test caches entered the Docker build context, which
+  grew from about 73 kB to 25.44 MB and changed the image ID. Wrote the static
+  recursive-ignore regression first, observed its focused failure, then
+  corrected the backend context contract in commit
+  `ce2558a878eea5f575f032b8994b5175c7605be5`.
+- Repeated the provider-independent candidate build from detached revision
+  `ce2558a878eea5f575f032b8994b5175c7605be5` while 25 MB of ignored nested
+  caches remained present. The backend context was only 53.32 kB. Adding a
+  new ignored sentinel below the nested package cache produced the same
+  context size, full build cache hit, and backend image ID.
+- Replaced the isolated candidate backend/frontend/prestart tier with those
+  exact images. Both application container IDs changed, while the PostgreSQL
+  container identity and private engine-state volume mount remained
+  identical; backend, frontend, and database returned healthy.
+- T024 remains open by design. T017-T019 must add the reviewed live evidence
+  and canonical candidate JSON before the final clean revision and its Git
+  SHA can exist. No `v1.0.0` tag was created.
+
+**Files Changed**:
+- `backend/tests/scripts/test_container_contract.py` - tests-first recursive
+  build-context regression.
+- `backend/.dockerignore` - recursive exclusions for package caches, virtual
+  environments, coverage, and distribution/build outputs.
+
+**Verification**:
+- Command/check: isolated container-contract pytest before and after the fix
+  - Result: RED/GREEN - the new assertion failed with the original root-only
+    patterns; all 14 static container contracts pass after correction.
+- Command/check: detached distribution repeat
+  - Result: PASS - wheel
+    `fc2dab0bca88795302a47ceccc7175c2b907e0a0ed664244e01955b4c8613320`
+    (194,117 bytes); source archive
+    `8178e4cc00dcdc41a2c53cd29a641616fcf02accb899f8a8c5aa1bc90c4fd171`
+    (588,687 bytes).
+- Command/check: cache-filled production image build and ignored-sentinel
+    repeat
+  - Result: PASS - backend
+    `c9933b7091617355fa271833bc9a40ec5dde79c18fa29727bdf1f80c30dd03b2`
+    remained identical after the ignored cache changed; frontend
+    `a37f5471fad43754486e192bed261b0c90df3157c3ab0630a6c36a43783798ca`
+    built successfully.
+- Command/check: root-only candidate Compose replacement and health wait
+  - Result: PASS - application tier replaced; database container and state
+    volume retained; backend/frontend/database healthy; prestart exited zero.
+- UI product-surface check: PASS - the production frontend remains healthy.
+- UI craft check: N/A - no visual implementation changed.
+
+**BQC Fixes**:
+- Reproducibility: local workspace outputs can no longer alter the production
+  context copied from `packages/txt2crs`.
+- Evidence honesty: provisional image IDs are recorded as a partial repeat,
+  not mislabeled as the final candidate revision or canonical live ledger.
 
 ### Task T020 - Run Focused Release Gates
 
@@ -706,7 +769,7 @@ must identify the same immutable revision.
   deterministic browser 16/1 skip twice; broad browser 69/11 intentional
   skips; all workflow/security equivalents green.
 - External gates: Tavily remains absent and the valid ChatGPT account is not
-  entitled to exact `gpt-5.6`; T016-T020 and T024-T025 remain open where they
-  depend on truthful live/canonical evidence.
-- Next task: finish every provider-independent portion of T020 and T024, then
-  preserve the exact external handoff.
+  entitled to exact `gpt-5.6`; T016-T019 and the live-dependent portions of
+  T024-T025 remain open.
+- Next task: provision both external prerequisites, then resume T016 without
+  substituting a provider or model.
