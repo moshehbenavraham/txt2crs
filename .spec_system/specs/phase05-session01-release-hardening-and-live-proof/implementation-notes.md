@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 10:32 IDT
+**Last Updated**: 2026-07-20 11:34 IDT
 
 ---
 
@@ -13,11 +13,50 @@
 |--------|-------|
 | Tasks Completed | 19 / 25 |
 | Estimated Remaining | 1-2 hours plus external live prerequisites |
-| Blockers | Tavily credential and GPT-5.6 entitlement; provider-independent work complete |
+| Blockers | Dedicated ChatGPT login and exact Sol discovery; Tavily is configured |
 
 ---
 
 ## Task Log
+
+### Task T016 - Provision Live Runtime (Operator Helper Partial)
+
+**Started**: 2026-07-20 11:22 IDT
+**Status**: Partial - waiting for operator browser login
+
+**Notes**:
+- Added one short repository-root command for the packaged device-code flow:
+  `./scripts/auth-codex.sh`.
+- The helper resolves its own repository path, runs from the backend package
+  root, stores credentials only below the ignored `.txt2crs-system`, enforces
+  owner-only permissions, and forwards optional CLI flags.
+- Replaced the long acceptance-guide bootstrap command and corrected its stale
+  model environment name to `TXT2CRS_MODEL_ID`.
+- Confirmed the private root environment now supplies a nonempty Tavily
+  credential and explicitly selects `gpt-5.6-sol`; no value was printed.
+
+**Files Changed**:
+- `scripts/auth-codex.sh` - concise executable device-auth shortcut.
+- `backend/tests/scripts/test_system_auth_script_contract.py` - executable,
+  path, argument, private-state, and documentation contracts.
+- `backend/packages/txt2crs/tests/acceptance/README_acceptance.md` - short
+  helper and exact Sol live-probe example.
+
+**Verification**:
+- Command/check: focused helper contract before and after implementation
+  - Result: RED/GREEN - 2 missing-script failures first; 3 tests pass after
+    implementation and documentation.
+- Command/check: Ruff, `bash -n`, ShellCheck, and real helper `--help`
+  - Result: PASS - Python and shell checks are clean; packaged CLI help exits
+    zero without starting authentication.
+- UI product-surface check: N/A - local operator CLI only.
+- UI craft check: N/A - no application UI changed.
+
+**BQC Fixes**:
+- Resource/privacy boundary: owner-only state creation precedes the packaged
+  login, and `exec` preserves its exit status without a wrapper process.
+- Contract alignment: the guide now names the environment variable consumed
+  by the live test instead of the obsolete `TXT2CRS_LIVE_MODEL`.
 
 ### Task T024 - Repeat Candidate Gates (Provider-Independent Portion)
 
@@ -701,31 +740,33 @@
 
 ## Blockers & Solutions
 
-### Blocker 1: Tavily Credential Is Not Configured
+### Blocker 1: Tavily Credential Was Not Configured
 
-**Description**: The real representative course requires a private nonempty
-`TAVILY_API_KEY`; none is present in the process or project environment files.
+**Description**: The real representative course required a private nonempty
+`TAVILY_API_KEY`; none was initially present in the process or project
+environment files.
 **Impact**: Tasks T016-T019 cannot truthfully complete the real Tavily proof
 until a credential exists. All credential-free implementation and validation
 tasks remain executable.
-**Resolution**: Pending external credential availability. Continue every
-deterministic and release-candidate task first; never substitute another
-provider or fabricate a live result.
+**Resolution**: Resolved 2026-07-20 11:20 IDT - the private root `.env` now
+contains a nonempty value and Compose passes it to the backend. Real provider
+authentication remains part of the single T017 live run.
 **Rechecked**: 2026-07-20 10:32 IDT - process environment, root `.env`,
 backend `.env`, and retained candidate backend all remain empty or absent.
 **Time Lost**: 0 minutes.
 
-### Blocker 2: The Valid ChatGPT Account Is Not Entitled To GPT-5.6
+### Blocker 2: Dedicated ChatGPT Identity Has Not Yet Discovered Sol
 
 **Description**: The explicit live subscription acceptance test used the
-operator's valid ChatGPT credential and the exact configured `gpt-5.6` model.
-Runtime readiness reported a valid credential but `model_entitled=False`.
-**Impact**: T016-T019 cannot claim exact GPT-5.6 execution, even after a
-Tavily key is supplied, until an authenticated app-owned account exposes that
-model.
-**Resolution**: Pending external account entitlement and packaged system-auth
-bootstrap. Do not substitute another model; continue all provider-independent
-release validation.
+operator's valid default ChatGPT credential. Exact `gpt-5.6` and follow-up
+readiness-only `gpt-5.6-sol` checks both returned `model_entitled=False`; the
+current two-model catalog contains no reviewed GPT-5.6 family identifier.
+**Impact**: T016-T019 cannot claim exact Sol execution until the dedicated
+app-owned identity discovers `gpt-5.6-sol`.
+**Resolution**: Pending operator browser login through
+`./scripts/auth-codex.sh`. If fresh app-owned authentication still
+omits Sol, investigate the pinned SDK/catalog boundary rather than substituting
+a model or assuming the operator needs a different paid plan.
 **Verification**: `TXT2CRS_RUN_LIVE_CODEX=1 uv run --package txt2crs pytest
 packages/txt2crs/tests/acceptance -m live -q --tb=short` reached the entitlement
 assertion and failed there before any generation turn.
