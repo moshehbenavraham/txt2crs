@@ -12,12 +12,30 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [1.0.0] - 2026-07-20
+
+### Added
+
 - Added a read-only tag/manual release-validation workflow that verifies
   synchronized versions, engine distributions and checksums, frontend gates,
   and both production images without publishing or deploying.
+- Added strict, canonical, public-safe release evidence validation and a
+  reproducible deterministic sample plus sixteen-artifact inspection ledger.
 
 ### Changed
 
+- Declared the validated engine facade, durable FastAPI jobs boundary, and
+  learner experience as the first stable public `1.0.0` release.
 - Synchronized the root, architecture, onboarding, deployment, and visual
   design documentation with the completed Phase 04 learner journey and
   verified local backup, restore, throttling, and rollback behavior.
@@ -30,6 +48,8 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+- Added fail-closed rejection for unknown, path-like, email-like, provider,
+  prompt, token, credential, link, and raw artifact-body release evidence.
 - Disabled setup-action caches in the artifact-producing release job after
   workflow security analysis identified cache-poisoning risk.
 

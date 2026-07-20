@@ -10,11 +10,12 @@
 
 ## Overview
 
-Freeze feature scope, prove the exact submission revision under deterministic
-and production-like conditions, complete one synthetic representative
-GPT-5.6 plus Tavily course, publish a synchronized final release, and finish
-every judge-facing OpenAI/Devpost submission artifact. This phase adds no P1
-product feature and does not introduce hosted deployment.
+Freeze feature scope, prove a synchronized release candidate under
+deterministic and production-like conditions, complete one synthetic
+representative GPT-5.6 plus Tavily course, finish every tracked judge-facing
+OpenAI/Devpost asset, and only then publish the exact final release submitted
+to judges. This phase adds no P1 product feature and does not introduce hosted
+deployment.
 
 ---
 
@@ -46,8 +47,9 @@ None yet.
    and browser gates from the exact release revision.
 2. Complete and inspect one synthetic representative GPT-5.6 plus Tavily job
    with all 16 private artifacts and redacted operational evidence.
-3. Synchronize, build, tag, and push the final SemVer release without
-   publishing packages or deploying a hosted environment.
+3. Synchronize and build a `1.0.0` release candidate, then tag and push the
+   exact final judge-asset revision without publishing packages or deploying a
+   hosted environment.
 4. Finish the judge README, sample evidence, license/access check, Codex
    feedback Session ID, public sub-three-minute video, Education-category
    Devpost fields, and confirmed submission receipt.
@@ -80,10 +82,11 @@ None yet.
   rejects jobs before scheduling. Session 01 repeats every executable
   workflow equivalent locally, preserves the remote CodeQL exception, and
   does not misrepresent the hosted checks as green.
-- **The final version is chosen at the release gate**: `0.7.0` is the current
-  synchronized release. Session 01 selects the next valid SemVer from actual
-  release significance, then synchronizes every declared version surface,
-  build artifact, changelog record, commit, and annotated tag.
+- **The final version is `1.0.0`**: `0.7.0` is the current synchronized
+  release and `docs/VERSIONING.md` reserves `1.0.0` for the first stable
+  public API. Phases 00-04 delivered and validated that public boundary, so
+  Session 01 synchronizes the `1.0.0` release candidate and Session 02 creates
+  the final immutable tag after tracked judge assets are complete.
 
 ### Conflict Resolutions
 
@@ -96,6 +99,12 @@ None yet.
   while the older master-plan checklist still contains unchecked implemented
   items. Phase 05 verifies those contracts from a clean revision; it does not
   reopen them as new feature work.
+- **Final tag follows tracked submission assets**: The source implementation
+  plan orders the judge README before release, but the initial phase stubs put
+  the tag in Session 01 and tracked assets in Session 02. Session 01 now
+  produces the tested candidate; Session 02 completes repository assets,
+  repeats the immutable release checks, and tags that exact commit. No tracked
+  change may follow the final tag without a new version.
 
 ---
 
@@ -106,9 +115,10 @@ None yet.
 - Keep the public engine facade, generated OpenAPI client, single-process
   serial worker, owner-hidden reads, verified artifact delivery, and sandboxed
   preview boundaries unchanged during the feature freeze.
-- Release evidence must identify one tested revision, one synchronized SemVer
-  value, the matching Python distributions and Docker images, and the exact
-  annotated tag.
+- Candidate evidence must identify one tested revision, one synchronized
+  SemVer value, and matching Python distributions and Docker images. The final
+  Session 02 ledger adds the exact annotated tag after judge assets are
+  complete and revalidated.
 - Live evidence is redacted and path-free. It may record finite model,
   research, artifact, timing, and validation facts but never credentials,
   provider payloads, prompts, private paths, or artifact bodies in logs.
@@ -172,8 +182,9 @@ Phase complete when:
       formatting, and answer separation.
 - [ ] Logs, browser/network evidence, release artifacts, and submission
       materials contain no secret or private implementation data.
-- [ ] The selected final SemVer is synchronized, built, committed, annotated
-      as the exact matching tag, and pushed.
+- [ ] The selected final SemVer is synchronized and built as a release
+      candidate, then the complete judge-asset revision is revalidated,
+      committed, annotated as the exact matching tag, and pushed.
 - [ ] The root README, sample, AI-usage explanation, privacy/limits,
       architecture, setup, and test instructions are judge-ready.
 - [ ] Repository license and judge access are verified without inventing a

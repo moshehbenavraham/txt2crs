@@ -37,6 +37,15 @@ playwright/.cache/
 # Local backup bundles contain database records and Codex credentials.
 /backups/
 
+# Release proof may create authenticated runtime state, raw artifact downloads,
+# browser traces, and provider-backed intermediate evidence. Only the reviewed
+# redacted documents under docs/release are committed.
+/.release-private/
+/docs/release/private/
+/docs/release/raw/
+/docs/release/*.private.json
+/docs/release/*.private.md
+
 # Local snapshot of python-react-boilerplate; reference only, never committed.
 boilerplate/
 

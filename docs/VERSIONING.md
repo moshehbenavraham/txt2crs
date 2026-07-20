@@ -8,9 +8,9 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `0.7.0`. Versions below
-`1.0.0` represent initial development, so the public API may still change. The
-first stable public API will be released as `1.0.0`.
+The current repository and Python package release is `1.0.0`. It is the first
+stable public API release. Future compatibility decisions follow Semantic
+Versioning from this public boundary.
 
 ## Choosing the next version
 
@@ -33,9 +33,12 @@ first stable public API will be released as `1.0.0`.
    heading such as `## [0.1.0] - 2026-07-17`.
 5. Run the complete test suite and required quality checks.
 6. Build both the wheel and source distribution and inspect their contents.
-7. Commit the release changes.
-8. Create an annotated Git tag named `v<version>`, such as `v0.1.0`.
-9. Push the commit and tag, then add changelog comparison links if needed.
+7. Complete and commit every tracked release and judge-facing asset.
+8. Repeat the immutable version, distribution, image, health, and link checks
+   on that exact clean commit.
+9. Create an annotated Git tag named `v<version>`, such as `v1.0.0`.
+10. Push the exact tested commit and tag, then verify the remote tag resolves
+    to the same commit and add changelog comparison links if needed.
 
-Released version numbers are immutable. Any subsequent change receives a new
-version.
+Released version numbers and tagged contents are immutable. Any subsequent
+tracked change receives a new version.

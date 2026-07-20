@@ -12,8 +12,8 @@
 
 Prove one exact feature-frozen revision through clean deterministic,
 evaluation, distribution, production-image, persistence, and synthetic live
-GPT-5.6 plus Tavily evidence, then publish its synchronized final SemVer commit
-and annotated tag.
+GPT-5.6 plus Tavily evidence, then prepare its synchronized `1.0.0`
+release-candidate commit for the final judge-asset and tag gate.
 
 ---
 
@@ -33,8 +33,8 @@ and annotated tag.
   formatting, assessment/answer separation, integrity, and private access.
 - Redacted logs/browser/network/resource inspection and a deterministic sample
   plus redacted live-demo evidence.
-- Final SemVer selection, synchronized version/changelog/lockfile metadata,
-  Python distribution and image builds, commit, push, and annotated tag.
+- `1.0.0` version selection, synchronized version/changelog/lockfile metadata,
+  Python distribution and image builds, and an exact tested candidate commit.
 - Exact local fallbacks for billing-blocked GitHub jobs and preservation of the
   remote CodeQL known issue.
 
@@ -44,6 +44,8 @@ and annotated tag.
   changes unrelated to a release-blocking defect.
 - Hosted deployment, public domains, package publication, or GitHub Release
   creation.
+- Final annotated tag creation; Session 02 must first complete tracked judge
+  assets and rerun the immutable release checks on the exact tagged commit.
 - Real learner personal data or unredacted provider/runtime evidence.
 
 ---
@@ -65,8 +67,8 @@ and annotated tag.
    and redacted demo sample.
 3. Secret/privacy/resource audit for logs, browser traffic, processes, and
    generated evidence.
-4. Synchronized final version, changelog, distributions, image inspection,
-   tested commit, pushed branch, and matching annotated tag.
+4. Synchronized `1.0.0` candidate version, changelog, distributions, image
+   inspection, exact tested commit, and handoff requirements for the final tag.
 
 ---
 
@@ -83,7 +85,8 @@ and annotated tag.
 - [ ] All live publications pass the recorded human quality and answer-
       separation inspection with no secret, prompt, path, provider payload, or
       raw artifact body in evidence logs.
-- [ ] Root/package versions, lockfile, changelog, distributions, images,
-      commit, branch, and annotated tag all identify one final SemVer release.
+- [ ] Root/package versions, lockfile, changelog, distributions, images, and
+      candidate commit all identify `1.0.0`; the handoff states the exact
+      checks Session 02 must repeat before tagging.
 - [ ] Any GitHub-hosted failure is proven to be the existing zero-step billing
       condition and has a passing exact local equivalent where one exists.

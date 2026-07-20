@@ -36,6 +36,9 @@ that the exact release was submitted before the deadline.
   learning, next steps, links, media, credits, and required acknowledgements.
 - Final submission dry run, exact commit/tag/link reconciliation, submission,
   timestamped receipt, and post-submit verification.
+- Final clean release-contract, distribution, production-image, and judge-link
+  revalidation after all tracked assets are committed, followed by branch push
+  and annotated `v1.0.0` tag creation/push on that exact commit.
 
 ### Out of Scope
 
@@ -50,8 +53,9 @@ that the exact release was submitted before the deadline.
 
 ## Prerequisites
 
-- [ ] Session 01 produced one tested final release commit/tag, deterministic
-      sample, redacted live sample, and complete inspection evidence.
+- [ ] Session 01 produced one tested `1.0.0` release-candidate commit,
+      deterministic sample, redacted live sample, complete inspection
+      evidence, and an explicit final-tag revalidation handoff.
 - [ ] Repository access is configured so judges can reach the submitted
       revision under the event rules.
 - [ ] The operator can access the primary Codex session, YouTube publication
@@ -66,8 +70,8 @@ that the exact release was submitted before the deadline.
 2. Verified public narrated YouTube demo shorter than three minutes.
 3. Recorded Codex feedback Session ID and complete Education-category Devpost
    submission content.
-4. Devpost submission receipt tying the deadline, repository, release tag,
-   video, and tested revision together.
+4. Immutable `v1.0.0` tag plus Devpost submission receipt tying the deadline,
+   repository, release tag, video, and tested revision together.
 
 ---
 

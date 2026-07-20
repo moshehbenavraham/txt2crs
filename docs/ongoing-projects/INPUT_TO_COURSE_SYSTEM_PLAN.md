@@ -4,7 +4,7 @@
 > **Delivery status:** Phases 0-4 are validated; Phase 5 hardening and
 > submission remains
 > **Initial baseline release:** 0.3.1
-> **Current release:** 0.7.0
+> **Current release candidate:** 1.0.0 (final tag follows tracked judge assets)
 > **Created:** 2026-07-18
 > **Last verified:** 2026-07-20
 > **Owner:** txt2crs project
@@ -1395,7 +1395,7 @@ Implementation sessions:
 
 ### Phase 5 - hardening and submission
 
-**Status:** Not started.
+**Status:** In progress - Session 01 release hardening and live proof.
 
 Objective: prove the shipped artifact and complete every event requirement.
 
@@ -1413,11 +1413,13 @@ Work:
 8. Prepare one deterministic sample and one completed live demo job.
 9. Update root README with setup, sample input, run, architecture, AI usage,
    privacy, limits, and testing instructions.
-10. Release the final tested submission version: synchronize `VERSION`,
-    backend, engine, frontend, changelog, lockfile, built distributions,
-    tested commit, and annotated tag. Earlier Phase 01 milestones already used
-    immutable `0.4.0` and `0.5.0` releases, so the final version must be the
-    next SemVer value selected at that gate.
+10. Release the final tested submission version: synchronize the declared
+    repository and engine version surfaces, changelog, lockfile, built
+    distributions, tested commit, and annotated tag. The FastAPI shell and npm
+    application packages retain their independent implementation versions
+    because they are not declared release-version surfaces. The stable
+    candidate is `1.0.0`; create its final tag only after tracked judge assets
+    are complete and the exact commit is revalidated.
 11. Confirm license and repository judge access.
 12. Capture the primary Codex `/feedback` Session ID.
 13. Record and publish a narrated public YouTube video under three minutes.
@@ -1434,8 +1436,8 @@ Exit gate:
 
 Suggested implementation sessions:
 
-- **S09 - hardening, live proof, production smoke, and release**
-- **S10 - documentation, video, and Devpost submission**
+- **S09 - hardening, live proof, production smoke, and release candidate**
+- **S10 - documentation, final release tag, video, and Devpost submission**
 
 ## 11. Testing strategy
 
@@ -1547,23 +1549,23 @@ uv run --package txt2crs pytest \
 ### P0 application
 
 - [x] Phase 0 through Phase 4 exit gates pass.
-- [ ] Every enabled input mode is honestly reported by readiness and tested.
-- [ ] A new authenticated request is durably committed before `202`.
-- [ ] GPT-5.6 is explicitly selected and discovered; no fallback occurs.
-- [ ] Research occurs before drafting and sources appear in results.
-- [ ] Progress is durable, monotonic, public-safe, and refresh-safe.
-- [ ] Restart recovery uses the exact stored request and latest checkpoint.
-- [ ] Recovery reuses the immutable execution profile and resolved preferences.
-- [ ] Binary content passes post-ingestion policy before research or Codex.
-- [ ] One completed job exposes four deliverables and 16 private artifacts.
-- [ ] Artifacts are owner-scoped, integrity-checked, and path-free at HTTP.
-- [ ] Failed/review-required/cancelled/network-loss states are designed.
-- [ ] Account deletion purges cross-store owner data.
-- [ ] The `items` donor domain and table are fully removed by migration.
-- [ ] Backend runs one non-root FastAPI worker with managed child resources
+- [x] Every enabled input mode is honestly reported by readiness and tested.
+- [x] A new authenticated request is durably committed before `202`.
+- [x] GPT-5.6 is explicitly selected and discovered; no fallback occurs.
+- [x] Research occurs before drafting and sources appear in results.
+- [x] Progress is durable, monotonic, public-safe, and refresh-safe.
+- [x] Restart recovery uses the exact stored request and latest checkpoint.
+- [x] Recovery reuses the immutable execution profile and resolved preferences.
+- [x] Binary content passes post-ingestion policy before research or Codex.
+- [x] One completed job exposes four deliverables and 16 private artifacts.
+- [x] Artifacts are owner-scoped, integrity-checked, and path-free at HTTP.
+- [x] Failed/review-required/cancelled/network-loss states are designed.
+- [x] Account deletion purges cross-store owner data.
+- [x] The `items` donor domain and table are fully removed by migration.
+- [x] Backend runs one non-root FastAPI worker with managed child resources
       and persistent private state.
-- [ ] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
-- [ ] Engine, backend, frontend, acceptance, and Docker checks are green.
+- [x] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
+- [x] Engine, backend, frontend, acceptance, and Docker checks are green.
 
 ### Submission
 

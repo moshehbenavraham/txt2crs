@@ -42,31 +42,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import os
-          import tomllib
-          from pathlib import Path
-
-          repository_version = Path("VERSION").read_text(encoding="ascii").strip()
-          with Path("backend/packages/txt2crs/pyproject.toml").open("rb") as stream:
-              package_version = tomllib.load(stream)["project"]["version"]
-
-          if repository_version != package_version:
-              raise SystemExit(
-                  f"VERSION {repository_version!r} does not match "
-                  f"txt2crs package {package_version!r}."
-              )
-
-          if os.environ.get("GITHUB_REF_TYPE") == "tag":
-              expected_tag = f"v{repository_version}"
-              observed_tag = os.environ["GITHUB_REF_NAME"]
-              if observed_tag != expected_tag:
-                  raise SystemExit(
-                      f"Release tag {observed_tag!r} must equal {expected_tag!r}."
-                  )
-
-          print(f"release-version={repository_version}")
-          PY
+          release_version="$(tr -d '\n\r' < VERSION)"
+          release_mode="candidate"
+          tag_arguments=()
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            release_mode="final"
+            tag_arguments=(--tag "${GITHUB_REF_NAME}")
+          fi
+          python scripts/release_evidence.py validate-repository \
+            --repository-root . \
+            --expected-version "${release_version}" \
+            --mode "${release_mode}" \
+            --revision "${GITHUB_SHA}" \
+            "${tag_arguments[@]}"
 
       # Run from the package directory so its strict pytest configuration and
       # test imports remain independent from the FastAPI shell.

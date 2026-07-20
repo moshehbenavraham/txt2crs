@@ -191,7 +191,7 @@ This system delivers the product via phases. Each phase is implemented through
 | 02 | Composition and Readiness | 5 | Complete |
 | 03 | Durable Jobs API | 3 | Complete |
 | 04 | Learner Experience | 2 | Complete |
-| 05 | Hardening and Submission | 2 | Not Started |
+| 05 | Hardening and Submission | 2 | Started |
 
 ## Phase 00: Application Baseline
 
@@ -270,7 +270,8 @@ This system delivers the product via phases. Each phase is implemented through
    browser gates from one exact release revision.
 2. Complete and inspect one synthetic GPT-5.6 plus Tavily job with all 16
    owner-private artifacts.
-3. Synchronize, build, commit, push, and annotate the final SemVer release.
+3. Synchronize and prove a release candidate, then commit, push, and annotate
+   the final SemVer release only after tracked judge assets are complete.
 4. Finish the judge README, sample evidence, license/access proof, Codex
    feedback ID, public sub-three-minute video, Devpost fields, and receipt.
 
@@ -278,10 +279,11 @@ This system delivers the product via phases. Each phase is implemented through
 
 - **S01 - Release Hardening and Live Proof**: Run the clean release matrix,
   production replacement smoke, fixed evaluations, representative live job,
-  artifact/privacy inspection, and final version/tag gate.
+  artifact/privacy inspection, and synchronized `1.0.0` release-candidate
+  gate.
 - **S02 - Submission Assets and Devpost**: Produce the judge package, public
-  video, feedback reference, complete Education submission, and confirmed
-  receipt tied to the tested release.
+  video, feedback reference, final immutable release tag, complete Education
+  submission, and confirmed receipt tied to the tested release.
 
 ## Technical Stack
 
@@ -369,3 +371,10 @@ This system delivers the product via phases. Each phase is implemented through
   restart replay, cross-store erasure, donor removal, migration verification,
   and generated-client regeneration do not fit two bounded sessions. Phase 03
   therefore uses three dependency-ordered sessions without changing scope.
+- **Phase 05 release ordering**: The source implementation plan requires the
+  judge README before the final release, while the initial phase stubs placed
+  the tag in Session 01 and tracked submission assets in Session 02. Session 01
+  therefore proves a synchronized `1.0.0` release candidate and Session 02
+  creates the final tested tag only after all tracked judge assets are
+  complete. This keeps the submitted commit, tag, build, and documentation
+  identical.
