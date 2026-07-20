@@ -1,0 +1,158 @@
+name: Release Validation
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# A release build reads the repository and uploads workflow artifacts. It does
+# not publish packages, mutate a release, or deploy an environment.
+permissions: {}
+
+jobs:
+  validate-release:
+    name: Build and inspect release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout tagged revision
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.11.29"
+          enable-cache: false
+
+      - name: Verify synchronized release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          repository_version = Path("VERSION").read_text(encoding="ascii").strip()
+          with Path("backend/packages/txt2crs/pyproject.toml").open("rb") as stream:
+              package_version = tomllib.load(stream)["project"]["version"]
+
+          if repository_version != package_version:
+              raise SystemExit(
+                  f"VERSION {repository_version!r} does not match "
+                  f"txt2crs package {package_version!r}."
+              )
+
+          if os.environ.get("GITHUB_REF_TYPE") == "tag":
+              expected_tag = f"v{repository_version}"
+              observed_tag = os.environ["GITHUB_REF_NAME"]
+              if observed_tag != expected_tag:
+                  raise SystemExit(
+                      f"Release tag {observed_tag!r} must equal {expected_tag!r}."
+                  )
+
+          print(f"release-version={repository_version}")
+          PY
+
+      # Run from the package directory so its strict pytest configuration and
+      # test imports remain independent from the FastAPI shell.
+      - name: Test reusable engine
+        working-directory: backend/packages/txt2crs
+        run: uv run --package txt2crs pytest -q
+
+      - name: Build wheel and source distribution
+        working-directory: backend
+        run: uv build --package txt2crs
+
+      - name: Inspect Python distribution metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          version = Path("VERSION").read_text(encoding="ascii").strip()
+          sdist = Path(f"backend/dist/txt2crs-{version}.tar.gz")
+          wheel = Path(f"backend/dist/txt2crs-{version}-py3-none-any.whl")
+          if not sdist.is_file() or not wheel.is_file():
+              raise SystemExit("Expected wheel and source distribution are missing.")
+
+          with tarfile.open(sdist) as archive:
+              names = archive.getnames()
+              required_suffixes = ("/LICENSE", "/README_txt2crs.md", "/pyproject.toml")
+              for suffix in required_suffixes:
+                  if not any(name.endswith(suffix) for name in names):
+                      raise SystemExit(f"Source distribution is missing {suffix}.")
+
+          with zipfile.ZipFile(wheel) as archive:
+              metadata_name = next(
+                  name
+                  for name in archive.namelist()
+                  if name.endswith(".dist-info/METADATA")
+              )
+              metadata = archive.read(metadata_name).decode("utf-8")
+              if f"Version: {version}\n" not in metadata:
+                  raise SystemExit("Wheel metadata version is not synchronized.")
+          PY
+          mkdir -p release
+          sha256sum backend/dist/* > release/SHA256SUMS
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "26"
+          package-manager-cache: false
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test and build frontend
+        working-directory: frontend
+        run: |
+          npm run test:unit
+          npm run typecheck
+          npm run build
+
+      - name: Build production images
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --tag "txt2crs-backend:${GITHUB_SHA}" backend
+          docker build \
+            --build-arg VITE_API_URL=/api \
+            --build-arg VITE_ENABLE_PUBLIC_SIGNUP=false \
+            --build-arg VITE_HTML_PREVIEW_MAX_BYTES=5242880 \
+            --tag "txt2crs-frontend:${GITHUB_SHA}" \
+            frontend
+          docker image inspect \
+            "txt2crs-backend:${GITHUB_SHA}" \
+            "txt2crs-frontend:${GITHUB_SHA}" \
+            > release/image-inspection.json
+
+      - name: Upload inspected release artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: txt2crs-release-${{ github.ref_name }}
+          path: |
+            backend/dist/
+            release/SHA256SUMS
+            release/image-inspection.json
+          if-no-files-found: error
+          retention-days: 14

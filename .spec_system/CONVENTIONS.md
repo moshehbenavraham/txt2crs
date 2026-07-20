@@ -157,9 +157,11 @@ artifacts, and Codex-managed credentials.
 | Local runtime | frontend | Docker Compose | Nginx static image, port 80 |
 | Health | backend-shell | FastAPI + Docker | `/api/v1/utils/health/` readiness checks PostgreSQL; `/api/v1/utils/health-check/` is liveness |
 | Health | frontend | Nginx + Docker | `/health` returns stable JSON; image probe runs every 30 seconds |
+| Security | backend-shell | SlowAPI + Docker boundary | Non-local authentication and job routes have finite per-client limits and RFC 9457 `429` responses; the local-only topology has no public edge that requires a WAF |
 | Database | backend-shell | PostgreSQL 18 | Compose-managed persistent volume; Alembic migrations |
 | Persistent state | txt2crs-engine | SQLite + filesystem | One backend-mounted `txt2crs-state` volume; not deployed independently |
-| Backup | backend-shell + txt2crs-engine | Docker + PostgreSQL + safe tar helper | One owner-only bundle covers PostgreSQL, SQLite jobs, artifacts, and Codex credentials; checksums and archive validation precede restore |
+| Backup | backend-shell + txt2crs-engine | Docker + PostgreSQL + safe tar helper | One owner-only bundle covers PostgreSQL, SQLite jobs, artifacts, and Codex credentials; checksums and archive validation precede restore; retention defaults to 7 days |
+| Deploy | backend-shell + frontend | Repository-root Docker Compose | Manual local image build and container replacement; rollback retags reviewed image IDs, preserves both durable volumes, and uses a full backup when data rollback is required |
 
 Local Docker is the only deployment target in scope. The authoritative probe
 paths and operator commands live in `docs/deployment-policy.md`; adding any
@@ -177,7 +179,7 @@ concurrency cancellation for repeated branch validation.
 | Build & Test | Configured | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | Test the shell, engine, generated contract, production-like local Compose topology, and browser behavior. |
 | Security | Configured | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | Scan Git history, CodeQL languages, pull-request dependencies, Python/JavaScript advisories, and workflow supply-chain safety. |
 | Integration | Configured | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | Exercise service boundaries and browser flows, then flag merge conflicts without checking out untrusted pull-request code. |
-| Operations | Local only | No deployment workflows | GitHub Actions validates code and images but does not deploy an environment. |
+| Operations | Configured, local deployment only | `release.yml`, `.github/dependabot.yml` | Tagged/manual release validation rebuilds tests, distributions, checksums, and production images; GitHub never deploys an environment. |
 
 ### CI Secrets
 

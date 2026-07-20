@@ -262,6 +262,27 @@ This system delivers the product via phases. Each phase is implemented through
   erasure, drop the donor item table through Alembic, remove item code and
   admin tools, and regenerate the frontend contract.
 
+## Phase 05: Hardening and Submission
+
+### Objectives
+
+1. Reproduce deterministic, evaluation, distribution, image, persistence, and
+   browser gates from one exact release revision.
+2. Complete and inspect one synthetic GPT-5.6 plus Tavily job with all 16
+   owner-private artifacts.
+3. Synchronize, build, commit, push, and annotate the final SemVer release.
+4. Finish the judge README, sample evidence, license/access proof, Codex
+   feedback ID, public sub-three-minute video, Devpost fields, and receipt.
+
+### Sessions
+
+- **S01 - Release Hardening and Live Proof**: Run the clean release matrix,
+  production replacement smoke, fixed evaluations, representative live job,
+  artifact/privacy inspection, and final version/tag gate.
+- **S02 - Submission Assets and Devpost**: Produce the judge package, public
+  video, feedback reference, complete Education submission, and confirmed
+  receipt tied to the tested release.
+
 ## Technical Stack
 
 - Python 3.14, FastAPI, SQLModel, Pydantic v2, PostgreSQL 18, Alembic, pytest,

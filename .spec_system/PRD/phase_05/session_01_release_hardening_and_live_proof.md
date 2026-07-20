@@ -1,0 +1,89 @@
+# Session 01: Release Hardening and Live Proof
+
+**Session ID**: `phase05-session01-release-hardening-and-live-proof`
+**Packages**: backend/packages/txt2crs, backend, frontend
+**Status**: Not Started
+**Estimated Tasks**: ~20-25
+**Estimated Duration**: 2-4 hours
+
+---
+
+## Objective
+
+Prove one exact feature-frozen revision through clean deterministic,
+evaluation, distribution, production-image, persistence, and synthetic live
+GPT-5.6 plus Tavily evidence, then publish its synchronized final SemVer commit
+and annotated tag.
+
+---
+
+## Scope
+
+### In Scope (MVP)
+
+- Tests-first release-contract checks for version, artifact, image, sample,
+  evidence, and tag synchronization.
+- Clean-checkout execution of engine, backend, frontend, generated-contract,
+  acceptance, browser, workflow-security, and fixed evaluation gates.
+- Production Compose startup, health, one-process/non-root checks, and
+  authentication/job/artifact persistence across container replacement.
+- One synthetic representative course through the real GPT-5.6 and Tavily
+  runtime with the exact configured model and no fallback.
+- Human inspection ledger for all 16 live artifacts: alignment, citations,
+  formatting, assessment/answer separation, integrity, and private access.
+- Redacted logs/browser/network/resource inspection and a deterministic sample
+  plus redacted live-demo evidence.
+- Final SemVer selection, synchronized version/changelog/lockfile metadata,
+  Python distribution and image builds, commit, push, and annotated tag.
+- Exact local fallbacks for billing-blocked GitHub jobs and preservation of the
+  remote CodeQL known issue.
+
+### Out of Scope
+
+- New learner features, P1 modes, model/provider selection, or behavior
+  changes unrelated to a release-blocking defect.
+- Hosted deployment, public domains, package publication, or GitHub Release
+  creation.
+- Real learner personal data or unredacted provider/runtime evidence.
+
+---
+
+## Prerequisites
+
+- [ ] Phase 04 learner and transition gates remain green at the selected base.
+- [ ] The operator-controlled ChatGPT identity and Tavily credential are
+      available only to the explicit live-proof process.
+- [ ] The working tree can be reduced to one intentional release scope before
+      the final clean-checkout proof.
+
+---
+
+## Deliverables
+
+1. Reproducible clean-checkout release and production-smoke evidence.
+2. One completed synthetic live course plus a 16-artifact inspection ledger
+   and redacted demo sample.
+3. Secret/privacy/resource audit for logs, browser traffic, processes, and
+   generated evidence.
+4. Synchronized final version, changelog, distributions, image inspection,
+   tested commit, pushed branch, and matching annotated tag.
+
+---
+
+## Success Criteria
+
+- [ ] Every deterministic, fixed-evaluation, generated-client, production
+      image, Compose, browser, and workflow-safety gate passes from the exact
+      release revision.
+- [ ] Backend/frontend replacement preserves the expected durable stores and
+      returns both services to healthy.
+- [ ] The live system discovers and uses GPT-5.6, completes Tavily research
+      before drafting, and produces exactly 16 owner-private verified
+      artifacts.
+- [ ] All live publications pass the recorded human quality and answer-
+      separation inspection with no secret, prompt, path, provider payload, or
+      raw artifact body in evidence logs.
+- [ ] Root/package versions, lockfile, changelog, distributions, images,
+      commit, branch, and annotated tag all identify one final SemVer release.
+- [ ] Any GitHub-hosted failure is proven to be the existing zero-step billing
+      condition and has a passing exact local equivalent where one exists.

@@ -99,6 +99,23 @@ docker compose config --quiet
 The baseline script's name refers to the production-like image target, not a
 hosted environment. It builds and validates that image entirely locally.
 
+Tag pushes matching `v*` and manual dispatches also select
+`.github/workflows/release.yml`. That read-only workflow:
+
+- requires the tag, root `VERSION`, and engine package version to agree;
+- runs the complete reusable-engine suite and builds its wheel and source
+  distribution;
+- inspects distribution metadata and writes SHA-256 checksums;
+- runs frontend unit, type, and production-build gates;
+- builds and inspects both production images; and
+- retains the inspected artifacts for 14 days.
+
+The workflow does not publish a package, create a release, or deploy an
+environment. GitHub-hosted jobs are currently blocked before scheduling by
+the repository's Actions billing condition; the exact local fallbacks and run
+evidence remain in
+[`../.spec_system/audit/known-issues.md`](../.spec_system/audit/known-issues.md).
+
 For an end-to-end stack smoke:
 
 ```bash

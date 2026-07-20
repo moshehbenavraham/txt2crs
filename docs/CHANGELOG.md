@@ -12,7 +12,15 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added a read-only tag/manual release-validation workflow that verifies
+  synchronized versions, engine distributions and checksums, frontend gates,
+  and both production images without publishing or deploying.
+
 ### Changed
+
+- Synchronized the root, architecture, onboarding, deployment, and visual
+  design documentation with the completed Phase 04 learner journey and
+  verified local backup, restore, throttling, and rollback behavior.
 
 ### Deprecated
 
@@ -21,6 +29,9 @@ Archived entries are stored in [`archive/`](archive/).
 ### Fixed
 
 ### Security
+
+- Disabled setup-action caches in the artifact-producing release job after
+  workflow security analysis identified cache-poisoning risk.
 
 ## [0.7.0] - 2026-07-20
 

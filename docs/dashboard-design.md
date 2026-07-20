@@ -8,10 +8,10 @@
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* -- expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Phase 04 learner-journey hierarchy is defined. The public
-> landing, authenticated `/create`, and owner `/jobs/$jobId` surfaces use the
-> generated course-job contract; Session 02 adds the private four-publication
-> folio described below. The donor library and `/items` route remain retired.
+> **Status**: Phase 04 learner journey is implemented. The public landing,
+> authenticated `/create`, and owner `/jobs/$jobId` surfaces use the generated
+> course-job contract, including the private four-publication folio. The donor
+> library and `/items` route remain retired.
 > Legacy library blueprints below are history only and must not be implemented.
 > Last updated: 2026-07-20
 
@@ -84,8 +84,8 @@ console* (discards brand equity; auth and product would feel unrelated).
    identity; dense tables become feature-specific record lists, not
    horizontally scrolled desktop tables.
 7. **Motion serves state and orientation.** No retired donor transition
-   remains. New Phase 04 motion must preserve complete reduced-motion states
-   and must not imply unsupported progress.
+   remains. Current motion preserves complete reduced-motion states and never
+   implies unsupported progress.
 
 ---
 
@@ -303,14 +303,17 @@ gutters start at 20-24px and must work at 320px.
 |  SIDEBAR (280px)  |  COMMAND STRIP (sticky, 56px)               |
 |  Logo             |  [trigger] [brand mark <md] [section label] |
 |  Navigation       |---------------------------------------------|
-|  * Dashboard      |  CONTENT AREA                               |
-|  * Items          |    max-width: max-w-6xl (shell role)        |
-|  * ...              |    gutter: --space-page-inline              |
+|  * Create course  |  CONTENT AREA                               |
+|  * System setup*  |    max-width: max-w-6xl (shell role)        |
+|  * Admin*         |    gutter: --space-page-inline              |
 |  Settings         |                                             |
 |  User             |  (no footer in the protected workspace;     |
 |                   |   social links live on auth surfaces)       |
 +-----------------------------------------------------------------+
 ```
+
+`*` Superuser-only. Settings remains reachable through the user menu rather
+than the primary navigation list.
 
 - `SidebarInset` renders the single `main` landmark; route content uses a
   plain `div`.
@@ -375,8 +378,8 @@ gradient hairline).
 
 Every effect has a semantic role: orientation, hierarchy, continuity,
 feedback, or attention. Dense reading and comparison regions stay still.
-There is exactly one signature moment: the dashboard's library surface
-continuing into the Items workspace.
+There is no route-level signature transition in the current learner journey;
+navigation is direct and durable state changes in place.
 
 ### Motion role tokens
 
@@ -399,51 +402,38 @@ remain as compatibility aliases.
 
 ### Keyframes
 
-Only keyframes with live consumers exist:
+Current keyframes and utilities:
 
-| Keyframe | Consumer |
-|----------|----------|
+| Keyframe | Current state |
+|----------|---------------|
 | `fadeInUp` | Auth shell entrance (`AuthLayout`) |
 | `luxuryShimmer` | `ui/skeleton` shimmer |
-| `riseIn` | Dashboard section settle, capped at `--motion-distance-md` |
-| `rowHighlight` | Brief emphasis on a newly created preview row |
+| `riseIn` | Legacy utility definition; no live TSX consumer |
+| `rowHighlight` | Legacy utility definition; no live TSX consumer |
 
-### Semantic reveal groups
+### Legacy reveal utilities
 
-No outlet-level entrance replay and no `nth-child` stagger. The dashboard
-settles in explicit reading order -- header, library status, then
-preview/actions -- capped at three groups, inside
-`prefers-reduced-motion: no-preference`:
+`reveal-group`, `reveal-delay-*`, and `row-highlight` remain defined in CSS
+for donor compatibility but have no current component consumer. They are not
+an approved learner-journey pattern. No outlet-level entrance replay or
+`nth-child` stagger is active.
 
-```css
-.reveal-group   { animation: riseIn var(--motion-duration-overlay) var(--ease-out-quart) both; }
-.reveal-delay-1 { animation-delay: 0ms; }
-.reveal-delay-2 { animation-delay: 70ms; }
-.reveal-delay-3 { animation-delay: 140ms; }
-```
+Routine query refetches update in place.
 
-Routine query refetches never replay entrances; content updates in place.
+### Route behavior
 
-### Signature interaction: route continuity
-
-Selecting "Open library" on the dashboard continues the library surface into
-the Items workspace via TanStack Router's built-in `viewTransition` link
-option -- no motion dependency. The dashboard preview and Items table share
-`view-transition-name: library-surface`; the sidebar (`app-sidebar`) and
-command strip (`command-strip`) claim their own names so the shell stays
-fixed. Unsupported browsers navigate normally;
-`usePrefersReducedMotion()` disables the transition in JavaScript. This is
-the only route transition -- it must not become a global cross-fade.
+TanStack Router navigation is direct. The sidebar and command strip have
+stable view-transition names, but no current link enables a route view
+transition. The public handoff, `/create`, and `/jobs/$jobId` must remain
+complete without animation.
 
 ### Supporting roles
 
 | Interaction | Role | Layer |
 |-------------|------|-------|
-| Dashboard sections settle on first data load | Hierarchy | CSS, three semantic groups |
 | Sidebar expand/collapse | Orientation | CSS transition, role tokens |
 | Button press / selection | Feedback | CSS transform/color, 80-160ms |
 | Dialog, menu, select, sheet | Continuity + focus context | Radix state classes + tokens |
-| Item created/updated | Feedback + attention | Toast + brief `rowHighlight` |
 | Loading -> content | Continuity | Geometry-matched skeleton, no large shift |
 | Filter change / refetch | None | Content stays stable |
 
@@ -506,7 +496,7 @@ interaction requirement.
 
 ## 7. Components
 
-### UI primitives (`frontend/src/components/ui/`, 25 components -- protected, see Section 12)
+### UI primitives (`frontend/src/components/ui/`, 27 components -- protected, see Section 12)
 
 | Component | Highlights |
 |-----------|-----------|
@@ -672,8 +662,8 @@ Protected product routes (Course creation, Admin, Settings, System setup) use
 
 ```tsx
 <PageHeader
-  eyebrow="Workspace"          // optional section eyebrow
-  title="Workspace overview"   // the page's single h1 (display serif)
+  eyebrow="Learning studio"    // optional section eyebrow
+  title="Create a course"      // the page's single h1 (display serif)
   description="..."            // concise copy, max-w-prose
   actions={<...>}              // wrapping action group
 />
@@ -853,8 +843,8 @@ const form = useForm<FormData>({
 
 Every displayed value must have a truthful definition backed by the API.
 
-| Dashboard content | API support | Rule |
-|-------------------|-------------|------|
+| Learner content | API support | Rule |
+|-----------------|-------------|------|
 | Total job count | No aggregate endpoint | Do not infer it from a paginated or single-job response |
 | Job status/result | Owner-scoped `JobStatusPublic` projection | Render only the returned revisioned state and fixed progress copy |
 | Artifact availability | Owner-scoped verified manifest | Show only path-free entries returned by the API |
@@ -984,7 +974,7 @@ permanent `will-change`.
 
 - The current page identity and four supported publication types are visible
   without implying job history, counts, or recency.
-- The direction reads as an editorial workspace index, not a KPI dashboard.
+- The direction reads as a research atelier, not a KPI dashboard.
 - No displayed metric implies timestamps, trends, completeness, or recency
   the API does not provide.
 - Light and dark have equivalent hierarchy and measured WCAG 2.2 AA contrast.

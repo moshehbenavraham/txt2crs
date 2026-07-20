@@ -28,15 +28,16 @@ exempt and when it was added. Remove entries that no longer apply.
 
 | Workflow | Reason | Added |
 |----------|--------|-------|
-| `detect-conflicts.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax, immutable action pin, and current no-PR state were validated locally. | 2026-07-19 |
-| `generate-client.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; deterministic generation and a clean generated-client diff were validated locally. | 2026-07-19 |
-| `guard-dependencies.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and immutable action pin were validated locally. | 2026-07-19 |
-| `playwright.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 65 current browser tests passed against isolated local services. | 2026-07-19 |
-| `quality.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; backend, engine, and frontend equivalents passed locally. | 2026-07-19 |
-| `security.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; Gitleaks and both dependency audits passed locally, while CodeQL remains remote-only. | 2026-07-19 |
-| `test-backend.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 473 current backend tests passed against isolated PostgreSQL at 88% coverage. | 2026-07-19 |
-| `test-docker-compose.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; an isolated full-stack Compose build and health validation passed locally, and static coverage now protects the authoritative readiness URLs. | 2026-07-19 |
-| `zizmor.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; local Zizmor validation passed for every workflow. | 2026-07-19 |
+| `detect-conflicts.yml` | Run 29718958932 failed before any step because Actions billing is disabled; current workflow safety and the no-open-PR state passed locally on 2026-07-20. | 2026-07-19 |
+| `generate-client.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; deterministic generation produced a clean OpenAPI/client diff locally on 2026-07-20. | 2026-07-19 |
+| `guard-dependencies.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; actionlint, immutable action-pin validation, and the current no-open-PR state passed locally on 2026-07-20. | 2026-07-19 |
+| `playwright.yml` | Run 29718958918 failed before any step because Actions billing is disabled; 69 broad browser tests and both 16-test deterministic job scenarios passed locally on 2026-07-20. | 2026-07-19 |
+| `quality.yml` | Run 29718958907 failed before any step because Actions billing is disabled; 479 backend, 470 engine, and 132 frontend tests plus lint/types/build passed locally on 2026-07-20. | 2026-07-19 |
+| `security.yml` | Run 29718958870 failed before any step because Actions billing is disabled; Gitleaks and both dependency audits passed locally on 2026-07-20, while CodeQL remains remote-only. | 2026-07-19 |
+| `test-backend.yml` | Run 29718958897 failed before any step because Actions billing is disabled; all 479 backend tests passed against isolated PostgreSQL at 88% coverage on 2026-07-20. | 2026-07-19 |
+| `test-docker-compose.yml` | Run 29718958903 failed before any step because Actions billing is disabled; isolated 0.7.0 backend/frontend images, PostgreSQL, migrations, health checks, one-worker topology, and private volume passed locally on 2026-07-20. | 2026-07-19 |
+| `zizmor.yml` | Run 29718958923 failed before any step because Actions billing is disabled; local Zizmor and actionlint validation passed for all ten workflows on 2026-07-20. | 2026-07-19 |
+| `release.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; tag/version checks, 0.7.0 distributions and checksums, unit/build gates, production images, actionlint, and Zizmor passed locally on 2026-07-20. | 2026-07-20 |
 
 ## Skipped Infra
 

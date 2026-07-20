@@ -9,9 +9,9 @@ one facade, serial worker, readiness cache, and system-authentication
 coordinator for its complete lifespan. Phase 03 now exposes authenticated,
 durable learner submission plus owner-scoped status, result, manifest, and
 artifact delivery routes. Account deletion now performs engine-first owner
-erasure. The authenticated frontend now presents a truthful four-publication
-workspace overview; interactive submission, progress, and results remain
-Phase 04 work.
+erasure. The Phase 04 frontend consumes those generated contracts for public
+discovery, strict multimode intake, durable progress, four completed
+publications, private artifact transfer, and isolated HTML preview.
 
 ```text
 React SPA
@@ -41,7 +41,7 @@ surface; the two boundaries must never be merged.
 |-----------|----------|------------|------------------------|
 | Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, facade composition, serial work, cached readiness, system authentication, errors, and observability |
 | Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Public application facade/factories, ingestion, research, generation, policy, jobs, recovery, artifacts, owner lifecycle, rendering, and evaluation |
-| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, and a static course-workspace overview; interactive job workflow lands in Phase 04 |
+| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Public discovery, authentication, course intake, durable progress/results, private artifact preview/download, users, and superuser system setup |
 | Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
 
 ## Ownership Boundaries
@@ -123,6 +123,25 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
 4. Protected requests send `Authorization: Bearer <token>`.
 5. Confirmed `401` session invalidation clears state; an authorization `403`
    does not log the user out.
+
+### Learner Browser Flow
+
+1. The public root stores only an explicitly saved, bounded prompt handoff in
+   tab-scoped `sessionStorage`; `/create` consumes it once after authentication.
+2. The intake schema accepts one active source family, removes inactive
+   fields, requires literal provider-processing consent, and delegates only to
+   generated JSON or multipart job operations.
+3. One canonical idempotency key survives an exact failed transport retry and
+   rotates after the draft changes or the server durably accepts it.
+4. `/jobs/$jobId` reads the owner-safe revisioned projection, polls only
+   non-terminal states, and preserves the latest monotonic snapshot through a
+   transient reconnect.
+5. A completed job enables one manifest read. The UI exposes only verified
+   entries for the four publications and never constructs artifact URLs or
+   filesystem paths.
+6. HTML transfer is bounded and metadata-verified before separate parsing,
+   active-content removal, restrictive preview CSP, an empty iframe sandbox,
+   and revocable temporary URL ownership.
 
 ### Health
 
