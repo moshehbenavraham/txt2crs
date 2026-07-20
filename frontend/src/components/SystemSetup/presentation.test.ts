@@ -15,7 +15,7 @@ const readiness = (
   schema_version: "1.0",
   status: "ready",
   accepting_jobs: true,
-  configured_model_id: "gpt-5.6",
+  configured_model_id: "gpt-5.6-sol",
   enabled_input_modes: ["prompt", "text", "url"],
   checks: {
     authentication: "ready",

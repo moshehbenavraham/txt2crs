@@ -36,7 +36,7 @@ class RecordingReadiness:
         return ReadinessSnapshot(
             status=ReadinessStatus.degraded,
             accepting_jobs=False,
-            configured_model_id="gpt-5.6",
+            configured_model_id="gpt-5.6-sol",
             enabled_input_modes=("prompt", "text"),
             checks=ReadinessChecks(
                 **dict.fromkeys(ReadinessChecks.model_fields, ReadinessCheckState.ready)

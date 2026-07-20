@@ -46,7 +46,7 @@ def test_application_readiness_computes_complete_safe_state() -> None:
     """Every required package check must pass before the aggregate is ready."""
 
     readiness = ApplicationReadiness.create(
-        configured_model_id="gpt-5.6",
+        configured_model_id="gpt-5.6-sol",
         enabled_input_modes=(
             "prompt",
             "text",
@@ -71,7 +71,7 @@ def test_application_readiness_computes_complete_safe_state() -> None:
         check_state is ApplicationReadinessCheckState.ready
         for check_state in readiness.checks.model_dump().values()
     )
-    assert readiness.configured_model_id == "gpt-5.6"
+    assert readiness.configured_model_id == "gpt-5.6-sol"
     rendered = readiness.model_dump_json()
     assert "/home/ada" not in rendered
     assert "sk-secret-value" not in rendered
@@ -81,7 +81,7 @@ def test_application_readiness_fails_closed_for_one_required_check() -> None:
     """A storage failure cannot be hidden by otherwise healthy provider state."""
 
     readiness = ApplicationReadiness.create(
-        configured_model_id="gpt-5.6",
+        configured_model_id="gpt-5.6-sol",
         enabled_input_modes=("prompt", "text"),
         runtime=_runtime_readiness(),
         research_ready=True,

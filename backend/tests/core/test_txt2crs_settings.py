@@ -112,7 +112,7 @@ def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
 
     settings = Settings(_env_file=None, **_base_settings_payload())
 
-    assert settings.TXT2CRS_MODEL_ID == "gpt-5.6"
+    assert settings.TXT2CRS_MODEL_ID == "gpt-5.6-sol"
     assert settings.TXT2CRS_RESEARCH_ENABLED is True
     assert settings.TXT2CRS_RESEARCH_MCP_HOST == "127.0.0.1"
     assert settings.TXT2CRS_RESEARCH_MCP_PORT == 8765
@@ -192,7 +192,7 @@ def test_non_local_configuration_rejects_public_signup(
 
 @pytest.mark.parametrize(
     "model_id",
-    ["gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+    ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
 )
 def test_txt2crs_model_accepts_only_reviewed_gpt56_family(model_id: str) -> None:
     settings = Settings(
@@ -204,12 +204,17 @@ def test_txt2crs_model_accepts_only_reviewed_gpt56_family(model_id: str) -> None
     assert settings.TXT2CRS_MODEL_ID == model_id
 
 
-def test_txt2crs_model_rejects_non_gpt56_identifier() -> None:
+@pytest.mark.parametrize("model_id", ["gpt-5.6", "gpt-5.4"])
+def test_txt2crs_model_rejects_non_exact_or_non_gpt56_identifier(
+    model_id: str,
+) -> None:
+    """Settings must use one exact app-server identifier, never a family label."""
+
     with pytest.raises(ValidationError, match="TXT2CRS_MODEL_ID"):
         Settings(
             _env_file=None,
             **_base_settings_payload(),
-            TXT2CRS_MODEL_ID="gpt-5.4",
+            TXT2CRS_MODEL_ID=model_id,
         )
 
 

@@ -209,6 +209,26 @@ def test_review_renderers_replace_internal_identifiers_with_reader_labels() -> N
         assert reader_label in review_markdown
 
 
+def test_review_headings_survive_valid_cross_namespace_identifier_collisions() -> None:
+    """Exercise IDs must not replace objective or section labels in headings."""
+
+    bundle = valid_bundle()
+    objective_id = bundle.course.learning_objectives[0].objective_id
+    section = bundle.course.modules[0].sections[0]
+    bundle.review_pack.worked_examples[0].exercise_id = objective_id
+    bundle.review_pack.practice_exercises[0].exercise_id = section.section_id
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    review_html = rendered["review_pack_html"].content.decode("utf-8")
+    review_markdown = rendered["review_pack_markdown"].content.decode("utf-8")
+
+    expected_objective_heading = "Objective 1: Explain and use Python variables."
+    assert expected_objective_heading in review_html
+    assert expected_objective_heading in review_markdown
+    assert "<dt>Variables</dt>" in review_html
+    assert "- **Variables:**" in review_markdown
+
+
 def test_review_renderers_humanize_unresolved_identifier_shaped_prose() -> None:
     """Free-form review steps must not expose stale IDs or schema field names."""
 
@@ -304,7 +324,7 @@ def test_pdf_normalizes_common_typographic_punctuation() -> None:
     bundle = valid_bundle()
     bundle.course.modules[0].sections[0].content_blocks[
         0
-    ].text = "A client’s resolver—when ready—answers “safely”."
+    ].text = "A client\u2019s resolver\u2014when ready\u2014answers \u201csafely\u201d."
 
     rendered = ArtifactRenderer().render_bundle(bundle)
     pdf_document = fitz.open(

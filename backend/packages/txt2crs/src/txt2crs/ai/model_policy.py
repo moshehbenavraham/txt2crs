@@ -11,10 +11,9 @@ from collections.abc import Collection
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-DEFAULT_GPT56_MODEL_ID = "gpt-5.6"
+DEFAULT_GPT56_MODEL_ID = "gpt-5.6-sol"
 REVIEWED_GPT56_MODEL_IDS = frozenset(
     {
-        "gpt-5.6",
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",

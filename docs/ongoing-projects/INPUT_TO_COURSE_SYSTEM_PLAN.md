@@ -531,7 +531,7 @@ PostgreSQL user so their current "all associated data" promise remains true.
 
 The live acceptance test currently prefers GPT-5.4. Before application wiring:
 
-1. Set the application default to `gpt-5.6` (the Sol alias) unless a reviewed
+1. Set the application default to exact `gpt-5.6-sol` unless another reviewed
    GPT-5.6 slug is configured.
 2. Require model discovery to contain the configured GPT-5.6 model.
 3. Remove silent fallback to the first available or an older model.
@@ -828,11 +828,11 @@ implementation.
 
 ### Model policy
 
-- `TXT2CRS_MODEL_ID` defaults to `gpt-5.6`.
+- `TXT2CRS_MODEL_ID` defaults to exact `gpt-5.6-sol`.
 - Sol is selected because the workload is complex research and polished
   document generation.
 - Accepted configured slugs are the discovered GPT-5.6 family only:
-  `gpt-5.6`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna`.
+  `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna`.
 - The model is checked through app-server discovery at readiness and again
   before a turn.
 - There is no fallback to GPT-5.4, to the first discovered model, or to an API
@@ -1513,7 +1513,7 @@ The live test is separate and requires explicit credentials/configuration:
 ```bash
 cd backend/packages/txt2crs
 TXT2CRS_RUN_LIVE_CODEX=1 \
-TXT2CRS_MODEL_ID=gpt-5.6 \
+TXT2CRS_MODEL_ID=gpt-5.6-sol \
 uv run --package txt2crs pytest \
   tests/acceptance/test_live_codex_subscription.py -v
 ```

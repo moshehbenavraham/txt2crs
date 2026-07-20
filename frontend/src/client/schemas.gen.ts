@@ -1033,7 +1033,7 @@ export const SystemReadinessPublicSchema = {
     },
     configured_model_id: {
       type: "string",
-      enum: ["gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+      enum: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
       title: "Configured Model Id",
     },
     enabled_input_modes: {

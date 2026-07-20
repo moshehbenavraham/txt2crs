@@ -16,6 +16,7 @@ GENERATE_CLIENT_SCRIPT = REPOSITORY_ROOT / "scripts" / "generate-client.sh"
 VALIDATE_CHANGES_SCRIPT = REPOSITORY_ROOT / "scripts" / "validate-changes.sh"
 OPENAPI_DOCUMENT = REPOSITORY_ROOT / "frontend" / "openapi.json"
 OPENAPI_GENERATOR_CONFIG = REPOSITORY_ROOT / "frontend" / "openapi-ts.config.ts"
+FRONTEND_PACKAGE_JSON = REPOSITORY_ROOT / "frontend" / "package.json"
 ASCII_NORMALIZER_SCRIPT = (
     REPOSITORY_ROOT / "frontend" / "scripts" / "normalize-generated-client.mjs"
 )
@@ -51,24 +52,49 @@ def test_generate_client_formats_openapi_document_and_generated_client() -> None
     """Generation must not leave a formatter failure behind the hook chain."""
 
     generation_script = GENERATE_CLIENT_SCRIPT.read_text(encoding="utf-8")
+    package_scripts = json.loads(FRONTEND_PACKAGE_JSON.read_text(encoding="utf-8"))[
+        "scripts"
+    ]
+    frontend_generation_command = package_scripts["generate-client:codegen"]
 
     assert os.access(GENERATE_CLIENT_SCRIPT, os.X_OK)
-    assert "openapi.json src/client" in generation_script
-    assert "biome check --write" in generation_script
+    assert package_scripts["generate-client"] == "../scripts/generate-client.sh"
+    assert "BASH_SOURCE[0]" in generation_script
+    assert 'cd -- "$REPOSITORY_ROOT"' in generation_script
+    assert "npm --prefix frontend run generate-client:codegen" in generation_script
+    assert "openapi.json src/client" in frontend_generation_command
+    assert "biome check --write" in frontend_generation_command
+
+
+def test_generate_client_replaces_openapi_document_atomically() -> None:
+    """Concurrent contract readers must never observe a truncated JSON file."""
+
+    generation_script = GENERATE_CLIENT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "mktemp" in generation_script
+    assert (
+        'mv -- "$TEMPORARY_OPENAPI_DOCUMENT" "$OPENAPI_DOCUMENT"' in generation_script
+    )
+    assert generation_script.index(
+        'mv -- "$TEMPORARY_OPENAPI_DOCUMENT" "$OPENAPI_DOCUMENT"'
+    ) < generation_script.index("npm --prefix frontend run generate-client:codegen")
 
 
 def test_generate_client_normalizes_ascii_only_after_biome_parses_output() -> None:
     """A smart apostrophe cannot break the generator's single-quoted source."""
 
-    generation_script = GENERATE_CLIENT_SCRIPT.read_text(encoding="utf-8")
+    package_scripts = json.loads(FRONTEND_PACKAGE_JSON.read_text(encoding="utf-8"))[
+        "scripts"
+    ]
+    frontend_generation_command = package_scripts["generate-client:codegen"]
     generator_config = OPENAPI_GENERATOR_CONFIG.read_text(encoding="utf-8")
     ascii_normalizer = ASCII_NORMALIZER_SCRIPT.read_text(encoding="utf-8")
 
     assert "postProcess: []" in generator_config
-    assert "node scripts/normalize-generated-client.mjs" in generation_script
-    assert generation_script.index("biome check --write") < generation_script.index(
-        "node scripts/normalize-generated-client.mjs"
-    )
+    assert "node scripts/normalize-generated-client.mjs" in frontend_generation_command
+    assert frontend_generation_command.index(
+        "biome check --write"
+    ) < frontend_generation_command.index("node scripts/normalize-generated-client.mjs")
     assert "replaceAll" in ascii_normalizer
     assert "\\u2019" in ascii_normalizer
     assert "writeFileSync" in ascii_normalizer

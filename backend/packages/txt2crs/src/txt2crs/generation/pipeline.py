@@ -1004,10 +1004,22 @@ def _validate_module_draft(
         )
     planned_objective_ids = set(module_plan.objective_ids)
     known_evidence_ids = {evidence.evidence_id for evidence in evidence_set.excerpts}
-    content_block_by_id = {
-        content_block.block_id: content_block
+    content_blocks = [
+        content_block
         for section in module.sections
         for content_block in section.content_blocks
+    ]
+    content_block_ids = [content_block.block_id for content_block in content_blocks]
+    if len(content_block_ids) != len(set(content_block_ids)):
+        # CourseModuleDraft validates citation targets but intentionally has a
+        # module-local schema. Catch duplicate block IDs here so the bounded
+        # repair turn runs before canonical Course assembly rejects the draft.
+        raise _ModuleDraftValidationError(
+            f"Module {module_plan.module_id} contains a duplicate block ID.",
+            code="module_block_id_duplicate",
+        )
+    content_block_by_id = {
+        content_block.block_id: content_block for content_block in content_blocks
     }
     for section in module.sections:
         if not set(section.objective_ids) <= planned_objective_ids:

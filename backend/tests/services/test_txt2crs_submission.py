@@ -214,7 +214,7 @@ def test_json_submission_maps_every_reviewed_value_then_notifies(
     assert generation_request.provider_consent is True
     assert generation_request.learner_age_group.value == "adult"
     assert generation_request.policy_flags == ()
-    assert generation_request.execution_profile.model_id == "gpt-5.6"
+    assert generation_request.execution_profile.model_id == "gpt-5.6-sol"
 
 
 def test_youtube_intent_maps_to_package_url_without_shell_host_policy(

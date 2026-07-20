@@ -52,10 +52,18 @@ delivery sequence.
 ## Quick Start
 
 Create the one-time local configuration and replace
-`SECRET_KEY`, `POSTGRES_PASSWORD`, and `FIRST_SUPERUSER_PASSWORD`:
+`SECRET_KEY`, `POSTGRES_PASSWORD`, and `FIRST_SUPERUSER_PASSWORD`, then add
+your Tavily key to `TAVILY_API_KEY`:
 
 ```bash
 cp .env.example .env
+```
+
+For personal use, authenticate your ChatGPT subscription with the helper
+script (`--no-browser` is usually the easiest setup):
+
+```bash
+./scripts/auth-codex.sh --no-browser
 ```
 
 Then this one command builds and starts the complete application:
@@ -116,7 +124,8 @@ and [`frontend/README_frontend.md`](frontend/README_frontend.md).
 
 This credential-free fast gate covers backend and engine lint, types, focused
 shell contracts, the complete engine suite, and frontend lint/types. Database,
-browser, image, and full-stack commands are listed in the development guide.
+browser, image, full-stack, and explicitly enabled live-provider commands are
+listed in the development guide.
 
 ## Documentation
 

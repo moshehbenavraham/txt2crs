@@ -205,5 +205,4 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
 
 ## Next Steps
 
-Run the `implement` workflow, followed by `creview`, `validate`, and
-`updateprd`.
+Run `validate`, followed by `updateprd`.

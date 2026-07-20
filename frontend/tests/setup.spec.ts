@@ -10,7 +10,7 @@ const readySystem: SystemReadinessPublic = {
   schema_version: "1.0",
   status: "ready",
   accepting_jobs: true,
-  configured_model_id: "gpt-5.6",
+  configured_model_id: "gpt-5.6-sol",
   enabled_input_modes: [
     "prompt",
     "text",
@@ -92,7 +92,7 @@ test("superuser navigation opens the complete safe setup workspace", async ({
   await expect(
     page.getByText("Ready for course work", { exact: true }),
   ).toBeVisible()
-  await expect(page.getByText("gpt-5.6", { exact: true })).toBeVisible()
+  await expect(page.getByText("gpt-5.6-sol", { exact: true })).toBeVisible()
   await expect(
     page.getByRole("heading", { name: "System checks" }),
   ).toBeVisible()

@@ -86,7 +86,7 @@ that persistent root.
 | `TXT2CRS_ARTIFACT_ROOT` | `/var/lib/txt2crs/artifacts` | Private rendered-artifact root |
 | `TXT2CRS_CODEX_HOME` | `/var/lib/txt2crs/codex-home` | Isolated dedicated Codex identity home |
 | `TXT2CRS_WORKER_ROOT` | `/tmp/txt2crs-worker` | Ephemeral job workspace outside persistent state |
-| `TXT2CRS_MODEL_ID` | `gpt-5.6` | Reviewed exact model: `gpt-5.6`, `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` |
+| `TXT2CRS_MODEL_ID` | `gpt-5.6-sol` | Reviewed exact model: `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` |
 
 The shell owns one facade and one serial worker. These intervals bound durable
 discovery, graceful shutdown, cached readiness, and the in-memory device-login

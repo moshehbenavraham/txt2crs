@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 14:17 IDT
+**Last Updated**: 2026-07-20 14:59 IDT
 
 ---
 
@@ -12,7 +12,7 @@
 | Metric | Value |
 |--------|-------|
 | Tasks Completed | 25 / 25 |
-| Estimated Remaining | Session code review and validation handoff |
+| Estimated Remaining | Session validation and PRD handoff |
 | Blockers | None |
 
 ---
@@ -1196,3 +1196,31 @@ must identify the same immutable revision.
   still performs no network or paid generation work.
 - Next task: run the one T017 synthetic course, then inspect its sixteen
   artifacts and complete the T018-T019 privacy ledger before final gates.
+
+### Checkpoint 5
+
+- Completed the deterministic `creview` surface from base
+  `875808005a011a6a23538fa903805d0719463ccd`, including all twelve
+  mid-session commits and every uncommitted repair.
+- Resolved three high, six medium, and three low findings with tests-first
+  regressions. The additional high finding corrected the invalid bare
+  `gpt-5.6` default to exact `gpt-5.6-sol`. A packaged, readiness-only
+  app-server probe reported ChatGPT mode, five catalog entries, bare
+  `gpt-5.6` absent, and Sol/Terra/Luna present. Local Hermes and AIOS source
+  agreed that Sol is the reviewed baseline; no web or OpenAI documentation
+  was used.
+- Final credential-free evidence: engine Ruff/mypy plus 489 passed and two
+  explicit live skips; backend Ruff/mypy plus 517 passed against isolated
+  PostgreSQL 18; frontend 132 tests plus Biome, TypeScript, and production
+  build; 73 script contracts passed concurrently with atomic client
+  generation; all 15 pre-commit hooks passed.
+- Rebuilt the production backend and confirmed non-root runtime identity,
+  package `1.0.0`, the one-process command, healthcheck, and all three tracked
+  email templates. Removed the temporary image and both disposable databases.
+- Revalidated canonical candidate evidence against exact historical source
+  `a80700863e99cdd34bed757873d969236cdf36fa`; its SHA-256 remains
+  `43e811fc58efdce308b33d74112ab3a5969bca6fa3585e9a347643f6d052bbbd`.
+  Review repairs are intentionally not relabeled as that already-proven live
+  revision. Session 02 must rebuild and revalidate its final immutable commit
+  before creating `v1.0.0`.
+- Next command: `validate`.

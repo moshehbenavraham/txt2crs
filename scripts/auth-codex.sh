@@ -18,6 +18,17 @@ REPOSITORY_ROOT="$(dirname -- "$SCRIPT_DIRECTORY")"
 BACKEND_DIRECTORY="$REPOSITORY_ROOT/backend"
 STATE_DIRECTORY="$REPOSITORY_ROOT/.txt2crs-system"
 
+# The helper, rather than the caller, owns the credential location and its
+# permissions. Forward every other packaged option, but reject both argparse
+# spellings that could replace this fixed owner-only state boundary.
+for forwarded_argument in "$@"; do
+    if [[ "$forwarded_argument" == "--state-directory" ]] ||
+        [[ "$forwarded_argument" == --state-directory=* ]]; then
+        echo "The authentication state directory is fixed by this helper." >&2
+        exit 2
+    fi
+done
+
 if ! command -v uv >/dev/null 2>&1; then
     echo "Required command is unavailable: uv" >&2
     exit 127

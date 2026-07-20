@@ -34,7 +34,7 @@ class RecordingApplication:
         if self.inspect_calls >= 2:
             self.second_inspection.set()
         return ApplicationReadiness.create(
-            configured_model_id="gpt-5.6",
+            configured_model_id="gpt-5.6-sol",
             enabled_input_modes=(
                 "prompt",
                 "text",
@@ -175,7 +175,7 @@ def test_unconfigured_readiness_is_safe_and_starts_no_thread() -> None:
 
     assert snapshot.status is ReadinessStatus.unavailable
     assert snapshot.accepting_jobs is False
-    assert snapshot.configured_model_id == "gpt-5.6"
+    assert snapshot.configured_model_id == "gpt-5.6-sol"
     rendered = snapshot.model_dump_json()
     assert "TAVILY_API_KEY" not in rendered
     assert "/var/lib" not in rendered

@@ -14,3 +14,9 @@
 **/.venv
 **/build
 **/dist
+
+# These tracked HTML files are FastAPI runtime assets. Re-include their exact
+# directory after the broad generated-build exclusion above; all other nested
+# build outputs remain outside the reproducible image context.
+!app/email-templates/build/
+!app/email-templates/build/*.html

@@ -366,7 +366,7 @@ class Txt2CrsApplication:
             # inspector. Production factories always supply it.
             runtime = self._readiness_inspector.inspect_readiness()
             return ApplicationReadiness.create(
-                configured_model_id="gpt-5.6",
+                configured_model_id="gpt-5.6-sol",
                 enabled_input_modes=("prompt", "text"),
                 runtime=runtime,
                 research_ready=False,

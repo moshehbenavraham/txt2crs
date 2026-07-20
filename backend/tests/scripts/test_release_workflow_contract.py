@@ -75,12 +75,29 @@ def test_release_workflow_builds_and_retains_only_reviewed_artifacts() -> None:
     workflow_text = _release_workflow_text()
 
     assert "uv build --package txt2crs" in workflow_text
-    assert (
-        'docker build --target production --tag "txt2crs-backend:${GITHUB_SHA}" backend'
-    ) in workflow_text
+    assert "--target production" in workflow_text
+    assert '--tag "txt2crs-backend:${GITHUB_SHA}"' in workflow_text
     assert "txt2crs-frontend:${GITHUB_SHA}" in workflow_text
     assert "backend/dist/" in workflow_text
     assert "release/SHA256SUMS" in workflow_text
     assert "release/image-inspection.json" in workflow_text
     assert "retention-days: 14" in workflow_text
     assert "if-no-files-found: error" in workflow_text
+
+
+def test_release_workflow_labels_both_images_with_version_and_revision() -> None:
+    """Uploaded image inspection must identify the immutable release source."""
+
+    workflow_text = _release_workflow_text()
+
+    assert workflow_text.count('release_version="$(tr -d') == 2
+    assert (
+        workflow_text.count(
+            '--label "org.opencontainers.image.version=${release_version}"'
+        )
+        == 2
+    )
+    assert (
+        workflow_text.count('--label "org.opencontainers.image.revision=${GITHUB_SHA}"')
+        == 2
+    )

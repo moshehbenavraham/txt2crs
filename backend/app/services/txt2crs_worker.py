@@ -50,6 +50,10 @@ class WorkerClosedError(RuntimeError):
     """A caller tried to restart a supervisor after terminal close."""
 
 
+class WorkerStartupError(RuntimeError):
+    """The supervisor thread did not publish an operational startup state."""
+
+
 class WorkerShutdownError(RuntimeError):
     """The active executor did not drain within the configured bound."""
 
@@ -164,6 +168,10 @@ class SerialTxt2CrsWorker:
         self._lock = RLock()
         self._stop_requested = Event()
         self._wake_requested = Event()
+        # ``Thread.start()`` means only that the operating-system thread was
+        # created. Readiness callers also need to know that ``_run`` acquired
+        # the worker lock and published its first truthful idle state.
+        self._startup_completed = Event()
         self._thread: Thread | None = None
         self._active_executor: WorkerExecutor | None = None
         self._status = WorkerStatus.stopped
@@ -181,6 +189,7 @@ class SerialTxt2CrsWorker:
                 return
 
             self._status = WorkerStatus.starting
+            self._startup_completed.clear()
             worker_thread = Thread(
                 target=self._run,
                 name=WORKER_THREAD_NAME,
@@ -202,6 +211,29 @@ class SerialTxt2CrsWorker:
                     level="error",
                 )
                 raise
+
+        # Returning while the snapshot still says ``starting`` creates a
+        # request race: an otherwise healthy application can reject its first
+        # submission as unavailable. Reuse the configured finite lifecycle
+        # bound instead of introducing an unbounded thread-start wait.
+        if not self._startup_completed.wait(timeout=self._shutdown_timeout_seconds):
+            with self._lock:
+                self._stop_requested.set()
+                self._wake_requested.set()
+            self._record_failure(
+                WorkerFailureCode.worker_crashed,
+                status=WorkerStatus.failed,
+            )
+            raise WorkerStartupError(
+                "The txt2crs worker did not start within the configured bound."
+            ) from None
+
+        with self._lock:
+            startup_status = self._status
+        if startup_status not in {WorkerStatus.idle, WorkerStatus.active}:
+            raise WorkerStartupError(
+                "The txt2crs worker failed before startup completed."
+            ) from None
         _log_worker_event_safely("txt2crs.worker_started")
 
     def notify_runnable(self) -> None:
@@ -290,6 +322,7 @@ class SerialTxt2CrsWorker:
                     self._status = WorkerStatus.stopped
                     return
                 self._status = WorkerStatus.idle
+            self._startup_completed.set()
 
             while not self._stop_requested.is_set():
                 # Discovery and the complete executor lifetime share one
@@ -326,6 +359,9 @@ class SerialTxt2CrsWorker:
                 status=WorkerStatus.failed,
             )
         finally:
+            # Release a bounded ``start`` waiter even when a programming error
+            # occurs before the normal idle transition.
+            self._startup_completed.set()
             with self._lock:
                 if self._status is not WorkerStatus.failed:
                     self._status = (

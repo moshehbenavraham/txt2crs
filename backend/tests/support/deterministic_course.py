@@ -119,7 +119,7 @@ def build_deterministic_execution_profile() -> ExecutionProfile:
         engine_version="txt2crs-0.7.0",
         prompt_version="course-pipeline-v1",
         policy_version="content-policy-v1",
-        model_id="gpt-5.6",
+        model_id="gpt-5.6-sol",
         reasoning_effort="high",
         retry_policy=RequestRetryPolicy(
             maximum_attempts=3,
@@ -475,7 +475,7 @@ def build_complete_course_scenario() -> DeterministicGenerationScenario:
         ],
     }
     return DeterministicGenerationScenario.create(
-        model_id="gpt-5.6",
+        model_id="gpt-5.6-sol",
         turns=(
             DeterministicTurn.create(
                 stage="plan_research",
@@ -514,7 +514,7 @@ def build_unconsumed_submission_scenario() -> DeterministicGenerationScenario:
     """Return a strict scenario that is never consumed by submission tests."""
 
     return DeterministicGenerationScenario.create(
-        model_id="gpt-5.6",
+        model_id="gpt-5.6-sol",
         turns=(
             DeterministicTurn.create(
                 stage="plan_research",

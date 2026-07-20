@@ -14,7 +14,8 @@
     "lint": "biome check --write --unsafe --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "preview": "vite preview",
-    "generate-client": "node scripts/generate-client.mjs",
+    "generate-client": "../scripts/generate-client.sh",
+    "generate-client:codegen": "node scripts/generate-client.mjs && biome check --write --unsafe --no-errors-on-unmatched --files-ignore-unknown=true openapi.json src/client && node scripts/normalize-generated-client.mjs",
     "test:unit": "vitest run src",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

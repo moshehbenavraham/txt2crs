@@ -119,7 +119,7 @@ class CachedReadinessCoordinator:
         refresh_interval_seconds: float,
         stale_after_seconds: float,
         shutdown_timeout_seconds: float,
-        configured_model_id: str = "gpt-5.6",
+        configured_model_id: str = "gpt-5.6-sol",
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         if refresh_interval_seconds <= 0 or refresh_interval_seconds > 3_600:

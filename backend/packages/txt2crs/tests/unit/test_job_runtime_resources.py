@@ -42,7 +42,7 @@ class RecordingCodexAdapter:
     def list_model_ids(self) -> tuple[str, ...]:
         """Return the exact configured GPT-5.6 alias."""
 
-        return ("gpt-5.6",)
+        return ("gpt-5.6-sol",)
 
     def run_turn(
         self,

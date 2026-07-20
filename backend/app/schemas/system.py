@@ -26,7 +26,6 @@ from app.services.txt2crs_readiness import (
 
 SafeStatusText = Annotated[str, Field(min_length=1, max_length=500)]
 ReviewedModelId = Literal[
-    "gpt-5.6",
     "gpt-5.6-sol",
     "gpt-5.6-terra",
     "gpt-5.6-luna",

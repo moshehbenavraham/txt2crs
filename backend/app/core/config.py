@@ -310,11 +310,10 @@ class Settings(BaseSettings):
     # stored with each accepted job. Changing an environment default later
     # therefore cannot reinterpret already-durable work after a restart.
     TXT2CRS_MODEL_ID: Literal[
-        "gpt-5.6",
         "gpt-5.6-sol",
         "gpt-5.6-terra",
         "gpt-5.6-luna",
-    ] = "gpt-5.6"
+    ] = "gpt-5.6-sol"
     """Exact reviewed GPT-5.6 family model; no older-model fallback exists."""
 
     TXT2CRS_RESEARCH_ENABLED: bool = True

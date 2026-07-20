@@ -122,11 +122,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker build --target production --tag "txt2crs-backend:${GITHUB_SHA}" backend
+          release_version="$(tr -d '\n\r' < VERSION)"
+          docker build \
+            --target production \
+            --label "org.opencontainers.image.version=${release_version}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "txt2crs-backend:${GITHUB_SHA}" \
+            backend
           docker build \
             --build-arg VITE_API_URL=/api \
             --build-arg VITE_ENABLE_PUBLIC_SIGNUP=false \
             --build-arg VITE_HTML_PREVIEW_MAX_BYTES=5242880 \
+            --label "org.opencontainers.image.version=${release_version}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --tag "txt2crs-frontend:${GITHUB_SHA}" \
             frontend
           docker image inspect \

@@ -66,7 +66,7 @@ def _scenario() -> DeterministicGenerationScenario:
     """Return a minimal strict scenario for factory-shape checks."""
 
     return DeterministicGenerationScenario.create(
-        model_id="gpt-5.6",
+        model_id="gpt-5.6-sol",
         turns=(
             DeterministicTurn.create(
                 stage="plan_research",
@@ -120,7 +120,7 @@ def test_deterministic_json_contracts_reject_invalid_direct_construction() -> No
         )
     with pytest.raises(ValidationError):
         DeterministicGenerationScenario(
-            model_id="gpt-5.6",
+            model_id="gpt-5.6-sol",
             turns=(
                 DeterministicTurn.create(
                     stage="plan_research",

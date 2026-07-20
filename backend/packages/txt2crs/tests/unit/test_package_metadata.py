@@ -7,6 +7,7 @@ define the first public contract: installed callers can discover the library
 version without knowing anything about the repository layout.
 """
 
+import tomllib
 from importlib.metadata import version
 from pathlib import Path
 
@@ -67,3 +68,16 @@ def test_package_version_matches_repository_version_when_available() -> None:
     )
 
     assert txt2crs.__version__ == expected_package_version
+
+
+def test_stable_package_uses_the_stable_development_status_classifier() -> None:
+    """Public package metadata must not label the stable 1.0 release pre-alpha."""
+
+    package_root = Path(__file__).resolve().parents[2]
+    package_configuration = tomllib.loads(
+        (package_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    classifiers = package_configuration["project"]["classifiers"]
+
+    assert "Development Status :: 5 - Production/Stable" in classifiers
+    assert "Development Status :: 2 - Pre-Alpha" not in classifiers

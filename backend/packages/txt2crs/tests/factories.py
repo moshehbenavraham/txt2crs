@@ -529,7 +529,7 @@ def deterministic_generation_scenario() -> Any:
         "answer_key": valid_answer_key_data(),
     }
     return DeterministicGenerationScenario.create(
-        model_id="gpt-5.6",
+        model_id="gpt-5.6-sol",
         turns=(
             DeterministicTurn.create(stage="plan_research", output=research_plan),
             DeterministicTurn.create(stage="design_course", output=course_plan),

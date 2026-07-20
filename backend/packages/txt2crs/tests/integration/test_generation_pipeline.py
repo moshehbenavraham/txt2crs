@@ -756,6 +756,53 @@ def test_module_missing_factual_citation_gets_one_local_repair() -> None:
     ) == 1
 
 
+def test_duplicate_module_block_identifier_gets_one_local_repair() -> None:
+    """Duplicate block IDs must be repaired before canonical course assembly."""
+
+    duplicate_block_module_draft = copy_data(valid_course_module_draft_data())
+    first_content_block = duplicate_block_module_draft["module"]["sections"][0][
+        "content_blocks"
+    ][0]
+    duplicate_block_module_draft["module"]["sections"][0]["content_blocks"].append(
+        copy_data(first_content_block)
+    )
+    budget = pipeline_budget(maximum_turns=7)
+    checkpoints: list[PipelineCheckpoint] = []
+    runtime_requests: list[TurnRequest] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(course_plan_data(), 2),
+            scripted_turn(duplicate_block_module_draft, 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+        request_sink=runtime_requests,
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    module_requests = [
+        request
+        for request in runtime_requests
+        if request.stage.startswith("write_module_")
+    ]
+    assert len(module_requests) == 2
+    assert "module_block_id_duplicate" in module_requests[1].trusted_instructions
+    assert budget.snapshot().repairs == 1
+    assert [checkpoint.stage for checkpoint in checkpoints].count(
+        "write_module:mod-foundations"
+    ) == 1
+
+
 def test_course_plan_that_fails_local_gate_twice_never_reaches_module_drafting() -> (
     None
 ):

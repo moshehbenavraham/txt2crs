@@ -81,6 +81,8 @@ def test_backend_build_context_recursively_excludes_generated_directories() -> N
     workspace. A root-only pattern such as ``.mypy_cache`` does not protect
     that nested package, so local validation can silently add generated cache
     databases to ``COPY ./packages`` and change the production image digest.
+    The application email ``build`` directory is different: it contains
+    tracked runtime templates and must be re-included after the broad rule.
     """
 
     dockerignore_patterns = {
@@ -101,8 +103,13 @@ def test_backend_build_context_recursively_excludes_generated_directories() -> N
         "**/build",
         "**/dist",
     }
+    required_runtime_exceptions = {
+        "!app/email-templates/build/",
+        "!app/email-templates/build/*.html",
+    }
 
     assert required_recursive_patterns <= dockerignore_patterns
+    assert required_runtime_exceptions <= dockerignore_patterns
 
 
 def test_both_backend_targets_run_one_non_root_process() -> None:

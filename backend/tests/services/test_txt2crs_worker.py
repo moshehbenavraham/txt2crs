@@ -271,6 +271,45 @@ def test_failed_thread_start_resets_supervisor_for_safe_close(
     worker.close()
 
 
+def test_start_returns_only_after_worker_snapshot_is_operational(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Immediate readiness reads cannot observe a live worker as unavailable."""
+
+    application = RecordingApplication()
+    worker = _worker(application)
+    allow_worker_loop_to_start = Event()
+    start_call_finished = Event()
+    original_run = worker._run
+
+    def delayed_run() -> None:
+        """Hold the worker before it can publish its first idle snapshot."""
+
+        assert allow_worker_loop_to_start.wait(timeout=2)
+        original_run()
+
+    monkeypatch.setattr(worker, "_run", delayed_run)
+
+    def start_worker() -> None:
+        worker.start()
+        start_call_finished.set()
+
+    start_caller = Thread(target=start_worker)
+    start_caller.start()
+    try:
+        assert start_call_finished.wait(timeout=0.05) is False
+        allow_worker_loop_to_start.set()
+        assert start_call_finished.wait(timeout=1)
+        snapshot = worker.snapshot()
+        assert snapshot.status is WorkerStatus.idle
+        assert snapshot.is_alive is True
+        assert snapshot.has_capacity is True
+    finally:
+        allow_worker_loop_to_start.set()
+        start_caller.join(timeout=1)
+        worker.close()
+
+
 def test_startup_scans_immediately_and_nudge_wakes_idle_poll() -> None:
     """Startup and missed-event recovery do not depend on an HTTP submission."""
 

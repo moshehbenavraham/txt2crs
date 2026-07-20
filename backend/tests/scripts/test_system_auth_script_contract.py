@@ -5,11 +5,14 @@ import stat
 import subprocess
 from pathlib import Path
 
+import pytest
+
 DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY_ROOT = Path(
     os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
 )
 AUTHENTICATION_SCRIPT = REPOSITORY_ROOT / "scripts" / "auth-codex.sh"
+ROOT_README = REPOSITORY_ROOT / "README.md"
 LIVE_ACCEPTANCE_GUIDE = (
     REPOSITORY_ROOT
     / "backend"
@@ -80,6 +83,52 @@ printf '%s\\0' "$@" >"$TXT2CRS_TEST_CAPTURE_ARGUMENTS"
     ]
 
 
+@pytest.mark.parametrize(
+    "override_arguments",
+    [
+        ("--state-directory", "/tmp/unprotected-auth-state"),
+        ("--state-directory=/tmp/unprotected-auth-state",),
+    ],
+)
+def test_authentication_script_rejects_state_directory_overrides(
+    tmp_path: Path,
+    override_arguments: tuple[str, ...],
+) -> None:
+    """Forwarded options cannot escape the helper's owner-only state boundary."""
+
+    fake_binary_directory = tmp_path / "bin"
+    fake_binary_directory.mkdir()
+    invocation_marker = tmp_path / "uv-was-invoked"
+    fake_uv_binary = fake_binary_directory / "uv"
+    fake_uv_binary.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+touch "$TXT2CRS_TEST_INVOCATION_MARKER"
+""",
+        encoding="utf-8",
+    )
+    fake_uv_binary.chmod(0o700)
+
+    test_environment = dict(os.environ)
+    test_environment["PATH"] = (
+        f"{fake_binary_directory}{os.pathsep}{test_environment['PATH']}"
+    )
+    test_environment["TXT2CRS_TEST_INVOCATION_MARKER"] = str(invocation_marker)
+
+    completed_process = subprocess.run(
+        [AUTHENTICATION_SCRIPT, *override_arguments],
+        cwd=tmp_path,
+        env=test_environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed_process.returncode == 2
+    assert "state directory is fixed" in completed_process.stderr
+    assert not invocation_marker.exists()
+
+
 def test_live_acceptance_guide_uses_the_short_authentication_helper() -> None:
     """Operators should not need to reconstruct the packaged uv command."""
 
@@ -88,3 +137,13 @@ def test_live_acceptance_guide_uses_the_short_authentication_helper() -> None:
     assert "./scripts/auth-codex.sh" in guide_text
     assert "TXT2CRS_MODEL_ID" in guide_text
     assert "TXT2CRS_LIVE_MODEL" not in guide_text
+
+
+def test_root_quick_start_keeps_auth_separate_from_the_fast_gate() -> None:
+    """The default validation command must not claim paid provider execution."""
+
+    readme_text = ROOT_README.read_text(encoding="utf-8")
+
+    assert "./scripts/auth-codex.sh --no-browser" in readme_text
+    assert "credential-free fast gate" in readme_text
+    assert "research-API, LLM" not in readme_text

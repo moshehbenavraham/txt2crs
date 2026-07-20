@@ -13,16 +13,15 @@ from txt2crs.ai.model_policy import (
 )
 
 
-def test_model_policy_defaults_to_the_gpt56_sol_alias() -> None:
-    """The product default remains the documented flagship GPT-5.6 alias."""
+def test_model_policy_defaults_to_the_exact_gpt56_sol_identifier() -> None:
+    """The product default must be an exact model reported by app-server."""
 
     policy = Gpt56ModelPolicy()
 
-    assert DEFAULT_GPT56_MODEL_ID == "gpt-5.6"
-    assert policy.configured_model_id == "gpt-5.6"
+    assert DEFAULT_GPT56_MODEL_ID == "gpt-5.6-sol"
+    assert policy.configured_model_id == "gpt-5.6-sol"
     assert REVIEWED_GPT56_MODEL_IDS == frozenset(
         {
-            "gpt-5.6",
             "gpt-5.6-sol",
             "gpt-5.6-terra",
             "gpt-5.6-luna",
@@ -44,6 +43,7 @@ def test_model_policy_accepts_only_the_reviewed_gpt56_family(model_id: str) -> N
     [
         "gpt-5.4",
         "gpt-5.5",
+        "gpt-5.6",
         "gpt-5.6-preview",
         "GPT-5.6",
         "gpt-5.6-sol-latest",
@@ -61,31 +61,31 @@ def test_model_policy_rejects_older_nearby_and_case_changed_slugs(
 def test_model_policy_requires_exact_configured_discovery_without_fallback() -> None:
     """Discovery proves entitlement but never selects the first returned model."""
 
-    policy = Gpt56ModelPolicy(configured_model_id="gpt-5.6")
+    policy = Gpt56ModelPolicy(configured_model_id="gpt-5.6-sol")
 
     assert (
         policy.require_discovered(
-            ("gpt-5.4", "gpt-5.6-sol", "gpt-5.6"),
+            ("gpt-5.4", "gpt-5.6-terra", "gpt-5.6-sol"),
         )
-        == "gpt-5.6"
+        == "gpt-5.6-sol"
     )
     with pytest.raises(ModelPolicyError, match="configured GPT-5.6"):
-        policy.require_discovered(("gpt-5.4", "gpt-5.6-sol"))
+        policy.require_discovered(("gpt-5.4", "gpt-5.6-terra"))
 
 
 def test_model_policy_rejects_turn_and_result_substitution_safely() -> None:
-    """Request and provider result identities must match the configured alias."""
+    """Request and provider result identities must match the configured ID."""
 
-    policy = Gpt56ModelPolicy(configured_model_id="gpt-5.6")
+    policy = Gpt56ModelPolicy(configured_model_id="gpt-5.6-sol")
 
     with pytest.raises(ModelPolicyError, match="configured GPT-5.6"):
         policy.require_turn_model(
-            requested_model_id="gpt-5.6-sol",
-            discovered_model_ids=("gpt-5.6", "gpt-5.6-sol"),
+            requested_model_id="gpt-5.6-terra",
+            discovered_model_ids=("gpt-5.6-sol", "gpt-5.6-terra"),
         )
     with pytest.raises(ModelPolicyError, match="configured GPT-5.6"):
         policy.require_result_model(
-            requested_model_id="gpt-5.6",
+            requested_model_id="gpt-5.6-sol",
             result_model_id="gpt-5.4",
         )
 

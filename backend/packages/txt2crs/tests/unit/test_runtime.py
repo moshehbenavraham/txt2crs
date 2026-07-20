@@ -36,7 +36,7 @@ class StubCodexAdapter:
         self,
         *,
         account_type: str = "chatgpt",
-        models: tuple[str, ...] = ("gpt-5.6",),
+        models: tuple[str, ...] = ("gpt-5.6-sol",),
         result_model_id: str | None = None,
         result_output: dict[str, Any] | None = None,
     ) -> None:
@@ -79,7 +79,7 @@ class StubCodexAdapter:
         )
 
 
-def course_turn_request(model_id: str = "gpt-5.6") -> TurnRequest:
+def course_turn_request(model_id: str = "gpt-5.6-sol") -> TurnRequest:
     """Build the minimum trusted request used by runtime tests."""
 
     return TurnRequest(
@@ -163,7 +163,7 @@ def test_subscription_runtime_rejects_an_undiscovered_model() -> None:
     """A configured model cannot be guessed when app-server omits it."""
 
     runtime = CodexSubscriptionRuntime(
-        adapter=StubCodexAdapter(models=("gpt-5.4", "gpt-5.6-sol")),
+        adapter=StubCodexAdapter(models=("gpt-5.4", "gpt-5.6-terra")),
         model_policy=Gpt56ModelPolicy(),
     )
 

@@ -28,7 +28,7 @@ def _readiness_snapshot() -> ReadinessSnapshot:
     return ReadinessSnapshot(
         status=ReadinessStatus.ready,
         accepting_jobs=True,
-        configured_model_id="gpt-5.6",
+        configured_model_id="gpt-5.6-sol",
         enabled_input_modes=("prompt", "text", "url"),
         checks=ReadinessChecks(
             authentication=ReadinessCheckState.ready,
@@ -74,6 +74,17 @@ def test_readiness_projection_rejects_unknown_input_and_naive_time() -> None:
     with pytest.raises(ValidationError, match="checked_at"):
         SystemReadinessPublic.model_validate(
             {**payload, "checked_at": datetime(2026, 7, 19)}
+        )
+
+
+def test_readiness_projection_rejects_a_bare_model_family_label() -> None:
+    """The browser contract exposes only exact app-server model identifiers."""
+
+    payload = SystemReadinessPublic.from_snapshot(_readiness_snapshot()).model_dump()
+
+    with pytest.raises(ValidationError, match="configured_model_id"):
+        SystemReadinessPublic.model_validate(
+            {**payload, "configured_model_id": "gpt-5.6"}
         )
 
 

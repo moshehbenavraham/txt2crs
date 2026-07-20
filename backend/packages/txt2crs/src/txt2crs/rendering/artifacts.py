@@ -619,6 +619,8 @@ class ArtifactRenderer:
     def _render_review_html(self, review: ReviewPack, course: Course) -> str:
         """Render the comprehensive review pack."""
 
+        objective_display_label_by_id = self._objective_display_labels(course)
+        section_display_label_by_id = self._section_display_labels(course)
         display_label_by_identifier = self._review_display_labels(
             review=review,
             course=course,
@@ -658,7 +660,7 @@ class ArtifactRenderer:
             )
             parts.append(
                 "<article><h3>"
-                f"{escape(display_label_by_identifier[guide_item.objective_id])}: "
+                f"{escape(objective_display_label_by_id[guide_item.objective_id])}: "
                 f"{escape(objective.description)}</h3>"
                 f"<p>{escape(guide_item.summary)}</p><ul>"
             )
@@ -719,7 +721,7 @@ class ArtifactRenderer:
         parts.append("</section><section><h2>Section summaries</h2><dl>")
         for section_id, summary in sorted(review.section_summaries.items()):
             parts.append(
-                f"<dt>{escape(display_label_by_identifier[section_id])}</dt>"
+                f"<dt>{escape(section_display_label_by_id[section_id])}</dt>"
                 f"<dd>{escape(summary)}</dd>"
             )
         parts.append(
@@ -729,62 +731,84 @@ class ArtifactRenderer:
         )
         return "".join(parts)
 
-    def _review_display_labels(
-        self,
-        *,
-        review: ReviewPack,
-        course: Course,
-    ) -> dict[str, str]:
-        """Map internal cross-artifact IDs to stable reader-facing labels."""
+    @staticmethod
+    def _objective_display_labels(course: Course) -> dict[str, str]:
+        """Return reader labels in the objective namespace only."""
 
-        display_labels = {
+        return {
             objective.objective_id: f"Objective {objective_index}"
             for objective_index, objective in enumerate(
                 course.learning_objectives,
                 start=1,
             )
         }
-        display_labels.update(
-            {
-                course_module.module_id: course_module.title
-                for course_module in course.modules
-            }
-        )
-        display_labels.update(
-            {
-                section.section_id: section.title
-                for course_module in course.modules
-                for section in course_module.sections
-            }
-        )
-        display_labels.update(
-            {
-                flashcard.flashcard_id: f"Flashcard {flashcard_index}"
-                for flashcard_index, flashcard in enumerate(
-                    review.flashcards,
-                    start=1,
-                )
-            }
-        )
-        display_labels.update(
-            {
-                example.exercise_id: f"Worked example {example_index}"
-                for example_index, example in enumerate(
-                    review.worked_examples,
-                    start=1,
-                )
-            }
-        )
-        display_labels.update(
-            {
-                exercise.exercise_id: f"Practice exercise {exercise_index}"
-                for exercise_index, exercise in enumerate(
-                    review.practice_exercises,
-                    start=1,
-                )
-            }
-        )
-        return display_labels
+
+    @staticmethod
+    def _section_display_labels(course: Course) -> dict[str, str]:
+        """Return reader labels in the section namespace only."""
+
+        return {
+            section.section_id: section.title
+            for course_module in course.modules
+            for section in course_module.sections
+        }
+
+    def _review_display_labels(
+        self,
+        *,
+        review: ReviewPack,
+        course: Course,
+    ) -> dict[str, str]:
+        """Map free-form review references to stable reader-facing labels.
+
+        Identifier uniqueness is guaranteed inside each domain namespace, not
+        across objectives, sections, flashcards, and exercises. Preserve every
+        applicable label for an ambiguous free-form reference instead of
+        silently letting the last namespace overwrite the first.
+        """
+
+        display_label_options_by_identifier: dict[str, list[str]] = {}
+
+        def add_display_label(identifier: str, display_label: str) -> None:
+            """Append one distinct label without losing an earlier namespace."""
+
+            display_label_options = display_label_options_by_identifier.setdefault(
+                identifier,
+                [],
+            )
+            if display_label not in display_label_options:
+                display_label_options.append(display_label)
+
+        for identifier, display_label in self._objective_display_labels(course).items():
+            add_display_label(identifier, display_label)
+        for course_module in course.modules:
+            add_display_label(course_module.module_id, course_module.title)
+        for identifier, display_label in self._section_display_labels(course).items():
+            add_display_label(identifier, display_label)
+        for flashcard_index, flashcard in enumerate(review.flashcards, start=1):
+            add_display_label(
+                flashcard.flashcard_id,
+                f"Flashcard {flashcard_index}",
+            )
+        for example_index, example in enumerate(review.worked_examples, start=1):
+            add_display_label(
+                example.exercise_id,
+                f"Worked example {example_index}",
+            )
+        for exercise_index, exercise in enumerate(
+            review.practice_exercises,
+            start=1,
+        ):
+            add_display_label(
+                exercise.exercise_id,
+                f"Practice exercise {exercise_index}",
+            )
+        return {
+            identifier: " / ".join(display_label_options)
+            for identifier, display_label_options in (
+                display_label_options_by_identifier.items()
+            )
+        }
 
     def _render_assessment_html(
         self,
@@ -946,6 +970,8 @@ class ArtifactRenderer:
         """Render every canonical review component in a portable text format."""
 
         source_by_id = {source.source_id: source for source in course.sources}
+        objective_display_label_by_id = self._objective_display_labels(course)
+        section_display_label_by_id = self._section_display_labels(course)
         display_label_by_identifier = self._review_display_labels(
             review=review,
             course=course,
@@ -973,7 +999,7 @@ class ArtifactRenderer:
             lines.extend(
                 [
                     "### "
-                    f"{display_label_by_identifier[guide_item.objective_id]}: "
+                    f"{objective_display_label_by_id[guide_item.objective_id]}: "
                     f"{objective_by_id[guide_item.objective_id].description}",
                     "",
                     guide_item.summary,
@@ -1037,7 +1063,7 @@ class ArtifactRenderer:
             )
         lines.extend(["## Section summaries", ""])
         lines.extend(
-            f"- **{display_label_by_identifier[section_id]}:** {summary}"
+            f"- **{section_display_label_by_id[section_id]}:** {summary}"
             for section_id, summary in sorted(review.section_summaries.items())
         )
         lines.extend(
