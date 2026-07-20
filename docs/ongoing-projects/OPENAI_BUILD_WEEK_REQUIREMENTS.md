@@ -40,17 +40,31 @@ Submit by **Tuesday, July 21, 2026 at 5:00 PM Pacific Time**:
 - **UTC:** Wednesday, July 22 at 00:00
 - **Jerusalem:** Wednesday, July 22 at 3:00 AM
 
-Devpost's announcement calls July 21 “Monday,” but its exact deadline timestamp is
+Devpost's announcement calls July 21 "Monday," but its exact deadline timestamp is
 `2026-07-22T00:00:00Z`, which corresponds to Tuesday, July 21 at 5:00 PM Pacific.
 Use the exact timestamp above as the deadline.
 
 ## txt2crs Delivery Checklist
 
-- [ ] Complete and test the working application using Codex and GPT-5.6.
-- [ ] Prepare the Education-category project description.
-- [ ] Add setup, sample-data, run, and AI-usage details to the root README.
-- [ ] Add an appropriate license or grant the required private-repository access.
-- [ ] Record and publish the narrated, under-three-minute YouTube demo.
-- [ ] Capture the primary Codex `/feedback` Session ID.
-- [ ] Complete every required Devpost submission field.
-- [ ] Submit before the exact deadline above.
+Prepared locally:
+
+- [x] Complete and test the working application using Codex and GPT-5.6.
+- [x] Prepare the Education-category project description.
+- [x] Add setup, sample-data, run, and AI-usage details to the root README.
+- [x] Include the scoped repository and engine licenses.
+- [x] Record and verify the narrated 02:22.600 YouTube upload candidate.
+- [x] Capture the primary Codex `/feedback` Session ID.
+- [x] Prepare the six reviewed screenshots and complete Devpost project story.
+- [x] Provide a concise human publishing handoff.
+
+Human-only external actions:
+
+- grant both required reviewers access to the Private repository;
+- create and push the final release tag and branch;
+- upload and publish the verified YouTube demo;
+- complete submitter type and country in Devpost;
+- submit the Education entry before the exact deadline above; and
+- verify the final platform links and confirmation.
+
+See
+[`docs/submission/HUMAN_PUBLISHING_HANDOFF.md`](../submission/HUMAN_PUBLISHING_HANDOFF.md).

@@ -66,9 +66,9 @@ The test proves:
 From `frontend/`:
 
 ```bash
-npx playwright test \
+TXT2CRS_BROWSER_SCENARIO=complete npx playwright test \
   --config=playwright.jobs.config.ts \
-  --project=chromium-complete
+  --project=chromium
 ```
 
 The browser submits the same topic, double-clicks the create action to prove

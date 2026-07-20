@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 5,
-  "current_session": null,
+  "current_session": "phase05-session02-submission-assets-and-devpost",
   "monorepo": true,
   "packages": [
     {
@@ -135,12 +135,6 @@
       "date": "2026-07-19",
       "session": "phase02-session05-operator-setup-experience",
       "package": "frontend",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session05-operator-setup-experience",
-      "package": "frontend",
       "status": "completed"
     },
     {
@@ -246,6 +240,11 @@
       "session": "phase05-session01-release-hardening-and-live-proof",
       "package": null,
       "status": "completed"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase05-session02-submission-assets-and-devpost",
+      "status": "planned"
     }
   ]
 }

@@ -1395,7 +1395,8 @@ Implementation sessions:
 
 ### Phase 5 - hardening and submission
 
-**Status:** In progress - Session 01 release hardening and live proof.
+**Status:** In progress - Session 01 validated; Session 02 is preparing the
+judge assets and human publishing handoff.
 
 Objective: prove the shipped artifact and complete every event requirement.
 
@@ -1420,24 +1421,28 @@ Work:
     because they are not declared release-version surfaces. The stable
     candidate is `1.0.0`; create its final tag only after tracked judge assets
     are complete and the exact commit is revalidated.
-11. Confirm license and repository judge access.
+11. Confirm license scope and provide human instructions for private
+    repository judge access.
 12. Capture the primary Codex `/feedback` Session ID.
-13. Record and publish a narrated public YouTube video under three minutes.
-14. Complete the Education-category description and every Devpost field.
-15. Submit before 2026-07-22 00:00 UTC (2026-07-22 03:00 Jerusalem).
+13. Record and verify a narrated YouTube upload candidate under three minutes.
+14. Prepare the Education-category description and every repository-safe
+    Devpost field.
+15. Hand off GitHub access, tag/push, YouTube publication, account-only
+    Devpost fields, and final submission to the human operator with the exact
+    deadline: 2026-07-22 00:00 UTC (2026-07-22 03:00 Jerusalem).
 
 Exit gate:
 
 - every checklist in Section 12 is green;
 - the repository can be run by a judge from documented instructions;
 - the video shows the working product and explains both Codex and GPT-5.6;
-- the submitted commit/tag matches the tested build; and
-- the Devpost submission is confirmed.
+- the local handoff identifies the exact tested commit/tag intent; and
+- the human operator has exact verification steps for the final platforms.
 
 Suggested implementation sessions:
 
 - **S09 - hardening, live proof, production smoke, and release candidate**
-- **S10 - documentation, final release tag, video, and Devpost submission**
+- **S10 - documentation, release/media assets, and human publishing handoff**
 
 ## 11. Testing strategy
 

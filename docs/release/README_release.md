@@ -14,8 +14,9 @@ every inspection row passes and the canonical public ledger passes the strict
 evidence validator.
 
 The final annotated `v1.0.0` tag is intentionally deferred until Session 02
-completes all tracked judge assets and repeats the immutable checks below. A
-tracked change after the tag requires a new SemVer release.
+completes all tracked judge assets and repeats the checks below. Tag creation
+and pushing are human-only actions. A tracked change after the tag requires a
+new SemVer release.
 
 ## Evidence Index
 
@@ -85,19 +86,22 @@ the session notes. Remote CodeQL has no exact local replacement and remains an
 open low-severity external finding; this directory does not describe it as
 passing.
 
-## Final Tag Handoff
+## Final Human Release Handoff
 
-Session 02 must complete all tracked judge assets before tagging. On the exact
-final commit it must:
+Session 02 completes all tracked judge assets and local release checks. The
+human operator then:
 
-1. confirm the tree is clean and every public link is final;
+1. reviews the exact local commit and confirms the tree is clean;
 2. rerun release/evidence tests and the repository version validator;
 3. rebuild and inspect the wheel and source distribution;
 4. rebuild and inspect both production images;
 5. run production health and replacement smoke checks;
-6. reconcile the final commit in the judge README, video, and Devpost fields;
-7. create annotated tag `v1.0.0` on that commit; and
-8. push the commit and tag, then verify the remote tag resolves to the same
-   object.
+6. grants both required reviewers private repository access;
+7. creates annotated tag `v1.0.0` on that exact commit;
+8. pushes the commit and tag and verifies the remote refs;
+9. publishes the verified demo video; and
+10. completes and submits the Education entry on Devpost.
 
-No tracked edit is allowed after step 7 without selecting a new version.
+Exact platform instructions are in
+[`docs/submission/HUMAN_PUBLISHING_HANDOFF.md`](../submission/HUMAN_PUBLISHING_HANDOFF.md).
+No tracked edit is allowed after tagging without selecting a new version.

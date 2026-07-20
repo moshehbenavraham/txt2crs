@@ -12,11 +12,21 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added a polished judge package with six reviewed synthetic screenshots, a
+  narrated 02:22.600 demo candidate, complete Education-category Devpost copy,
+  and the primary Codex feedback Session ID.
+- Added a concise human-only publishing handoff for private GitHub reviewer
+  access, final tag/push, YouTube publication, and Devpost submission.
+
 ### Changed
 
 ### Deprecated
 
 ### Removed
+
+- Removed the submission-specific validator and parallel contract-test scope;
+  established product and release gates remain the technical verification
+  path.
 
 ### Fixed
 
