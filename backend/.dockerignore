@@ -1,8 +1,16 @@
-# Python
-__pycache__
-app.egg-info
-*.pyc
-.mypy_cache
-.coverage
-htmlcov
-.venv
+# Python and build outputs
+#
+# ``packages/txt2crs`` is a nested workspace copied into the backend image.
+# Recursive patterns keep local test, type-check, and distribution outputs out
+# of that build context so the same commit always produces the same image.
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+**/.coverage
+**/htmlcov
+**/.venv
+**/build
+**/dist

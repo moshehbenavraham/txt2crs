@@ -13,6 +13,7 @@ REPOSITORY_ROOT = Path(
     os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
 )
 BACKEND_DOCKERFILE = REPOSITORY_ROOT / "backend" / "Dockerfile"
+BACKEND_DOCKERIGNORE = REPOSITORY_ROOT / "backend" / ".dockerignore"
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
 ROOT_ENVIRONMENT_EXAMPLE = REPOSITORY_ROOT / ".env.example"
@@ -71,6 +72,37 @@ def test_workspace_packages_are_copied_before_first_uv_sync() -> None:
     first_sync_position = dockerfile_text.index("uv sync")
 
     assert package_copy_position < first_sync_position
+
+
+def test_backend_build_context_recursively_excludes_generated_directories() -> None:
+    """Ignored nested caches must not change an otherwise identical image.
+
+    The backend Docker context contains the reusable ``packages/txt2crs``
+    workspace. A root-only pattern such as ``.mypy_cache`` does not protect
+    that nested package, so local validation can silently add generated cache
+    databases to ``COPY ./packages`` and change the production image digest.
+    """
+
+    dockerignore_patterns = {
+        line.strip()
+        for line in _read_repository_file(BACKEND_DOCKERIGNORE).splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    required_recursive_patterns = {
+        "**/__pycache__",
+        "**/*.pyc",
+        "**/*.egg-info",
+        "**/.mypy_cache",
+        "**/.pytest_cache",
+        "**/.ruff_cache",
+        "**/.coverage",
+        "**/htmlcov",
+        "**/.venv",
+        "**/build",
+        "**/dist",
+    }
+
+    assert required_recursive_patterns <= dockerignore_patterns
 
 
 def test_both_backend_targets_run_one_non_root_process() -> None:
