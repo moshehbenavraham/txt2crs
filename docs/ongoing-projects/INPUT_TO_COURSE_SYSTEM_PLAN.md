@@ -1,12 +1,12 @@
 # Input-to-Course System Implementation Plan
 
 > **Plan status:** Final - implementation-ready
-> **Delivery status:** Engine application boundary and FastAPI composition/
-> readiness complete; the learner workflow is not implemented
+> **Delivery status:** Phases 0-4 are validated; Phase 5 hardening and
+> submission remains
 > **Initial baseline release:** 0.3.1
-> **Current release:** 0.6.1
+> **Current release:** 0.7.0
 > **Created:** 2026-07-18
-> **Last verified:** 2026-07-19
+> **Last verified:** 2026-07-20
 > **Owner:** txt2crs project
 
 This is the final implementation plan for the txt2crs hackathon application.
@@ -1301,12 +1301,12 @@ Exit gate:
 - new work is refused with `SYSTEM_NOT_READY` when any required dependency
   fails.
 
-Next implementation phase: **Phase 3 - durable jobs API and worker
-execution**.
+Phases 0-4 are complete. Current implementation phase: **Phase 5 - hardening
+and submission**.
 
 ### Phase 3 - durable jobs API and worker execution
 
-**Status:** Not started.
+**Status:** Complete (3 of 3 sessions validated).
 
 Objective: complete the backend submit -> recover -> result lifecycle.
 
@@ -1344,14 +1344,15 @@ Exit gate:
   downgrade/upgrade round trip (deleted donor rows are intentionally not
   recoverable).
 
-Suggested implementation sessions:
+Implemented sessions:
 
-- **S05 - submission, worker, status, and artifacts**
-- **S06 - ownership purge, donor removal, migration, and generated client**
+- **S01 - durable job submission and admission**
+- **S02 - owner-scoped job results and recovery**
+- **S03 - account purge and donor retirement**
 
 ### Phase 4 - learner experience
 
-**Status:** Not started.
+**Status:** Complete (2 of 2 sessions validated).
 
 Objective: make the complete real backend journey understandable, polished,
 and demo-ready.
@@ -1387,10 +1388,10 @@ Exit gate:
 - a three-minute edited walkthrough clearly communicates input, research,
   progress, results, sources, and the separate answer key.
 
-Suggested implementation sessions:
+Implementation sessions:
 
-- **S07 - landing, intake, and progress**
-- **S08 - results, visual system, and accessibility**
+- **S01 - public landing, intake, and progress** (validated)
+- **S02 - results, preview, and experience validation** (validated)
 
 ### Phase 5 - hardening and submission
 
@@ -1545,7 +1546,7 @@ uv run --package txt2crs pytest \
 
 ### P0 application
 
-- [ ] Phase 0 through Phase 4 exit gates pass.
+- [x] Phase 0 through Phase 4 exit gates pass.
 - [ ] Every enabled input mode is honestly reported by readiness and tested.
 - [ ] A new authenticated request is durably committed before `202`.
 - [ ] GPT-5.6 is explicitly selected and discovered; no fallback occurs.

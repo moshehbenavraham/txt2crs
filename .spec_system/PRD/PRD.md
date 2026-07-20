@@ -190,7 +190,7 @@ This system delivers the product via phases. Each phase is implemented through
 | 01 | Engine Application Boundary | 5 | Complete |
 | 02 | Composition and Readiness | 5 | Complete |
 | 03 | Durable Jobs API | 3 | Complete |
-| 04 | Learner Experience | 2 | Not Started |
+| 04 | Learner Experience | 2 | Complete |
 | 05 | Hardening and Submission | 2 | Not Started |
 
 ## Phase 00: Application Baseline
@@ -337,7 +337,7 @@ This system delivers the product via phases. Each phase is implemented through
 ### Conflict Resolutions
 
 - **Phase progress**: Validated session and phase-transition evidence is
-  authoritative. Phases 00 through 03 are complete; Phases 04-05 remain
+  authoritative. Phases 00 through 04 are complete; Phase 05 remains
   unfinished.
 - **Phase 01 session count**: The implementation plan suggested two sessions,
   but those sessions combined fourteen substantial package gaps and exceeded

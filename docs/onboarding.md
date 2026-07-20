@@ -71,8 +71,17 @@ accepts authenticated course submissions and owner-scoped result/artifact
 reads. The public `/` route explains the four generated publications.
 Authenticated learners create a request at `/create` and can refresh or
 directly reopen the owner-scoped `/jobs/{job_id}` progress URL. Completed
-result and artifact presentation is expanded in the next learner-journey
-session.
+jobs transform that same URL into four private publication folios for the
+course, review pack, assessment, and separate instructor answer key. Each
+publication offers PDF plus HTML, Markdown, and DOCX downloads from the
+generated authenticated client.
+
+HTML previews are limited by the non-secret
+`VITE_HTML_PREVIEW_MAX_BYTES` build setting (default `5242880`, or 5 MiB).
+Eligible HTML is verified and displayed from a revocable Blob URL in an
+empty-capability sandboxed iframe with a restrictive preview-only CSP. The
+frontend value controls presentation only; backend authorization, integrity,
+and delivery limits remain authoritative.
 
 Public account creation is disabled by default. Set
 `ENABLE_PUBLIC_SIGNUP=true` only for a local installation that should accept
@@ -144,8 +153,10 @@ TXT2CRS_BROWSER_SCENARIO=failed \
 
 The dedicated test application uses the normal authentication, job routes,
 serial worker, and generated frontend client with a finite deterministic
-engine scenario. It is unavailable unless its test-only process flag is
-explicitly set by the Playwright configuration.
+engine scenario. Its completed run checks all 16 manifest entries, real
+artifact transfers, exact size labels, hostile HTML isolation, keyboard and
+focus behavior, and responsive reflow. It is unavailable unless its test-only
+process flag is explicitly set by the Playwright configuration.
 
 ## Common Problems
 

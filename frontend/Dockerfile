@@ -16,6 +16,8 @@ COPY ./ /app/
 ARG VITE_API_URL
 # Non-secret display configuration. Authorization remains backend-owned.
 ARG VITE_ENABLE_PUBLIC_SIGNUP=false
+# Non-secret preview presentation bound; private delivery remains backend-owned.
+ARG VITE_HTML_PREVIEW_MAX_BYTES=5242880
 
 RUN npm run build
 

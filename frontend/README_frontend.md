@@ -4,7 +4,7 @@ The frontend is a React 19, TypeScript, Vite, TanStack Router/Query, Tailwind
 CSS 4, and shadcn/Radix application. It currently presents authentication,
 users, settings, administration, a superuser course-system setup workspace,
 and the learner journey from public product explanation through multimode
-course intake and owner-scoped live progress.
+course intake, owner-scoped live progress, and private completed publications.
 
 ## Current Routes
 
@@ -16,7 +16,7 @@ course intake and owner-scoped live progress.
 | `/recover-password` | Password recovery |
 | `/reset-password` | Password reset |
 | `/create` | Authenticated prompt, text, URL, YouTube, or file intake |
-| `/jobs/$jobId` | Authenticated owner-scoped progress and terminal handoff |
+| `/jobs/$jobId` | Authenticated owner-scoped progress and completed publications |
 | `/settings` | User settings |
 | `/setup` | Superuser course-system readiness, device login, and CLI recovery |
 | `/admin` | Superuser administration |
@@ -29,6 +29,12 @@ Page titles and accessible product names use the shared
 `VITE_ENABLE_PUBLIC_SIGNUP` controls only whether a build displays local
 account-creation actions. It defaults to `false`. Compose derives that public
 build value from the root `ENABLE_PUBLIC_SIGNUP` setting.
+
+`VITE_HTML_PREVIEW_MAX_BYTES` controls whether a manifest-declared HTML
+artifact is offered for in-browser preview. It accepts a strict positive
+integer and defaults to `5242880` (5 MiB). It is a public presentation limit,
+not an upload, authorization, or artifact-delivery boundary; the backend
+remains authoritative.
 
 The frontend setting is not authorization. The backend remains authoritative
 for every signup request and can reject disabled or revoked access even when a
@@ -52,6 +58,19 @@ projection. Active jobs use a visibility-aware polling policy; terminal jobs
 stop polling. Refreshing or directly reopening the private URL revalidates the
 server state. Missing and foreign-owned jobs deliberately share one recovery
 surface.
+
+When a job completes, the same route reads its generated owner-scoped manifest
+once and presents course, review pack, assessment, and instructor answer key
+folios. Each folio has one primary PDF action plus an accessible menu for
+HTML, Markdown, PDF, and DOCX. The answer-key files remain collapsed until the
+owner explicitly opens them.
+
+All file bodies use the generated authenticated artifact client. HTML preview
+is lazy-loaded, byte/media verified, parsed into a preview-only document, and
+shown through a revocable Blob URL in an empty-capability sandboxed iframe
+with a restrictive CSP and no-referrer policy. No artifact HTML is injected
+into the React document. Source and conflict disclosures use only the bounded
+completed-job projection.
 
 The browser keeps only a bounded prompt handoff in `sessionStorage`; source
 content is not placed in URLs or `localStorage`. These implementation choices
@@ -130,7 +149,10 @@ npx playwright test
 The course-generation journey has a dedicated provider-free test application.
 It uses the normal FastAPI routes, authentication, serial worker, generated
 frontend client, and owner checks while replacing external generation with a
-finite deterministic scenario:
+finite deterministic scenario. The completed story verifies all 16 manifest
+entries, exact displayed sizes, format-menu keyboard behavior, real PDF and
+HTML transfers, sandbox/CSP isolation, hostile preview stripping, URL cleanup,
+direct refresh, and minimum-width reflow:
 
 ```bash
 docker compose up -d --wait db

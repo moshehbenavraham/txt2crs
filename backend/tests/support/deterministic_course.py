@@ -116,7 +116,7 @@ def build_deterministic_execution_profile() -> ExecutionProfile:
 
     return ExecutionProfile(
         schema_version="1.0",
-        engine_version="txt2crs-0.6.1",
+        engine_version="txt2crs-0.7.0",
         prompt_version="course-pipeline-v1",
         policy_version="content-policy-v1",
         model_id="gpt-5.6",

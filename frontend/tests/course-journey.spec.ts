@@ -1,4 +1,13 @@
 import { expect, type Page, test } from "@playwright/test"
+import type {
+  ArtifactDeliverable,
+  ArtifactFormat,
+  ArtifactManifestPublic,
+} from "../src/client"
+import {
+  ARTIFACT_FORMAT_LABELS,
+  formatArtifactByteSize,
+} from "../src/components/CourseResults/presentation"
 import { apiBaseUrl, firstSuperuser, firstSuperuserPassword } from "./config.ts"
 
 const jobsFixtureEnabled = process.env.PLAYWRIGHT_JOBS_FIXTURE === "1"
@@ -35,8 +44,9 @@ type ContrastAuditFailure = {
  */
 async function auditVisibleTextContrast(
   page: Page,
+  rootSelector: string | null = null,
 ): Promise<ContrastAuditFailure[]> {
-  return page.evaluate(() => {
+  return page.evaluate((selectedRoot) => {
     type RgbaColor = {
       red: number
       green: number
@@ -127,8 +137,15 @@ async function auditVisibleTextContrast(
     }
 
     const textElements = new Set<HTMLElement>()
+    const auditRoot =
+      selectedRoot === null
+        ? document.body
+        : document.querySelector<HTMLElement>(selectedRoot)
+    if (auditRoot === null) {
+      throw new Error("The requested contrast-audit root does not exist.")
+    }
     const textNodeWalker = document.createTreeWalker(
-      document.body,
+      auditRoot,
       NodeFilter.SHOW_TEXT,
     )
     while (textNodeWalker.nextNode()) {
@@ -196,7 +213,7 @@ async function auditVisibleTextContrast(
     }
 
     return failures
-  })
+  }, rootSelector)
 }
 
 const interceptedProblem = {
@@ -402,6 +419,14 @@ test.describe("authenticated course intake", () => {
     const createCourse = page.getByRole("button", {
       name: "Create my learning package",
     })
+    const artifactManifestResponse = page.waitForResponse((response) => {
+      const responseUrl = new URL(response.url())
+      return (
+        response.request().method() === "GET" &&
+        /\/api\/v1\/jobs\/[^/]+\/artifacts$/.test(responseUrl.pathname) &&
+        response.status() === 200
+      )
+    })
     await createCourse.dblclick()
 
     await expect(page).toHaveURL(/\/jobs\/[A-Za-z0-9._:-]+$/)
@@ -420,6 +445,525 @@ test.describe("authenticated course intake", () => {
         name: /queued securely|course materials are ready/i,
       }),
     ).toBeVisible()
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Course materials are ready",
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 })
+    const publicationWorkspace = page.getByRole("region", {
+      name: "Learning package publications",
+    })
+    await expect(publicationWorkspace).toBeVisible()
+    const publicationNames = [
+      "Course",
+      "Review pack",
+      "Assessment",
+      "Instructor answer key",
+    ] as const
+    const manifest = (await (
+      await artifactManifestResponse
+    ).json()) as ArtifactManifestPublic
+    expect(manifest.deliverables).toHaveLength(4)
+    const manifestArtifacts = manifest.deliverables.flatMap(
+      ({ artifacts }) => artifacts,
+    )
+    expect(manifestArtifacts).toHaveLength(16)
+    expect(manifest.deliverables.map(({ deliverable }) => deliverable)).toEqual(
+      ["course", "review_pack", "assessment", "answer_key"],
+    )
+    for (const artifact of manifestArtifacts) {
+      expect(artifact.file_name).not.toMatch(/[\\/]/)
+      expect(
+        [...artifact.file_name].some((character) => {
+          const characterCode = character.charCodeAt(0)
+          return (
+            characterCode < 32 || (characterCode >= 127 && characterCode <= 159)
+          )
+        }),
+      ).toBe(false)
+      expect(Number.isSafeInteger(artifact.size_bytes)).toBe(true)
+      expect(artifact.size_bytes).toBeGreaterThan(0)
+    }
+    expect(
+      await publicationWorkspace
+        .getByRole("article")
+        .evaluateAll((articles) =>
+          articles.map((article) => article.getAttribute("data-deliverable")),
+        ),
+    ).toEqual(["course", "review_pack", "assessment", "answer_key"])
+
+    for (const publicationName of publicationNames) {
+      const publication = page.getByRole("article", {
+        name: publicationName,
+      })
+      await expect(publication).toBeVisible()
+      await expect(publication).toContainText("4 formats")
+    }
+
+    const answerKey = page.getByRole("article", {
+      name: "Instructor answer key",
+    })
+    const answerKeyToggle = answerKey.getByRole("button", {
+      name: "Show answer key downloads",
+    })
+    const answerKeyFormats = answerKey.locator(
+      'ul[aria-label="Instructor answer key formats"]',
+    )
+    await expect(answerKeyToggle).toHaveAttribute("aria-expanded", "false")
+    await expect(answerKeyFormats).toBeHidden()
+    await answerKeyToggle.focus()
+    await page.keyboard.press("Enter")
+    await expect(
+      answerKey.getByRole("button", { name: "Hide answer key downloads" }),
+    ).toHaveAttribute("aria-expanded", "true")
+    await expect(answerKeyFormats).toBeVisible()
+    await expect(answerKeyFormats.getByRole("listitem")).toHaveCount(4)
+
+    const publicationNameByDeliverable: Record<
+      ArtifactDeliverable,
+      (typeof publicationNames)[number]
+    > = {
+      course: "Course",
+      review_pack: "Review pack",
+      assessment: "Assessment",
+      answer_key: "Instructor answer key",
+    }
+    const expectedFormatOrder: ArtifactFormat[] = [
+      "html",
+      "markdown",
+      "pdf",
+      "docx",
+    ]
+    for (const deliverable of manifest.deliverables) {
+      const publication = page.getByRole("article", {
+        name: publicationNameByDeliverable[deliverable.deliverable],
+      })
+      const formatList = publication.getByRole("list", {
+        name: `${publicationNameByDeliverable[deliverable.deliverable]} formats`,
+      })
+      const formatListItems = formatList.getByRole("listitem")
+      await expect(formatListItems).toHaveCount(4)
+      expect(deliverable.artifacts.map(({ format }) => format).sort()).toEqual(
+        [...expectedFormatOrder].sort(),
+      )
+      for (const [formatIndex, format] of expectedFormatOrder.entries()) {
+        await expect(formatListItems.nth(formatIndex)).toContainText(
+          ARTIFACT_FORMAT_LABELS[format],
+        )
+      }
+      for (const artifact of deliverable.artifacts) {
+        const formatListItem = formatListItems.filter({
+          hasText: ARTIFACT_FORMAT_LABELS[artifact.format],
+        })
+        await expect(formatListItem).toContainText(
+          formatArtifactByteSize(artifact.size_bytes),
+        )
+      }
+    }
+    await answerKey
+      .getByRole("button", { name: "Hide answer key downloads" })
+      .click()
+
+    const coursePublication = page.getByRole("article", { name: "Course" })
+    const courseFormats = coursePublication.getByRole("button", {
+      name: "Course download formats",
+    })
+    await courseFormats.focus()
+    await page.keyboard.press("Enter")
+    const formatMenu = page.getByRole("menu")
+    await expect(formatMenu.getByText("Download format")).toBeVisible()
+    await expect(formatMenu.getByRole("menuitem")).toHaveCount(4)
+    await expect(
+      formatMenu.getByRole("menuitem", { name: /^HTML / }),
+    ).toBeVisible()
+    await expect(
+      formatMenu.getByRole("menuitem", { name: /^Markdown / }),
+    ).toBeVisible()
+    await expect(
+      formatMenu.getByRole("menuitem", { name: /^PDF / }),
+    ).toBeVisible()
+    await expect(
+      formatMenu.getByRole("menuitem", { name: /^DOCX / }),
+    ).toBeVisible()
+    await expect
+      .poll(
+        () =>
+          formatMenu
+            .getByRole("menuitem")
+            .evaluateAll((menuItems) =>
+              menuItems
+                .filter(
+                  (menuItem) => menuItem.getBoundingClientRect().height < 44,
+                )
+                .map((menuItem) => menuItem.textContent?.trim() ?? ""),
+            ),
+        { message: "format-menu target-size failures" },
+      )
+      .toEqual([])
+    await page.keyboard.press("Escape")
+    await expect(courseFormats).toBeFocused()
+
+    const pdfDownload = coursePublication.getByRole("button", {
+      name: "Download Course PDF",
+    })
+    const downloadPromise = page.waitForEvent("download")
+    await pdfDownload.click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe("python-basics-course.pdf")
+
+    const previewTrigger = coursePublication.getByRole("button", {
+      name: "Preview Course HTML",
+    })
+    const previewConsoleIssues: string[] = []
+    const previewPageErrors: string[] = []
+    const previewNetworkEscapes: string[] = []
+    page.on("console", (message) => {
+      if (message.type() === "warning" || message.type() === "error") {
+        previewConsoleIssues.push(message.text())
+      }
+    })
+    page.on("pageerror", (error) => {
+      previewPageErrors.push(error.message)
+    })
+    page.on("request", (request) => {
+      if (request.url().startsWith("https://preview-escape.invalid/")) {
+        previewNetworkEscapes.push(request.url())
+      }
+    })
+    await page.evaluate(() => {
+      const auditedWindow = window as Window & {
+        __revokedPreviewUrls?: string[]
+      }
+      auditedWindow.__revokedPreviewUrls = []
+      const nativeRevokeObjectUrl = URL.revokeObjectURL.bind(URL)
+      URL.revokeObjectURL = (objectUrl: string) => {
+        auditedWindow.__revokedPreviewUrls?.push(objectUrl)
+        nativeRevokeObjectUrl(objectUrl)
+      }
+    })
+    await previewTrigger.click()
+    const previewDialog = page.getByRole("dialog", {
+      name: "Course HTML preview",
+    })
+    await expect(previewDialog).toBeVisible()
+    const previewCloseButton = previewDialog.getByRole("button", {
+      name: "Close",
+    })
+    await expect
+      .poll(
+        () =>
+          previewCloseButton.evaluate(
+            (button) => button.getBoundingClientRect().height,
+          ),
+        { message: "preview close target size" },
+      )
+      .toBeGreaterThanOrEqual(44)
+    const previewFrame = previewDialog.locator("iframe")
+    await expect(previewFrame).toHaveAttribute("sandbox", "")
+    await expect(previewFrame).toHaveAttribute("referrerpolicy", "no-referrer")
+    await expect(previewFrame).toHaveAttribute("title", "Course HTML preview")
+    await expect(previewFrame).toHaveAttribute("src", /^blob:/)
+    const securedPreviewDocument = page.frameLocator(
+      'iframe[title="Course HTML preview"]',
+    )
+    await expect(
+      securedPreviewDocument.locator("script, iframe, form, object, embed"),
+    ).toHaveCount(0)
+    await expect(
+      securedPreviewDocument.locator(
+        'meta[http-equiv="Content-Security-Policy"]',
+      ),
+    ).toHaveAttribute("content", /default-src 'none'/)
+    const firstPreviewUrl = await previewFrame.getAttribute("src")
+    expect(firstPreviewUrl).not.toBeNull()
+    await page.keyboard.press("Escape")
+    await expect(previewTrigger).toBeFocused()
+    await expect
+      .poll(() =>
+        page.evaluate((releasedUrl) => {
+          const auditedWindow = window as Window & {
+            __revokedPreviewUrls?: string[]
+          }
+          return auditedWindow.__revokedPreviewUrls?.includes(releasedUrl)
+        }, firstPreviewUrl as string),
+      )
+      .toBe(true)
+
+    const courseHtmlArtifact = manifest.deliverables
+      .find(({ deliverable }) => deliverable === "course")
+      ?.artifacts.find(({ format }) => format === "html")
+    if (courseHtmlArtifact === undefined) {
+      throw new Error("The deterministic course HTML artifact is required.")
+    }
+    const hostilePreviewPrefix = [
+      "<!doctype html><html><head>",
+      '<style>@import url("https://preview-escape.invalid/style.css");</style>',
+      "</head><body>",
+      "<main><h1>Hostile preview marker</h1>",
+      '<a href="https://preview-escape.invalid/navigation">Leave</a>',
+      '<img src="https://preview-escape.invalid/tracker.png">',
+      '<form action="https://preview-escape.invalid/form"><input autofocus></form>',
+      '<iframe src="https://preview-escape.invalid/frame"></iframe>',
+      '<script>parent.document.body.dataset.previewInjected = "true"</script>',
+      "</main></body></html>",
+    ].join("")
+    const hostilePreviewByteLength = Buffer.byteLength(hostilePreviewPrefix)
+    expect(hostilePreviewByteLength).toBeLessThan(courseHtmlArtifact.size_bytes)
+    const hostilePreviewBody =
+      hostilePreviewPrefix +
+      " ".repeat(courseHtmlArtifact.size_bytes - hostilePreviewByteLength)
+    await page.route(
+      `**/api/v1/jobs/${manifest.job_id}/artifacts/${courseHtmlArtifact.artifact_id}`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: hostilePreviewBody,
+        })
+      },
+    )
+
+    await previewTrigger.click()
+    await expect(previewDialog).toBeVisible()
+    const hostilePreviewDocument = page.frameLocator(
+      'iframe[title="Course HTML preview"]',
+    )
+    await expect(
+      hostilePreviewDocument.getByRole("heading", {
+        name: "Hostile preview marker",
+      }),
+    ).toBeVisible()
+    await expect(
+      hostilePreviewDocument.locator(
+        "script, iframe, form, input, style, a[href], img[src]",
+      ),
+    ).toHaveCount(0)
+    await expect(page.getByText("Hostile preview marker")).toHaveCount(0)
+    expect(
+      await page.evaluate(() => document.body.dataset.previewInjected ?? null),
+    ).toBeNull()
+    expect(previewNetworkEscapes).toEqual([])
+    expect(previewPageErrors).toEqual([])
+    expect(previewConsoleIssues).toEqual([])
+    const hostilePreviewUrl = await previewDialog
+      .locator("iframe")
+      .getAttribute("src")
+    await page.keyboard.press("Escape")
+    await expect
+      .poll(() =>
+        page.evaluate((releasedUrl) => {
+          const auditedWindow = window as Window & {
+            __revokedPreviewUrls?: string[]
+          }
+          return auditedWindow.__revokedPreviewUrls?.includes(releasedUrl)
+        }, hostilePreviewUrl as string),
+      )
+      .toBe(true)
+
+    await expect(
+      page.getByRole("heading", { name: "Sources and research notes" }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "The Python Tutorial" }),
+    ).toHaveAttribute("rel", /noopener/)
+
+    const renderedQaMatrix = [
+      { width: 320, height: 568, expectedRows: 4 },
+      { width: 375, height: 812, expectedRows: 4 },
+      { width: 768, height: 900, expectedRows: 2 },
+      { width: 1440, height: 900, expectedRows: 1 },
+    ] as const
+    const screenshotDirectory =
+      process.env.RESULTS_QA_SCREENSHOT_DIRECTORY?.replace(/\/$/, "")
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((selectedTheme) => {
+        document.documentElement.classList.remove("light", "dark")
+        document.documentElement.classList.add(selectedTheme)
+        localStorage.setItem("vite-ui-theme", selectedTheme)
+      }, theme)
+
+      for (const viewport of renderedQaMatrix) {
+        await page.setViewportSize(viewport)
+        await expect(publicationWorkspace).toBeVisible()
+
+        // Crossing the desktop navigation breakpoint deliberately animates the
+        // shell's content inset. Let that bounded transition finish before
+        // treating the card positions as the stable layout baseline.
+        await page.waitForTimeout(300)
+        const folioGeometry = await publicationWorkspace
+          .getByRole("article")
+          .evaluateAll((articles) =>
+            articles.map((article) => {
+              const bounds = article.getBoundingClientRect()
+              return {
+                x: Math.round(bounds.x),
+                y: Math.round(bounds.y),
+                width: Math.round(bounds.width),
+              }
+            }),
+          )
+        expect(
+          new Set(folioGeometry.map(({ y }) => y)).size,
+          `${theme} ${viewport.width}px result rows`,
+        ).toBe(viewport.expectedRows)
+
+        const targetSizeFailures = await publicationWorkspace
+          .getByRole("button")
+          .evaluateAll((buttons) =>
+            buttons
+              .filter((button) => {
+                const bounds = button.getBoundingClientRect()
+                return bounds.width > 0 && bounds.height > 0
+              })
+              .filter((button) => {
+                const bounds = button.getBoundingClientRect()
+                return bounds.height < 44
+              })
+              .map((button) => button.textContent?.trim() ?? ""),
+          )
+        expect(
+          targetSizeFailures,
+          `${theme} ${viewport.width}px target-size failures`,
+        ).toEqual([])
+        expect(
+          await page.evaluate(
+            () =>
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth,
+          ),
+          `${theme} ${viewport.width}px horizontal overflow`,
+        ).toBeLessThanOrEqual(0)
+        expect(
+          await auditVisibleTextContrast(
+            page,
+            'section[aria-labelledby="learning-package-publications"]',
+          ),
+          `${theme} ${viewport.width}px contrast failures`,
+        ).toEqual([])
+
+        await page.waitForTimeout(50)
+        const settledFolioGeometry = await publicationWorkspace
+          .getByRole("article")
+          .evaluateAll((articles) =>
+            articles.map((article) => {
+              const bounds = article.getBoundingClientRect()
+              return {
+                x: Math.round(bounds.x),
+                y: Math.round(bounds.y),
+                width: Math.round(bounds.width),
+              }
+            }),
+          )
+        expect(
+          settledFolioGeometry,
+          `${theme} ${viewport.width}px stable folio geometry`,
+        ).toEqual(folioGeometry)
+
+        // Capture after the stability assertion. A full-page Playwright
+        // screenshot temporarily adjusts the page viewport and can otherwise
+        // look like a layout shift while the browser restores its dimensions.
+        if (screenshotDirectory) {
+          await page.screenshot({
+            fullPage: true,
+            path: `${screenshotDirectory}/results-${theme}-${viewport.width}.png`,
+          })
+        }
+      }
+    }
+
+    await page.setViewportSize({ width: 320, height: 568 })
+    const completionTitle = page.locator("#course-results h3")
+    // Use the immutable source URL so the locator remains attached while its
+    // text is intentionally replaced with a hostile long string.
+    const sourceTitle = page.locator(
+      'a[href="https://docs.python.org/3/tutorial/"] span',
+    )
+    const originalCompletionTitle = await completionTitle.textContent()
+    const originalSourceTitle = await sourceTitle.textContent()
+    const longUnbrokenTitle = "W".repeat(255)
+    await completionTitle.evaluate((heading, replacementTitle) => {
+      heading.textContent = replacementTitle
+    }, longUnbrokenTitle)
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+      "long result title overflow",
+    ).toBeLessThanOrEqual(0)
+    await completionTitle.evaluate((heading, replacementTitle) => {
+      heading.textContent = replacementTitle
+    }, originalCompletionTitle ?? "")
+
+    await sourceTitle.evaluate((link, replacementTitle) => {
+      link.textContent = replacementTitle
+    }, longUnbrokenTitle)
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+      "long source title overflow",
+    ).toBeLessThanOrEqual(0)
+    await sourceTitle.evaluate((link, replacementTitle) => {
+      link.textContent = replacementTitle
+    }, originalSourceTitle ?? "")
+
+    // Browser zoom reduces the CSS viewport rather than multiplying rem
+    // values. A 720px CSS viewport is therefore the layout-equivalent of the
+    // 1440px desktop target viewed at 200% zoom.
+    await page.setViewportSize({ width: 720, height: 450 })
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+      "200% zoom-equivalent reflow overflow",
+    ).toBeLessThanOrEqual(0)
+
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const reducedMotionDurationFailures = await publicationWorkspace.evaluate(
+      (workspace) => {
+        const parseDuration = (duration: string): number =>
+          duration
+            .split(",")
+            .map((value) => value.trim())
+            .reduce((maximumMilliseconds, value) => {
+              const milliseconds = value.endsWith("ms")
+                ? Number.parseFloat(value)
+                : Number.parseFloat(value) * 1000
+              return Math.max(maximumMilliseconds, milliseconds)
+            }, 0)
+
+        return [...workspace.querySelectorAll("*")]
+          .map((element) => {
+            const computedStyle = getComputedStyle(element)
+            return {
+              name:
+                element.getAttribute("aria-label") ??
+                element.textContent?.trim().slice(0, 40) ??
+                element.tagName,
+              animationMilliseconds: parseDuration(
+                computedStyle.animationDuration,
+              ),
+              transitionMilliseconds: parseDuration(
+                computedStyle.transitionDuration,
+              ),
+            }
+          })
+          .filter(
+            ({ animationMilliseconds, transitionMilliseconds }) =>
+              animationMilliseconds > 1 || transitionMilliseconds > 1,
+          )
+      },
+    )
+    expect(reducedMotionDurationFailures).toEqual([])
   })
 
   test("keeps upload metadata visible without parsing document content", async ({
@@ -669,6 +1213,90 @@ test.describe("authenticated course intake", () => {
       page.getByRole("link", { name: "Create another course" }),
     ).toBeVisible()
     await expect(page.getByText("Completed")).toHaveCount(0)
+  })
+
+  test("keeps unavailable publication indexes behind one safe retry state", async ({
+    page,
+  }) => {
+    const completedJobId = "job-browser-publications-unavailable"
+    let manifestReadCount = 0
+
+    await page.route(`**/api/v1/jobs/${completedJobId}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: {
+          schema_version: "1.0",
+          job_id: completedJobId,
+          status: "completed",
+          revision: 8,
+          created_at: "2026-07-20T00:00:00Z",
+          updated_at: "2026-07-20T00:04:00Z",
+          progress: {
+            stage: "ready",
+            message: "Course materials are ready.",
+            completed_units: 6,
+            total_units: 6,
+          },
+          input: {
+            type: "prompt",
+            display_name: "Course prompt",
+            size_bytes: 48,
+            extraction_warnings: [],
+            warnings_truncated: false,
+          },
+          failure: null,
+          result: {
+            title: "Private course",
+            audience: "Adult learner",
+            level: "beginner",
+            language: "English",
+            objective_count: 3,
+            module_count: 2,
+            sources: [],
+            sources_truncated: false,
+            conflicts: [],
+            conflicts_truncated: false,
+          },
+          artifacts: {
+            available: true,
+            count: 16,
+            manifest_url: `/api/v1/jobs/${completedJobId}/artifacts`,
+          },
+        },
+      })
+    })
+    await page.route(
+      `**/api/v1/jobs/${completedJobId}/artifacts`,
+      async (route) => {
+        manifestReadCount += 1
+        await route.fulfill({
+          status: 404,
+          contentType: "application/problem+json",
+          json: {
+            type: "about:blank",
+            title: "Not found",
+            status: 404,
+            detail: "private artifact storage path must never reach the page",
+          },
+        })
+      },
+    )
+
+    await page.goto(`/jobs/${completedJobId}`)
+    await expect(
+      page.getByText("Publication files are not available"),
+    ).toBeVisible()
+    await expect(
+      page.getByText("private artifact storage path", { exact: false }),
+    ).toHaveCount(0)
+    expect(manifestReadCount).toBe(1)
+
+    await page.getByRole("button", { name: "Try again" }).click()
+    await expect.poll(() => manifestReadCount).toBe(2)
+    await expect(
+      page.getByText("Publication files are not available"),
+    ).toBeVisible()
   })
 
   test("fits mobile and retains keyboard-visible primary actions", async ({

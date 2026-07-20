@@ -10,9 +10,9 @@
 > surfaces.
 > **Status**: Phase 04 learner-journey hierarchy is defined. The public
 > landing, authenticated `/create`, and owner `/jobs/$jobId` surfaces use the
-> generated course-job contract; result delivery follows in Session 02. The
-> donor library and `/items` route remain retired. Legacy library blueprints
-> below are history only and must not be implemented.
+> generated course-job contract; Session 02 adds the private four-publication
+> folio described below. The donor library and `/items` route remain retired.
+> Legacy library blueprints below are history only and must not be implemented.
 > Last updated: 2026-07-20
 
 ## Table of Contents
@@ -174,6 +174,10 @@ Feature composition uses semantic roles rather than route-local raw colors:
 | `--stage-track` | Strong warm keyline | 22% light keyline | Inactive progress relationship |
 | `--stage-active` | Forest | Luminous forest | Current server-derived stage |
 | `--stage-complete` | Restrained gold | Luminous gold | Earned completed stage marker |
+| `--folio-course` | Forest | Luminous forest | Course publication keyline |
+| `--folio-review` | Slate | Luminous slate | Review publication keyline |
+| `--folio-assessment` | Restrained gold | Luminous gold | Assessment publication keyline |
+| `--folio-answer-key` | Restrained burgundy | Luminous burgundy | Instructor-only keyline |
 
 Publication and workbench foreground roles always carry normal text. Stage
 color accompanies labels and server copy; it never communicates state alone.
@@ -546,6 +550,12 @@ source-to-publications story. They use publication/workbench/stage roles from
 editorial typography as the protected shell. The UI never renders provider
 turns, internal checkpoints, local paths, or model controls.
 
+Completed jobs extend that story into a four-publication folio. Course, review
+pack, assessment, and answer key keep stable 01-04 order and distinct semantic
+keylines. Each uses full card anatomy: purpose and format count in the header,
+available formats in the body, and one primary PDF action plus a secondary
+format menu in the footer. The answer key remains collapsed by default.
+
 ### System setup (`frontend/src/components/SystemSetup/`, plus `Pending/`)
 
 | Component | Purpose |
@@ -624,10 +634,36 @@ text labels, while the adjacent update panel renders the server's safe progress
 message. Unknown totals use activity copy rather than a guessed percentage.
 Warnings are a separate reading region. Reconnecting keeps the last safe
 snapshot visible. Failed and cancelled states replace the active-stage
-treatment with stable recovery actions. Completed points to the Session 02
-result composition without inventing preview data. On mobile the rail remains
-vertical and labels wrap; no horizontal timeline or document scroll is
+treatment with stable recovery actions. Completed continues into the Session
+02 result composition without changing the durable URL. On mobile the rail
+remains vertical and labels wrap; no horizontal timeline or document scroll is
 permitted.
+
+### Course results (`/jobs/$jobId`, completed state)
+
+**User job:** identify the four finished learning publications, download the
+right format, preview HTML privately, and understand the sources or conflicts
+behind the package. **Primary action:** `Download {publication} PDF`.
+
+The completed progress summary remains first, followed by a full-width results
+identity and a four-card folio. Cards use one column at 320/375px, two when
+their text and actions fit, and four only at a genuinely wide workspace. Their
+semantic and DOM order is always Course, Review pack, Assessment, Instructor
+answer key. Alternate HTML, Markdown, PDF, and DOCX actions live in a labeled
+menu rather than competing with the primary action.
+
+The answer key communicates instructor purpose before its controls but starts
+collapsed. Source and conflict disclosure follows the folio as a quiet reading
+section, with safe external source names, publishers, and truncation truth.
+Empty conflicts are affirmative but restrained; conflicts or truncation use an
+explicit warning treatment and never claim research certainty.
+
+HTML preview opens a titled dialog whose content is a separate authenticated
+artifact copy inside an empty-capability sandboxed iframe. The preview canvas
+may scroll internally; the parent page must not. Close and Escape return focus
+to the publication's preview action. Loading, oversize, invalid, offline, and
+denied preview states keep the dialog title and a clear recovery path without
+showing bytes, paths, tokens, or implementation policy text.
 
 ### Shared page header
 
@@ -918,8 +954,11 @@ Current E2E coverage verifies the public four-publication story, configured
 access, retired-route not-found behavior, multimode submission, duplicate
 prevention, owner-scoped progress/re-entry, safe failure and ownership
 recovery, mobile fit and touch actions, reduced-motion navigation, system
-setup states, and the maintained auth/admin/settings surfaces. Result and
-artifact workspace coverage expands with Session 02.
+setup states, and the maintained auth/admin/settings surfaces. The isolated
+completed journey additionally verifies all 16 result entries, exact displayed
+sizes, keyboard format actions, answer-key disclosure, real private transfers,
+sandbox/CSP preview isolation, hostile HTML stripping, focus return, URL
+cleanup, and minimum-width reflow.
 
 ### Rendered QA matrix
 

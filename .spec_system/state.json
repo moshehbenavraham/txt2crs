@@ -50,7 +50,7 @@
     "4": {
       "name": "Learner Experience",
       "description": "Connect the durable jobs API to a public landing, strict multimode intake, refresh-safe progress, four-publication results, private previews and downloads, and accessible responsive validation.",
-      "status": "in_progress",
+      "status": "complete",
       "session_count": 2
     }
   },
@@ -114,27 +114,13 @@
     {
       "id": "phase04-session01-public-landing-intake-and-progress",
       "package": null
+    },
+    {
+      "id": "phase04-session02-results-preview-and-experience-validation",
+      "package": "frontend"
     }
   ],
   "next_session_history": [
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session03-cached-readiness-and-observability",
-      "package": "backend",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session03-cached-readiness-and-observability",
-      "package": "backend",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session04-system-readiness-and-auth-api",
-      "package": "backend",
-      "status": "planned"
-    },
     {
       "date": "2026-07-19",
       "session": "phase02-session04-system-readiness-and-auth-api",
@@ -233,6 +219,24 @@
       "date": "2026-07-20",
       "session": "phase04-session01-public-landing-intake-and-progress",
       "package": null,
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session02-results-preview-and-experience-validation",
+      "package": "frontend",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session02-results-preview-and-experience-validation",
+      "package": "frontend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session02-results-preview-and-experience-validation",
+      "package": "frontend",
       "status": "completed"
     }
   ]

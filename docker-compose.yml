@@ -153,6 +153,7 @@ services:
       args:
         - VITE_API_URL=https://api.${DOMAIN?Variable not set}
         - VITE_ENABLE_PUBLIC_SIGNUP=${ENABLE_PUBLIC_SIGNUP:-false}
+        - VITE_HTML_PREVIEW_MAX_BYTES=${TXT2CRS_HTML_PREVIEW_MAX_BYTES:-5242880}
         - NODE_ENV=production
     labels:
       - traefik.enable=true

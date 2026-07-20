@@ -225,6 +225,10 @@ defaults false. The backend `ENABLE_PUBLIC_SIGNUP` check is authoritative.
 Never infer authorization from frontend visibility or describe the setting as
 a security boundary.
 
+`VITE_HTML_PREVIEW_MAX_BYTES` is also non-secret and presentation-only. Keep
+its strict positive-integer frontend parser, 5 MiB fallback, Docker/Compose
+propagation, and backend-authoritative artifact limits synchronized.
+
 ## Styling
 
 Use Tailwind CSS classes:

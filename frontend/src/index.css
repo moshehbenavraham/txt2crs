@@ -68,6 +68,11 @@
   --color-stage-track: var(--stage-track);
   --color-stage-active: var(--stage-active);
   --color-stage-complete: var(--stage-complete);
+  --color-folio-course: var(--folio-course);
+  --color-folio-review: var(--folio-review);
+  --color-folio-assessment: var(--folio-assessment);
+  --color-folio-answer-key: var(--folio-answer-key);
+  --color-preview-canvas: var(--preview-canvas);
 
   /* Semantic Colors */
   --color-success: var(--success);
@@ -173,6 +178,11 @@
   --stage-track: oklch(0.82 0.012 75);
   --stage-active: oklch(0.38 0.1 160);
   --stage-complete: oklch(0.65 0.13 82);
+  --folio-course: oklch(0.38 0.1 160);
+  --folio-review: oklch(0.48 0.09 250);
+  --folio-assessment: oklch(0.65 0.13 82);
+  --folio-answer-key: oklch(0.46 0.11 28);
+  --preview-canvas: oklch(0.95 0.006 85);
 
   /* === Semantic Colors === */
   --destructive: oklch(0.5 0.18 25);
@@ -302,7 +312,8 @@
 
   /* === Muted === */
   --muted: oklch(0.22 0.01 55);
-  --muted-foreground: oklch(0.6 0.01 60);
+  /* The brighter value keeps small secondary publication text above 4.5:1. */
+  --muted-foreground: oklch(0.68 0.01 60);
 
   /* === Borders & Lines === */
   --border: oklch(1 0 0 / 0.08);
@@ -321,6 +332,11 @@
   --stage-track: oklch(1 0 0 / 0.22);
   --stage-active: oklch(0.72 0.12 160);
   --stage-complete: oklch(0.82 0.14 85);
+  --folio-course: oklch(0.72 0.12 160);
+  --folio-review: oklch(0.7 0.1 250);
+  --folio-assessment: oklch(0.82 0.14 85);
+  --folio-answer-key: oklch(0.72 0.12 28);
+  --preview-canvas: oklch(0.12 0.008 60);
 
   /* === Semantic Colors - Adjusted for Dark === */
   --destructive: oklch(0.6 0.18 25);
@@ -605,6 +621,50 @@
   /* Border Strong */
   .border-strong {
     border-color: var(--border-strong);
+  }
+}
+
+/* ============================================================================
+   COURSE RESULTS - Four-publication folio
+   One quiet keyline gives each publication a durable identity. The cards keep
+   stable geometry; actions and disclosures can change without layout jitter.
+   ============================================================================ */
+
+@layer components {
+  .result-folio {
+    --result-folio-accent: var(--folio-course);
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .result-folio::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 0.25rem;
+    background: var(--result-folio-accent);
+    content: "";
+  }
+
+  .result-folio[data-deliverable="review_pack"] {
+    --result-folio-accent: var(--folio-review);
+  }
+
+  .result-folio[data-deliverable="assessment"] {
+    --result-folio-accent: var(--folio-assessment);
+  }
+
+  .result-folio[data-deliverable="answer_key"] {
+    --result-folio-accent: var(--folio-answer-key);
+  }
+
+  .result-preview-frame {
+    width: 100%;
+    min-height: min(68vh, 46rem);
+    border: 0;
+    background: var(--preview-canvas);
   }
 }
 

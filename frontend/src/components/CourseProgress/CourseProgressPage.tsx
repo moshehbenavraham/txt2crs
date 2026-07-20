@@ -20,6 +20,7 @@ import {
   type ProductStagePresentation,
 } from "@/components/CourseProgress/presentation"
 import { useJobProgressQuery } from "@/components/CourseProgress/queries"
+import { CourseResultsWorkspace } from "@/components/CourseResults/CourseResultsWorkspace"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/api-error"
@@ -254,6 +255,10 @@ function CourseProgressWorkspace({
           ) : null}
         </section>
       </div>
+
+      {presentation.kind === "completed" ? (
+        <CourseResultsWorkspace jobId={jobId} snapshot={snapshot} />
+      ) : null}
     </div>
   )
 }
@@ -336,7 +341,7 @@ function CompletionHandoff({
       className="mt-8 border-t border-border-strong pt-7"
     >
       <FileCheck2 aria-hidden="true" className="size-6 text-stage-complete" />
-      <h3 className="mt-4 text-xl">
+      <h3 className="mt-4 break-all text-xl">
         {snapshot.result?.title ?? "Complete learning package"}
       </h3>
       <p className="mt-3 text-body-sm leading-6 text-muted-foreground">

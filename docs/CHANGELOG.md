@@ -21,3 +21,28 @@ Archived entries are stored in [`archive/`](archive/).
 ### Fixed
 
 ### Security
+
+## [0.7.0] - 2026-07-20
+
+### Added
+
+- Added the completed-job four-publication workspace with generated-client
+  HTML, Markdown, PDF, and DOCX downloads, source/conflict disclosure, and a
+  collapsed instructor answer key.
+
+### Changed
+
+- Changed the durable job progress route to transform into private results on
+  completion and added a strict public HTML-preview size setting.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+- Added byte/media verification, preview-only HTML transformation, restrictive
+  CSP, empty-capability iframe sandboxing, no-referrer isolation, duplicate
+  transfer prevention, abort handling, and revocable Blob URL cleanup.

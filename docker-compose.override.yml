@@ -147,6 +147,7 @@ services:
       args:
         - VITE_API_URL=http://localhost:8012
         - VITE_ENABLE_PUBLIC_SIGNUP=${ENABLE_PUBLIC_SIGNUP:-false}
+        - VITE_HTML_PREVIEW_MAX_BYTES=${TXT2CRS_HTML_PREVIEW_MAX_BYTES:-5242880}
         - NODE_ENV=development
 
   playwright:
@@ -156,6 +157,7 @@ services:
       args:
         - VITE_API_URL=http://backend:8000
         - VITE_ENABLE_PUBLIC_SIGNUP=${ENABLE_PUBLIC_SIGNUP:-false}
+        - VITE_HTML_PREVIEW_MAX_BYTES=${TXT2CRS_HTML_PREVIEW_MAX_BYTES:-5242880}
         - NODE_ENV=production
     ipc: host
     depends_on:
@@ -166,6 +168,7 @@ services:
     environment:
       - VITE_API_URL=http://backend:8000
       - VITE_ENABLE_PUBLIC_SIGNUP=${ENABLE_PUBLIC_SIGNUP:-false}
+      - VITE_HTML_PREVIEW_MAX_BYTES=${TXT2CRS_HTML_PREVIEW_MAX_BYTES:-5242880}
       - MAILCATCHER_HOST=http://mailcatcher:1080
       # For the reports when run locally
       - PLAYWRIGHT_HTML_HOST=0.0.0.0

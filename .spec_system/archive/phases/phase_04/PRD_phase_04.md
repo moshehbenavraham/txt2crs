@@ -1,10 +1,10 @@
 # PRD Phase 04: Learner Experience
 
-**Status**: In Progress
+**Status**: Complete
 **Sessions**: 2 (initial estimate)
 **Estimated Duration**: 1-2 days
 
-**Progress**: 1/2 sessions (50%)
+**Progress**: 2/2 sessions (100%)
 
 ---
 
@@ -23,19 +23,21 @@ API or an explicitly local form state.
 | Session | Name | Status | Est. Tasks | Validated |
 |---------|------|--------|------------|-----------|
 | 01 | Public Landing, Intake, and Progress | Complete | 25 | 2026-07-20 |
-| 02 | Results, Preview, and Experience Validation | Not Started | ~20-25 | - |
+| 02 | Results, Preview, and Experience Validation | Complete | 25 | 2026-07-20 |
 
 ---
 
 ## Completed Sessions
 
 - Session 01: Public Landing, Intake, and Progress - completed 2026-07-20.
+- Session 02: Results, Preview, and Experience Validation - completed
+  2026-07-20.
 
 ---
 
 ## Upcoming Sessions
 
-- Session 02: Results, Preview, and Experience Validation
+- None - Phase 04 is complete.
 
 ---
 
@@ -155,20 +157,20 @@ API or an explicitly local form state.
 
 Phase complete when:
 
-- [ ] Both sessions are completed and validated.
-- [ ] Signed-out visitors can understand the product and reach the configured
+- [x] Both sessions are completed and validated.
+- [x] Signed-out visitors can understand the product and reach the configured
       access path; authenticated users create work at `/create`.
-- [ ] Every enabled input mode submits through mirrored Zod rules, a stable
+- [x] Every enabled input mode submits through mirrored Zod rules, a stable
       idempotency key, and the generated client.
-- [ ] `/jobs/$jobId` is refresh-safe and renders only checkpoint-derived
+- [x] `/jobs/$jobId` is refresh-safe and renders only checkpoint-derived
       progress, safe reconnect/failure states, and terminal server results.
-- [ ] All four publications and enabled private formats are accessible, HTML
+- [x] All four publications and enabled private formats are accessible, HTML
       preview is sandboxed, and instructor material is clearly separated.
-- [ ] No raw artifact HTML enters the React document and no private server
+- [x] No raw artifact HTML enters the React document and no private server
       field or ownership oracle is introduced.
-- [ ] Desktop, mobile, keyboard, screen-reader, contrast, reduced-motion, and
+- [x] Desktop, mobile, keyboard, screen-reader, contrast, reduced-motion, and
       route-performance gates pass.
-- [ ] Frontend unit/build/lint/type checks, full Playwright, backend fixture
+- [x] Frontend unit/build/lint/type checks, full Playwright, backend fixture
       checks, generated-client determinism, and repository hooks pass.
 
 ---
