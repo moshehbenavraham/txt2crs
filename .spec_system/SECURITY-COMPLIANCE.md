@@ -1,7 +1,7 @@
 # Security & Compliance
 
 > Cumulative security posture and GDPR compliance record. Updated between phases via carryforward.
-> **Line budget**: 1000 max | **Last updated**: Phase 04 (2026-07-20)
+> **Line budget**: 1000 max | **Last updated**: Phase 05 (2026-07-20)
 
 ---
 
@@ -14,15 +14,16 @@
 | Open Findings | 1 |
 | Critical/High | 0 |
 | Medium/Low | 1 |
-| Phases Audited | 5 |
+| Phases Audited | 6 |
 | Last Clean Phase | -- |
 
-Both Phase 04 learner-experience sessions passed their scoped reviews with no
-unresolved finding. Source handoff is tab-scoped and bounded, server state is
-owner-private, transfers are verified, and HTML preview combines inert parsing
-with a restrictive empty sandbox. The cumulative application remains at risk
-only because remote CodeQL validation cannot run while GitHub Actions billing
-is disabled.
+Both Phase 05 sessions and the final local infrastructure drill passed with no
+unresolved finding. Exact-model live proof used synthetic data, public media
+was privacy-reviewed, workflows pass local security analysis, and initialized
+Codex state now survives checksum-validated backup and restore without
+archiving image-specific scratch links. The cumulative application remains at
+risk only because remote CodeQL cannot run while GitHub Actions billing is
+disabled.
 
 ---
 
@@ -73,6 +74,7 @@ incomplete.
 | Normalized content, evidence, resolved preferences, and usage state | `backend/packages/txt2crs` | Ingestion and accepted generation checkpoints | Tenant SQLite checkpoints | Policy, personalization, finite execution, and recovery | Contract/user request; formal record pending | Job lifetime; exact policy pending | Cascades through `purge_owner` | P01 |
 | Generated course, review, assessment, and answer-key files | `backend/packages/txt2crs` | Engine output | Owner-only artifact filesystem; temporary revocable browser URLs during authorized use | Authorized preview, download, and recovery | Contract/user request | Artifact lifetime; exact policy pending; browser URLs are revoked on close/unmount | Artifact-first coordinated `purge_owner` | P01/P04 |
 | Provider/model runtime state | `backend/packages/txt2crs` | Consented generation execution | Transient HTTP, loopback MCP, Codex, and worker resources | Research and model-backed course generation | Explicit provider consent plus contract; transfer record pending | Job-scoped resources close on exit | Resource cleanup; no durable owner row | P01 |
+| Backup copies of application and engine state | root deployment | Operator maintenance action | Owner-only checksum bundle containing PostgreSQL and durable engine/Codex state | Local disaster recovery | Same pending bases as copied records | Local cleanup defaults to seven days; encrypted off-host policy pending | Retention cleanup or explicit secure deletion; no per-owner backup erasure record | P05 |
 
 ### Compliance Checklist
 
@@ -98,12 +100,13 @@ separately as non-index packages.
 
 Additional controls:
 
-- Gitleaks scanned all 55 commits with four exact synthetic/example
+- Gitleaks scanned all 78 commits with four exact synthetic/example
   fingerprints and found no leak.
-- Zizmor reported no finding across all ten GitHub workflows.
+- Pedantic Zizmor and actionlint reported no finding across all ten GitHub
+  workflows.
 - Every third-party action remains commit-pinned.
-- The exact GPT-5.6/Tavily live acceptance test remains credential-gated and
-  was not claimed as locally executed.
+- The packaged Codex runtime is lockfile-pinned to `0.144.4`, and the exact
+  `gpt-5.6-sol` plus Tavily proof completed with synthetic nonpersonal input.
 
 ---
 
@@ -114,7 +117,7 @@ Recently closed items. Compressed after 2 phases.
 | ID | Finding | Severity | Resolved | Phase | Resolution |
 |----|---------|----------|----------|-------|------------|
 | P00-backend-S01 | Raw request metadata can expose personal data | High | 2026-07-19 | P02 | Normal shell request, exception, telemetry, SMTP, and startup events now use bounded allowlists and focused privacy regressions. |
-| P00-backend-S03 | Incomplete local backup and restore | Medium | 2026-07-19 | P01 | A live disposable proof restored PostgreSQL and private engine state from one owner-only checksum-validated bundle. |
+| P00-backend-S03 | Incomplete local backup and restore | Medium | 2026-07-20 | P05 | A Codex-initialized volume exposed image-specific scratch links; backup now omits only `codex-home/tmp`, retains durable state, rejects other symlinks, and passes a destructive two-store restore. |
 | P00-backend-S00 | Dynamic non-root volume ownership | High | 2026-07-19 | P00 | Fixed the mount at the image-owned private state root and proved UID 1001 writes and reopens it. |
 | P00-S02 | Public edge WAF is not configured | Medium | 2026-07-19 | P00 | Closed as not applicable after ADR-0008 made local Docker the complete project deployment scope. Reassess only after an owner-approved hosted scope change. |
 
@@ -124,11 +127,11 @@ Recently closed items. Compressed after 2 phases.
 
 | Phase | Sessions | Package Scope | Security | GDPR | Findings Opened | Findings Closed |
 |-------|----------|---------------|----------|------|-----------------|-----------------|
+| P05 | 2 | Cross-cutting release, live proof, product media, and local infrastructure | Session PASS; cumulative AT RISK | Session N/A; cumulative FAIL | 0 | 0 |
 | P04 | 2 | Cross-cutting: 1; `frontend`: 1 | Session PASS; cumulative AT RISK | Session PASS/N/A; cumulative FAIL | 0 | 0 |
 | P03 | 3 | `backend`: 3; public engine contracts and generated frontend derivatives | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 0 |
 | P02 | 5 | `backend`: 4; `frontend`: 1; public engine corrections | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 1 |
 | P01 | 5 | `backend/packages/txt2crs`: 5 | Session PASS; cumulative AT RISK | Session PASS; cumulative FAIL | 0 | 1 |
-| P00 | 1 | Cross-cutting: backend, engine, frontend | Session PASS; cumulative AT RISK | Session N/A; cumulative FAIL | 4 | 2 |
 
 ---
 
@@ -138,7 +141,8 @@ Recently closed items. Compressed after 2 phases.
    artifact, and backup-retention policy before accepting real learner data.
 2. Preserve owner-hidden reads, verified private transfers, bounded inert HTML,
    empty-sandbox isolation, and temporary-URL cleanup during release changes.
-3. Run the credentialed GPT-5.6/Tavily acceptance proof before release.
+3. Pin exact reviewed image IDs and repeat backup/restore after any Codex
+   runtime-layout change.
 4. Restore GitHub Actions and obtain a clean Security run including CodeQL.
 
 ---

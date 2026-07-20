@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 04 (2026-07-20)
+> **Line budget**: 600 max | **Last updated**: Phase 05 (2026-07-20)
 
 ---
 
@@ -21,10 +21,6 @@ None identified at Phase 04 closeout.
 - [P00] **Deployment is intentionally local-only**: Docker Compose is the only
   project target. Do not add hosted deployment automation or assume a future
   platform without an explicit owner-approved scope change and new ADR.
-- [P01-backend/packages/txt2crs] **Credentialed provider proof is still gated**:
-  The deterministic suite proves exact GPT-5.6 and Tavily policy, but the live
-  subscription/research acceptance test must run before hackathon submission.
-
 ### Performance / Security
 
 - [P00-backend+backend/packages/txt2crs] **One process is mandatory**: The P0
@@ -33,8 +29,8 @@ None identified at Phase 04 closeout.
 - [P01-backend/packages/txt2crs] **Private-state retention is undefined**:
   Coordinated live-store erasure and complete local recovery now work, but
   learner requests, checkpoints, artifacts, logs, provider copies, and backup
-  bundles still need explicit retention and encrypted-copy policies before
-  release.
+  bundles still need explicit retention, erasure, and encrypted-copy policies
+  before accepting real learner data.
 
 ### Architecture
 
@@ -61,9 +57,10 @@ Proven patterns and anti-patterns. Reference during implementation.
 
 ### What Worked
 
-- [P00] **Layer static and runtime contracts**: Fast file-shape tests catch
-  topology drift early, while isolated image/Compose smokes prove ownership,
-  imports, persistence, health, and cleanup under real processes.
+- [P05] **Layer static, runtime, and initialized-state checks**: File-shape
+  tests catch topology drift, exact-image Compose checks prove operation, and
+  a destructive restore after Codex startup catches failures that empty-volume
+  backup tests cannot.
 - [P00-backend] **Fail unsafe paths at settings construction**: Normalize
   absolute paths, reject symlinks and overlaps, and pass only canonical private
   boundaries into engine factories.
@@ -73,6 +70,10 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P00] **Local CI fallback needs exact evidence**: Billing failures are
   distinguishable from code failures only when each workflow has an exact
   local command, result, and known-issues entry.
+- [P05] **Separate live, reviewed, and release identities**: Paid provider
+  evidence stays tied to the source that executed it; later repairs and judge
+  assets receive independent deterministic validation rather than inheriting
+  that claim.
 - [P04-frontend+backend/packages/txt2crs] **Canonical identity spans retries**:
   Persist the exact accepted request/profile in the engine and retain one
   browser idempotency key only for an unchanged canonical draft retry.
@@ -95,10 +96,6 @@ Proven patterns and anti-patterns. Reference during implementation.
   boundaries**: A fresh test-owned state root and account can exercise real
   auth, admission, execution, recovery, delivery, and purge without provider
   credentials, private imports, or production-only fixture routes.
-- [P02-backend] **Cache side effects behind one runtime owner**: Startup and
-  finite maintenance refresh may probe the public engine aggregate, while
-  browser reads return only immutable cached state and never compete with job
-  execution or device authentication.
 - [P02-backend] **Operational logs need field allowlists**: Static route names,
   methods, status, duration, finite codes, and attempt counts provide useful
   telemetry without retaining raw request, provider, exception, recipient, or
@@ -125,9 +122,9 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P00-backend] **Do not assume Pydantic ignores process environment**:
   `_env_file=None` does not isolate inherited variables; tests must clear or
   override every environment key they own.
-- [P00] **Do not set aspirational coverage gates**: CI thresholds must start
-  at measured coverage and rise only with tests, or the workflow is knowingly
-  red.
+- [P05] **Do not validate mutable image tags as release proof**: Resolve the
+  reviewed image IDs first, recreate the isolated target with those IDs, and
+  assert the running containers before accepting health or rollback evidence.
 - [P00] **Do not run generic whitespace fixes on source-byte fixtures**:
   Versioned protocol captures, legacy exports, and noisy OCR evaluations need
   precise documented exclusions.
@@ -172,11 +169,9 @@ Recently closed items (buffer - rotates out after 2 phases).
 
 | Phase | Item | Resolution |
 |-------|------|------------|
+| P05 | Credentialed provider proof | One synthetic exact `gpt-5.6-sol` plus Tavily course completed with six sources, nine checkpoints, four publications, and sixteen inspected artifacts. |
+| P05 | Authenticated-state backup | Backup now omits only regenerable `codex-home/tmp`, preserves durable Codex data, rejects other symlinks, and passes a destructive PostgreSQL/private-state restore drill. |
 | P04 | Learner workspace integration | Public discovery, strict multimode intake, durable progress, four manifest-driven publications, private downloads, and sandboxed preview now use the generated jobs contract end to end. |
-| P03 | Donor Item domain | Backend models, CRUD, routes, MCP exposure, generated contracts, learner UI, tests, guidance, and examples were removed or replaced without a stale compatibility shim. |
-| P03 | Owner-scoped artifact delivery | Responses verify streams before headers, emit private/no-store/nosniff metadata, and own exactly-once cleanup on completion, failure, and disconnect. |
-| P03 | Coordinated account erasure | Self-delete purges engine state before PostgreSQL identity deletion, preserves the account on purge failure, and supports safe idempotent retry. |
-| P03 | Documented deploy helpers | Static executable-bit tests now protect the smoke-check and rollback commands documented for direct invocation. |
 
 ---
 
