@@ -19,6 +19,12 @@ build/
 dist/
 *.egg-info/
 
+# These three HTML files are required FastAPI runtime assets, not disposable
+# package build output. A clean checkout must be able to render account emails
+# without relying on an ignored developer-workspace artifact.
+!/backend/app/email-templates/build/
+!/backend/app/email-templates/build/*.html
+
 # Node dependencies and frontend test output
 node_modules/
 test-results/

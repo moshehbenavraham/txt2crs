@@ -2,7 +2,9 @@
 
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 # The development container mounts only the public inputs required by these
 # static checks. Host runs continue to discover the checkout from this file.
@@ -15,6 +17,30 @@ VALIDATE_CHANGES_SCRIPT = REPOSITORY_ROOT / "scripts" / "validate-changes.sh"
 OPENAPI_DOCUMENT = REPOSITORY_ROOT / "frontend" / "openapi.json"
 GENERATED_TYPES = REPOSITORY_ROOT / "frontend" / "src" / "client" / "types.gen.ts"
 GENERATED_CLIENT_ROOT = REPOSITORY_ROOT / "frontend" / "src" / "client"
+
+
+@lru_cache(maxsize=1)
+def _read_current_openapi_contract() -> dict[str, Any]:
+    """Return generated JSON when present, otherwise derive it from FastAPI.
+
+    ``frontend/openapi.json`` is an intentionally ignored generator
+    intermediate. Long-lived workspaces usually have it, but a clean checkout
+    does not. Backend contract tests must remain reproducible without
+    installing Node merely to recreate an equivalent server-owned document.
+    The generated TypeScript files are still inspected separately below.
+    """
+
+    if OPENAPI_DOCUMENT.is_file():
+        openapi_document = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    else:
+        # Import lazily so fast source-shape tests that do not need OpenAPI can
+        # still run under the narrow development-container contract.
+        from app.main import app  # noqa: PLC0415
+
+        openapi_document = app.openapi()
+    if not isinstance(openapi_document, dict):
+        raise AssertionError("The current OpenAPI contract must be a JSON object.")
+    return openapi_document
 
 
 def test_generate_client_formats_openapi_document_and_generated_client() -> None:
@@ -53,7 +79,7 @@ def test_fast_validation_includes_repository_workflow_contracts() -> None:
 def test_system_routes_generate_safe_authenticated_contracts() -> None:
     """The generated client exposes only the reviewed cache and challenge."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     readiness = openapi["paths"]["/api/v1/system/readiness"]["get"]
     auth_start = openapi["paths"]["/api/v1/system/auth/start"]["post"]
     auth_status = openapi["paths"]["/api/v1/system/auth/status"]["get"]
@@ -76,7 +102,7 @@ def test_system_routes_generate_safe_authenticated_contracts() -> None:
 def test_job_submission_routes_generate_strict_authenticated_contracts() -> None:
     """Both write routes expose one reviewed header and accepted projection."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     json_submission = openapi["paths"]["/api/v1/jobs"]["post"]
     upload_submission = openapi["paths"]["/api/v1/jobs/upload"]["post"]
 
@@ -127,7 +153,7 @@ def test_job_submission_routes_generate_strict_authenticated_contracts() -> None
 def test_job_openapi_contains_discriminated_inputs_and_allowlisted_response() -> None:
     """Generated clients retain input discrimination and private-field absence."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     schemas = openapi["components"]["schemas"]
     input_schema = schemas["JobSubmissionRequest"]["properties"]["input"]
 
@@ -151,7 +177,7 @@ def test_job_openapi_contains_discriminated_inputs_and_allowlisted_response() ->
 def test_job_read_routes_generate_owner_scoped_bounded_contracts() -> None:
     """Status and manifest reads expose strict schemas under bearer auth."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     status_operation = openapi["paths"]["/api/v1/jobs/{job_id}"]["get"]
     manifest_operation = openapi["paths"]["/api/v1/jobs/{job_id}/artifacts"]["get"]
 
@@ -202,7 +228,7 @@ def test_job_read_routes_generate_owner_scoped_bounded_contracts() -> None:
 def test_artifact_download_generates_format_accurate_auth_contract() -> None:
     """Generated clients reflect text and binary artifacts without ETag."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     operation = openapi["paths"]["/api/v1/jobs/{job_id}/artifacts/{artifact_id}"]["get"]
 
     assert operation["operationId"] == "jobs-download_job_artifact"
@@ -260,7 +286,7 @@ def test_artifact_download_generates_format_accurate_auth_contract() -> None:
 def test_generated_contract_contains_no_retired_donor_item_surface() -> None:
     """Source removal must flow through OpenAPI and every generated client file."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     assert all(not path.startswith("/api/v1/items") for path in openapi["paths"])
     assert {
         "ItemCreate",
@@ -289,7 +315,7 @@ def test_generated_contract_contains_no_retired_donor_item_surface() -> None:
 def test_account_delete_contract_documents_retryable_partial_failures() -> None:
     """Both erasure routes must expose their new 500/503 outcomes to clients."""
 
-    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    openapi = _read_current_openapi_contract()
     for route_path in (
         "/api/v1/users/me",
         "/api/v1/users/{user_id}",
