@@ -17,7 +17,7 @@ Docker reports the database, backend, and frontend as healthy before the
 command succeeds. Verify the public local probes:
 
 ```bash
-curl --fail http://localhost:8012/health
+curl --fail http://localhost:8012/api/v1/utils/health/
 curl --fail http://localhost:5183/health
 ```
 

@@ -68,9 +68,10 @@ txt2crs domain
 - The administrative MCP server and engine research MCP boundary remain
   separate.
 
-Course-generation routes are not exposed yet. When Phase 01 adds shell
-composition, route handlers must invoke package services rather than recreate
-their logic.
+Authenticated course-generation submission, status, manifest, and artifact
+routes are exposed through the FastAPI shell. They invoke only the public
+package facade and query handles; transport code does not recreate generation,
+research, validation, persistence, recovery, or rendering behavior.
 
 ## State and Authentication
 

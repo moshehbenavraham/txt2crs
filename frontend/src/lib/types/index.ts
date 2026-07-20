@@ -7,29 +7,25 @@
  *
  * @example
  * ```typescript
- * import { UserId, ItemId, createUserId, asItemId } from "@/lib/types";
+ * import { UserId, Email, createUserId, asEmail } from "@/lib/types";
  *
  * // With validation (user input)
  * const userId = createUserId(userInput);
  *
  * // Without validation (trusted API response)
- * const itemId = asItemId(apiResponse.id);
+ * const email = asEmail(apiResponse.email);
  * ```
  */
 
 export {
   asEmail,
-  asItemId,
   // Unsafe casts (for trusted sources like API responses)
   asUserId,
   createEmail,
-  createItemId,
   // Factory functions (with validation)
   createUserId,
   type Email,
-  type ItemId,
   isEmail,
-  isItemId,
   // Type guards
   isUserId,
   isValidUuid,

@@ -115,52 +115,6 @@ export const isSuperuserFieldOptional = z.boolean().optional()
 export const isActiveFieldOptional = z.boolean().optional()
 
 // =============================================================================
-// Item Fields
-// =============================================================================
-
-/**
- * Item title field validation.
- * Backend: min_length=1, max_length=255
- */
-export const itemTitleField = z
-  .string()
-  .min(1, { message: "Title is required" })
-  .max(255, { message: "Title must be at most 255 characters" })
-
-/**
- * Item description field validation.
- * Backend: optional, max_length=255
- */
-export const itemDescriptionField = z
-  .string()
-  .max(255, { message: "Description must be at most 255 characters" })
-  .optional()
-  .or(z.literal(""))
-
-/**
- * Item content field validation.
- * Backend: optional, TEXT type (no length limit in DB)
- */
-export const itemContentField = z.string().optional().or(z.literal(""))
-
-/**
- * Item content type field.
- * Backend: Literal["general"]
- */
-export const itemContentTypeField = z.enum(["general", "all"]).default("all")
-
-/**
- * Item source URL field.
- * Backend: optional, max_length=2048
- */
-export const itemSourceUrlField = z
-  .string()
-  .max(2048, { message: "Source URL must be at most 2048 characters" })
-  .url({ message: "Invalid URL format" })
-  .optional()
-  .or(z.literal(""))
-
-// =============================================================================
 // Validation Helpers
 // =============================================================================
 

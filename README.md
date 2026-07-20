@@ -21,7 +21,7 @@ source.
 
 ## Current Status
 
-Phases 00 through 02 are complete, and Phase 03 is underway. The backend
+Phases 00 through 03 are complete, and Phase 04 is next. The backend
 images install the workspace-owned engine, run one non-root FastAPI process
 with one serial generation worker, and persist private SQLite job state,
 artifacts, and Codex-managed credentials under one owner-only state root. The
@@ -37,10 +37,12 @@ recovery, safe job/artifact reads, exact GPT-5.6 policy, managed provider
 lifecycles, and owner purge. The FastAPI shell now composes that facade for
 its complete lifespan and exposes cached course-system readiness plus
 superuser-only ChatGPT device authentication. The React application provides
-a protected operator setup workspace at `/setup`. Authenticated learner
-submission routes now durably accept bounded prompt, text, URL, YouTube, PDF,
-DOCX, and PPTX inputs; owner-scoped result reads and the learner workflow UI
-arrive in later sessions. The donor `items` domain remains temporary.
+a protected operator setup workspace at `/setup` and a truthful authenticated
+course-workspace overview at `/`. Authenticated learner routes durably accept
+bounded prompt, text, URL, YouTube, PDF, DOCX, and PPTX inputs and expose
+owner-scoped status, result, manifest, and integrity-checked artifact reads.
+Phase 04 will connect those generated client contracts to submission, progress,
+and results UI. The donor `items` domain has been removed.
 
 See the
 [input-to-course system plan](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)

@@ -10,7 +10,7 @@
 | Components | `src/components/` |
 | Hooks | `src/hooks/` |
 | Zod schemas | `src/lib/schemas/` (centralized validation) |
-| Branded types | `src/lib/types/` (UserId, ItemId, Email) |
+| Branded types | `src/lib/types/` (UserId, Email) |
 | Utilities | `src/utils.ts`, `src/lib/utils.ts` |
 | UI library | `src/components/ui/` (shadcn/ui) |
 
@@ -56,21 +56,18 @@ Use TanStack Query with suspense:
 
 ```typescript
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { ItemsService } from "@/client"
+import { JobsService } from "@/client"
 
-function ItemList() {
-  const { data } = useSuspenseQuery({
-    queryKey: ["items"],
-    queryFn: () => ItemsService.readItems(),
+function JobStatus({ jobId }: { jobId: string }) {
+  const { data: job } = useSuspenseQuery({
+    queryKey: ["jobs", jobId],
+    queryFn: () =>
+      JobsService.readJob({
+        path: { job_id: jobId },
+      }),
   })
 
-  return (
-    <ul>
-      {data.data.map((item) => (
-        <li key={item.id}>{item.title}</li>
-      ))}
-    </ul>
-  )
+  return <p>{job.progress.message}</p>
 }
 ```
 
@@ -78,18 +75,27 @@ function ItemList() {
 
 ```typescript
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ItemsService } from "@/client"
+import { type JobSubmissionRequest, JobsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 
-function CreateItemForm() {
+type SubmitCourseVariables = {
+  request: JobSubmissionRequest
+  idempotencyKey: string
+}
+
+function CourseSubmissionForm() {
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
 
   const mutation = useMutation({
-    mutationFn: (data: ItemCreate) => ItemsService.createItem({ body: data }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items"] })
-      showSuccessToast("Item created successfully")
+    mutationFn: ({ request, idempotencyKey }: SubmitCourseVariables) =>
+      JobsService.submitJob({
+        body: request,
+        headers: { "Idempotency-Key": idempotencyKey },
+      }),
+    onSuccess: (job) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs", job.job_id] })
+      showSuccessToast("Course request accepted")
     },
     onError: (error) => {
       showErrorToast(error)
@@ -133,8 +139,10 @@ function LoginForm() {
 | `fields.ts` | Reusable field schemas (email, password, etc.) |
 | `auth.ts` | Login, signup, password reset |
 | `user.ts` | User management (admin + settings) |
-| `item.ts` | Item CRUD operations |
 | `index.ts` | Re-exports all schemas |
+
+Add course-input schemas here when implementing submission forms, and keep
+their bounds synchronized with the backend Pydantic request models.
 
 ## Error Handling
 
@@ -149,9 +157,13 @@ function MyComponent() {
   const { showSuccessToast, showErrorToast } = useCustomToast()
 
   const mutation = useMutation({
-    mutationFn: (data) => ItemsService.createItem({ body: data }),
+    mutationFn: ({ request, idempotencyKey }: SubmitCourseVariables) =>
+      JobsService.submitJob({
+        body: request,
+        headers: { "Idempotency-Key": idempotencyKey },
+      }),
     onSuccess: () => {
-      showSuccessToast("Item created successfully")
+      showSuccessToast("Course request accepted")
     },
     onError: (error) => {
       showErrorToast(error)
@@ -166,8 +178,8 @@ function MyComponent() {
 src/components/
 ├── Admin/            # Admin-only components
 ├── Common/           # Shared across features
-├── Items/            # Item feature components
 ├── Sidebar/          # Navigation components
+├── SystemSetup/      # Codex and research readiness/setup
 ├── UserSettings/     # User settings components
 ├── ui/               # shadcn/ui primitives (DO NOT EDIT DIRECTLY)
 └── theme-provider.tsx
@@ -200,7 +212,7 @@ const searchSchema = z.object({
   search: z.string().optional(),
 })
 
-export const Route = createFileRoute("/_layout/items")({
+export const Route = createFileRoute("/_layout/my-page")({
   validateSearch: searchSchema,
 })
 ```
@@ -231,7 +243,7 @@ Use Tailwind CSS classes:
 npx playwright test
 
 # Run specific test file
-npx playwright test tests/items.spec.ts
+npx playwright test tests/dashboard.spec.ts
 
 # Run with UI mode
 npx playwright test --ui
@@ -243,7 +255,7 @@ npx playwright show-report
 ## Build Commands
 
 ```bash
-npm run dev          # Development server (port 5181)
+npm run dev          # Development server (Vite defaults to port 5173)
 npm run build        # Production build
 npm run preview      # Preview production build
 npm run lint         # Lint with Biome
@@ -259,7 +271,7 @@ npm run generate-client  # Regenerate API client
 | `useCustomToast()` | Success/error toast notifications |
 | `useCopyToClipboard()` | Copy text to clipboard |
 | `useMobile()` | Mobile viewport detection |
-| `useSaveToItems()` | Save content to items |
+| `usePrefersReducedMotion()` | Reduced-motion preference |
 
 ## Key Patterns
 

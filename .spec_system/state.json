@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
-  "current_phase": 3,
+  "current_phase": 4,
   "current_session": null,
   "monorepo": true,
   "packages": [
@@ -46,6 +46,12 @@
       "description": "Expose durable learner submission, owner-scoped job and artifact delivery, restart recovery, coordinated account purge, and donor-domain retirement.",
       "status": "complete",
       "session_count": 3
+    },
+    "4": {
+      "name": "Learner Experience",
+      "description": "Connect the durable jobs API to a public landing, strict multimode intake, refresh-safe progress, four-publication results, private previews and downloads, and accessible responsive validation.",
+      "status": "not_started",
+      "session_count": 2
     }
   },
   "completed_sessions": [

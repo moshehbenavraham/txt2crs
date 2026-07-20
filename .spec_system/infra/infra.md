@@ -1,8 +1,8 @@
-# Phase 02 Transition Infrastructure Report
+# Phase 03 Transition Infrastructure Report
 
-**Date:** 2026-07-19
+**Date:** 2026-07-20
 **Result:** PASS
-**Selected bundle:** none - validation only
+**Selected bundle:** none - validation and repair only
 **Platform:** Repository-root Docker Compose
 **Scope:** Local-only backend, frontend, PostgreSQL, and private engine state
 
@@ -17,9 +17,9 @@ ADR-0008. All four infrastructure concerns are configured for that boundary:
 - manual Compose release, rollback, and health verification.
 
 A hosted WAF, domain, TLS boundary, remote backup store, and deployment
-webhook are not part of the approved product scope. Adding them would violate
-ADR-0008 and requires a future owner-approved hosting decision and new ADR.
-No skipped-infrastructure entry is therefore appropriate.
+webhook are outside the approved product scope. Adding them requires a future
+owner-approved hosting decision and a new ADR; it is not a skipped current
+infrastructure item.
 
 ## Deployment Topology
 
@@ -32,52 +32,76 @@ No skipped-infrastructure entry is therefore appropriate.
 Shared infrastructure is PostgreSQL for users plus one private named volume
 for tenant SQLite jobs, artifacts, and Codex-managed credentials.
 
+## Repair Applied
+
+Infrastructure validation invoked the deployment commands exactly as
+documented and found that `scripts/deploy-smoke-check.sh` and
+`scripts/deploy-rollback.sh` were tracked without executable permission. Both
+failed before their safety checks could run.
+
+A failing static regression was added first, then both scripts were changed
+from Git mode `100644` to `100755`. The regression now passes, the smoke
+command executes successfully, and the rollback helper executes its required
+precondition check instead of failing with `Permission denied`.
+
 ## Evidence Ledger
 
-| Bundle | Component | Package | Validation target / command | Result | Fixes Applied | Remaining / Blocker |
+| Bundle | Component | Package | Validation Target / Command | Result | Fixes Applied | Remaining / Blocker |
 |--------|-----------|---------|-----------------------------|--------|---------------|---------------------|
-| Health | Backend readiness | `backend` | isolated container request to `/api/v1/utils/health/` | PASS: `healthy`, PostgreSQL ready | None | None |
-| Health | Frontend health | `frontend` | isolated container `curl http://127.0.0.1/health` | PASS: `healthy` | None | None |
-| Security | Finite route limits and RFC 9457 response | `backend` | focused login/system rapid-request tests | PASS: 2 | None | None |
-| Security | Environment activation policy | `backend` | complete shell suite security-default tests | PASS: enabled outside explicit `local` | None | None |
-| Backup | Complete backup | shared | isolated `txt2crs_infra` project plus `backup-local-state.sh` | PASS: PostgreSQL and engine state captured | None | None |
+| Health | Backend readiness | `backend` | isolated production container request to `/api/v1/utils/health/` | PASS: status and PostgreSQL healthy, version `0.3.6` | None | None |
+| Health | Frontend health | `frontend` | isolated production Nginx `/health` request and image health state | PASS: `{"status":"healthy","service":"frontend"}` | None | None |
+| Security | Finite route limits and RFC 9457 response | `backend` | four focused rate-limit tests covering login, jobs, and system auth | PASS: 6 parameterized cases, including 429 | None | None |
+| Security | Environment activation policy | `backend` | `test_rate_limiter_enabled_for_non_local_environments` | PASS: disabled only for exact `local` mode | None | None |
+| Backup | Complete backup | shared | isolated `txt2crs-infra3` project plus `backup-local-state.sh` | PASS: PostgreSQL and engine state captured | None | None |
 | Backup | Hashes and permissions | shared | `sha256sum --check SHA256SUMS`; `stat`; `find` | PASS: 3 hashes; bundle `0700`; all files `0600` | None | None |
 | Backup | Destructive restore | shared | mutate both stores, add stale file, run `restore-local-state.sh` | PASS: original database and file restored; stale file absent | None | None |
-| Backup | Post-restore service | shared | backend and frontend internal health requests | PASS: both healthy | None | None |
-| Deploy | Compose topology | shared | `docker compose config --quiet` and isolated `up -d --wait backend frontend` | PASS: one healthy backend and frontend | None | None |
-| Cleanup | Disposable proof resources | root | Compose project container, volume, and network inspection after `down -v` | PASS: none remain | None | None |
+| Backup | Post-restore service | `backend` | internal readiness request after destructive restore | PASS: healthy | None | None |
+| Deploy | Compose production topology | shared | isolated image build plus `up -d --wait backend frontend` | PASS: database, backend, and frontend healthy; backend UID/GID 1001 | None | None |
+| Deploy | Smoke helper | shared | `./scripts/deploy-smoke-check.sh` against local backend/frontend health URLs | PASS | Added executable Git mode and regression test | None |
+| Deploy | Rollback safety | shared | execute `./scripts/deploy-rollback.sh` without required capture variables | PASS: refused safely with `STACK_NAME is required` | Added executable Git mode | None |
+| Contracts | Deployment and backup scripts | `backend/tests/scripts` | focused Ruff plus static contract suite | PASS: 19 | Added direct-execution regression | None |
+| Cleanup | Disposable proof resources | root | project container, volume, network, image, and bundle inspection after cleanup | PASS: none remain | None | None |
 
 ## Backup And Recovery Result
 
-The proof created one owner-only bundle from a fresh isolated project. Before
-backup, PostgreSQL and the engine volume received distinct `original` markers.
-Both were changed after backup, and a stale engine file was added. Restore:
+The proof created an owner-only bundle from a fresh isolated Compose project.
+Before backup, PostgreSQL and the engine volume received distinct `original`
+markers. Both were changed after backup, and a stale engine file was added.
+Restore:
 
 - verified all three SHA-256 entries before destructive work;
 - parsed the PostgreSQL and engine archives before replacement;
 - restored the database marker to `original`;
 - restored the engine marker to `original`;
 - removed the stale file; and
-- returned both deployable services to healthy state.
+- returned the backend to healthy state.
 
-The proof bundle and every isolated container, network, volume, and temporary
-file were removed after validation.
+The proof bundle and every isolated container, network, volume, and image tag
+were removed after validation.
 
 ## Security Boundary
 
 The local development profile intentionally disables rate limiting for test
-speed. Focused tests explicitly enable the limiter and proved that repeated
-login and privileged authentication requests return the centralized RFC 9457
-`429` contract. Non-local environment defaults keep the limiter enabled.
+speed. Focused tests explicitly enabled the limiter and proved that repeated
+login, job-submission, and privileged-authentication requests reach the
+centralized RFC 9457 `429` contract. Non-local environment defaults keep the
+limiter enabled.
 
 There is no public edge in the accepted deployment topology, so a hosted WAF
 would be fictitious infrastructure rather than a missing current control.
 
+## Required External Setup
+
+None for the approved local-only deployment target. No new secret, hosted
+account, webhook, or platform configuration is required.
+
 ## Handoff
 
 `infra -> carryforward` is the required Phase Transition handoff. `documents`
-follows `carryforward`; Phase 03 planning begins only after `phasebuild`.
+follows `carryforward`; Phase 04 planning begins only after `phasebuild`.
 
 **Next command:** `carryforward`
-**Reason:** every infrastructure component in the approved local-only target
-passes current health, security, backup/restore, and cleanup validation.
+
+**Reason:** every infrastructure component in the approved target passes
+current health, security, backup/restore, deployment, rollback-safety, and
+cleanup validation.

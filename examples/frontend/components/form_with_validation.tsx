@@ -1,25 +1,18 @@
 /**
- * EXAMPLE: Form with Zod validation and React Hook Form
+ * EXAMPLE: Profile form with centralized Zod validation
  *
- * PATTERN: Validated Form with Type-Safe Submission
- * USE WHEN: Creating forms that submit data to the API
+ * PATTERN: Validated form with type-safe submission
+ * USE WHEN: A shadcn form must mirror a backend Pydantic request
  * TAGS: form, validation, zod, react-hook-form, components
  *
- * This example demonstrates:
- * 1. Zod schema for validation rules
- * 2. React Hook Form integration
- * 3. Controlled form inputs with shadcn/ui
- * 4. Type-safe form submission
- * 5. Error display and handling
- *
- * Based on: frontend/src/lib/schemas/, frontend components
+ * The schema and inferred type come from `src/lib/schemas/`; the component
+ * does not duplicate field bounds or maintain a parallel interface.
  */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -28,243 +21,115 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import {
+  type UserInformationFormData,
+  userInformationSchema,
+} from "@/lib/schemas"
 
-// Step 1: Define Zod schema for validation
-// This should mirror backend Pydantic validation exactly
-const itemFormSchema = z.object({
-  title: z
-    .string()
-    .min(1, "Title is required")
-    .max(255, "Title must be 255 characters or less"),
-  description: z
-    .string()
-    .max(255, "Description must be 255 characters or less")
-    .optional()
-    .or(z.literal("")),
-});
-
-// Step 2: Infer TypeScript type from schema
-type ItemFormData = z.infer<typeof itemFormSchema>;
-
-interface ItemFormProps {
-  /** Called when form is submitted with valid data */
-  onSubmit: (data: ItemFormData) => void | Promise<void>;
-  /** Initial values for editing existing item */
-  defaultValues?: Partial<ItemFormData>;
-  /** Whether form submission is in progress */
-  isSubmitting?: boolean;
-  /** Text for submit button */
-  submitLabel?: string;
+interface ProfileFormProps {
+  /** Values read from the current-user API response. */
+  defaultValues: UserInformationFormData
+  /** Receives only data that passed the shared Zod schema. */
+  onSubmit: (data: UserInformationFormData) => void | Promise<void>
+  /** Prevents duplicate submissions while the mutation is pending. */
+  isSubmitting?: boolean
 }
 
 /**
- * Reusable item form with validation.
+ * Edit the current user's display name and email.
  *
  * @example
  * ```tsx
- * function CreateItemDialog() {
- *   const createItem = useCreateItem();
- *
- *   return (
- *     <ItemForm
- *       onSubmit={(data) => createItem.mutate(data)}
- *       isSubmitting={createItem.isPending}
- *       submitLabel="Create Item"
- *     />
- *   );
- * }
- * ```
- *
- * @example
- * ```tsx
- * // For editing existing item
- * function EditItemDialog({ item }: { item: ItemPublic }) {
- *   const updateItem = useUpdateItem();
- *
- *   return (
- *     <ItemForm
- *       defaultValues={{
- *         title: item.title,
- *         description: item.description ?? "",
- *       }}
- *       onSubmit={(data) => updateItem.mutate({ id: item.id, ...data })}
- *       isSubmitting={updateItem.isPending}
- *       submitLabel="Save Changes"
- *     />
- *   );
- * }
+ * <ProfileForm
+ *   defaultValues={{ full_name: user.full_name ?? "", email: user.email }}
+ *   onSubmit={(data) => updateProfile.mutateAsync(data)}
+ *   isSubmitting={updateProfile.isPending}
+ * />
  * ```
  */
-export function ItemForm({
+export function ProfileForm({
+  defaultValues,
   onSubmit,
-  defaultValues = {},
   isSubmitting = false,
-  submitLabel = "Submit",
-}: ItemFormProps) {
-  // Step 3: Initialize form with Zod resolver
-  const form = useForm<ItemFormData>({
-    resolver: zodResolver(itemFormSchema),
+}: ProfileFormProps) {
+  const form = useForm<UserInformationFormData>({
+    resolver: zodResolver(userInformationSchema),
+    // Providing every controlled field avoids React's controlled/uncontrolled
+    // warning and makes reset behavior deterministic.
     defaultValues: {
-      title: "",
-      description: "",
-      ...defaultValues,
+      full_name: defaultValues.full_name ?? "",
+      email: defaultValues.email,
     },
-  });
+  })
 
-  // Step 4: Handle form submission
-  const handleSubmit = async (data: ItemFormData) => {
-    await onSubmit(data);
-  };
+  const handleValidSubmit = async (data: UserInformationFormData) => {
+    await onSubmit(data)
+  }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        {/* Title Field (Required) */}
+      <form
+        className="space-y-4"
+        onSubmit={form.handleSubmit(handleValidSubmit)}
+      >
         <FormField
           control={form.control}
-          name="title"
+          name="full_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Full name</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter item title"
-                  {...field}
+                  autoComplete="name"
                   disabled={isSubmitting}
+                  placeholder="Ada Lovelace"
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
-                A descriptive title for your item (required)
+                This name appears in your private course workspace.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Description Field (Optional) */}
         <FormField
           control={form.control}
-          name="description"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Optional description"
-                  className="resize-none"
-                  {...field}
+                <Input
+                  autoComplete="email"
                   disabled={isSubmitting}
+                  type="email"
+                  {...field}
                 />
               </FormControl>
-              <FormDescription>
-                Brief description (max 255 characters)
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Submit Button */}
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : submitLabel}
+        <Button className="h-11 sm:h-9" disabled={isSubmitting} type="submit">
+          {isSubmitting ? "Saving…" : "Save changes"}
         </Button>
       </form>
     </Form>
-  );
+  )
 }
 
-// === KEY PATTERNS USED ===
+// Reusable form checklist:
 //
-// 1. Zod Schema Definition
-//    - Define validation rules that mirror backend Pydantic
-//    - Use descriptive error messages
-//    - Handle optional fields with .optional() or .or(z.literal(""))
-//
-// 2. Type Inference
-//    type FormData = z.infer<typeof schema>
-//    - Automatically creates TypeScript type from schema
-//    - Ensures type safety between validation and submission
-//
-// 3. React Hook Form Integration
-//    const form = useForm<FormData>({
-//      resolver: zodResolver(schema),
-//      defaultValues: { ... },
-//    });
-//    - zodResolver bridges Zod and React Hook Form
-//    - defaultValues prevents uncontrolled input warnings
-//
-// 4. FormField Component Pattern
-//    <FormField
-//      control={form.control}
-//      name="fieldName"
-//      render={({ field }) => (
-//        <FormItem>
-//          <FormLabel />
-//          <FormControl><Input {...field} /></FormControl>
-//          <FormMessage />
-//        </FormItem>
-//      )}
-//    />
-//    - Provides error handling and accessibility
-//    - FormMessage displays validation errors
+// 1. Put field schemas in `src/lib/schemas/` and mirror backend bounds.
+// 2. Infer form data from Zod instead of declaring a second interface.
+// 3. Supply defaults for every controlled field.
+// 4. Render `FormMessage` beside its field for accessible validation feedback.
+// 5. Disable submission while pending, but preserve the learner's typed input
+//    when the request fails.
 
-
-// === SCHEMA PATTERNS ===
-//
-// Required string with length constraints:
-// title: z.string().min(1, "Required").max(255)
-//
-// Optional string:
-// description: z.string().optional()
-//
-// Optional string that can be empty:
-// description: z.string().optional().or(z.literal(""))
-//
-// Email validation:
-// email: z.string().email("Invalid email")
-//
-// Password with constraints:
-// password: z.string().min(8, "Min 8 characters").max(128)
-//
-// Password confirmation:
-// const schema = z.object({
-//   password: z.string().min(8),
-//   confirmPassword: z.string(),
-// }).refine((data) => data.password === data.confirmPassword, {
-//   message: "Passwords don't match",
-//   path: ["confirmPassword"],
-// });
-//
-// Number with bounds:
-// age: z.coerce.number().min(0).max(150)
-//
-// Enum/literal:
-// status: z.enum(["active", "inactive"])
-
-
-// === FORM WITH MUTATION INTEGRATION ===
-//
-// import { useCreateItem } from "@/hooks/useCreateItem";
-//
-// function CreateItemPage() {
-//   const createItem = useCreateItem();
-//   const navigate = useNavigate();
-//
-//   const handleSubmit = async (data: ItemFormData) => {
-//     await createItem.mutateAsync(data);
-//     navigate({ to: "/items" });
-//   };
-//
-//   return (
-//     <ItemForm
-//       onSubmit={handleSubmit}
-//       isSubmitting={createItem.isPending}
-//       submitLabel="Create Item"
-//     />
-//   );
-// }
-
-export default ItemForm;
+export default ProfileForm

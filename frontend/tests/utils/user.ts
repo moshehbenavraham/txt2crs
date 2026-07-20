@@ -24,7 +24,7 @@ export async function logInUser(page: Page, email: string, password: string) {
   await page.getByRole("button", { name: /log in|sign in/i }).click()
   await page.waitForURL("/")
   await expect(
-    page.getByRole("heading", { name: "Workspace overview" }),
+    page.getByRole("heading", { name: "Course workspace" }),
   ).toBeVisible()
 }
 

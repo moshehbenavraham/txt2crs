@@ -1,194 +1,108 @@
 /**
- * EXAMPLE: TanStack Query with Suspense for data fetching
+ * EXAMPLE: TanStack Query with Suspense for owner-scoped course jobs
  *
- * PATTERN: Suspense Query with Type-Safe API Client
- * USE WHEN: Fetching data in components that use React Suspense
- * TAGS: query, suspense, tanstack-query, hooks, data-fetching
+ * PATTERN: Suspense query with the generated API client
+ * USE WHEN: A routed component cannot render until its server state is ready
+ * TAGS: query, suspense, tanstack-query, jobs, data-fetching
  *
- * This example demonstrates:
- * 1. useSuspenseQuery for Suspense-compatible data fetching
- * 2. Type-safe query keys
- * 3. Proper query configuration
- * 4. Integration with generated API client
- *
- * Based on: frontend/src/hooks/useAuth.ts
+ * The production client is generated from OpenAPI. Never recreate response
+ * types or hand-write requests that bypass it.
  */
 
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
-import { ItemsService, UsersService } from "@/client";
-import type { ItemPublic, ItemsPublic, UserPublic } from "@/client/types.gen";
+import {
+  type JobStatusPublic,
+  JobsService,
+  type UserPublic,
+  UsersService,
+} from "@/client"
 
 /**
- * Fetch current user with Suspense.
- *
- * This hook suspends the component while loading, so it must be used
- * within a Suspense boundary.
- *
- * @example
- * ```tsx
- * // In parent component
- * <Suspense fallback={<Spinner />}>
- *   <UserProfile />
- * </Suspense>
- *
- * // In UserProfile component
- * function UserProfile() {
- *   const { user } = useCurrentUser();
- *   return <div>Hello, {user.full_name}</div>;
- * }
- * ```
+ * Keep query keys in one small factory so reads and invalidations cannot drift.
+ */
+export const jobKeys = {
+  all: ["jobs"] as const,
+  detail: (jobId: string) => [...jobKeys.all, jobId] as const,
+}
+
+/**
+ * Fetch the authenticated user inside an existing Suspense boundary.
  */
 export function useCurrentUser() {
   const { data: user } = useSuspenseQuery<UserPublic>({
-    // Step 1: Define unique query key
-    // Query keys are used for caching and invalidation
     queryKey: ["currentUser"],
-
-    // Step 2: Define fetch function
-    // Uses generated API client for type safety
     queryFn: () => UsersService.readUserMe(),
+  })
 
-    // Step 3: Configure caching behavior (optional)
-    // staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
-    // gcTime: 30 * 60 * 1000,   // Keep in cache for 30 minutes
-  });
-
-  return { user };
+  return { user }
 }
 
 /**
- * Fetch paginated items with Suspense.
+ * Fetch one private course job.
  *
- * @param options - Pagination and filter options
+ * The backend authorizes the job against the current user. The browser passes
+ * only the opaque job ID and never caches learner content outside TanStack
+ * Query's in-memory cache.
  *
  * @example
  * ```tsx
- * function ItemsList() {
- *   const { items, count } = useItems({ limit: 20, skip: 0 });
- *
- *   return (
- *     <div>
- *       <p>Total: {count} items</p>
- *       {items.map((item) => (
- *         <ItemCard key={item.id} item={item} />
- *       ))}
- *     </div>
- *   );
+ * function CourseProgress({ jobId }: { jobId: string }) {
+ *   const { job } = useCourseJob(jobId)
+ *   return <p>{job.progress.message}</p>
  * }
  * ```
  */
-export function useItems(options: {
-  skip?: number;
-  limit?: number;
-  contentType?: string;
-} = {}) {
-  const { skip = 0, limit = 100, contentType } = options;
-
-  const { data } = useSuspenseQuery<ItemsPublic>({
-    // Include parameters in query key for proper caching
-    queryKey: ["items", { skip, limit, contentType }],
-
+export function useCourseJob(jobId: string) {
+  const { data: job } = useSuspenseQuery<JobStatusPublic>({
+    queryKey: jobKeys.detail(jobId),
     queryFn: () =>
-      ItemsService.readItems({
-        skip,
-        limit,
-        contentType: contentType as "general" | undefined,
+      JobsService.readJob({
+        path: { job_id: jobId },
       }),
-  });
+  })
+
+  return { job }
+}
+
+/**
+ * Use regular `useQuery` when a component owns its loading and error states.
+ *
+ * This form is also useful when a route may not have a job ID yet. The
+ * `enabled` guard prevents a request with an empty identifier.
+ */
+export function useCourseJobWithoutSuspense(jobId: string | undefined) {
+  const query = useQuery<JobStatusPublic>({
+    queryKey: jobKeys.detail(jobId ?? "pending"),
+    queryFn: () => {
+      if (!jobId) {
+        throw new Error("A job ID is required before reading course status.")
+      }
+
+      return JobsService.readJob({
+        path: { job_id: jobId },
+      })
+    },
+    enabled: Boolean(jobId),
+  })
 
   return {
-    items: data.data,
-    count: data.count,
-  };
+    job: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+  }
 }
 
-/**
- * Fetch single item by ID with Suspense.
- *
- * @example
- * ```tsx
- * function ItemDetail({ itemId }: { itemId: string }) {
- *   const { item } = useItem(itemId);
- *   return <h1>{item.title}</h1>;
- * }
- * ```
- */
-export function useItem(itemId: string) {
-  const { data: item } = useSuspenseQuery<ItemPublic>({
-    queryKey: ["items", itemId],
-    queryFn: () => ItemsService.readItem({ id: itemId }),
-    // Only fetch if itemId is provided
-    // enabled: !!itemId,  // Note: Not supported with useSuspenseQuery
-  });
+// Key decisions:
+//
+// 1. Put every request parameter in the query key. Different jobs must never
+//    share a cache entry.
+// 2. Use the generated service and response types. They remain synchronized
+//    with backend validation when `npm run generate-client` runs.
+// 3. Prefer Suspense when the route already owns a fallback. Prefer `useQuery`
+//    when the component needs a deliberate inline loading state.
+// 4. Do not put learner prompts, extracted content, or secrets in query keys;
+//    query keys can appear in developer tooling.
 
-  return { item };
-}
-
-// === NON-SUSPENSE VERSION ===
-//
-// Use regular useQuery when you want to handle loading states manually
-// or when the component doesn't need Suspense.
-//
-// export function useItemsManual(options: { skip?: number; limit?: number } = {}) {
-//   const { skip = 0, limit = 100 } = options;
-//
-//   const { data, isLoading, isError, error } = useQuery<ItemsPublic>({
-//     queryKey: ["items", { skip, limit }],
-//     queryFn: () => ItemsService.readItems({ skip, limit }),
-//   });
-//
-//   return {
-//     items: data?.data ?? [],
-//     count: data?.count ?? 0,
-//     isLoading,
-//     isError,
-//     error,
-//   };
-// }
-
-
-// === KEY PATTERNS USED ===
-//
-// 1. Query Keys
-//    - ["currentUser"]           - Simple key
-//    - ["items", { skip, limit }] - Key with parameters
-//    - ["items", itemId]          - Key with ID
-//    - Used for caching, invalidation, and refetching
-//
-// 2. useSuspenseQuery vs useQuery
-//    - useSuspenseQuery: Suspends component, data is always defined
-//    - useQuery: Returns loading/error states, data may be undefined
-//    - Choose based on component structure
-//
-// 3. Query Configuration
-//    - staleTime: How long data is considered fresh
-//    - gcTime: How long to keep in cache after unmount
-//    - enabled: Conditional fetching (useQuery only)
-//    - refetchOnWindowFocus: Refetch when tab becomes active
-//
-// 4. Type-Safe API Client
-//    - ItemsService.readItems() returns typed response
-//    - No need for manual type assertions
-//    - Generated from OpenAPI spec
-
-
-// === QUERY KEY FACTORY PATTERN ===
-//
-// For larger apps, organize query keys in a factory:
-//
-// export const itemKeys = {
-//   all: ["items"] as const,
-//   lists: () => [...itemKeys.all, "list"] as const,
-//   list: (filters: { skip?: number; limit?: number }) =>
-//     [...itemKeys.lists(), filters] as const,
-//   details: () => [...itemKeys.all, "detail"] as const,
-//   detail: (id: string) => [...itemKeys.details(), id] as const,
-// };
-//
-// // Usage:
-// queryKey: itemKeys.list({ skip: 0, limit: 20 })
-// queryKey: itemKeys.detail(itemId)
-// queryClient.invalidateQueries({ queryKey: itemKeys.all })
-
-export default useCurrentUser;
+export default useCurrentUser

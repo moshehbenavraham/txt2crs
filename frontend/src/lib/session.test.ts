@@ -35,9 +35,9 @@ const createMemoryStorage = (initial: Record<string, string> = {}) => {
 
 describe("session helpers", () => {
   it("invalidates session for 401 errors", () => {
-    expect(shouldInvalidateSession(makeApiError(401, "/api/v1/items"))).toBe(
-      true,
-    )
+    expect(
+      shouldInvalidateSession(makeApiError(401, "/api/v1/jobs/job-123")),
+    ).toBe(true)
   })
 
   it("invalidates session for stale current-user lookups", () => {

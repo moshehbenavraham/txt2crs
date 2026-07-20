@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 02 (2026-07-19)
+> **Line budget**: 600 max | **Last updated**: Phase 03 (2026-07-20)
 
 ---
 
@@ -11,9 +11,11 @@ Items requiring attention in upcoming phases. Review before each session.
 
 ### Technical Debt
 
-- [P00-backend+frontend] **Donor items remain temporary**: Keep the existing
-  item routes and UI only until durable jobs acceptance coverage exists; Phase
-  03 must remove the domain without breaking authentication.
+- [P03-frontend+backend] **The learner workspace needs real job integration**:
+  The donor Item domain is gone and `/` truthfully presents the four output
+  assets without inventing job history. Phase 04 must connect the generated
+  `JobsService` submission, status, manifest, and download contracts while
+  preserving authentication, owner privacy, and account-erasure behavior.
 
 ### External Dependencies
 
@@ -33,12 +35,10 @@ Items requiring attention in upcoming phases. Review before each session.
   serial worker and SQLite store cannot safely run under multiple FastAPI
   workers. Preserve the container contract until a real queue replaces it.
 - [P01-backend/packages/txt2crs] **Private-state retention is undefined**:
-  Owner purge and complete local recovery now work, but learner requests,
-  checkpoints, artifacts, logs, and backup bundles still need an explicit
-  retention schedule and encrypted-copy policy.
-- [P01-backend+backend/packages/txt2crs] **HTTP artifact delivery owns cleanup**:
-  Phase 03 must close package streams on disconnect and apply private,
-  no-store, nosniff, and safe attachment headers.
+  Coordinated live-store erasure and complete local recovery now work, but
+  learner requests, checkpoints, artifacts, logs, provider copies, and backup
+  bundles still need explicit retention and encrypted-copy policies before
+  release.
 
 ### Architecture
 
@@ -50,14 +50,12 @@ Items requiring attention in upcoming phases. Review before each session.
   root-owned and violate the non-root runtime contract.
 - [P00-backend+frontend] **Generated OpenAPI is the cross-package contract**:
   Regenerate and format `openapi.json` plus `src/client` together after API
-  changes; never patch generated frontend files by hand.
-- [P01-backend+backend/packages/txt2crs] **Account erasure spans two owners**:
-  Phase 03 must stop/purge engine owner state before deleting the PostgreSQL
-  user and must report any partial failure truthfully.
-- [P02-backend+backend/packages/txt2crs] **Admission and recovery use public
-  handles**: Submit through the facade, return `202` only after its durable
-  commit, then nudge the worker; recovery and shutdown never read private
-  stores or reconstruct generation behavior in the shell.
+  changes; never patch generated frontend files by hand or add compatibility
+  shims for retired server contracts.
+- [P03-backend+backend/packages/txt2crs] **Job HTTP routes use public handles**:
+  Submit through the facade and return `202` only after durable admission,
+  then nudge the worker. Reads expose constructed public allowlists, hide
+  owner mismatches as the same 404, and never reconstruct engine behavior.
 
 ---
 
@@ -84,22 +82,25 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P01-backend/packages/txt2crs] **Persist exact accepted identity**: A strict
   normalized request, immutable execution profile, and canonical hash make
   restart recovery deterministic without current-default substitution.
-- [P01-backend/packages/txt2crs] **Construct public allowlists**: Copy reviewed,
+- [P03-backend/packages/txt2crs] **Construct public allowlists**: Copy reviewed,
   bounded leaves into public contracts instead of filtering serialized private
-  models after the fact.
+  models after the fact; owner-scoped HTTP reads then preserve the same
+  complete-or-null and owner-hidden semantics.
 - [P01-backend/packages/txt2crs] **Checkpoint before provider construction**:
   Provider-free ingestion, policy, and preference acceptance makes denial and
   restart behavior deterministic and testable.
 - [P01-backend/packages/txt2crs] **One context owns provider resources**:
   Enter temporary, HTTP, MCP, and Codex resources in dependency order and
   unwind them in reverse without masking the primary generation error.
-- [P01-backend/packages/txt2crs] **Cross-store erasure needs a worker barrier**:
-  Cancel/wait for owner work, delete artifacts first, then transactionally
-  remove SQLite parents so every failure remains retryable.
-- [P01-backend/packages/txt2crs] **Facade integration tests protect boundaries**:
-  A public-only deterministic lifecycle can exercise real persistence,
-  preparation, rendering, artifact, recovery, and purge behavior without
-  FastAPI, credentials, or private imports.
+- [P03-backend+backend/packages/txt2crs] **Cross-store erasure needs ordered
+  ownership**: The engine barrier cancels and waits for owner work, removes
+  artifacts before SQLite parents, and the shell calls it before PostgreSQL
+  deletion. A purge failure keeps the account and reports safe, retryable
+  partial progress.
+- [P03-backend/packages/txt2crs] **Facade integration tests protect boundaries**:
+  Public-only deterministic lifecycles can exercise admission, persistence,
+  recovery, rendering, delivery, and purge behavior without credentials or
+  private imports; shell acceptance then proves the transport composition.
 - [P02-backend] **Cache side effects behind one runtime owner**: Startup and
   finite maintenance refresh may probe the public engine aggregate, while
   browser reads return only immutable cached state and never compete with job
@@ -138,7 +139,8 @@ Proven patterns and anti-patterns. Reference during implementation.
   their canonical identity at persistence boundaries.
 - [P01-backend/packages/txt2crs] **Do not retain private exception context**:
   Safe outer text is insufficient when `__cause__` or `__context__` still
-  contains learner content, paths, provider values, or SQL details.
+  contains learner content, paths, provider values, or SQL details; suppress
+  context explicitly at the final safe translation boundary.
 - [P01-backend/packages/txt2crs] **Do not let writer/read bounds drift**:
   Artifact state accepted by a writer must remain immediately readable through
   the same shared metadata and topology validation.
@@ -170,15 +172,13 @@ Recently closed items (buffer - rotates out after 2 phases).
 
 | Phase | Item | Resolution |
 |-------|------|------------|
+| P03 | Donor Item domain | Backend models, CRUD, routes, MCP exposure, generated contracts, learner UI, tests, guidance, and examples were removed or replaced without a stale compatibility shim. |
+| P03 | Owner-scoped artifact delivery | Responses verify streams before headers, emit private/no-store/nosniff metadata, and own exactly-once cleanup on completion, failure, and disconnect. |
+| P03 | Coordinated account erasure | Self-delete purges engine state before PostgreSQL identity deletion, preserves the account on purge failure, and supports safe idempotent retry. |
+| P03 | Documented deploy helpers | Static executable-bit tests now protect the smoke-check and rollback commands documented for direct invocation. |
 | P02 | Protected system API | Active users can read cached readiness; only current superusers can start or inspect a bounded device challenge. |
 | P02 | Raw request metadata in logs | Request, exception, telemetry, SMTP, and startup events now use bounded allowlists with focused privacy regressions. |
 | P02 | Composite readiness ownership | One public engine aggregate, immutable shell cache, and shared finite runtime owner now cover readiness without browser-side effects. |
-| P01 | Complete local recovery | One owner-only bundle now captures and restores PostgreSQL plus private engine state with pre-destructive validation. |
-| P01 | Engine owner lifecycle | Active work is stopped and owner requests, checkpoints, delivery rows, and artifacts are purged through the public facade. |
-| P00 | Host/container engine parity | Both backend image targets install and import the workspace package. |
-| P00 | Unsafe multi-worker runtime | Development and production-like image targets run one non-root FastAPI process. |
-| P00 | Unconfined private state | Typed settings, owner-only paths, and one persistent state volume now fail closed and pass runtime smokes. |
-| P00 | Frontend health gap | Nginx exposes stable JSON and participates in local Docker health probing. |
 
 ---
 

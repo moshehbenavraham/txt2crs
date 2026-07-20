@@ -44,12 +44,6 @@ export {
   isActiveFieldOptional,
   isSuperuserField,
   isSuperuserFieldOptional,
-  itemContentField,
-  itemContentTypeField,
-  itemDescriptionField,
-  itemSourceUrlField,
-  // Item fields
-  itemTitleField,
   optionalPasswordConfirmationRefinement,
   // Validation helpers
   passwordConfirmationRefinement,
@@ -89,18 +83,3 @@ export {
   type UserInformationFormData,
   userInformationSchema,
 } from "./user"
-
-// =============================================================================
-// Item Management Schemas
-// =============================================================================
-
-export {
-  type AddItemFormData,
-  addItemSchema,
-  type EditItemFormData,
-  editItemSchema,
-  type FullItemFormData,
-  fullItemSchema,
-  type ItemsSearchParams,
-  itemsSearchSchema,
-} from "./item"

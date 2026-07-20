@@ -2,6 +2,7 @@
 
 import os
 import re
+import stat
 from pathlib import Path
 
 # Host test runs discover the checkout from this file. The development
@@ -17,6 +18,10 @@ COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
 ROOT_ENVIRONMENT_EXAMPLE = REPOSITORY_ROOT / ".env.example"
 DOCKER_COMPOSE_WORKFLOW = (
     REPOSITORY_ROOT / ".github" / "workflows" / "test-docker-compose.yml"
+)
+LOCAL_DEPLOY_SCRIPTS = (
+    REPOSITORY_ROOT / "scripts" / "deploy-smoke-check.sh",
+    REPOSITORY_ROOT / "scripts" / "deploy-rollback.sh",
 )
 
 # Hosted deployment is explicitly outside the project scope. Keeping these
@@ -211,3 +216,13 @@ def test_docker_workflow_probes_authoritative_local_health_endpoints() -> None:
     assert "curl --fail http://localhost:8012/api/v1/utils/health/" in workflow_text
     assert "curl --fail http://localhost:5183/health" in workflow_text
     assert "localhost:5181" not in workflow_text
+
+
+def test_documented_local_deploy_commands_are_executable() -> None:
+    """Operator commands invoked with ``./scripts/...`` must run directly."""
+
+    for deploy_script in LOCAL_DEPLOY_SCRIPTS:
+        # Git preserves the owner-execute bit. Checking it explicitly prevents
+        # deployment documentation from advertising a command that fails with
+        # ``Permission denied`` before its safety checks can run.
+        assert deploy_script.stat().st_mode & stat.S_IXUSR, deploy_script

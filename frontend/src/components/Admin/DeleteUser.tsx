@@ -66,9 +66,11 @@ const DeleteUser = ({ id, onSuccess }: DeleteUserProps) => {
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
-              All items associated with this user will also be{" "}
-              <strong>permanently deleted.</strong> Are you sure? You will not
-              be able to undo this action.
+              The user's live account, course requests, checkpoints, delivery
+              records, and generated artifacts will be{" "}
+              <strong>permanently deleted.</strong> Retained logs and backup
+              copies follow their separate retention policy. Are you sure? You
+              will not be able to undo this action.
             </DialogDescription>
           </DialogHeader>
 

@@ -67,9 +67,11 @@ research should be ready, then restart the backend so it reads the new secret.
 
 If browser device authentication is unavailable, use the recovery command
 shown on the setup page from `backend/packages/txt2crs/`. The Phase 03 backend
-now accepts authenticated course submissions, while the learner generation
-form arrives in Phase 04. Phase 02 setup can therefore become ready before the
-learner UI is available.
+accepts authenticated course submissions and owner-scoped result/artifact
+reads. The authenticated `/` route truthfully explains the four generated
+publications; the learner submission, progress, and results workflow arrives
+in Phase 04. Course-system setup can therefore become ready before that
+interactive workflow is available.
 
 ## Manual Development
 

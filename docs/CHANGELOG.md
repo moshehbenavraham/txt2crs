@@ -26,6 +26,9 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Changed
 
+- Synchronized the Phase 03 root, architecture, API, onboarding, engine,
+  security, deployment, and learner-workspace documentation with the complete
+  durable jobs API.
 - Synchronized Phase 02 operator, architecture, configuration, security, and
   recovery documentation with the released composition and readiness system.
 - Made public signup an explicit local-only opt-in and documented its disabled
@@ -44,12 +47,16 @@ Archived entries are stored in [`archive/`](archive/).
 - Removed the temporary Item API, SQLModel/CRUD/error contracts, PostgreSQL
   table, backend tests/guidance, admin MCP item tools, obsolete documentation,
   and generated frontend client operations.
+- Removed the remaining learner-side Item routes, components, hooks, schemas,
+  examples, tests, and navigation during the Phase 03 transition audit.
 
 ### Fixed
 
 - Preserved primary artifact-stream failures while closing entered package
   contexts exactly once across disconnect, iterator, send, and construction
   failures.
+- Made the documented deployment smoke-check and rollback helpers directly
+  executable and protected their modes with a regression test.
 
 ### Security
 

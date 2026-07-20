@@ -1,25 +1,26 @@
 # Documentation Audit
 
-**Date:** 2026-07-19
+**Date:** 2026-07-20
 **Project:** txt2crs
-**Audit mode:** Phase-focused, Phase 02
-**Phase base:** `0c779c910445e636db01a7bca284a72532ef57b6`
-**Result:** PASS with two organizational decisions and one remote-CI blocker
+**Audit mode:** Phase-focused, Phase 03
+**Phase base:** `3dfbd01cf771a67d94b783fdfe269dcb9d357161`
+**Result:** PASS with legal/organizational decisions and one remote-CI blocker
 
 ## Scope
 
-The deterministic analyzer reports Phase 02 complete with five completed
+The deterministic analyzer reports Phase 03 complete with three completed
 sessions and three registered packages: backend shell, reusable engine, and
-frontend. The first Phase 02 session base plus `git diff --name-only` produced
-a 186-file phase manifest including implementation and the audit, pipeline,
-infrastructure, carryforward, and documentation transition work.
+frontend. The first Phase 03 session base plus `git diff --name-only` produced
+a 128-file committed phase manifest. The transition worktree adds a 62-file
+manifest covering frontend donor retirement, audit, pipeline, infrastructure,
+carryforward, and documentation corrections.
 
-This was a phase-focused audit. All five Phase 02 implementation summaries,
-implementation notes, security records, session specifications, and
-validation records were read. Deep updates target facade composition, the
-serial worker, cached readiness, system authentication, operator setup,
-configuration, and recovery. Standard root, docs, and package coverage was
-also verified.
+This was a phase-focused audit. All three Phase 03 implementation summaries,
+implementation notes, security records, session specifications, and validation
+records were read. Deep updates target durable submission, owner-scoped job
+reads, artifact delivery, restart behavior, coordinated account erasure, donor
+retirement, the transitional learner workspace, and deployment-helper
+execution. Standard root, docs, and package coverage was also verified.
 
 ## Coverage
 
@@ -36,51 +37,50 @@ None. Every required documentation surface already exists.
 
 ## Files Updated
 
-- `.env.example` - Adds the research switch and empty Tavily secret expected
-  by the operator quick-start path.
-- `README.md` - Records Phases 00-02 complete, lifespan composition, the
-  serial worker, safe system APIs, and the protected setup workspace.
-- `docs/ARCHITECTURE.md` - Replaces planned composition and readiness language
-  with the implemented service ownership, cache, worker, and authentication
-  boundaries.
-- `docs/CONFIGURATION.md` - Documents all course-system storage, runtime,
-  research, input, run-budget, retry, and admission settings and invariants.
-- `docs/environments.md` - Adds the single-process course-system behavior and
-  corrects the already-remediated request-metadata logging statement.
-- `docs/onboarding.md` - Adds the superuser setup, Tavily, ChatGPT device
-  login, and CLI recovery path.
-- `docs/runbooks/incident-response.md` - Adds readiness/authentication recovery
-  and corrects request-log privacy guidance.
-- `frontend/README_frontend.md` - Documents the superuser `/setup` route.
-- `.spec_system/PRD/PRD.md` - Marks Phase 02 complete.
-- All five Phase 02 session specifications - Reconcile their status with
-  completed phase-transition evidence.
-- `docs/CHANGELOG.md` - Records the Phase 02 documentation synchronization.
-- `.spec_system/docs-audit.md` - Replaces the Phase 01 report with this
-  Phase 02 evidence.
+- `README.md` - Marks Phase 03 complete, records the durable owner-scoped jobs
+  API, removes the retired donor-domain claim, and describes the truthful
+  transitional course workspace.
+- `docs/ARCHITECTURE.md` - Describes the current static course overview and
+  reserves interactive submission, progress, and results for Phase 04.
+- `docs/onboarding.md` - Aligns setup guidance with the implemented Phase 03
+  API and current authenticated root.
+- `docs/local-deploy.md` - Corrects the backend verification command to the
+  implemented readiness path.
+- `docs/TXT2CRS_FOLDER_ARCHITECTURE.md` - Replaces the stale "routes not
+  exposed" statement with the implemented public-facade route boundary.
+- `docs/dashboard-design.md` - Makes the Phase 03 transition authoritative,
+  marks donor library/Items blueprints as history, and records current route
+  and browser-test behavior.
+- `backend/packages/txt2crs/README_txt2crs.md` - Replaces future setup-screen
+  language with the implemented browser flow and CLI recovery role.
+- `.spec_system/PRD/PRD.md` - Reconciles the conflict note with the completed
+  Phase 03 table and validated transition evidence.
+- `.spec_system/CONSIDERATIONS.md` and
+  `.spec_system/SECURITY-COMPLIANCE.md` - Carry forward Phase 03 job privacy,
+  stream ownership, cross-store erasure, retention, and release risks.
+- `docs/CHANGELOG.md` - Records Phase 03 documentation synchronization,
+  frontend donor retirement, and executable deployment helpers.
+- `.spec_system/docs-audit.md` - Replaces the Phase 02 report with this
+  evidence-backed Phase 03 audit.
 
 ## Verified Current
 
-- `CONTRIBUTING.md` still reflects tests-first work, package boundaries,
-  generated-client ownership, and current package commands.
+- `CONTRIBUTING.md` still reflects tests-first work, the shell/package
+  boundary, generated-client ownership, and current package commands.
 - Root and package licenses exist; no legal scope was invented or changed.
-- `backend/README_backend.md` and `docs/api/README_api.md` already document the
-  authenticated cached-readiness route, superuser device-authentication
-  routes, safe fields, cache-only reads, and CLI recovery.
-- `backend/packages/txt2crs/README_txt2crs.md` already documents facade
-  factories, readiness, authentication, serial execution handles, recovery,
-  and owner purge.
-- The generated OpenAPI snapshot and generated TypeScript client include the
-  three system routes but no learner submission, status, or artifact route.
-- `docs/development.md`, deployment guides, and the incident runbook match the
-  validated complete PostgreSQL plus private-state backup/restore scripts.
+- `backend/README_backend.md` and `docs/api/README_api.md` document all five
+  job path patterns, durable `202`, idempotency, owner-hidden reads, private
+  delivery headers, stream cleanup, restart replay, and account purge.
+- `frontend/README_frontend.md` matches the generated route tree: `/` is the
+  course overview, `/setup` is privileged setup, and `/items` is absent.
+- `docs/development.md`, `docs/environments.md`, `docs/deployment.md`,
+  `docs/deployment-policy.md`, and the incident runbook match the validated
+  local-only topology, single process, complete backup/restore path, and
+  current health endpoints.
 - Repository-root Docker Compose remains the only deployment target under
-  ADR-0008; no hosted platform or WAF workflow was invented.
+  ADR-0008; no hosted platform or remote environment was invented.
 - All registered packages have unique package README names. The root is the
   only tracked authored `README.md`.
-- Current release metadata is synchronized at `0.6.0` across `VERSION`, the
-  engine manifest, lockfile, versioning guide, changelog archive, release
-  commit, and annotated tag target.
 
 ## External Decision Gaps
 
@@ -88,9 +88,13 @@ None. Every required documentation surface already exists.
    nor organization by that name. Replacing it requires the repository owner
    to choose an accountable GitHub identity.
 2. The private repository has no verified project security mailbox and its
-   private-vulnerability-reporting API endpoint is unavailable. The owner must
+   private-vulnerability-reporting API endpoint returns 404. The owner must
    choose a durable private reporting channel before public release.
-3. GitHub Actions jobs at the Phase 02 release commit cannot schedule because
+3. Formal legal-basis, third-party-transfer, log/state/artifact/backup
+   retention, backup erasure, and provider-copy records remain incomplete.
+   These require product/legal and operator decisions before real learner data
+   can be accepted under a compliant public policy.
+4. GitHub Actions jobs at the current Phase 03 commit cannot schedule because
    account billing rejects every job before runner assignment. Local
    equivalents pass, but remote CodeQL remains unavailable.
 
@@ -101,26 +105,28 @@ deployment scope under ADR-0008.
 
 | Area | Document | Codebase or Spec Evidence | Result |
 |------|----------|---------------------------|--------|
-| Project state | This report | `.spec_system/scripts/analyze-project.sh --json` | Phase 02 complete; 3 packages; 5 Phase 02 sessions |
-| Phase manifest | This report | First spec base plus `git diff --name-only 0c779c91...` | 186-file phase-focused scope |
-| Semantic changes | README, architecture, operator docs | Five Phase 02 implementation summaries and notes | Current composition and setup documented |
-| Composition | README and architecture | `txt2crs_lifespan.py`, composition service, worker supervisor, readiness coordinator, auth coordinator | Implemented ownership documented |
-| Public system API | API, backend, frontend guides | System routes/schemas, generated OpenAPI and client, shell route tests | Three safe system routes verified |
-| Operator setup | Onboarding and frontend guide | `/setup` route, setup components, unit and Playwright coverage | Protected workflow documented |
-| Configuration | Configuration and environment guides | `app/core/config.py`, both environment examples, Compose fixed paths | All Phase 02 settings and invariants covered |
-| Privacy | Environment and incident guides | Middleware implementation and `test_middleware.py` | Raw query/path parameter/IP claim removed |
-| Complete recovery | Development and incident docs | Backup/restore scripts, isolated two-store restore proof | Current |
+| Project state | This report | `.spec_system/scripts/analyze-project.sh --json` | Phase 03 complete; 3 packages; 3 Phase 03 sessions |
+| Phase manifest | This report | First spec base plus committed and worktree `git diff --name-only` manifests | 128 committed files and 62 transition files inspected |
+| Semantic changes | README, architecture, API, package guides | Three Phase 03 summaries, notes, validations, and security records | Durable jobs, delivery, erasure, and donor retirement documented |
+| Public jobs API | API and backend guides | `frontend/openapi.json`, generated client, job routes/schemas, route and acceptance tests | Five job path patterns verified |
+| Owner privacy and delivery | API, architecture, incident guide | Public query service, `artifact_response.py`, owner/stream/response tests | Owner-hidden reads and exactly-once cleanup documented |
+| Recovery | API, architecture, incident guide | Seven-scenario restart and delivery acceptance matrix | Current |
+| Account erasure | API and backend guides | Both user deletion routes, facade purge barrier, cross-store acceptance | Engine-first retryable behavior documented |
+| Frontend transition | Root, frontend guide, design guide | Generated route tree, current root route, dashboard tests, 65-test Playwright run | Donor UI absent; static course overview current |
+| Local deployment | Deployment guides | `docker compose config --quiet`, script syntax checks, production Compose validation | Commands and topology current |
+| Backup/restore | Deployment and incident guides | Isolated destructive PostgreSQL plus engine-volume restore proof | Current |
+| Deploy helpers | Changelog and deployment guide | Executable-mode regression; `stat` reports both helpers as 0755 | Direct invocation current |
 | Package coverage | Package READMEs | Analyzer package array and filesystem inspection | 3 of 3 present |
 | README naming | Documentation rules | `git ls-files` README inspection | Root is the only tracked `README.md` |
-| Version | README and versioning | `VERSION`, engine manifest, `uv.lock`, changelog archive, `v0.6.0^{}` | All resolve to release `3dfbd01` |
-| Link integrity | Audited Markdown | Local target scan over 34 root, standard-doc, ADR, runbook, API, and package-guide files | 114 local links resolve |
+| Link integrity | Audited Markdown | Local target scan over 27 root, standard-doc, ADR, runbook, API, architecture, and package-guide files | 91 local links resolve |
 | Encoding/format | Files changed in this gate | ASCII scan and `git diff --check` | PASS |
-| CODEOWNERS | `docs/CODEOWNERS` | `gh api users/aiwithapex`; `gh api orgs/aiwithapex` | Both return 404; external decision |
-| Security contact | `docs/SECURITY.md` | Private-vulnerability-reporting endpoint inspection | External decision |
-| Remote CI | Pipeline report | Seven zero-step release-commit workflow failures plus local fallbacks | Billing blocker remains |
+| CODEOWNERS | `docs/CODEOWNERS` | `gh api users/aiwithapex` and `gh api orgs/aiwithapex` | Both return 404; external decision |
+| Security contact | `docs/SECURITY.md` | Repository private-vulnerability-reporting endpoint | 404; external decision |
+| Privacy posture | Security and environment docs | Fresh cumulative security/compliance synthesis | GDPR remains non-compliant pending policy decisions |
+| Remote CI | Pipeline report | Seven zero-step Phase 03 workflow failures plus exact local fallbacks | Billing blocker remains |
 
 ## Next Action
 
-The master PRD defines Phases 03 through 05 as unfinished, while state tracking
-currently ends at completed Phase 02. The two-source rule therefore selects
-`phasebuild`; it owns reconciliation and creation of Phase 03.
+The master PRD defines Phases 04 and 05 as unfinished, while state tracking
+ends at completed Phase 03. The two-source rule therefore selects
+`phasebuild`; it owns reconciliation and creation of Phase 04.

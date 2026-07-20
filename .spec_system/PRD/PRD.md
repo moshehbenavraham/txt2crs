@@ -337,7 +337,7 @@ This system delivers the product via phases. Each phase is implemented through
 ### Conflict Resolutions
 
 - **Phase progress**: Validated session and phase-transition evidence is
-  authoritative. Phases 00 through 02 are complete; Phases 03-05 remain
+  authoritative. Phases 00 through 03 are complete; Phases 04-05 remain
   unfinished.
 - **Phase 01 session count**: The implementation plan suggested two sessions,
   but those sessions combined fourteen substantial package gaps and exceeded

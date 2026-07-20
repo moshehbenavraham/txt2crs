@@ -9,7 +9,9 @@ one facade, serial worker, readiness cache, and system-authentication
 coordinator for its complete lifespan. Phase 03 now exposes authenticated,
 durable learner submission plus owner-scoped status, result, manifest, and
 artifact delivery routes. Account deletion now performs engine-first owner
-erasure; the learner UI remains Phase 04 work.
+erasure. The authenticated frontend now presents a truthful four-publication
+workspace overview; interactive submission, progress, and results remain
+Phase 04 work.
 
 ```text
 React SPA
@@ -39,7 +41,7 @@ surface; the two boundaries must never be merged.
 |-----------|----------|------------|------------------------|
 | Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, facade composition, serial work, cached readiness, system authentication, errors, and observability |
 | Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Public application facade/factories, ingestion, research, generation, policy, jobs, recovery, artifacts, owner lifecycle, rendering, and evaluation |
-| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, and current shell UI; the job workspace lands in Phase 04 |
+| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, and a static course-workspace overview; interactive job workflow lands in Phase 04 |
 | Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
 
 ## Ownership Boundaries

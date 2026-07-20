@@ -31,10 +31,10 @@ exempt and when it was added. Remove entries that no longer apply.
 | `detect-conflicts.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax, immutable action pin, and current no-PR state were validated locally. | 2026-07-19 |
 | `generate-client.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; deterministic generation and a clean generated-client diff were validated locally. | 2026-07-19 |
 | `guard-dependencies.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; workflow syntax and immutable action pin were validated locally. | 2026-07-19 |
-| `playwright.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 70 browser tests passed against isolated local services. | 2026-07-19 |
+| `playwright.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 65 current browser tests passed against isolated local services. | 2026-07-19 |
 | `quality.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; backend, engine, and frontend equivalents passed locally. | 2026-07-19 |
 | `security.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; Gitleaks and both dependency audits passed locally, while CodeQL remains remote-only. | 2026-07-19 |
-| `test-backend.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 195 backend tests passed in host and non-root container modes at the measured 78% coverage baseline. | 2026-07-19 |
+| `test-backend.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; all 473 current backend tests passed against isolated PostgreSQL at 88% coverage. | 2026-07-19 |
 | `test-docker-compose.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; an isolated full-stack Compose build and health validation passed locally, and static coverage now protects the authoritative readiness URLs. | 2026-07-19 |
 | `zizmor.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; local Zizmor validation passed for every workflow. | 2026-07-19 |
 

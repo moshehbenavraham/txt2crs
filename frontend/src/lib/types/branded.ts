@@ -4,19 +4,14 @@
  * Branded types (also called "nominal types" or "opaque types") provide compile-time
  * type safety for primitive values that have semantic meaning in the domain.
  *
- * Without branded types, it's easy to accidentally pass a UserId where an ItemId
- * is expected, since both are just strings at the type level. Branded types prevent
- * this class of bug by making these types incompatible.
+ * Without branded types, it is easy to pass an arbitrary string where a
+ * validated user identifier or email is expected. Branded types prevent that
+ * class of bug while preserving the underlying string representation.
  *
  * @example
  * ```typescript
- * function getItem(itemId: ItemId): Item { ... }
- *
  * const userId: UserId = createUserId("user-123");
- * const itemId: ItemId = createItemId("item-456");
- *
- * getItem(itemId);  // OK
- * getItem(userId);  // TypeScript error: UserId is not assignable to ItemId
+ * const email: Email = createEmail("learner@example.com");
  * ```
  *
  * @see https://egghead.io/blog/using-branded-types-in-typescript
@@ -63,18 +58,6 @@ export type UserId = Brand<string, "UserId">
 export type Email = Brand<string, "Email">
 
 // ============================================================================
-// Item Domain Types
-// ============================================================================
-
-/**
- * Branded type for Item IDs.
- *
- * Item IDs are UUIDs represented as strings. This type ensures that
- * item IDs cannot be accidentally used where user IDs are expected.
- */
-export type ItemId = Brand<string, "ItemId">
-
-// ============================================================================
 // Type Guards
 // ============================================================================
 
@@ -102,16 +85,6 @@ export function isValidUuid(value: string): boolean {
  * @returns True if the string is a valid UserId (UUID format)
  */
 export function isUserId(value: string): value is UserId {
-  return isValidUuid(value)
-}
-
-/**
- * Type guard for ItemId values.
- *
- * @param value - The string to validate
- * @returns True if the string is a valid ItemId (UUID format)
- */
-export function isItemId(value: string): value is ItemId {
   return isValidUuid(value)
 }
 
@@ -149,20 +122,6 @@ export function createUserId(value: string): UserId {
 }
 
 /**
- * Create a validated ItemId from a string.
- *
- * @param value - A UUID string to convert to ItemId
- * @returns The branded ItemId
- * @throws Error if the value is not a valid UUID
- */
-export function createItemId(value: string): ItemId {
-  if (!isItemId(value)) {
-    throw new Error(`Invalid ItemId: ${value}. Expected UUID format.`)
-  }
-  return value
-}
-
-/**
  * Create a validated Email from a string.
  *
  * @param value - An email string to validate
@@ -192,18 +151,6 @@ export function createEmail(value: string): Email {
  */
 export function asUserId(value: string): UserId {
   return value as UserId
-}
-
-/**
- * Convert a string to ItemId without validation.
- *
- * Use this only when you trust the source (e.g., API responses).
- *
- * @param value - The string to cast to ItemId
- * @returns The branded ItemId (unchecked)
- */
-export function asItemId(value: string): ItemId {
-  return value as ItemId
 }
 
 /**

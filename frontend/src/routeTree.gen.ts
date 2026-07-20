@@ -17,7 +17,6 @@ import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutSetupRouteImport } from './routes/_layout/setup'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
-import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 
@@ -60,11 +59,6 @@ const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutItemsRoute = LayoutItemsRouteImport.update({
-  id: '/items',
-  path: '/items',
-  getParentRoute: () => LayoutRoute,
-} as any)
 const LayoutForbiddenRoute = LayoutForbiddenRouteImport.update({
   id: '/forbidden',
   path: '/forbidden',
@@ -84,7 +78,6 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/forbidden': typeof LayoutForbiddenRoute
-  '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
   '/setup': typeof LayoutSetupRoute
 }
@@ -95,7 +88,6 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/forbidden': typeof LayoutForbiddenRoute
-  '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
   '/setup': typeof LayoutSetupRoute
   '/': typeof LayoutIndexRoute
@@ -109,7 +101,6 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/forbidden': typeof LayoutForbiddenRoute
-  '/_layout/items': typeof LayoutItemsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/setup': typeof LayoutSetupRoute
   '/_layout/': typeof LayoutIndexRoute
@@ -124,7 +115,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/forbidden'
-    | '/items'
     | '/settings'
     | '/setup'
   fileRoutesByTo: FileRoutesByTo
@@ -135,7 +125,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/forbidden'
-    | '/items'
     | '/settings'
     | '/setup'
     | '/'
@@ -148,7 +137,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_layout/admin'
     | '/_layout/forbidden'
-    | '/_layout/items'
     | '/_layout/settings'
     | '/_layout/setup'
     | '/_layout/'
@@ -220,13 +208,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/items': {
-      id: '/_layout/items'
-      path: '/items'
-      fullPath: '/items'
-      preLoaderRoute: typeof LayoutItemsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
     '/_layout/forbidden': {
       id: '/_layout/forbidden'
       path: '/forbidden'
@@ -247,7 +228,6 @@ declare module '@tanstack/react-router' {
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutForbiddenRoute: typeof LayoutForbiddenRoute
-  LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutSetupRoute: typeof LayoutSetupRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
@@ -256,7 +236,6 @@ interface LayoutRouteChildren {
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutForbiddenRoute: LayoutForbiddenRoute,
-  LayoutItemsRoute: LayoutItemsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutSetupRoute: LayoutSetupRoute,
   LayoutIndexRoute: LayoutIndexRoute,

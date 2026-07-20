@@ -8,10 +8,11 @@
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* -- expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Phase 02 shell direction implemented. Legacy library blueprints
-> are retained only as layout history and are superseded by the Phase 04
-> course-job workspace.
-> Last updated: 2026-07-19
+> **Status**: Phase 03 transition implemented. The authenticated root is a
+> truthful static four-publication overview; the donor library and `/items`
+> route are retired. Legacy library blueprints below are history only and must
+> not be implemented. Phase 04 owns the interactive course-job workspace.
+> Last updated: 2026-07-20
 
 ## Table of Contents
 
@@ -63,11 +64,12 @@ console* (discards brand equity; auth and product would feel unrelated).
 
 ### Load-bearing decisions
 
-1. **Stable page identity.** The dashboard `h1` is "Workspace overview"; the
-   user's name lives in supporting copy. An email address is never a title.
-2. **One continuous workspace index, not a card grid.** Numbered sections on
-   a subtle index rail: 01 Library status, 02 Library preview, 03 role-aware
-   actions. The rail encodes reading order; it is not a decorative timeline.
+1. **Stable page identity.** The authenticated root `h1` is "Course
+   workspace"; the user's name lives in supporting copy. An email address is
+   never a title.
+2. **Truthful product structure.** The current root names the four generated
+   publications without inventing job counts, recency, or history. Phase 04
+   may add operational structure only where the job API supplies it.
 3. **Proximity groups default content.** Surface tone and keylines for
    structure; shadows reserved for overlays and true elevation.
 4. **Expressive vs. operational type are separate.** Playfair Display for
@@ -79,9 +81,9 @@ console* (discards brand equity; auth and product would feel unrelated).
 6. **Mobile transforms, it doesn't squeeze.** Page actions stack beneath
    identity; dense tables become feature-specific record lists, not
    horizontally scrolled desktop tables.
-7. **One memorable motion moment.** The dashboard library surface continues
-   into the Items workspace on explicit navigation; everything else serves
-   orientation, feedback, or state clarity.
+7. **Motion serves state and orientation.** No retired donor transition
+   remains. New Phase 04 motion must preserve complete reduced-motion states
+   and must not imply unsupported progress.
 
 ---
 
@@ -512,16 +514,13 @@ shadcn/ui config (`frontend/components.json`): style `new-york`, base color
 treatment and router-driven `aria-current`), `User` (avatar + account
 dropdown).
 
-### Dashboard (`frontend/src/components/Dashboard/`, plus `Pending/`)
+### Course workspace (`frontend/src/routes/_layout/index.tsx`)
 
-| Component | Purpose |
-|-----------|---------|
-| `WorkspaceHeader` | Page identity + `Create item` / `Open library`; the user's name appears only in supporting copy |
-| `LibraryIndex` | Numbered sections: 01 Library status (exact count), 02 Library preview, 03 Workspace actions / Administration (role-aware) |
-| `LibraryPreview` | Compact record rows labeled a *preview* -- no "recent" or trend language (see Section 9) |
-| `DashboardEmpty` | "Start your workspace" onboarding replacing zero-value modules |
-| `Pending/PendingDashboard` | Static, geometry-matched placeholders (no shimmer) |
-| `queries.ts` | Suspense query options on existing service + query-key conventions |
+The Phase 03 transition route owns one static, authenticated overview. It uses
+`PageHeader`, four semantic asset cards, account settings navigation, and a
+superuser-only setup action. It intentionally makes no course-job query until
+Phase 04 implements submission and progress from generated `JobsService`
+contracts.
 
 ### System setup (`frontend/src/components/SystemSetup/`, plus `Pending/`)
 
@@ -552,15 +551,14 @@ LinkedIn, YouTube). SVGs in `frontend/public/assets/images/`: `apex-logo.svg`
 | Route | File | Description |
 |-------|------|-------------|
 | `/login`, `/signup`, `/recover-password`, `/reset-password` | `routes/*.tsx` | Public auth flow, consistent luxury styling |
-| `/` | `_layout/index.tsx` | Workspace overview: numbered library index |
-| `/items` | `_layout/items.tsx` | Items management with DataTable |
+| `/` | `_layout/index.tsx` | Authenticated four-publication course-workspace overview |
 | `/settings` | `_layout/settings.tsx` | User settings (tabbed) |
 | `/admin` | `_layout/admin.tsx` | Admin panel (superuser only) |
 | `/setup` | `_layout/setup.tsx` | System readiness and device authentication (superuser only) |
 
 ### Shared page header
 
-All product routes (Dashboard, Items, Admin, Settings, System setup) use
+Product routes (Course workspace, Admin, Settings, System setup) use
 `Common/PageHeader.tsx`:
 
 ```tsx
@@ -578,7 +576,12 @@ squeeze the description into a word column. Filters keep intrinsic width only
 while the primary action still fits; otherwise they fill a two-column grid or
 stack.
 
-### Dashboard
+### Retired donor dashboard history
+
+This subsection records superseded layout history only. Its library counts,
+previews, actions, queries, and copy have no current route or component and
+must not be restored. Phase 04 replaces this model with the course-job
+contract.
 
 **User job:** understand the current library state and take the next useful
 action. **Primary action:** `Create item`.
@@ -691,7 +694,10 @@ challenge URL/code, and coarse authentication state may render. Tokens,
 credentials, account identity, local paths, and raw exception details never
 appear in the browser.
 
-### Items
+### Retired Items history
+
+The `/items` route and its components are removed. The following desktop and
+mobile notes are preserved only as donor-era design history.
 
 **Desktop:** table representation with Title over ID hierarchy and minimal
 decorative elevation; filters and `Create item` live in the shared header.
@@ -835,13 +841,11 @@ npm run lint && npm run typecheck && npm run build
 npx playwright test          # when the backend/test environment is available
 ```
 
-E2E coverage includes dashboard populated/empty/error/permission states,
-mobile header and record lists; system setup ready, action-required, waiting,
-authenticated, unavailable, failed, and permission states; and
-`page.emulateMedia({ reducedMotion: "reduce" })` checks that assert focus
-destination and enabled controls, not only screenshots. Selectors change only
-when copy or accessible names change intentionally, migrated in the same
-slice.
+Current E2E coverage verifies the four-publication workspace, retired-route
+not-found behavior, mobile fit and 44px account action, reduced-motion
+navigation, system setup states, and the maintained auth/admin/settings
+surfaces. Phase 04 must add its submission, progress, result, and artifact
+states alongside implementation.
 
 ### Rendered QA matrix
 
@@ -849,10 +853,9 @@ Check each surface at 1440x900, the 768px boundary, 375x812, and 320px, in
 light and dark, with keyboard, and under reduced motion:
 
 - Protected shell (expanded/collapsed) and the mobile navigation sheet
-- Dashboard pending / empty / populated / error
+- Course workspace overview and Phase 04 states as they are implemented
 - System setup pending / ready / action required / waiting / authenticated /
   unavailable / failed / permission
-- Items filter + create action; desktop table and mobile record list
 - Admin desktop table and mobile record list
 - Settings tabs, forms, danger zone
 - Dialog, menu, select, sheet, tooltip
@@ -866,19 +869,18 @@ permanent `will-change`.
 
 ### Acceptance criteria
 
-- Page identity, exact supported library state, and `Create item` are visible
-  within the first viewport at 375x812 and 1440x900.
+- The current page identity and four supported publication types are visible
+  without implying job history, counts, or recency.
 - The direction reads as an editorial workspace index, not a KPI dashboard.
 - No displayed metric implies timestamps, trends, completeness, or recency
   the API does not provide.
 - Light and dark have equivalent hierarchy and measured WCAG 2.2 AA contrast.
-- No document-level horizontal scroll at 320px or 200% zoom; mobile Items and
-  Admin expose identity, status/type, and actions without table scrolling.
+- No document-level horizontal scroll at 320px or 200% zoom; mobile Admin
+  exposes identity, status, role, and actions without table scrolling.
 - Keyboard focus is visible, overlay focus is contained and returned, and
   hover-only affordances have focus/touch equivalents.
-- The single shared-surface transition works only on Dashboard -> Items and
-  falls back cleanly; reduced motion leaves complete static content; no new
-  motion runtime ships.
+- Reduced motion leaves complete static content and direct navigation; no new
+  motion runtime ships without a product-state need.
 - Generated files, protected primitives, auth/query/form contracts, and test
   hooks remain intact; lint, typecheck, build, Playwright, and rendered QA
   pass.

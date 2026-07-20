@@ -568,17 +568,11 @@
 }
 
 /* ============================================================================
-   ROUTE CONTINUITY - Scoped View Transition (Dashboard -> Items)
-   The library surface continues from the dashboard preview into the Items
-   workspace. The persistent shell claims its own names so it stays stable.
+   ROUTE CONTINUITY - Persistent authenticated shell
+   The sidebar and command strip keep stable geometry during route changes.
    ============================================================================ */
 
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(library-surface) {
-    animation-duration: var(--motion-duration-route);
-    animation-timing-function: var(--ease-out-quart);
-  }
-
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation-duration: var(--motion-duration-overlay);
