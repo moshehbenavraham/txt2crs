@@ -64,12 +64,20 @@ def test_release_workflow_pins_every_action_to_an_exact_commit() -> None:
 
 
 def test_release_workflow_builds_and_retains_only_reviewed_artifacts() -> None:
-    """The final tag rebuilds both products and uploads bounded release outputs."""
+    """The final tag rebuilds production products and uploads bounded outputs.
+
+    The backend Dockerfile intentionally keeps its development stage last so
+    local ``docker compose build`` installs test dependencies. A release build
+    therefore has to name the production target explicitly; omitting the
+    target would silently inspect and retain the development image instead.
+    """
 
     workflow_text = _release_workflow_text()
 
     assert "uv build --package txt2crs" in workflow_text
-    assert 'docker build --tag "txt2crs-backend:${GITHUB_SHA}" backend' in workflow_text
+    assert (
+        'docker build --target production --tag "txt2crs-backend:${GITHUB_SHA}" backend'
+    ) in workflow_text
     assert "txt2crs-frontend:${GITHUB_SHA}" in workflow_text
     assert "backend/dist/" in workflow_text
     assert "release/SHA256SUMS" in workflow_text

@@ -122,7 +122,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker build --tag "txt2crs-backend:${GITHUB_SHA}" backend
+          docker build --target production --tag "txt2crs-backend:${GITHUB_SHA}" backend
           docker build \
             --build-arg VITE_API_URL=/api \
             --build-arg VITE_ENABLE_PUBLIC_SIGNUP=false \
