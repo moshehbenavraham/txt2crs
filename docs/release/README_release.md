@@ -7,19 +7,15 @@ unrestricted private links.
 
 ## Current State
 
-Phase 05 Session 01 is preparing the `1.0.0` release candidate. The final
-annotated `v1.0.0` tag is intentionally deferred until Session 02 completes
-all tracked judge assets and repeats the immutable checks below. A tracked
-change after the tag requires a new SemVer release.
+Phase 05 Session 01 produced and validated the `1.0.0` candidate from exact
+source revision `a80700863e99cdd34bed757873d969236cdf36fa`. Its real synthetic
+GPT-5.6 plus Tavily job completed with exactly sixteen verified artifacts;
+every inspection row passes and the canonical public ledger passes the strict
+evidence validator.
 
-No live GPT-5.6 plus Tavily proof is claimed until:
-
-1. the real synthetic job reaches completed state;
-2. its owner-private manifest contains exactly sixteen verified artifacts;
-3. every artifact row in
-   [`ARTIFACT_INSPECTION_1_0_0.md`](ARTIFACT_INSPECTION_1_0_0.md) is marked
-   `PASS`; and
-4. `RELEASE_CANDIDATE_1_0_0.json` passes the strict evidence validator.
+The final annotated `v1.0.0` tag is intentionally deferred until Session 02
+completes all tracked judge assets and repeats the immutable checks below. A
+tracked change after the tag requires a new SemVer release.
 
 ## Evidence Index
 
@@ -27,12 +23,8 @@ No live GPT-5.6 plus Tavily proof is claimed until:
 |----------|---------|------------------------|
 | [`DETERMINISTIC_SAMPLE_1_0_0.md`](DETERMINISTIC_SAMPLE_1_0_0.md) | Reproducible credential-free input and expected public result shape | Synthetic input and aggregate output facts only |
 | [`ARTIFACT_INSPECTION_1_0_0.md`](ARTIFACT_INSPECTION_1_0_0.md) | One review row for every deliverable/format pair | Judgments, sizes, and hashes; never artifact bodies |
-| `RELEASE_CANDIDATE_1_0_0.json` | Canonical revision, version, build, evaluation, live, and artifact ledger | Generated only after strict allowlist validation |
+| [`RELEASE_CANDIDATE_1_0_0.json`](RELEASE_CANDIDATE_1_0_0.json) | Canonical revision, version, build, evaluation, live, and artifact ledger | Strictly allowlisted hashes, counts, durations, and judgments only |
 | [Session implementation notes](../../.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md) | Exact local commands, counts, known exceptions, and cleanup | Operational summaries without secrets or private payloads |
-
-The candidate JSON is absent until the live proof and all sixteen inspections
-are complete. Its absence is deliberate and prevents a partial ledger from
-looking like a successful release.
 
 ## Evidence Contract
 

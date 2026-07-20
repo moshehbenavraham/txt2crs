@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 13:58 IDT
+**Last Updated**: 2026-07-20 14:17 IDT
 
 ---
 
@@ -11,8 +11,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks Completed | 22 / 25 |
-| Estimated Remaining | Privacy cleanup, exact candidate repeat, and final reconciliation |
+| Tasks Completed | 25 / 25 |
+| Estimated Remaining | Session code review and validation handoff |
 | Blockers | None |
 
 ---
@@ -233,8 +233,8 @@
 ### Task T019 - Audit And Reduce Live Evidence
 
 **Started**: 2026-07-20 13:56 IDT
-**Status**: In progress - privacy cleanup complete; canonical candidate ledger
-pending the exact candidate revision and repeat-build hashes
+**Completed**: 2026-07-20 14:09 IDT
+**Duration**: 13 minutes
 
 **Notes**:
 - Audited the ignored live state, repository-local trace/log/backup/temp
@@ -261,11 +261,18 @@ pending the exact candidate revision and repeat-build hashes
 - Preserved only the separate ignored dedicated Codex authentication home.
   Deleting that credential would log the application out and is neither raw
   course evidence nor necessary for the privacy requirement.
+- Generated the candidate ledger only after the exact source revision and
+  repeat-build hashes existed. The strict validator accepted its sixteen
+  unique artifact pairs, bounded live facts, build hashes, and sole reviewed
+  external exception; a second canonical rewrite was byte-identical.
 
 **Files Changed**:
 - `docs/CHANGELOG.md` - bounded live-proof, repair, and cleanup release notes.
 - `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`
   - safe audit counts and cleanup proof.
+- `docs/release/RELEASE_CANDIDATE_1_0_0.json` - canonical allowlisted public
+  ledger for exact candidate revision
+  `a80700863e99cdd34bed757873d969236cdf36fa`.
 
 **Verification**:
 - Command/check: private workspace modes and `/proc` descriptor audit
@@ -277,6 +284,11 @@ pending the exact candidate revision and repeat-build hashes
 - Command/check: application owner purge plus idempotent replay
   - Result: PASS - first purge deleted one job and one artifact tree; second
     purge deleted zero; all raw live and worker paths are absent.
+- Command/check: strict candidate validation, public-pattern scan, and
+  repeated canonical rewrite
+  - Result: PASS - sixteen unique artifact pairs; no private value shape;
+    byte-identical canonical SHA-256
+    `43e811fc58efdce308b33d74112ab3a5969bca6fa3585e9a347643f6d052bbbd`.
 - UI product-surface check: N/A - privacy/evidence operations only.
 - UI craft check: N/A - no frontend code changed.
 
@@ -289,7 +301,8 @@ pending the exact candidate revision and repeat-build hashes
 ### Task T024 - Repeat Candidate Gates (Provider-Independent Portion)
 
 **Started**: 2026-07-20 10:21 IDT
-**Status**: Partial - final live evidence and exact candidate revision blocked
+**Completed**: 2026-07-20 14:09 IDT
+**Duration**: 228 elapsed minutes, interleaved with T016-T019
 
 **Notes**:
 - Repeated version validation and both distribution builds from detached
@@ -310,9 +323,23 @@ pending the exact candidate revision and repeat-build hashes
   exact images. Both application container IDs changed, while the PostgreSQL
   container identity and private engine-state volume mount remained
   identical; backend, frontend, and database returned healthy.
-- T024 remains open by design. T017-T019 must add the reviewed live evidence
-  and canonical candidate JSON before the final clean revision and its Git
-  SHA can exist. No `v1.0.0` tag was created.
+- Committed the release-blocking fixes and bounded evidence inputs as exact
+  candidate source revision
+  `a80700863e99cdd34bed757873d969236cdf36fa`, excluding the operator's
+  unrelated root README edit. Repeated the candidate gates from a detached,
+  clean worktree at that revision.
+- Rebuilt and inspected both Python distributions twice with byte-identical
+  outputs. Rebuilt both labeled production images, repeated the backend build
+  after adding an ignored nested-cache sentinel, and reproduced the exact
+  backend image ID.
+- Started a new isolated root-only Compose project with the exact images.
+  Database, backend, and frontend became healthy, prestart exited zero, and
+  all restart counts remained zero. Force-replacing backend/frontend changed
+  both application container IDs while preserving the database container,
+  private-state volume, owner-only marker, and marker bytes.
+- Generated and twice validated the canonical candidate ledger with the exact
+  revision and final distribution/image/artifact hashes. No `v1.0.0` tag
+  exists.
 
 **Files Changed**:
 - `backend/tests/scripts/test_container_contract.py` - tests-first recursive
@@ -340,6 +367,26 @@ pending the exact candidate revision and repeat-build hashes
 - Command/check: root-only candidate Compose replacement and health wait
   - Result: PASS - application tier replaced; database container and state
     volume retained; backend/frontend/database healthy; prestart exited zero.
+- Command/check: final detached revision and candidate repository validator
+  - Result: PASS - clean source revision
+    `a80700863e99cdd34bed757873d969236cdf36fa`; synchronized `1.0.0`
+    surfaces; candidate mode; no final tag.
+- Command/check: final distribution build, inspection, and repeat
+  - Result: PASS - wheel
+    `c21c64a34ebf19c237cbac031351015fcf75c9a7e58f2a4bd5599a93ae3e2212`
+    (199,716 bytes); source archive
+    `d8f8a50a0116d2fefb55af6a4d221fa1fb4f1b0327364ac06b5868efd242f601`
+    (632,606 bytes); repeated bytes identical.
+- Command/check: final labeled image build and ignored-cache repeat
+  - Result: PASS - backend
+    `cc6c2b8dfd52d741247c0dc01f699b19883d5fe4acf03151fd6065af05f1a7e0`;
+    frontend
+    `10baf7ec0bc99bb89ea6bca2b00045456e04fb134538c924fb23cbd04f709266`;
+    exact version/revision labels and runtime inspections pass.
+- Command/check: final isolated Compose health and replacement smoke
+  - Result: PASS - all service health/prestart/restart assertions pass;
+    application containers replaced while database and private volume
+    persisted.
 - UI product-surface check: PASS - the production frontend remains healthy.
 - UI craft check: N/A - no visual implementation changed.
 
@@ -348,6 +395,82 @@ pending the exact candidate revision and repeat-build hashes
   context copied from `packages/txt2crs`.
 - Evidence honesty: provisional image IDs are recorded as a partial repeat,
   not mislabeled as the final candidate revision or canonical live ledger.
+
+### Task T025 - Reconcile The Candidate Handoff
+
+**Started**: 2026-07-20 14:09 IDT
+**Completed**: 2026-07-20 14:17 IDT
+**Duration**: 8 minutes
+
+**Notes**:
+- Reconciled the exact candidate revision, synchronized version, two
+  distribution hashes, two image hashes, thirteen-case evaluation aggregate,
+  representative live facts, sixteen artifact rows, sole reviewed external
+  exception, raw-state cleanup, and Session 02 tag handoff across the
+  candidate ledger, release index, inspection ledger, task checklist, and
+  implementation notes.
+- Re-ran all three owning codebase gates after the exact candidate build.
+  Engine, backend, and frontend tests, linting, strict typing, frontend build,
+  and authoritative generated-client round trip are green.
+- The first backend attempt inherited an unrelated local database password and
+  failed at fixture setup. A disposable loopback PostgreSQL instance then
+  proved connectivity but correctly required migrations. After `alembic
+  upgrade head`, the complete backend suite passed; no product correction was
+  needed.
+- A direct frontend package generator invocation bypassed the repository
+  wrapper's final normalization and made one ASCII contract fail. Running
+  `scripts/generate-client.sh` restored the authoritative Biome plus ASCII/LF
+  pipeline, left no generated diff, and the complete backend rerun passed.
+- Removed the isolated candidate Compose project, its two volumes, the
+  disposable test database, and all candidate temp state. Zero candidate
+  containers or volumes remain. The local reviewed distribution files and
+  labeled image IDs still match the canonical ledger exactly.
+
+**Files Changed**:
+- `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/tasks.md`
+  - final completion and handoff checklist.
+- `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`
+  - exact final commands, counts, hashes, exceptions, and cleanup.
+- `docs/release/README_release.md` - completed candidate state and linked
+  canonical ledger.
+- `docs/release/RELEASE_CANDIDATE_1_0_0.json` - validated canonical evidence.
+
+**Verification**:
+- Command/check: complete engine suite, Ruff, and strict mypy
+  - Result: PASS - 486 passed and two explicit live skips; Ruff; 138-source
+    mypy graph.
+- Command/check: migrated disposable PostgreSQL plus complete backend suite,
+  Ruff, and strict mypy
+  - Result: PASS - 510 passed with one dependency deprecation warning; Ruff;
+    47-source mypy graph.
+- Command/check: frontend unit, Biome, TypeScript, production build, and
+  authoritative client generation
+  - Result: PASS - 132 tests; 158 files; 2,215 build modules; generated client
+    ASCII/LF and byte-clean.
+- Command/check: `scripts/validate-changes.sh --json`
+  - Result: PASS - all nine backend, engine, and frontend gates.
+- Command/check: candidate resource and hash reconciliation
+  - Result: PASS - local distributions/images match the ledger; zero orphan
+    candidate containers, volumes, or disposable database containers.
+- Command/check: final staged diff, release validators, Gitleaks, and
+  pre-commit hooks
+  - Result: PASS - diff hygiene; repository/evidence identity; no leak; all
+    applicable staged hooks.
+- Command/check: active-session/release ASCII/LF, local links, raw workspace,
+  staged README, and final-tag audits
+  - Result: PASS - seven files and four local links; zero raw/private
+    workspaces; operator README excluded; no `v1.0.0` tag.
+- UI product-surface check: PASS - frontend unit/build gates and the earlier
+  complete browser matrix remain green; no frontend source changed.
+- UI craft check: PASS - the earlier mobile/desktop/accessibility/reduced-
+  motion matrix and the final artifact-format reviews remain green.
+
+**BQC Fixes**:
+- Environment correctness: fixture setup failures were resolved with a
+  migrated disposable database instead of weakening authentication or
+  changing product configuration.
+- Generated-source ownership: used the repository wrapper and left
+  `frontend/src/client/` untouched by hand.
 
 ### Task T020 - Run Focused Release Gates
 

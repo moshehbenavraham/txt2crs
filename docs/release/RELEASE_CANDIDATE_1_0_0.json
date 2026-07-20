@@ -1,0 +1,257 @@
+{
+  "artifacts": [
+    {
+      "bytes": 6508,
+      "deliverable": "course",
+      "format": "html",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "052648cf9ff38a7dac4c366fbe21a769c9457d2888d6024df7de32dba0bb345e"
+    },
+    {
+      "bytes": 4429,
+      "deliverable": "course",
+      "format": "markdown",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "7fdf5ca12dfc7f64e4b23aa388d284abcd7ba0a8eb443b78fb6fdc2211074d13"
+    },
+    {
+      "bytes": 17230,
+      "deliverable": "course",
+      "format": "pdf",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "e077ee4e70564b05757592a6b272dceb49661d0a179b5b48e1e023ae4303ecb7"
+    },
+    {
+      "bytes": 38647,
+      "deliverable": "course",
+      "format": "docx",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "278765fad5e2c387c866175971fe5bfbb582f2b4f7d55d01f091f7eb3a6bbedd"
+    },
+    {
+      "bytes": 17234,
+      "deliverable": "review_pack",
+      "format": "html",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "bd67590a33e2a1919a5b1bb498933aff6c31f23506651764cb521f65bac1b39e"
+    },
+    {
+      "bytes": 15464,
+      "deliverable": "review_pack",
+      "format": "markdown",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "c4b44d6dac557fb42a4f8a07062191acf921361bb13b731bd5ee8ebd012fdf2f"
+    },
+    {
+      "bytes": 55083,
+      "deliverable": "review_pack",
+      "format": "pdf",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "e087cead7f60dc3d846d5e96402aa639b406b7d1c0de051588fdecf09913e661"
+    },
+    {
+      "bytes": 41554,
+      "deliverable": "review_pack",
+      "format": "docx",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "c3f4d21bbe1cf30d3b55f500b6848225b38ae58bf6b7b99db7b49707cc22b804"
+    },
+    {
+      "bytes": 3182,
+      "deliverable": "assessment",
+      "format": "html",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "15496e9786cbb7eb6324a639a03d439968803effd3651aede71ef6397ab4542c"
+    },
+    {
+      "bytes": 2626,
+      "deliverable": "assessment",
+      "format": "markdown",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "ce34518dd613383d84fd564a967666a5fe0d11b820efdc3c16b64d84360abe0c"
+    },
+    {
+      "bytes": 10366,
+      "deliverable": "assessment",
+      "format": "pdf",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "8df2cfb2b5bd7c713820ef444e563e8175c5a535fc47d2a14612709e4b53863d"
+    },
+    {
+      "bytes": 37756,
+      "deliverable": "assessment",
+      "format": "docx",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "e67df27a075f282777274253ebc64c0bc04e562173537af12c52ef08fc8acfa9"
+    },
+    {
+      "bytes": 5516,
+      "deliverable": "answer_key",
+      "format": "html",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "77073214fe3739056b871608b4eb267e500b29bb81d05f2eca66e5a5c76944c0"
+    },
+    {
+      "bytes": 4444,
+      "deliverable": "answer_key",
+      "format": "markdown",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "cf7974de9d8e04927e5abee19da07bf0bb0765427924c0a44d077cb7dcd0da0d"
+    },
+    {
+      "bytes": 17662,
+      "deliverable": "answer_key",
+      "format": "pdf",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "43ea412d1b5608703c0f5ddc8eb81cd0e48aa1152154d7ed71842695b9b4aa7c"
+    },
+    {
+      "bytes": 38175,
+      "deliverable": "answer_key",
+      "format": "docx",
+      "inspection": {
+        "alignment": "pass",
+        "answer_separation": "pass",
+        "citations": "pass",
+        "formatting": "pass",
+        "integrity": "pass",
+        "private_access": "pass"
+      },
+      "sha256": "6fdb035853d64c096e5d3e94942fd6fffc54edfee5a22dd0464e2633842f9c95"
+    }
+  ],
+  "distributions": {
+    "txt2crs-1.0.0-py3-none-any.whl": "c21c64a34ebf19c237cbac031351015fcf75c9a7e58f2a4bd5599a93ae3e2212",
+    "txt2crs-1.0.0.tar.gz": "d8f8a50a0116d2fefb55af6a4d221fa1fb4f1b0327364ac06b5868efd242f601"
+  },
+  "evaluation": {
+    "case_count": 13,
+    "passed_count": 13,
+    "private_case_data_included": false
+  },
+  "images": {
+    "backend": "cc6c2b8dfd52d741247c0dc01f699b19883d5fe4acf03151fd6065af05f1a7e0",
+    "frontend": "10baf7ec0bc99bb89ea6bca2b00045456e04fb134538c924fb23cbd04f709266"
+  },
+  "known_exceptions": [
+    "remote_codeql_billing"
+  ],
+  "live_proof": {
+    "artifact_count": 16,
+    "duration_seconds": 258,
+    "model_family": "gpt-5.6",
+    "research_used": true
+  },
+  "release": {
+    "mode": "candidate",
+    "revision": "a80700863e99cdd34bed757873d969236cdf36fa",
+    "tag": null,
+    "version": "1.0.0"
+  },
+  "schema_version": "1.0"
+}

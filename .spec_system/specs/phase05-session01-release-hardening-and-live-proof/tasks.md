@@ -136,7 +136,7 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   assessment versus instructor-answer separation; record one explicit
   pass/finding per pair without copying raw bodies into tracked evidence
   (`docs/release/ARTIFACT_INSPECTION_1_0_0.md`).
-- [ ] T019 [S0501] Audit live logs, HTTP/browser traffic, public projections,
+- [x] T019 [S0501] Audit live logs, HTTP/browser traffic, public projections,
   process tree, loopback listeners, temporary files, generated evidence,
   backups, and staged Git diff for secrets, prompts, provider payloads,
   private identifiers, paths, raw bodies, orphan resources, and overclaimed
@@ -172,13 +172,13 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   only known low external finding if billing still rejects zero-step runs
   (`.github/workflows/`, `.pre-commit-config.yaml`,
   `.spec_system/SECURITY-COMPLIANCE.md`).
-- [ ] T024 [S0501] Repeat version validation, distribution build/inspection,
+- [x] T024 [S0501] Repeat version validation, distribution build/inspection,
   candidate JSON generation, image build/inspection, Compose health, and
   replacement smoke from the exact clean candidate revision; verify the
   recorded Git SHA and all hashes match and that no final tag exists yet
   (`VERSION`, `backend/dist/`, `docs/release/RELEASE_CANDIDATE_1_0_0.json`,
   `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`).
-- [ ] T025 [S0501] Reconcile all commands, counts, inspection judgments,
+- [x] T025 [S0501] Reconcile all commands, counts, inspection judgments,
   candidate revision/hashes, local workflow evidence, known external
   exceptions, cleanup proof, and the exact Session 02 final-tag revalidation
   list; run final staged hooks and mark every task complete
@@ -190,15 +190,15 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
 
 ## Completion Checklist
 
-- [ ] All tasks marked `[x]`
-- [ ] All tests and checks passing
-- [ ] Exact `1.0.0` candidate revision and hashes recorded
-- [ ] Live GPT-5.6 plus Tavily course and sixteen-artifact review complete
-- [ ] Public evidence is redacted and raw/private workspaces are removed
-- [ ] No final `v1.0.0` tag exists before Session 02
-- [ ] Active-session files are ASCII-encoded with LF line endings
-- [ ] `implementation-notes.md` updated
-- [ ] Ready for `creview` (next step in the
+- [x] All tasks marked `[x]`
+- [x] All tests and checks passing
+- [x] Exact `1.0.0` candidate revision and hashes recorded
+- [x] Live GPT-5.6 plus Tavily course and sixteen-artifact review complete
+- [x] Public evidence is redacted and raw/private workspaces are removed
+- [x] No final `v1.0.0` tag exists before Session 02
+- [x] Active-session files are ASCII-encoded with LF line endings
+- [x] `implementation-notes.md` updated
+- [x] Ready for `creview` (next step in the
       implement -> creview -> validate sequence)
 
 ---
