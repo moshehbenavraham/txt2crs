@@ -204,7 +204,8 @@ The job database, artifacts, and Codex home must remain strict children of the
 persistent root. The worker root must remain outside it. Docker Compose mounts
 the `txt2crs-state` volume only at `/var/lib/txt2crs`. A complete local backup
 uses `scripts/backup-local-state.sh`, which briefly stops the backend writer
-and packages that volume with PostgreSQL in one checksum-protected bundle.
+and packages its durable contents with PostgreSQL in one checksum-protected
+bundle. Regenerable `codex-home/tmp` process scratch is intentionally omitted.
 
 ### Course-System Readiness and Authentication
 

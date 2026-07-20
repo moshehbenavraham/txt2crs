@@ -32,9 +32,9 @@ exempt and when it was added. Remove entries that no longer apply.
 | `generate-client.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; current deterministic generation passes through the all-file hook with a clean client diff. | 2026-07-19 |
 | `guard-dependencies.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; actionlint, pedantic Zizmor, immutable pins, and the no-open-PR state pass locally. | 2026-07-19 |
 | `playwright.yml` | Run 29742715684 failed with zero steps because Actions billing is disabled; all 69 broad browser cases and both 16-test deterministic job scenarios pass locally. | 2026-07-19 |
-| `quality.yml` | Run 29742715635 failed with zero steps because Actions billing is disabled; 517 backend, 489 engine, and 132 frontend tests plus lint, types, and build pass locally. | 2026-07-19 |
+| `quality.yml` | Run 29742715635 failed with zero steps because Actions billing is disabled; 518 backend, 489 engine, and 132 frontend tests plus lint, types, and build pass locally. | 2026-07-19 |
 | `security.yml` | Run 29742715611 failed with zero steps because Actions billing is disabled; 77-commit Gitleaks and both dependency audits pass locally, while CodeQL remains remote-only. | 2026-07-19 |
-| `test-backend.yml` | Run 29742715633 failed with zero steps because Actions billing is disabled; all 517 backend tests pass against isolated PostgreSQL 18 at 88% coverage. | 2026-07-19 |
+| `test-backend.yml` | Run 29742715633 failed with zero steps because Actions billing is disabled; all 518 backend tests pass against isolated PostgreSQL 18 at 88% coverage. | 2026-07-19 |
 | `test-docker-compose.yml` | Run 29742715687 failed with zero steps because Actions billing is disabled; isolated 1.0.0 images, migrations, health, one-process topology, and durable private state pass locally. | 2026-07-19 |
 | `zizmor.yml` | Run 29742715700 failed with zero steps because Actions billing is disabled; actionlint and pedantic Zizmor pass with no finding across all ten workflows. | 2026-07-19 |
 | `release.yml` | GitHub-hosted jobs cannot start while Actions billing is disabled; 1.0.0 identity, distributions, images, tests, actionlint, and pedantic Zizmor pass locally. | 2026-07-20 |
@@ -42,4 +42,5 @@ exempt and when it was added. Remove entries that no longer apply.
 ## Skipped Infra
 
 None. Repository-root Docker Compose is the complete deployment scope, and
-both deployable images passed isolated local health validation on 2026-07-19.
+the exact reviewed images passed isolated health, production rate-limit,
+backup/restore, and real image-replacement/rollback validation on 2026-07-20.

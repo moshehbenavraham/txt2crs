@@ -84,6 +84,59 @@ def test_archive_helper_rejects_symlinked_source_state(tmp_path: Path) -> None:
         )
 
 
+def test_archive_helper_omits_ephemeral_codex_runtime_directory(
+    tmp_path: Path,
+) -> None:
+    """Codex process scratch links must not make durable-state backup fail.
+
+    Codex creates ``codex-home/tmp/arg0`` on startup with absolute links to
+    executables inside the current application image. Those links are
+    process scratch state: they are regenerated on the next start, are not
+    credentials, and would be invalid if restored with a different image.
+    The durable authentication file beside ``tmp`` must still round-trip.
+    """
+
+    archive_helper = _load_archive_helper()
+    source_directory = tmp_path / "source"
+    codex_home = source_directory / "codex-home"
+    codex_runtime_directory = codex_home / "tmp" / "arg0" / "codex-probe"
+    codex_runtime_directory.mkdir(parents=True)
+    (codex_runtime_directory / "apply_patch").symlink_to("/app/.venv/bin/codex")
+    (codex_runtime_directory / ".lock").write_text(
+        "runtime scratch",
+        encoding="utf-8",
+    )
+    (codex_home / "auth.json").write_text(
+        '{"synthetic": true}',
+        encoding="utf-8",
+    )
+
+    archive_path = tmp_path / "engine-state.tar.gz"
+    archive_helper.create_state_archive(source_directory, archive_path)
+    archive_helper.validate_state_archive(archive_path)
+
+    with tarfile.open(archive_path, mode="r:gz") as archive:
+        archived_paths = {
+            archive_member.name.removeprefix("./")
+            for archive_member in archive.getmembers()
+        }
+
+    assert "codex-home/auth.json" in archived_paths
+    assert not any(
+        archived_path == "codex-home/tmp" or archived_path.startswith("codex-home/tmp/")
+        for archived_path in archived_paths
+    )
+
+    restore_directory = tmp_path / "restored"
+    restore_directory.mkdir()
+    archive_helper.restore_state_archive(archive_path, restore_directory)
+
+    assert (restore_directory / "codex-home" / "auth.json").read_text(
+        encoding="utf-8"
+    ) == '{"synthetic": true}'
+    assert not (restore_directory / "codex-home" / "tmp").exists()
+
+
 def test_archive_helper_validates_before_replacing_destination(tmp_path: Path) -> None:
     """A traversal member fails closed without deleting current engine state."""
 

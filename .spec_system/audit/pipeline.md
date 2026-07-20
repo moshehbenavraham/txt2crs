@@ -62,8 +62,8 @@ workflows, and 59 workflow/deployment contract tests pass.
 
 | Workflow | Run Or Local Command | Result | Fixes Applied | Remaining Or Blocker |
 |----------|----------------------|--------|---------------|----------------------|
-| `quality.yml` | run 29742715635; `./scripts/validate-changes.sh --json`; Phase 05 tooling audit | PASS (local fallback): 9/9 gate, 517 backend, 489 engine, 132 frontend | None | GitHub billing only |
-| `test-backend.yml` | run 29742715633; isolated PostgreSQL 18 plus `pytest --cov=app` | PASS: 517 at 88% | Shell template repair | GitHub billing only |
+| `quality.yml` | run 29742715635; `./scripts/validate-changes.sh --json`; Phase 05 tooling audit | PASS (local fallback): 9/9 gate, 518 backend, 489 engine, 132 frontend | None | GitHub billing only |
+| `test-backend.yml` | run 29742715633; isolated PostgreSQL 18 plus `pytest --cov=app` | PASS: 518 at 88% | Shell template repair and Codex-initialized backup regression | GitHub billing only |
 | `playwright.yml` | run 29742715684; broad isolated Playwright plus completed/failed job scenarios | PASS: all 69 runnable broad cases; 16 each deterministic scenario | Safe shard environment variables | GitHub billing only |
 | `test-docker-compose.yml` | run 29742715687; isolated base Compose startup, health, migration, and cleanup | PASS | Added concurrency and job name | GitHub billing only |
 | `security.yml` | run 29742715611; `gitleaks git --log-opts=--all`, `pip-audit`, `npm audit --audit-level=high` | PASS: 77 commits, 0 known vulnerabilities | Permission explanations | CodeQL is remote-only; GitHub billing |
@@ -79,7 +79,7 @@ workflows, and 59 workflow/deployment contract tests pass.
 
 | Package | Quality | Build And Test | Security | Integration |
 |---------|---------|----------------|----------|-------------|
-| `backend` | Ruff, mypy, ty PASS | 517 PASS at 88% | Python audit PASS | PostgreSQL migration, seed, API, and Compose PASS |
+| `backend` | Ruff, mypy, ty PASS | 518 PASS at 88% | Python audit PASS | PostgreSQL migration, seed, API, and Compose PASS |
 | `backend/packages/txt2crs` | Ruff and mypy PASS | 489 PASS; 2 explicit live skips | Python audit PASS | Historical paid proof plus deterministic release gates PASS |
 | `frontend` | Biome and TypeScript PASS | 132 PASS; production build PASS | npm audit PASS | Broad and deterministic Playwright PASS |
 

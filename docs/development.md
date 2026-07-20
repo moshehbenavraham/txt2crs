@@ -93,9 +93,9 @@ topology remains.
 
 Complete backup and restore commands are documented in
 [Local deployment](local-deploy.md#backup-and-restore). The backup briefly
-stops the backend writer and captures PostgreSQL plus the complete private
-engine-state volume; the legacy `scripts/backup-db.sh` is not sufficient by
-itself.
+stops the backend writer and captures PostgreSQL plus all durable private
+engine state. It omits only Codex's regenerable `codex-home/tmp` process
+scratch; the legacy `scripts/backup-db.sh` is not sufficient by itself.
 
 ## Mailcatcher
 

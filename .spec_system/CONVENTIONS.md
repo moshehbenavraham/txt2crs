@@ -160,7 +160,7 @@ artifacts, and Codex-managed credentials.
 | Security | backend-shell | SlowAPI + Docker boundary | Non-local authentication and job routes have finite per-client limits and RFC 9457 `429` responses; the local-only topology has no public edge that requires a WAF |
 | Database | backend-shell | PostgreSQL 18 | Compose-managed persistent volume; Alembic migrations |
 | Persistent state | txt2crs-engine | SQLite + filesystem | One backend-mounted `txt2crs-state` volume; not deployed independently |
-| Backup | backend-shell + txt2crs-engine | Docker + PostgreSQL + safe tar helper | One owner-only bundle covers PostgreSQL, SQLite jobs, artifacts, and Codex credentials; checksums and archive validation precede restore; retention defaults to 7 days |
+| Backup | backend-shell + txt2crs-engine | Docker + PostgreSQL + safe tar helper | One owner-only bundle covers PostgreSQL, SQLite jobs, artifacts, and durable Codex data; regenerable `codex-home/tmp` process scratch is omitted; checksums and archive validation precede restore; retention defaults to 7 days |
 | Deploy | backend-shell + frontend | Repository-root Docker Compose | Manual local image build and container replacement; rollback retags reviewed image IDs, preserves both durable volumes, and uses a full backup when data rollback is required |
 
 Local Docker is the only deployment target in scope. The authoritative probe

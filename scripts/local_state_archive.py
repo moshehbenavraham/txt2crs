@@ -4,7 +4,9 @@
 The local deployment keeps job metadata, generated artifacts, and Codex
 credentials in one Docker volume.  This helper deliberately accepts only
 directories and regular files so a symbolic link cannot make a backup escape
-that private volume or make a restore write outside its destination.
+that private volume or make a restore write outside its destination. Codex's
+``codex-home/tmp`` process scratch directory is omitted because it contains
+image-specific executable links that Codex recreates on startup.
 """
 
 from __future__ import annotations
@@ -18,6 +20,13 @@ import tarfile
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path, PurePosixPath
+
+# Codex creates absolute executable links below this directory while its
+# process is running. They point into the current application image rather
+# than durable state, so restoring them would be both unsafe and incorrect.
+# Authentication and other durable Codex files live beside ``tmp`` and remain
+# part of the archive.
+_EPHEMERAL_SOURCE_DIRECTORIES = (PurePosixPath("codex-home/tmp"),)
 
 
 def _require_real_directory(directory_path: Path, purpose: str) -> None:
@@ -39,6 +48,22 @@ def _validate_source_entry(entry_path: Path) -> None:
         raise ValueError(
             f"Backup source contains an unsupported special file: {entry_path}"
         )
+
+
+def _is_ephemeral_source_entry(
+    source_directory: Path,
+    source_entry: Path,
+) -> bool:
+    """Return whether one source entry belongs to known process scratch data."""
+
+    relative_entry = PurePosixPath(
+        source_entry.relative_to(source_directory).as_posix()
+    )
+    return any(
+        relative_entry == ephemeral_directory
+        or relative_entry.is_relative_to(ephemeral_directory)
+        for ephemeral_directory in _EPHEMERAL_SOURCE_DIRECTORIES
+    )
 
 
 def _normalized_member_path(member_name: str) -> PurePosixPath:
@@ -115,6 +140,8 @@ def create_state_archive(source_directory: Path, archive_path: Path) -> None:
                 source_directory.rglob("*"),
                 key=lambda path: path.relative_to(source_directory).as_posix(),
             ):
+                if _is_ephemeral_source_entry(source_directory, source_entry):
+                    continue
                 _validate_source_entry(source_entry)
                 relative_name = source_entry.relative_to(source_directory).as_posix()
                 archive.add(source_entry, arcname=relative_name, recursive=False)

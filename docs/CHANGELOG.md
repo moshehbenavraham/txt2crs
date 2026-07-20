@@ -26,6 +26,10 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Fixed
 
+- Fixed complete local backups after Codex initialization by excluding only
+  the regenerable `codex-home/tmp` process-scratch directory while preserving
+  durable credentials and continuing to reject symlinks elsewhere.
+
 ### Security
 
 ## [1.0.0] - 2026-07-20

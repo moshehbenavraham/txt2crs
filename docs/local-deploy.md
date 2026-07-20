@@ -68,9 +68,14 @@ BACKUP_RETENTION_DAYS=30 ./scripts/backup-local-state.sh
 Each bundle contains:
 
 - `postgres.dump`, a validated PostgreSQL custom-format dump;
-- `engine-state.tar.gz`, containing SQLite jobs, artifacts, and the isolated
-  Codex home while the backend writer is stopped;
+- `engine-state.tar.gz`, containing SQLite jobs, artifacts, and durable
+  isolated Codex-home data while the backend writer is stopped; and
 - `manifest.json` and `SHA256SUMS`.
+
+The archive omits `codex-home/tmp`. Codex recreates that directory at startup,
+and its contents include absolute links to executables in the current image
+rather than credentials or durable job state. Symlinks anywhere else in the
+private state root still make backup fail closed.
 
 The directory is mode `0700` and its files are mode `0600`. Treat the complete
 bundle as a secret: it can contain learner data, generated course content, and

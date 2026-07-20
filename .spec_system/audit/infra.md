@@ -1,151 +1,184 @@
-# Phase 04 Transition Infrastructure Report
+# Phase 05 Transition Infrastructure Report
 
 **Date:** 2026-07-20
-**Base revision:** `dac60fea7b5209022fce3b393f1fbb29663e57b7`
+**Base revision:** `8f598900b99ff88135fde453d3fccf93c019ab0e`
 **Result:** PASS
-**Selected bundle:** none - validation only
+**Selected bundle:** none - validation and repair only
 **Deployment target:** isolated repository-root Docker Compose
 
 ## Detection And Topology
 
 `bash .spec_system/scripts/analyze-project.sh --json` reported a mixed
-Python/TypeScript monorepo with three registered packages, Phase 04 complete,
-and no active session. Repository-root Docker Compose is the accepted and
-complete deployment target under ADR-0008; there is no hosted environment,
-public edge, remote deployment credential, or platform webhook in scope.
+Python/TypeScript monorepo with all eighteen sessions and Phases 00 through 05
+complete. The repository has three registered packages:
 
-The deployable units are the FastAPI backend shell, which hosts the reusable
-engine, and the Nginx frontend. PostgreSQL and the private `txt2crs-state`
-volume are shared durable infrastructure. The engine library has no
-independent deployment surface.
+- `backend-shell` is a deployable FastAPI API and engine host;
+- `frontend` is a deployable Nginx static application; and
+- `txt2crs-engine` is a reusable library built into the backend rather than an
+  independently deployed service.
 
-All four infrastructure bundles already existed. This run adopted Security
-and Deploy explicitly into `.spec_system/CONVENTIONS.md`, clarified the
-seven-day default backup retention, and validated every configured component
-against an isolated instance of the actual deployment target.
+PostgreSQL and the private `txt2crs-state` volume are shared durable
+infrastructure. ADR-0008 defines repository-root Docker Compose as the complete
+deployment scope, so there is no hosted environment, public edge, WAF,
+platform webhook, or deferred production target.
+
+All four infrastructure bundles were already configured. This run validated
+each bundle against fresh disposable resources and repaired one real backup
+failure found only after the Codex runtime had initialized its private home.
 
 ## Isolated Target
 
-The validation target used:
+The main validation target used:
 
-- Compose project `txt2crs-phase04-pipeline`;
-- backend image `txt2crs-phase04-pipeline-backend:dac60fe`;
-- frontend image `txt2crs-phase04-pipeline-frontend:dac60fe`;
-- isolated Compose-prefixed PostgreSQL and private-state volumes;
+- Compose project `txt2crs-phase05-infra`;
+- reviewed backend image
+  `sha256:9b503211b88d815e865545da595ef41a29a7d2f1abacfce4014b70144af80b4e`;
+- reviewed frontend image
+  `sha256:176e1fda3ded30ab070641d2d7a30c8aaab48d1bcf22c7ad562e8b5e23f143d9`;
+- isolated Compose-prefixed PostgreSQL and private-state volumes; and
 - no published host ports.
 
-The backend and frontend ran as production images. PostgreSQL, migrations,
-prestart, the API, and Nginx all reached their authored healthy states.
+The mutable local `latest` tags initially resolved to older images, so they
+were rejected as evidence. The stack was recreated with the exact reviewed
+image IDs before any bundle was accepted. Every disposable container, network,
+volume, and temporary backup was removed after validation; unrelated running
+projects were not modified.
 
 ## Health Bundle
 
-The backend container probe reached
-`/api/v1/utils/health/`, returned HTTP 200 with `status=healthy`, and proved
-PostgreSQL connectivity. The frontend container probe reached `/health` and
-returned stable JSON with `status=healthy` and `service=frontend`. Both
-containers remained healthy after backup, restore, and rollback recreation.
+The backend container probe and an in-container request to
+`/api/v1/utils/health/` both passed. The response reported HTTP 200,
+`status=healthy`, and `database=healthy`. Its `0.3.6` version is the FastAPI
+shell's intentionally independent implementation version; the declared
+repository and engine release remains `1.0.0` as required by the adopted Phase
+05 release-surface policy.
+
+The frontend container probe and a request over the isolated backend network
+to `/health` both passed with:
+
+```json
+{"service":"frontend","status":"healthy"}
+```
+
+PostgreSQL, prestart migrations, the backend, and the frontend reached their
+authored production states on the exact reviewed images.
 
 ## Security Bundle
 
-A standalone backend used `ENVIRONMENT=production`, an isolated state root,
-the isolated validation PostgreSQL service, disabled research, and no private
-development routes. Six rapid invalid login requests returned:
+A second disposable topology used:
+
+- `ENVIRONMENT=production`;
+- generated validation-only signing, database, and initial-user values;
+- a fresh PostgreSQL 18 database and private engine-state volume;
+- public signup and private development routes disabled; and
+- research disabled so no provider call or real credential was required.
+
+After migrations and initial data completed, six rapid invalid login requests
+returned:
 
 ```text
 401 401 401 401 401 429
 ```
 
-The sixth response was an RFC 9457 Problem Details object with
-`RATE_5001`, title `Rate Limit Exceeded`, HTTP status 429, and a trace ID. The
-server logged `rate_limit.request_rejected` and shut down gracefully.
+The final response was RFC 9457 Problem Details with status `429`, code
+`RATE_5001`, title `Rate Limit Exceeded`, and a trace ID. The production server
+also emitted the required `rate_limit.request_rejected` structured event.
 
-No WAF is configured because ADR-0008 deliberately excludes a hosted or public
-edge. This is not a deferred production check: local Docker is the complete
-deployment scope, and the API's non-local protection was validated directly.
+No WAF is configured because the accepted deployment has no hosted or public
+edge. This is an intentional topology fact, not a deferred component.
 
 ## Backup Bundle
 
-The complete recovery drill inserted one PostgreSQL probe and one private
-engine-state probe, then ran:
+The first backup attempt exposed an actual release defect. A started Codex
+runtime creates absolute executable links under
+`codex-home/tmp/arg0/<runtime>/`. Those image-specific process-scratch links
+caused the safe archive helper to reject the otherwise valid private-state
+volume.
+
+The repair was tests-first:
+
+1. add a failing regression that combines durable `codex-home/auth.json` data
+   with the same absolute scratch-link shape;
+2. omit only `codex-home/tmp` from durable-state archives;
+3. continue rejecting every symlink elsewhere in the state root; and
+4. prove archive validation and restore preserve the durable Codex data.
+
+The focused backup suite passed all seven tests, and the complete backend
+suite passed all 518 tests at 88% coverage on migrated PostgreSQL 18. The live
+drill then inserted one PostgreSQL probe and one private engine-state probe and
+ran:
 
 ```text
 BACKUP_RETENTION_DAYS=7 ./scripts/backup-local-state.sh <isolated-directory>
 ```
 
-The generated bundle directory was mode `0700`; its PostgreSQL dump,
-engine-state archive, manifest, and checksum list were mode `0600`.
-`pg_restore --list`, archive validation, and all SHA-256 checks passed.
+The bundle directory was mode `0700`; `postgres.dump`,
+`engine-state.tar.gz`, `manifest.json`, and `SHA256SUMS` were mode `0600`.
+The PostgreSQL catalog, safe-tar validator, and every recorded SHA-256 digest
+passed.
 
-After the probes were deliberately removed, the drill ran:
+After both probes were deliberately deleted, the drill ran:
 
 ```text
 TXT2CRS_RESTORE_CONFIRM=replace-local-state \
   ./scripts/restore-local-state.sh <verified-bundle>
 ```
 
-The restore recreated the application database, replaced the private state
-atomically, restarted the backend, and recovered exactly:
+Restore recovered exactly:
 
-- PostgreSQL: `database-roundtrip-ok`;
+- PostgreSQL: `database-roundtrip-ok`; and
 - private engine state: `engine-roundtrip-ok`.
 
-The probes were then removed, and the backend, frontend, and PostgreSQL all
-remained healthy. The first isolated backup invocation accidentally inherited
-the developer Compose override; the target was recovered without data loss,
-and the successful drill pinned `COMPOSE_FILE` to the base production Compose
-file. No repository defect or exception remained.
+The PostgreSQL container identity and `txt2crs-state` volume name remained
+unchanged, and both application health endpoints passed after restore.
 
 ## Deploy And Rollback Bundle
 
-Local deployment is intentionally manual. The documented rollback helper was
-executed with the reviewed current backend and frontend image IDs:
+The deploy test performed a real application-tier transition:
 
-```text
-BACKEND_PREV_IMAGE_ID=<reviewed-id> \
-FRONTEND_PREV_IMAGE_ID=<reviewed-id> \
-STACK_NAME=txt2crs-phase04-pipeline \
-./scripts/deploy-rollback.sh
-```
+1. replace the reviewed images with backend
+   `sha256:c9933b7091617355fa271833bc9a40ec5dde79c18fa29727bdf1f80c30dd03b2`
+   and frontend
+   `sha256:a37f5471fad43754486e192bed261b0c90df3157c3ab0630a6c36a43783798ca`;
+2. verify the replacement containers used those exact IDs and retained a
+   private-state probe;
+3. run `scripts/deploy-rollback.sh` with the reviewed image IDs; and
+4. wait for and inspect both post-rollback health states.
 
-It retagged the reviewed images, reran prestart, and recreated only the
-application tier. The backend and frontend returned to healthy, the backend
-and frontend containers used the exact supplied image IDs, PostgreSQL kept the
-same container, and the backend retained
-`txt2crs-phase04-pipeline_txt2crs-state`. API and frontend health responses
-passed again after rollback.
-
-The tag/manual GitHub release workflow validates release artifacts but never
-deploys, matching the local-only policy. Data rollback remains a separate,
-explicit, checksum-validated restore operation.
+The rollback restored the exact reviewed backend and frontend IDs. PostgreSQL
+kept the same container, the engine kept the same named volume, the synthetic
+private-state probe survived both transitions, and both health responses
+passed. Data rollback remains a separate explicit backup restore operation.
 
 ## Evidence Ledger
 
 | Bundle | Component | Package | Validation Target | Command / Check | Result | Fixes Applied | Remaining / Blocker |
 |--------|-----------|---------|-------------------|-----------------|--------|---------------|---------------------|
 | Detection | Project state | root | repository | `bash .spec_system/scripts/analyze-project.sh --json` | PASS | None | None |
-| Health | API readiness | `backend` | isolated production Compose | container health plus Python request to `/api/v1/utils/health/` | PASS | None | None |
-| Health | Nginx health | `frontend` | isolated production Compose | container health plus backend-network request to `/health` | PASS | None | None |
-| Security | Authentication rate limit | `backend` | production-mode Uvicorn on `127.0.0.1:8016` | six rapid form POSTs to `/api/v1/login/access-token` | PASS: sixth response 429 | Supplied isolated production-safe configuration | None |
-| Backup | Complete durable-state bundle | root | isolated production Compose | `BACKUP_RETENTION_DAYS=7 ./scripts/backup-local-state.sh <isolated-directory>` | PASS | Pinned base Compose file after the first command inherited the dev override | None |
-| Backup | Destructive restore drill | root | isolated production Compose | confirmed `restore-local-state.sh`, then database and file sanity checks | PASS | None | None |
-| Deploy | Image rollback | root | isolated production Compose | `scripts/deploy-rollback.sh` with reviewed image IDs | PASS | None | None |
-| Deploy | Persistence and post-rollback probes | root | isolated production Compose | image-ID, DB-container, state-volume, API, and frontend checks | PASS | Corrected a diagnostic command because the minimal Nginx image intentionally has no `wget` | None |
+| Health | API readiness | `backend` | exact reviewed image in isolated Compose | container health plus request to `/api/v1/utils/health/` | PASS | Rejected stale mutable `latest` tag and pinned reviewed ID | None |
+| Health | Nginx health | `frontend` | exact reviewed image in isolated Compose | container health plus request to `/health` | PASS | Rejected stale mutable `latest` tag and pinned reviewed ID | None |
+| Security | Authentication rate limit | `backend` | disposable production-mode topology | six rapid form POSTs to `/api/v1/login/access-token` | PASS: sixth response `429`/`RATE_5001` | Used isolated non-default validation values and fresh PostgreSQL | None |
+| Backup | Durable-state bundle | root | initialized isolated Compose state | `backup-local-state.sh` plus permissions, catalog, archive, and checksum checks | PASS after repair | Omit regenerable `codex-home/tmp`; retain fail-closed handling elsewhere | None |
+| Backup | Destructive restore drill | root | initialized isolated Compose state | confirmed `restore-local-state.sh`, then exact database and file reads | PASS | None | None |
+| Deploy | Image replacement and rollback | root | isolated Compose application tier | alternate-image replacement followed by `deploy-rollback.sh` | PASS | None | None |
+| Deploy | Persistence and post-rollback probes | root | isolated Compose application tier | image IDs, DB identity, volume identity, state marker, and health | PASS | None | None |
+| Cleanup | Disposable resources | root | local Docker | project down with volumes plus residue queries | PASS | None | None |
 
 ## Known Issues
 
-The Skipped Infra registry remains empty. The target is the real repository
-deployment scope, all configured components passed, and no external setup is
-required. GitHub Actions billing remains a pipeline-only external condition
-and does not prevent local deployment, backup, restore, or rollback.
+The Skipped Infra registry remains empty. The real local deployment target has
+working health, production throttling, complete durable-state backup/restore,
+and image rollback. GitHub Actions billing remains a pipeline-only external
+condition and does not prevent local operation.
 
 ## Handoff
 
 `infra -> carryforward` is the required Phase Transition handoff.
-`documents` follows `carryforward`; session planning resumes only after
-`phasebuild` creates Phase 05.
+`documents` follows `carryforward`. There is no unfinished phase to create
+after documentation reconciliation.
 
 **Next command:** `carryforward`
 
-**Reason:** Health, Security, Backup, and Deploy all pass against the complete
-local deployment target with no infrastructure exception or external setup
-remaining.
+**Reason:** All four configured bundles pass against the complete deployment
+scope, the discovered authenticated-state backup defect is repaired and
+regression-tested, and no infrastructure exception or external setup remains.

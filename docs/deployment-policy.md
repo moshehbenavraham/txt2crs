@@ -58,11 +58,14 @@ Create one complete owner-only local backup bundle with:
 ```
 
 The command briefly stops the backend writer, captures a PostgreSQL
-custom-format dump plus the complete private engine-state volume, validates
-both archives, and writes SHA-256 checksums. Restore requires the explicit
-confirmation documented in [Local deployment](local-deploy.md#backup-and-restore).
-The legacy `scripts/backup-db.sh` helper covers PostgreSQL only and is not a
-complete application backup.
+custom-format dump plus all durable private engine state, validates both
+archives, and writes SHA-256 checksums. The archive intentionally omits
+`codex-home/tmp`, which contains image-specific process-scratch links that
+Codex recreates at startup; credentials and other durable Codex state remain
+included. Restore requires the explicit confirmation documented in
+[Local deployment](local-deploy.md#backup-and-restore). The legacy
+`scripts/backup-db.sh` helper covers PostgreSQL only and is not a complete
+application backup.
 
 Backups contain learner records, generated artifacts, and Codex credentials.
 They are ignored by Git, created with owner-only permissions, and must be

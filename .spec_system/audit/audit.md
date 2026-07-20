@@ -34,7 +34,7 @@ billing-blocked remote workflows, and no skipped infrastructure.
 
 | Package | Formatting And Linting | Types | Tests And Build |
 |---------|------------------------|-------|-----------------|
-| `backend` | Ruff and repository hooks PASS; 112 files unchanged | mypy strict and ty PASS | 517 pytest tests PASS at 88% coverage |
+| `backend` | Ruff and repository hooks PASS | mypy strict and ty PASS | 518 pytest tests PASS at 88% coverage |
 | `backend/packages/txt2crs` | Ruff and repository hooks PASS; 138 files unchanged | mypy PASS | 489 pytest tests PASS; 2 explicit live-provider skips |
 | `frontend` | Biome PASS; 158 files checked with no fix | TypeScript PASS | 132 Vitest PASS; all 69 runnable broad browser cases PASS; complete and failed deterministic journeys pass 16 each; 2,215-module production build PASS |
 | repository root | large-file, case, TOML, YAML, EOF, whitespace, typos, generated-client, and Zizmor hooks PASS | N/A | Compose config, isolated service startup, health, database, and resource cleanup PASS |
@@ -73,7 +73,7 @@ known-issues entry.
 | Formatting | backend | `uv run ruff format app tests ../scripts/local_state_archive.py` | PASS: 112 unchanged | None | None |
 | Linting | backend | `uv run ruff check --fix app tests ../scripts/local_state_archive.py` | PASS | None | None |
 | Type Safety | backend | `uv run mypy app --strict`; `uv run ty check app` | PASS: 47 source files | None | None |
-| Testing | backend | isolated PostgreSQL plus `uv run pytest tests/ --cov=app --cov-report=term -q` | PASS: 517, 88% | None | None |
+| Testing | backend | isolated PostgreSQL plus `uv run pytest tests/ --cov=app --cov-report=term -q` | PASS: 518, 88% | None | None |
 | Formatting | engine | `uv run --package txt2crs ruff format .` | PASS: 138 unchanged | None | None |
 | Linting | engine | `uv run --package txt2crs ruff check --fix .` | PASS | None | None |
 | Type Safety | engine | `uv run --package txt2crs mypy` | PASS: 138 source files | None | None |
