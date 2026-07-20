@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -47,27 +47,6 @@ if (result.error) {
 
 if (result.status !== 0) {
   process.exit(result.status ?? 1)
-}
-
-// openapi-ts 0.99 emits one smart apostrophe in its path-serializer
-// documentation. Generated files still belong to this repository's ASCII-only
-// convention, so normalize that upstream prose as part of generation instead
-// of hand-editing generated output after every run.
-const generatedPathSerializer = resolve(
-  frontendRoot,
-  "src/client/core/pathSerializer.gen.ts",
-)
-const generatedPathSerializerSource = readFileSync(
-  generatedPathSerializer,
-  "utf8",
-)
-const asciiPathSerializerSource = generatedPathSerializerSource.replaceAll(
-  "\u2019",
-  "'",
-)
-
-if (asciiPathSerializerSource !== generatedPathSerializerSource) {
-  writeFileSync(generatedPathSerializer, asciiPathSerializerSource, "utf8")
 }
 
 process.exit(0)

@@ -8,7 +8,11 @@ export default {
   input: resolve(frontendRoot, "openapi.json"),
   output: {
     path: resolve(frontendRoot, "src/client"),
-    postProcess: ["biome:format"],
+    // The repository generation script formats both OpenAPI and the client
+    // from frontendRoot after generation. Running the generator's Biome
+    // post-processor from its isolated /tmp tool directory makes Biome treat
+    // this project config as a nested root in clean-checkout worktrees.
+    postProcess: [],
   },
 
   plugins: [

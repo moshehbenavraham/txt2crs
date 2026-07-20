@@ -15,6 +15,10 @@ REPOSITORY_ROOT = Path(
 GENERATE_CLIENT_SCRIPT = REPOSITORY_ROOT / "scripts" / "generate-client.sh"
 VALIDATE_CHANGES_SCRIPT = REPOSITORY_ROOT / "scripts" / "validate-changes.sh"
 OPENAPI_DOCUMENT = REPOSITORY_ROOT / "frontend" / "openapi.json"
+OPENAPI_GENERATOR_CONFIG = REPOSITORY_ROOT / "frontend" / "openapi-ts.config.ts"
+ASCII_NORMALIZER_SCRIPT = (
+    REPOSITORY_ROOT / "frontend" / "scripts" / "normalize-generated-client.mjs"
+)
 GENERATED_TYPES = REPOSITORY_ROOT / "frontend" / "src" / "client" / "types.gen.ts"
 GENERATED_CLIENT_ROOT = REPOSITORY_ROOT / "frontend" / "src" / "client"
 
@@ -51,6 +55,23 @@ def test_generate_client_formats_openapi_document_and_generated_client() -> None
     assert os.access(GENERATE_CLIENT_SCRIPT, os.X_OK)
     assert "openapi.json src/client" in generation_script
     assert "biome check --write" in generation_script
+
+
+def test_generate_client_normalizes_ascii_only_after_biome_parses_output() -> None:
+    """A smart apostrophe cannot break the generator's single-quoted source."""
+
+    generation_script = GENERATE_CLIENT_SCRIPT.read_text(encoding="utf-8")
+    generator_config = OPENAPI_GENERATOR_CONFIG.read_text(encoding="utf-8")
+    ascii_normalizer = ASCII_NORMALIZER_SCRIPT.read_text(encoding="utf-8")
+
+    assert "postProcess: []" in generator_config
+    assert "node scripts/normalize-generated-client.mjs" in generation_script
+    assert generation_script.index("biome check --write") < generation_script.index(
+        "node scripts/normalize-generated-client.mjs"
+    )
+    assert "replaceAll" in ascii_normalizer
+    assert "\\u2019" in ascii_normalizer
+    assert "writeFileSync" in ascii_normalizer
 
 
 def test_generated_client_uses_repository_ascii_and_lf_conventions() -> None:

@@ -11,4 +11,7 @@ npm --prefix frontend run generate-client
     # same step as the generated client so this script cannot leave a later
     # Biome hook or validation run dirty.
     npm exec -- biome check --write --unsafe --no-errors-on-unmatched --files-ignore-unknown=true openapi.json src/client
+    # Normalize the one reviewed upstream smart apostrophe only after Biome
+    # has made the generated string safe for an ASCII apostrophe.
+    node scripts/normalize-generated-client.mjs
 )
