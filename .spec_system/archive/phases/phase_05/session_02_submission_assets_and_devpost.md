@@ -1,7 +1,7 @@
 # Session 02: Submission Assets and Devpost
 
 **Session ID**: `phase05-session02-submission-assets-and-devpost`
-**Status**: Not Started
+**Status**: Complete
 **Estimated Tasks**: ~20-25
 **Estimated Duration**: 2-4 hours
 
@@ -57,12 +57,12 @@ one exact handoff for the human who owns external publishing and submission.
 
 ## Prerequisites
 
-- [ ] Session 01 produced one tested `1.0.0` release-candidate commit,
+- [x] Session 01 produced one tested `1.0.0` release-candidate commit,
       deterministic sample, redacted live sample, complete inspection
       evidence, and an explicit final-tag revalidation handoff.
-- [ ] The repository remains Private and the human operator can grant the two
+- [x] The repository remains Private and the human operator can grant the two
       event reviewers access under the event rules.
-- [ ] The human operator can access YouTube and Devpost for the final actions
+- [x] The human operator can access YouTube and Devpost for the final actions
       described in the handoff.
 
 ---
@@ -83,16 +83,16 @@ one exact handoff for the human who owns external publishing and submission.
 
 ## Success Criteria
 
-- [ ] A judge can clone, configure, start, inspect, and validate the exact
+- [x] A judge can clone, configure, start, inspect, and validate the exact
       release using the root README and linked sources of truth.
-- [ ] Public samples and media demonstrate input, research, progress, four
+- [x] Public samples and media demonstrate input, research, progress, four
       results, sources/conflicts, and the separate answer key without exposing
       private data.
-- [ ] The video candidate is narrated, under three minutes, and explains both
+- [x] The video candidate is narrated, under three minutes, and explains both
       Codex-assisted development and the GPT-5.6 runtime.
-- [ ] The Codex feedback Session ID and every required Education-category
+- [x] The Codex feedback Session ID and every required Education-category
       Devpost field are complete and verified.
-- [ ] The local package reconciles repository, intended tag, commit, version,
+- [x] The local package reconciles repository, intended tag, commit, version,
       sample, video candidate, and Devpost copy to the same tested release.
-- [ ] The human handoff gives exact steps to submit before
+- [x] The human handoff gives exact steps to submit before
       2026-07-22 00:00 UTC and keep platform confirmation private.

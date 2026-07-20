@@ -1,10 +1,10 @@
 # PRD Phase 05: Hardening and Submission
 
-**Status**: In Progress
+**Status**: Complete
 **Sessions**: 2 (initial estimate)
 **Estimated Duration**: 1-2 days
 
-**Progress**: 1/2 sessions (50%)
+**Progress**: 2/2 sessions (100%)
 
 ---
 
@@ -13,9 +13,9 @@
 Freeze feature scope, prove a synchronized release candidate under
 deterministic and production-like conditions, complete one synthetic
 representative GPT-5.6 plus Tavily course, finish every tracked judge-facing
-OpenAI/Devpost asset, and only then publish the exact final release submitted
-to judges. This phase adds no P1 product feature and does not introduce hosted
-deployment.
+OpenAI/Devpost asset, and only then hand the exact final release and
+submission steps to the human operator. This phase adds no P1 product feature
+and does not introduce hosted deployment.
 
 ---
 
@@ -24,19 +24,20 @@ deployment.
 | Session | Name | Status | Est. Tasks | Validated |
 |---------|------|--------|------------|-----------|
 | 01 | Release Hardening and Live Proof | Complete | 25 | 2026-07-20 |
-| 02 | Submission Assets and Devpost | Not Started | ~20-25 | - |
+| 02 | Submission Assets and Devpost | Complete | 16 | 2026-07-20 |
 
 ---
 
 ## Completed Sessions
 
 - Session 01: Release Hardening and Live Proof - completed 2026-07-20.
+- Session 02: Submission Assets and Devpost - completed 2026-07-20.
 
 ---
 
 ## Upcoming Sessions
 
-- Session 02: Submission Assets and Devpost
+- None - Phase 05 is complete.
 
 ---
 
@@ -46,12 +47,12 @@ deployment.
    and browser gates from the exact release revision.
 2. Complete and inspect one synthetic representative GPT-5.6 plus Tavily job
    with all 16 private artifacts and redacted operational evidence.
-3. Synchronize and build a `1.0.0` release candidate, then tag and push the
-   exact final judge-asset revision without publishing packages or deploying a
-   hosted environment.
+3. Synchronize and build a `1.0.0` release candidate, then provide exact
+   human-only tag and push instructions for the final judge-asset revision
+   without publishing packages or deploying a hosted environment.
 4. Finish the judge README, sample evidence, license/access check, Codex
-   feedback Session ID, public sub-three-minute video, Education-category
-   Devpost fields, and confirmed submission receipt.
+   feedback Session ID, private sub-three-minute upload candidate,
+   Education-category Devpost fields, and human publishing handoff.
 
 ---
 
@@ -81,11 +82,12 @@ deployment.
   rejects jobs before scheduling. Session 01 repeats every executable
   workflow equivalent locally, preserves the remote CodeQL exception, and
   does not misrepresent the hosted checks as green.
-- **The final version is `1.0.0`**: `0.7.0` is the current synchronized
+- **The final version is `1.0.0`**: `0.7.0` was the prior synchronized
   release and `docs/VERSIONING.md` reserves `1.0.0` for the first stable
   public API. Phases 00-04 delivered and validated that public boundary, so
-  Session 01 synchronizes the `1.0.0` release candidate and Session 02 creates
-  the final immutable tag after tracked judge assets are complete.
+  Session 01 synchronizes the `1.0.0` release candidate and Session 02 gives
+  the human operator the exact immutable tag steps after tracked judge assets
+  are complete.
 
 ### Conflict Resolutions
 
@@ -102,8 +104,9 @@ deployment.
   plan orders the judge README before release, but the initial phase stubs put
   the tag in Session 01 and tracked assets in Session 02. Session 01 now
   produces the tested candidate; Session 02 completes repository assets,
-  repeats the immutable release checks, and tags that exact commit. No tracked
-  change may follow the final tag without a new version.
+  repeats the immutable release checks, and hands that exact commit to the
+  human for tagging. No tracked change may follow the final tag without a new
+  version.
 
 ---
 
@@ -116,8 +119,8 @@ deployment.
   preview boundaries unchanged during the feature freeze.
 - Candidate evidence must identify one tested revision, one synchronized
   SemVer value, and matching Python distributions and Docker images. The final
-  Session 02 ledger adds the exact annotated tag after judge assets are
-  complete and revalidated.
+  Session 02 handoff tells the human how to add the exact annotated tag after
+  judge assets are complete and revalidated.
 - Live evidence is redacted and path-free. It may record finite model,
   research, artifact, timing, and validation facts but never credentials,
   provider payloads, prompts, private paths, or artifact bodies in logs.
@@ -136,8 +139,8 @@ deployment.
 ### Risks
 
 - **Deadline compression**: Freeze P0 behavior and prioritize release
-  integrity, the representative proof, video, and confirmed submission over
-  polish or any P1 feature.
+  integrity, the representative proof, video, and complete submission handoff
+  over polish or any P1 feature.
 - **External authentication**: Keep deterministic gates credential-free; use
   private operator credentials only for the isolated live proof and platform
   submission actions.
@@ -170,29 +173,29 @@ deployment.
 
 Phase complete when:
 
-- [ ] Both sessions are completed and validated.
-- [ ] The exact release revision passes clean deterministic package,
+- [x] Both sessions are completed and validated.
+- [x] The exact release revision passes clean deterministic package,
       acceptance, browser, evaluation, distribution, and production-image
       gates.
-- [ ] Container replacement preserves authentication, job state, and private
+- [x] Container replacement preserves authentication, job state, and private
       artifacts under the documented one-process topology.
-- [ ] One synthetic live GPT-5.6 plus Tavily course completes and all 16
+- [x] One synthetic live GPT-5.6 plus Tavily course completes and all 16
       artifacts pass recorded human inspection for alignment, citations,
       formatting, and answer separation.
-- [ ] Logs, browser/network evidence, release artifacts, and submission
+- [x] Logs, browser/network evidence, release artifacts, and submission
       materials contain no secret or private implementation data.
-- [ ] The selected final SemVer is synchronized and built as a release
-      candidate, then the complete judge-asset revision is revalidated,
-      committed, annotated as the exact matching tag, and pushed.
-- [ ] The root README, sample, AI-usage explanation, privacy/limits,
+- [x] The selected final SemVer is synchronized and built as a release
+      candidate; the complete judge-asset revision is revalidated and locally
+      committed with exact human-only tag and push instructions.
+- [x] The root README, sample, AI-usage explanation, privacy/limits,
       architecture, setup, and test instructions are judge-ready.
-- [ ] Repository license and judge access are verified without inventing a
-      CODEOWNERS or security-contact decision.
-- [ ] A narrated public YouTube demo under three minutes explains the product,
-      Codex development work, and GPT-5.6 runtime.
-- [ ] The primary Codex feedback Session ID, Education-category Devpost fields,
-      exact release link, and submission receipt are recorded before
-      2026-07-22 00:00 UTC.
+- [x] Repository license and private judge-access instructions are verified
+      without inventing a CODEOWNERS or security-contact decision.
+- [x] A narrated private 1080p upload candidate under three minutes explains
+      the product, Codex development work, and GPT-5.6 runtime.
+- [x] The primary Codex feedback Session ID, Education-category Devpost
+      fields, release-link instructions, and submission deadline are ready for
+      the human operator; platform receipts remain private and human-owned.
 
 ---
 
@@ -204,4 +207,4 @@ Phase complete when:
 
 ### Enables
 
-- Post-submission P1 work only after the Devpost receipt is confirmed.
+- Human publication and submission, followed by post-submission P1 work.

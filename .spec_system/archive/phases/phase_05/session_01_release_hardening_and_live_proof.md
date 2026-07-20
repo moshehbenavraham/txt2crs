@@ -52,10 +52,10 @@ release-candidate commit for the final judge-asset and tag gate.
 
 ## Prerequisites
 
-- [ ] Phase 04 learner and transition gates remain green at the selected base.
-- [ ] The operator-controlled ChatGPT identity and Tavily credential are
+- [x] Phase 04 learner and transition gates remain green at the selected base.
+- [x] The operator-controlled ChatGPT identity and Tavily credential are
       available only to the explicit live-proof process.
-- [ ] The working tree can be reduced to one intentional release scope before
+- [x] The working tree can be reduced to one intentional release scope before
       the final clean-checkout proof.
 
 ---
@@ -74,19 +74,19 @@ release-candidate commit for the final judge-asset and tag gate.
 
 ## Success Criteria
 
-- [ ] Every deterministic, fixed-evaluation, generated-client, production
+- [x] Every deterministic, fixed-evaluation, generated-client, production
       image, Compose, browser, and workflow-safety gate passes from the exact
       release revision.
-- [ ] Backend/frontend replacement preserves the expected durable stores and
+- [x] Backend/frontend replacement preserves the expected durable stores and
       returns both services to healthy.
-- [ ] The live system discovers and uses GPT-5.6, completes Tavily research
+- [x] The live system discovers and uses GPT-5.6, completes Tavily research
       before drafting, and produces exactly 16 owner-private verified
       artifacts.
-- [ ] All live publications pass the recorded human quality and answer-
+- [x] All live publications pass the recorded human quality and answer-
       separation inspection with no secret, prompt, path, provider payload, or
       raw artifact body in evidence logs.
-- [ ] Root/package versions, lockfile, changelog, distributions, images, and
+- [x] Root/package versions, lockfile, changelog, distributions, images, and
       candidate commit all identify `1.0.0`; the handoff states the exact
       checks Session 02 must repeat before tagging.
-- [ ] Any GitHub-hosted failure is proven to be the existing zero-step billing
+- [x] Any GitHub-hosted failure is proven to be the existing zero-step billing
       condition and has a passing exact local equivalent where one exists.

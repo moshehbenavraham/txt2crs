@@ -1,7 +1,7 @@
 # Phase 05 Session 02 - Submission Assets And Human Publishing Handoff
 
 **Session ID**: `phase05-session02-submission-assets-and-devpost`
-**Status**: In Progress
+**Status**: Complete
 **Package**: Cross-cutting
 **Release**: `1.0.0`
 **Base Commit**: a47a61804e7eda353020957d8b344b67e737da42

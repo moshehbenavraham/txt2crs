@@ -191,7 +191,7 @@ This system delivers the product via phases. Each phase is implemented through
 | 02 | Composition and Readiness | 5 | Complete |
 | 03 | Durable Jobs API | 3 | Complete |
 | 04 | Learner Experience | 2 | Complete |
-| 05 | Hardening and Submission | 2 | Started |
+| 05 | Hardening and Submission | 2 | Complete |
 
 ## Phase 00: Application Baseline
 
@@ -270,10 +270,12 @@ This system delivers the product via phases. Each phase is implemented through
    browser gates from one exact release revision.
 2. Complete and inspect one synthetic GPT-5.6 plus Tavily job with all 16
    owner-private artifacts.
-3. Synchronize and prove a release candidate, then commit, push, and annotate
-   the final SemVer release only after tracked judge assets are complete.
+3. Synchronize and prove a release candidate, then provide the human operator
+   exact final-commit, tag, and push instructions after tracked judge assets
+   are complete.
 4. Finish the judge README, sample evidence, license/access proof, Codex
-   feedback ID, public sub-three-minute video, Devpost fields, and receipt.
+   feedback ID, private sub-three-minute upload candidate, Devpost fields, and
+   human publishing handoff.
 
 ### Sessions
 
@@ -281,9 +283,9 @@ This system delivers the product via phases. Each phase is implemented through
   production replacement smoke, fixed evaluations, representative live job,
   artifact/privacy inspection, and synchronized `1.0.0` release-candidate
   gate.
-- **S02 - Submission Assets and Devpost**: Produce the judge package, public
-  video, feedback reference, final immutable release tag, complete Education
-  submission, and confirmed receipt tied to the tested release.
+- **S02 - Submission Assets and Devpost**: Produce the judge package, private
+  video candidate, feedback reference, complete Education submission copy,
+  and exact human-only publication handoff tied to the tested release.
 
 ## Technical Stack
 
@@ -307,26 +309,27 @@ This system delivers the product via phases. Each phase is implemented through
 
 ## Success Criteria
 
-- [ ] Phase 00 through Phase 05 exit gates pass.
-- [ ] Every enabled input mode is reported truthfully by readiness and covered
+- [x] Phase 00 through Phase 05 exit gates pass.
+- [x] Every enabled input mode is reported truthfully by readiness and covered
   by deterministic tests.
-- [ ] New requests are durably committed before `202` and recover from exact
+- [x] New requests are durably committed before `202` and recover from exact
   stored execution state.
-- [ ] GPT-5.6 is explicitly selected, discovered, and exercised without
+- [x] GPT-5.6 is explicitly selected, discovered, and exercised without
   silent fallback.
-- [ ] Binary content passes post-ingestion policy before research or Codex.
-- [ ] One completed job exposes four deliverables and exactly 16 private,
+- [x] Binary content passes post-ingestion policy before research or Codex.
+- [x] One completed job exposes four deliverables and exactly 16 private,
   owner-scoped, integrity-checked artifacts.
-- [ ] The donor `items` domain and table are removed through a verified
+- [x] The donor `items` domain and table are removed through a verified
   Alembic migration after job acceptance coverage passes.
-- [ ] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
-- [ ] Engine, backend, frontend, acceptance, Compose, and production Docker
+- [x] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
+- [x] Engine, backend, frontend, acceptance, Compose, and production Docker
   validation are green.
-- [ ] The then-current exact SemVer release is synchronized, built, tested,
-  tagged, pushed, and supported by one inspected live GPT-5.6 plus Tavily
-  course.
-- [ ] Judge-ready README, license/access, public demo video, Codex feedback
-  Session ID, Education-category fields, and Devpost submission are complete.
+- [x] The exact SemVer release candidate is synchronized, built, tested, and
+  supported by one inspected live GPT-5.6 plus Tavily course; tag and push
+  steps are reserved for the human operator.
+- [x] Judge-ready README, license/access instructions, private demo upload
+  candidate, Codex feedback Session ID, Education-category fields, and human
+  publishing handoff are complete.
 
 ## Risks
 
@@ -360,8 +363,7 @@ This system delivers the product via phases. Each phase is implemented through
 ### Conflict Resolutions
 
 - **Phase progress**: Validated session and phase-transition evidence is
-  authoritative. Phases 00 through 04 are complete; Phase 05 remains
-  unfinished.
+  authoritative. Phases 00 through 05 are complete.
 - **Phase 01 session count**: The implementation plan suggested two sessions,
   but those sessions combined fourteen substantial package gaps and exceeded
   the Apex Spec 12-25 task and 2-4 hour limits. Phase 01 therefore uses five
@@ -375,6 +377,6 @@ This system delivers the product via phases. Each phase is implemented through
   judge README before the final release, while the initial phase stubs placed
   the tag in Session 01 and tracked submission assets in Session 02. Session 01
   therefore proves a synchronized `1.0.0` release candidate and Session 02
-  creates the final tested tag only after all tracked judge assets are
-  complete. This keeps the submitted commit, tag, build, and documentation
-  identical.
+  prepares the exact human-only tag and push handoff after all tracked judge
+  assets are complete. This lets the operator keep the submitted commit, tag,
+  build, and documentation identical.

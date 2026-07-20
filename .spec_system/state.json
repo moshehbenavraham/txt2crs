@@ -3,7 +3,7 @@
   "project_name": "txt2crs",
   "description": "An OpenAI and Devpost Education Hackathon application that turns source material into a deeply researched course, review pack, assessment, and instructor answer key.",
   "current_phase": 5,
-  "current_session": "phase05-session02-submission-assets-and-devpost",
+  "current_session": null,
   "monorepo": true,
   "packages": [
     {
@@ -56,7 +56,7 @@
     "5": {
       "name": "Hardening and Submission",
       "description": "Prove the exact release, complete one synthetic live GPT-5.6 plus Tavily course, and finish every judge and Devpost submission artifact.",
-      "status": "in_progress",
+      "status": "complete",
       "session_count": 2
     }
   },
@@ -128,16 +128,14 @@
     {
       "id": "phase05-session01-release-hardening-and-live-proof",
       "package": null
+    },
+    {
+      "id": "phase05-session02-submission-assets-and-devpost",
+      "package": null
     }
   ],
   "next_session_history": [
     {
-      "date": "2026-07-19",
-      "session": "phase03-session01-durable-job-submission-and-admission",
-      "package": "backend",
-      "status": "planned"
-    },
-    {
       "date": "2026-07-20",
       "session": "phase03-session01-durable-job-submission-and-admission",
       "package": "backend",
@@ -245,6 +243,12 @@
       "session": "phase05-session02-submission-assets-and-devpost",
       "package": null,
       "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase05-session02-submission-assets-and-devpost",
+      "package": null,
+      "status": "completed"
     }
   ]
 }
