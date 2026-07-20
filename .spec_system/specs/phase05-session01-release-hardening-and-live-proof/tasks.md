@@ -87,30 +87,30 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
 
 ## Implementation (9 tasks)
 
-- [ ] T011 [S0501] Create a detached clean candidate worktree or clone at the
+- [x] T011 [S0501] Create a detached clean candidate worktree or clone at the
   exact planned revision, install from lockfiles, and execute the engine,
   backend, frontend unit/type/build, generated-client immutability, application
   acceptance, and deterministic browser matrices without credentials or
   network; retain command/result identity only
   (`.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`).
-- [ ] T012 [S0501] Run the fixed engine evaluation corpus in plan/replay mode,
+- [x] T012 [S0501] Run the fixed engine evaluation corpus in plan/replay mode,
   verify case/version/invariant coverage and aggregate privacy, and record only
   bounded aggregate results rather than case inputs or private references
   (`backend/packages/txt2crs/src/txt2crs/evals/`,
   `backend/packages/txt2crs/tests/unit/test_evaluation_replay.py`,
   `docs/release/RELEASE_CANDIDATE_1_0_0.json`).
-- [ ] T013 [S0501] Build the `1.0.0` wheel and source distribution from the
+- [x] T013 [S0501] Build the `1.0.0` wheel and source distribution from the
   engine package, inspect license/README/metadata/content, calculate SHA-256
   checksums, and reject stale or extra distributions
   (`backend/packages/txt2crs/pyproject.toml`, `backend/dist/`,
   `docs/release/RELEASE_CANDIDATE_1_0_0.json`).
-- [ ] T014 [S0501] Build fresh production backend/frontend images labeled with
+- [x] T014 [S0501] Build fresh production backend/frontend images labeled with
   candidate version and revision, inspect non-root user, one FastAPI process,
   healthchecks, build configuration, package version, and image IDs/digests,
   then start one isolated root-Compose project
   (`backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`,
   `scripts/verify-production-baseline.sh`).
-- [ ] T015 [S0501] Prove authentication, one completed deterministic job,
+- [x] T015 [S0501] Prove authentication, one completed deterministic job,
   manifest, and verified artifact persist while backend/frontend containers
   are replaced and the same PostgreSQL and private-state volumes are retained;
   confirm both services return healthy and the artifact remains owner-private
@@ -156,11 +156,11 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   byte identical
   (`backend/tests/scripts/`, `backend/packages/txt2crs/tests/unit/test_package_metadata.py`,
   `scripts/release_evidence.py`).
-- [ ] T021 [S0501] Run the complete engine and backend suites plus strict
+- [x] T021 [S0501] Run the complete engine and backend suites plus strict
   typing/linting from their owning package roots; keep the explicit live marker
   separate and record exact pass/skip counts
   (`backend/packages/txt2crs/`, `backend/`).
-- [ ] T022 [S0501] Run frontend unit tests, Biome, TypeScript, route generation,
+- [x] T022 [S0501] Run frontend unit tests, Biome, TypeScript, route generation,
   production build, deterministic completed/failed job Playwright projects,
   broad browser regression, mobile/desktop/accessibility/reduced-motion
   checks, and generated OpenAPI/client immutability

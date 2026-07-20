@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 09:14 IDT
+**Last Updated**: 2026-07-20 10:15 IDT
 
 ---
 
@@ -11,13 +11,273 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks Completed | 10 / 25 |
-| Estimated Remaining | 2-3 hours plus external live credential |
-| Blockers | 1 external credential pending; deterministic work continues |
+| Tasks Completed | 17 / 25 |
+| Estimated Remaining | 1-2 hours plus external live prerequisites |
+| Blockers | Tavily credential and GPT-5.6 entitlement; deterministic work continues |
 
 ---
 
 ## Task Log
+
+### Task T022 - Run Complete Frontend And Browser Matrix
+
+**Started**: 2026-07-20 10:00 IDT
+**Completed**: 2026-07-20 10:15 IDT
+**Duration**: 15 minutes
+
+**Notes**:
+- Ran the frontend compiler, formatter/linter, unit suite, route-producing
+  production build, and generated-client round trip under the declared Node
+  26.5.0/npm 12.0.1 toolchain.
+- Ran both dedicated provider-free course journeys. The broad browser matrix
+  required the guarded deterministic application factory: generic production
+  composition correctly returns `SYSTEM_6001` for account-wide engine purge
+  while research is unconfigured, whereas the deterministic factory supplies
+  that real package boundary without a provider.
+- Wired the already-running isolated MailCatcher for reset-password coverage
+  and removed every temporary browser state directory and local server.
+
+**Files Changed**:
+- No tracked file changed; generated routes/client remain byte-clean.
+
+**Verification**:
+- Command/check: Vitest, Biome, TypeScript, build, and client generation
+  - Result: PASS - 132 unit tests; 156 Biome files; typecheck; 2,215 build
+    modules; generated client and route tree unchanged.
+- Command/check: completed and failed deterministic Playwright configurations
+  - Result: PASS - each reported 16 passed and 1 scenario-specific skip.
+- Command/check: broad Playwright against the guarded deterministic package
+    boundary
+  - Result: PASS - 69 passed and 11 intentional fixture/scenario skips.
+  - Evidence: public, admin, auth, password reset, setup, intake, progress,
+    results, mobile, desktop, contrast, keyboard, accessibility, reduced
+    motion, and account cleanup surfaces passed.
+- UI product-surface check: PASS.
+- UI craft check: PASS - responsive, contrast, focus, reduced-motion, and
+  publication interaction assertions are green.
+
+**BQC Fixes**:
+- Environment correctness: production-disabled signup/private routes and
+  unconfigured live research were not weakened for testing; the explicit
+  test-only application guard supplied deterministic engine lifecycle.
+- Failure completeness: an observed `503 SYSTEM_6001` on user purge was
+  classified as the intended unavailable production boundary, then covered
+  through the correct credential-free test composition.
+
+### Task T021 - Run Complete Python Suites
+
+**Started**: 2026-07-20 09:57 IDT
+**Completed**: 2026-07-20 09:59 IDT
+**Duration**: 2 minutes
+
+**Notes**:
+- Re-ran both owning Python package roots from detached candidate revision
+  `3e25c184f8187c264e163c63fa38a260764bbe93`.
+- The first backend invocation inherited the root local-signup setting. That
+  environment contamination correctly made three non-local configuration
+  tests fail. Re-running with that unrelated variable unset made the exact
+  suite green; no product change was needed.
+
+**Files Changed**:
+- No tracked file changed.
+
+**Verification**:
+- Command/check: engine pytest, Ruff, and mypy
+  - Result: PASS - 470 passed, 1 explicit live skip; Ruff and mypy pass.
+- Command/check: backend pytest, Ruff, and mypy with isolated PostgreSQL
+  - Result: PASS - 506 passed with 106 known warnings; Ruff and mypy pass.
+- UI product-surface check: N/A.
+- UI craft check: N/A.
+
+**BQC Fixes**:
+- Environment correctness: the final backend matrix unsets developer-only
+  public signup before testing staging/production configuration contracts.
+
+### Task T015 - Prove Durable Replacement
+
+**Started**: 2026-07-20 09:49 IDT
+**Completed**: 2026-07-20 09:56 IDT
+**Duration**: 7 minutes
+
+**Notes**:
+- Authenticated the Compose-seeded user without printing credentials, tokens,
+  account identity, job identity, artifact identity, or content.
+- Used the package's deterministic public factory to create one synthetic
+  completed job in the mounted production private-state volume. The package
+  reported four deliverables and exactly sixteen verified artifacts.
+- Force-recreated only backend and frontend. PostgreSQL kept the same
+  container and the private engine state kept the same named volume.
+- Re-authenticated after replacement, then reopened the completed job through
+  the package boundary and verified the manifest and representative artifact
+  hash/size. Temporary proof identifiers were removed.
+
+**Files Changed**:
+- No tracked product file changed; proof state remains only in the isolated
+  private Compose volume.
+
+**Verification**:
+- Command/check: authenticated login and current-user reads before/after
+    application-tier replacement
+  - Result: PASS - both authenticated shell reads returned success.
+- Command/check: deterministic factory submit/execute and post-replacement
+    package reopen
+  - Result: PASS - completed status, four deliverables, sixteen artifacts, and
+    identical representative bytes after replacement.
+- Command/check: container, database, volume, health, and mode comparison
+  - Result: PASS - both application container IDs changed; database container
+    and private volume identities did not; backend/frontend/database are
+    healthy; all seventeen stored artifact-tree files (manifest plus sixteen
+    artifacts) are owner-private.
+- UI product-surface check: PASS - the production frontend remains healthy.
+- UI craft check: N/A - no visual implementation changed.
+
+**BQC Fixes**:
+- Evidence boundary: the temporary owner/job/hash proof lived only in the
+  owner-private volume and was deleted after comparison; tracked notes retain
+  aggregates only.
+- External readiness separation: authenticated job HTTP routes remain
+  intentionally unavailable while research is unconfigured. The durable
+  package proof is complete; real shell-route/live proof remains T016-T019
+  and is not overclaimed.
+
+### Task T014 - Build And Start Production Images
+
+**Started**: 2026-07-20 09:45 IDT
+**Completed**: 2026-07-20 09:49 IDT
+**Duration**: 4 minutes
+
+**Notes**:
+- A direct backend build exposed that the development stage is intentionally
+  last in its Dockerfile. Added a regression contract before correcting the
+  release workflow to target `production` explicitly.
+- Rebuilt both images from detached revision
+  `3e25c184f8187c264e163c63fa38a260764bbe93`, then launched only the root
+  Compose file so the development override could not replace the production
+  command or publish conflicting host ports.
+
+**Files Changed**:
+- `.github/workflows/release.yml` - explicit backend production build target.
+- `backend/tests/scripts/test_release_workflow_contract.py` - release-stage
+  regression contract.
+
+**Verification**:
+- Command/check: focused workflow contract red/green cycle
+  - Result: PASS - the missing target failed first; all 4 checks pass after
+    the workflow fix.
+- Command/check: fresh image build and metadata/runtime inspection
+  - Result: PASS - backend image
+    `fccb6c43a22d24ca68b697baeb691c27aea3d6ed8727d4b1d863821ed62aacf3`
+    runs as fixed UID 1001 (`appuser`), imports txt2crs `1.0.0`, uses one
+    `fastapi run app/main.py` process, and has the expected healthcheck.
+    Frontend image
+    `55e15d893fa82be81e3b27bca54d382a440383c29ab12a30652280596b5c2a06`
+    contains the built application and has the Nginx healthcheck.
+- Command/check: isolated root Compose project
+    `txt2crs-phase05-candidate`
+  - Result: PASS - database, backend, and frontend are healthy; the backend
+    and frontend run the exact inspected image IDs with zero restarts.
+- UI product-surface check: PASS - production frontend health is green.
+- UI craft check: N/A - no visual implementation changed.
+
+**BQC Fixes**:
+- Contract alignment: the hosted release workflow now inspects the same
+  production target used by the local production baseline.
+- Environment correctness: the proof invokes only `docker-compose.yml`;
+  auto-loading the development override is explicitly avoided.
+
+### Task T013 - Build And Inspect Python Distributions
+
+**Started**: 2026-07-20 09:44 IDT
+**Completed**: 2026-07-20 09:45 IDT
+**Duration**: 1 minute
+
+**Notes**:
+- Built only the `1.0.0` wheel and source archive from the clean worktree and
+  inspected required package metadata, license, README, and project manifest.
+
+**Files Changed**:
+- No tracked file changed; clean-worktree `backend/dist/` is ignored build
+  output.
+
+**Verification**:
+- Command/check: `uv build --package txt2crs` plus tar/zip/hash inspection
+  - Result: PASS - exactly one wheel and one source archive.
+  - Evidence: wheel `fc2dab0bca88795302a47ceccc7175c2b907e0a0ed664244e01955b4c8613320`
+    (194,117 bytes); source archive
+    `8178e4cc00dcdc41a2c53cd29a641616fcf02accb899f8a8c5aa1bc90c4fd171`
+    (588,687 bytes).
+- UI product-surface check: N/A.
+- UI craft check: N/A.
+
+### Task T012 - Run The Fixed Evaluation Corpus
+
+**Started**: 2026-07-20 09:43 IDT
+**Completed**: 2026-07-20 09:44 IDT
+**Duration**: 1 minute
+
+**Notes**:
+- Validated the complete packaged corpus, immutable fixture hashes, category
+  coverage, dry-run planning, private snapshot replay, path confinement, and
+  aggregate privacy. Planning executed no provider turn.
+- The bounded `13/13` corpus-contract result is reserved for the candidate
+  JSON; the JSON remains absent until live proof and artifact review complete.
+
+**Files Changed**:
+- No product file changed; exact aggregate facts are recorded here for later
+  canonical evidence generation.
+
+**Verification**:
+- Command/check: focused engine evaluation cases/replay pytest
+  - Result: PASS - 5 tests passed.
+  - Evidence: 13 unique categories, 13 unique packaged fixture hashes, plan
+    model `gpt-5.6`, `live=false`, and 0 executions.
+- UI product-surface check: N/A.
+- UI craft check: N/A.
+
+### Task T011 - Execute The Clean Deterministic Matrix
+
+**Started**: 2026-07-20 09:35 IDT
+**Completed**: 2026-07-20 09:42 IDT
+**Duration**: 7 minutes
+
+**Notes**:
+- Built a detached clean worktree, installed exact Python and npm lockfiles,
+  installed the declared Node 26.5.0/npm 12.0.1 runtime, and ran the full
+  credential-free package/application/browser matrix.
+- The first clean run exposed and fixed two masked checkout defects: ignored
+  runtime email HTML and backend tests requiring an ignored OpenAPI
+  intermediate. It also exposed generator Biome ordering that broke in a
+  `/tmp` worktree; the generator now formats before ASCII normalization.
+
+**Files Changed**:
+- `backend/app/email-templates/build/*.html`, `.gitignore` - tracked required
+  runtime email assets.
+- `backend/tests/scripts/test_generate_client_contract.py` - in-memory OpenAPI
+  fallback and generation-order regression.
+- `frontend/openapi-ts.config.ts`, `frontend/scripts/generate-client.mjs`,
+  `frontend/scripts/normalize-generated-client.mjs`,
+  `scripts/generate-client.sh` - clean-worktree generation.
+
+**Verification**:
+- Command/check: detached worktree at
+  `6ddab6ce49edf5b7646d5f603d7a00acf0915725`
+  - Result: PASS - exact lock installs; engine 470 passed/1 live skipped;
+    backend 505 passed; frontend 132 passed; typecheck and 2,215-module build
+    passed.
+  - Evidence: complete browser 16 passed/1 skipped; failed browser 16
+    passed/1 skipped.
+- Command/check: generate client at the exact clean revision
+  - Result: PASS - generated client has no diff and worktree status is clean.
+- UI product-surface check: PASS - deterministic browser covered public,
+  intake, progress, results, mobile, contrast, keyboard, failure, and cleanup.
+- UI craft check: PASS - existing Phase 04 product surfaces remained green.
+
+**BQC Fixes**:
+- Contract alignment: clean backend tests now derive the server OpenAPI
+  contract when its ignored generator intermediate is absent.
+- Failure completeness: required runtime email assets now exist in every clean
+  checkout; client generation no longer depends on a parent `/tmp` Biome
+  context.
 
 ### Task T010 - Drive Focused Release Tests Fully Green
 
@@ -306,6 +566,22 @@ deterministic and release-candidate task first; never substitute another
 provider or fabricate a live result.
 **Time Lost**: 0 minutes.
 
+### Blocker 2: The Valid ChatGPT Account Is Not Entitled To GPT-5.6
+
+**Description**: The explicit live subscription acceptance test used the
+operator's valid ChatGPT credential and the exact configured `gpt-5.6` model.
+Runtime readiness reported a valid credential but `model_entitled=False`.
+**Impact**: T016-T019 cannot claim exact GPT-5.6 execution, even after a
+Tavily key is supplied, until an authenticated app-owned account exposes that
+model.
+**Resolution**: Pending external account entitlement and packaged system-auth
+bootstrap. Do not substitute another model; continue all provider-independent
+release validation.
+**Verification**: `TXT2CRS_RUN_LIVE_CODEX=1 uv run --package txt2crs pytest
+packages/txt2crs/tests/acceptance -m live -q --tb=short` reached the entitlement
+assertion and failed there before any generation turn.
+**Time Lost**: 0 minutes.
+
 ---
 
 ## Design Decisions
@@ -334,4 +610,4 @@ must identify the same immutable revision.
 - Scope check: release hardening only; no product behavior change.
 - Tests: 26 focused release/workflow cases pass; candidate CLI accepts
   `1.0.0`; final CLI rejects a mismatched tag.
-- Next task: T011 - execute the clean deterministic matrix.
+- Next task: T014 - build and inspect production images.
