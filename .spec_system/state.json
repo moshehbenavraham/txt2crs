@@ -133,12 +133,6 @@
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase02-session05-operator-setup-experience",
-      "package": "frontend",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase03-session01-durable-job-submission-and-admission",
       "package": "backend",
       "status": "planned"
@@ -245,6 +239,12 @@
       "date": "2026-07-20",
       "session": "phase05-session02-submission-assets-and-devpost",
       "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase05-session02-submission-assets-and-devpost",
+      "package": null,
+      "status": "validated"
     }
   ]
 }
