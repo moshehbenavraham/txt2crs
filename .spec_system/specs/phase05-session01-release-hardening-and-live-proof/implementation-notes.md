@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 11:34 IDT
+**Last Updated**: 2026-07-20 13:58 IDT
 
 ---
 
@@ -11,18 +11,19 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks Completed | 19 / 25 |
-| Estimated Remaining | 1-2 hours plus external live prerequisites |
-| Blockers | Dedicated ChatGPT login and exact Sol discovery; Tavily is configured |
+| Tasks Completed | 22 / 25 |
+| Estimated Remaining | Privacy cleanup, exact candidate repeat, and final reconciliation |
+| Blockers | None |
 
 ---
 
 ## Task Log
 
-### Task T016 - Provision Live Runtime (Operator Helper Partial)
+### Task T016 - Provision Live Runtime
 
 **Started**: 2026-07-20 11:22 IDT
-**Status**: Partial - waiting for operator browser login
+**Completed**: 2026-07-20 12:05 IDT
+**Duration**: 43 minutes
 
 **Notes**:
 - Added one short repository-root command for the packaged device-code flow:
@@ -34,13 +35,41 @@
   model environment name to `TXT2CRS_MODEL_ID`.
 - Confirmed the private root environment now supplies a nonempty Tavily
   credential and explicitly selects `gpt-5.6-sol`; no value was printed.
+- Diagnosed the post-login false negative from the local Hermes and AIOS source
+  trees. A successful device token exchange establishes ChatGPT mode even when
+  the same app-server has not refreshed its account projection yet; persisted
+  OAuth presence is detected from metadata, never by reading token values.
+- Added the regression first, then made successful login verification reopen a
+  fresh packaged client. API-key rejection is now reported only for an exact
+  `apiKey` account type; an unavailable account projection receives a truthful
+  retry message instead.
+- Upgraded the bundled SDK and CLI binary from the stale two-model catalog to
+  `0.144.4`, regenerated the exact app-server protocol fixture, and verified
+  the dedicated identity discovers `gpt-5.6-sol`. Readiness reports valid
+  credentials and model entitlement without running a model turn.
+- Started the real FastAPI lifespan against owner-only live-proof storage,
+  packaged system auth, the private Tavily environment, and an ephemeral
+  worker. The cached aggregate returned `ready`, `accepting_jobs=true`, eight
+  input modes, and ready authentication, model, research, storage, worker,
+  inputs, admission, and runtime-ownership checks.
+- Documented the deterministic MCP subscription probe and the separately
+  gated representative Sol/Tavily course as different operations. The full
+  gate uses one stable idempotency key so a rerun resumes or replays the same
+  durable job instead of purchasing duplicate work.
 
 **Files Changed**:
 - `scripts/auth-codex.sh` - concise executable device-auth shortcut.
 - `backend/tests/scripts/test_system_auth_script_contract.py` - executable,
   path, argument, private-state, and documentation contracts.
 - `backend/packages/txt2crs/tests/acceptance/README_acceptance.md` - short
-  helper and exact Sol live-probe example.
+  helper plus separate small-probe and full-course runbooks.
+- `backend/packages/txt2crs/src/txt2crs/ai/system_authentication.py` and its
+  contract tests - fresh-client post-login verification and truthful fallback.
+- `backend/packages/txt2crs/pyproject.toml`, `backend/uv.lock`, protocol
+  contract, and `docs/fixtures/codex_app_server_0.144.4/` - exact packaged
+  runtime and matching generated protocol surface.
+- `backend/packages/txt2crs/tests/acceptance/test_live_codex_subscription.py`
+  - separately gated, idempotent representative full-course proof.
 
 **Verification**:
 - Command/check: focused helper contract before and after implementation
@@ -49,6 +78,22 @@
 - Command/check: Ruff, `bash -n`, ShellCheck, and real helper `--help`
   - Result: PASS - Python and shell checks are clean; packaged CLI help exits
     zero without starting authentication.
+- Command/check: focused post-login regressions before and after the fix
+  - Result: RED/GREEN - 2 new failures first; all 7 system-authentication
+    contracts pass after the fresh-client verification change.
+- Command/check: packaged protocol and version contracts
+  - Result: RED/GREEN - stale pins and missing `0.144.4` fixture failed first;
+    10 combined protocol/authentication contracts pass after the upgrade.
+- Command/check: dedicated account and exact-model readiness
+  - Result: PASS - account mode is ChatGPT; five models are visible;
+    `gpt-5.6-sol` is discovered with valid credentials and entitlement. No
+    paid generation turn ran.
+- Command/check: real FastAPI lifespan and cached aggregate readiness
+  - Result: PASS - status ready, accepting jobs true, all eight safe checks
+    ready, and reverse-order worker/auth/application cleanup completed.
+- Command/check: full-course gate static validation
+  - Result: PASS - Ruff, mypy, and 3 helper/document contracts pass; both live
+    tests remain explicitly skipped in the default suite.
 - UI product-surface check: N/A - local operator CLI only.
 - UI craft check: N/A - no application UI changed.
 
@@ -57,6 +102,189 @@
   login, and `exec` preserves its exit status without a wrapper process.
 - Contract alignment: the guide now names the environment variable consumed
   by the live test instead of the obsolete `TXT2CRS_LIVE_MODEL`.
+
+### Task T017 - Execute The Representative Live Course
+
+**Started**: 2026-07-20 12:08 IDT
+**Completed**: 2026-07-20 13:43 IDT
+**Duration**: 95 minutes, including tests-first release-blocking repairs
+
+**Notes**:
+- Ran the separately gated application/facade acceptance path with the
+  dedicated ChatGPT subscription identity, exact `gpt-5.6-sol`, and real
+  Tavily research. No OpenAI documentation or web research informed the
+  authentication/model work; the implementation was grounded in repository
+  behavior and the operator-provided local Hermes and AIOS source trees.
+- The canonical release proof is one delivered compact synthetic DNS course.
+  It completed in 258 seconds with six sources, six excerpts, six model-usage
+  records, one module, three sections, nine durable checkpoints, four
+  publications, and exactly sixteen artifacts.
+- Confirmed every usage record identifies exact `gpt-5.6-sol` and ChatGPT
+  subscription billing. The collected evidence checkpoint precedes design
+  and module drafting, and no model fallback occurred.
+- Preliminary provider attempts exposed release-blocking strict-schema,
+  research-budget, alignment, citation, excerpt-hash, rendering, and fixture
+  budget defects. Each defect failed safely, received a regression before its
+  fix, and was either purged after failure or explicitly retired and purged
+  before the final canonical run. They are not represented as additional
+  delivered release courses.
+- The final bounded execution consumed 186,889 input tokens and 10,897 output
+  tokens, below its finite 300,000/60,000 caps. The course truthfully requests
+  fifteen minutes rather than presenting a compact module as an hour-long
+  lesson.
+
+**Files Changed**:
+- `backend/packages/txt2crs/tests/acceptance/test_live_codex_subscription.py`
+  - exact-model, research-order, checkpoint, usage, artifact, and
+    student/instructor assertions for the separately gated course proof.
+- `backend/packages/txt2crs/src/txt2crs/ai/codex_runtime.py` and
+  `backend/packages/txt2crs/src/txt2crs/ai/runtime.py` - supported strict
+  provider schemas plus trusted prompt-schema fallback with local validation.
+- `backend/packages/txt2crs/src/txt2crs/generation/pipeline.py` and focused
+  integration tests - bounded plan/module repair, exact output contracts,
+  alignment, and block-level citation validation.
+- `backend/packages/txt2crs/src/txt2crs/research/coordinator.py` and focused
+  integration tests - attempted-URL accounting and stable stripped excerpt
+  hashing at the extraction cutoff.
+
+**Verification**:
+- Command/check: separately gated representative acceptance test
+  - Result: PASS - `1 passed in 259.88s`; safe summary reports GPT-5.6 family,
+    sixteen artifacts, 258 seconds, and eight checkpoints observed during
+    polling. Final durable recovery contains checkpoint sequence nine.
+- Command/check: final checkpoint and manifest inspection through the
+  owner-scoped facade
+  - Result: PASS - real research exists before drafting; all six usage records
+    identify exact Sol and subscription billing; manifest coverage is four by
+    four and every reopened byte stream matches its recorded size and hash.
+- Command/check: focused regressions followed by the complete engine suite
+  - Result: RED/GREEN - every discovered defect failed its new focused test
+    first; the latest provider-independent engine suite passes 486 tests with
+    two explicit live skips.
+- UI product-surface check: N/A - the live proof exercises the existing
+  application boundary without changing the frontend.
+- UI craft check: N/A - no frontend code changed.
+
+**BQC Fixes**:
+- Evidence honesty: records one canonical delivered proof while disclosing the
+  preliminary failed/superseded attempts instead of claiming no prior provider
+  calls occurred.
+- Resource safety: every failed or superseded owner state was removed through
+  `application.purge_owner`; the final raw state is retained only until T019
+  derives and validates the bounded public evidence.
+
+### Task T018 - Inspect All Sixteen Live Artifacts
+
+**Started**: 2026-07-20 13:43 IDT
+**Completed**: 2026-07-20 13:56 IDT
+**Duration**: 13 minutes
+
+**Notes**:
+- Reopened all sixteen owner-private artifacts through the application facade
+  and independently matched every byte count and SHA-256 digest recorded in
+  the human ledger.
+- Compared canonical course, review, assessment, and answer content across
+  HTML, Markdown, PDF, and DOCX. All formats preserve the same meaning, and
+  the learner assessment remains separate from instructor-only answers,
+  grading criteria, rationales, and evidence links.
+- Confirmed the renderer removes internal schema labels, stale long and
+  compact identifiers, duplicate objective labels, empty optional sections,
+  raw inline Markdown in PDF/DOCX, and incorrect singular point grammar.
+  Instructor answer keys disclose applicable source links for each item.
+- Opened and visually reviewed every PDF page. Verified all four DOCX files as
+  ZIP packages, converted them successfully with LibreOffice, and reviewed
+  their rendered pages. Text extraction and bounding-box checks confirmed
+  long headings remain intact within the document bounds.
+- Verified owner mismatch and missing-artifact requests remain
+  indistinguishable. No raw artifact body or private download link was copied
+  into tracked evidence.
+
+**Files Changed**:
+- `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py` and
+  `backend/packages/txt2crs/tests/unit/test_rendering.py` - tests-first
+  reader-facing labels, optional-section handling, identifier cleanup,
+  Markdown stripping, punctuation normalization, evidence disclosure, and
+  point grammar.
+- `docs/release/ARTIFACT_INSPECTION_1_0_0.md` - sixteen explicit PASS rows,
+  final hashes and sizes, and bounded cross-publication findings.
+
+**Verification**:
+- Command/check: hash and size comparison for sixteen reopened artifacts
+  - Result: PASS - exact coverage and integrity for all four deliverables in
+    all four formats.
+- Command/check: semantic, citation, identifier, Markdown-debris, and
+  student/instructor separation inspection
+  - Result: PASS - every required cross-publication boundary holds.
+- Command/check: PDF parsing/rendered page review and DOCX ZIP/conversion
+  review
+  - Result: PASS - four searchable PDFs and four valid, renderable DOCX
+    packages; course 3 pages, review pack 8, assessment 2, answer key 3.
+- Command/check: renderer unit suite
+  - Result: PASS - 20 renderer tests.
+- UI product-surface check: N/A - artifact publications, not application UI.
+- UI craft check: PASS - each generated format is readable and complete.
+
+**BQC Fixes**:
+- Reader quality: artifact prose no longer exposes internal generation IDs or
+  empty/redundant headings.
+- Separation: source evidence appears only in the instructor answer key, never
+  in the student assessment.
+
+### Task T019 - Audit And Reduce Live Evidence
+
+**Started**: 2026-07-20 13:56 IDT
+**Status**: In progress - privacy cleanup complete; canonical candidate ledger
+pending the exact candidate revision and repeat-build hashes
+
+**Notes**:
+- Audited the ignored live state, repository-local trace/log/backup/temp
+  surfaces, open descriptors, provider/worker process state, loopback
+  listeners, ignored release workspaces, tracked diff, and staged diff without
+  printing credentials, provider payloads, private identifiers, or artifact
+  bodies.
+- The live workspace contained the expected one owner-private job and sixteen
+  artifacts. Its root and directories were mode `0700`; files were tightened
+  to owner-only permissions before cleanup. No process retained an open
+  descriptor to the workspace.
+- Found no repository-local HAR, trace, log, backup, or temporary evidence
+  file; no ignored release-evidence workspace; no live loopback listener; no
+  staged diff; and no secret finding in the redacted Gitleaks scan of the
+  uncommitted project diff.
+- Custom added-line checks found zero credential assignments, emails, absolute
+  home paths, provider-payload fields, prompt transcripts, or raw artifact
+  body fields. The deterministic sample remains synthetic and contains no live
+  body or provider claim.
+- Purged the canonical owner through `application.purge_owner`: one job and
+  one artifact job tree were deleted. A repeated purge returned zero for both
+  counts. Removed the now-redundant raw state directory, purge worker, and two
+  live worker temp paths; all are confirmed absent.
+- Preserved only the separate ignored dedicated Codex authentication home.
+  Deleting that credential would log the application out and is neither raw
+  course evidence nor necessary for the privacy requirement.
+
+**Files Changed**:
+- `docs/CHANGELOG.md` - bounded live-proof, repair, and cleanup release notes.
+- `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`
+  - safe audit counts and cleanup proof.
+
+**Verification**:
+- Command/check: private workspace modes and `/proc` descriptor audit
+  - Result: PASS - owner-only boundary; zero external open descriptors.
+- Command/check: repository trace/log/backup/temp and ignored-workspace audit
+  - Result: PASS - zero retained raw evidence files or release workspaces.
+- Command/check: redacted Gitleaks diff scan and bounded added-line patterns
+  - Result: PASS - no leak finding and zero risky-value matches.
+- Command/check: application owner purge plus idempotent replay
+  - Result: PASS - first purge deleted one job and one artifact tree; second
+    purge deleted zero; all raw live and worker paths are absent.
+- UI product-surface check: N/A - privacy/evidence operations only.
+- UI craft check: N/A - no frontend code changed.
+
+**BQC Fixes**:
+- File defense: tightened private child-file modes even though the `0700`
+  ancestor already prevented non-owner traversal.
+- Cleanup honesty: retained the dedicated login because it is authentication
+  state, while removing every raw course and inspection workspace.
 
 ### Task T024 - Repeat Candidate Gates (Provider-Independent Portion)
 
@@ -755,7 +983,7 @@ authentication remains part of the single T017 live run.
 backend `.env`, and retained candidate backend all remain empty or absent.
 **Time Lost**: 0 minutes.
 
-### Blocker 2: Dedicated ChatGPT Identity Has Not Yet Discovered Sol
+### Blocker 2: Dedicated ChatGPT Identity Did Not Discover Sol
 
 **Description**: The explicit live subscription acceptance test used the
 operator's valid default ChatGPT credential. Exact `gpt-5.6` and follow-up
@@ -763,16 +991,16 @@ readiness-only `gpt-5.6-sol` checks both returned `model_entitled=False`; the
 current two-model catalog contains no reviewed GPT-5.6 family identifier.
 **Impact**: T016-T019 cannot claim exact Sol execution until the dedicated
 app-owned identity discovers `gpt-5.6-sol`.
-**Resolution**: Pending operator browser login through
-`./scripts/auth-codex.sh`. If fresh app-owned authentication still
-omits Sol, investigate the pinned SDK/catalog boundary rather than substituting
-a model or assuming the operator needs a different paid plan.
+**Resolution**: Resolved 2026-07-20 11:58 IDT. The operator completed the
+packaged device-code flow, the false negative was repaired from local
+Hermes/AIOS behavior, and the bundled SDK/CLI was upgraded to `0.144.4`.
+The dedicated catalog now contains five models including exact
+`gpt-5.6-sol`; aggregate readiness is ready without a fallback.
 **Verification**: `TXT2CRS_RUN_LIVE_CODEX=1 uv run --package txt2crs pytest
 packages/txt2crs/tests/acceptance -m live -q --tb=short` reached the entitlement
 assertion and failed there before any generation turn.
-**Rechecked**: 2026-07-20 10:32 IDT - the authenticated credential remains
-valid, exact `gpt-5.6` discovery remains unavailable, and the probe again
-stopped at readiness before a generation turn.
+**Rechecked**: 2026-07-20 12:00 IDT - the dedicated credential is valid, exact
+Sol is entitled, and the complete application readiness projection is ready.
 **Time Lost**: 0 minutes.
 
 ---
@@ -832,3 +1060,16 @@ must identify the same immutable revision.
   absent.
 - Next task: T016 immediately after a private Tavily key and a ChatGPT account
   entitled to exact `gpt-5.6` are available.
+
+### Checkpoint 4
+
+- Completed T016 with packaged device authentication, exact Sol catalog
+  discovery, private Tavily configuration, owner-only storage, live worker,
+  and complete application readiness.
+- Used only repository code and the operator-provided local Hermes and AIOS
+  sources for the authentication/catalog diagnosis; no OpenAI documentation
+  was used.
+- Added the separately gated representative course proof. The normal suite
+  still performs no network or paid generation work.
+- Next task: run the one T017 synthetic course, then inspect its sixteen
+  artifacts and complete the T018-T019 privacy ledger before final gates.

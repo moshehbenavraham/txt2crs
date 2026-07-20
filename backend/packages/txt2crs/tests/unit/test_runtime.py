@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from tests.factories import valid_course_data
+from tests.factories import valid_course_data, valid_review_pack_data
 from txt2crs.ai.codex_runtime import (
     CodexSubscriptionRuntime,
     RuntimePolicyError,
@@ -26,7 +26,7 @@ from txt2crs.ai.runtime_status import (
     RuntimeReadinessStatus,
 )
 from txt2crs.ai.usage import RuntimeUsage, SubscriptionQuotaState
-from txt2crs.domain.models import Course
+from txt2crs.domain.models import Course, ReviewPack
 
 
 class StubCodexAdapter:
@@ -38,10 +38,13 @@ class StubCodexAdapter:
         account_type: str = "chatgpt",
         models: tuple[str, ...] = ("gpt-5.6",),
         result_model_id: str | None = None,
+        result_output: dict[str, Any] | None = None,
     ) -> None:
         self.account_type = account_type
         self.models = models
         self.result_model_id = result_model_id
+        self.result_output = result_output or valid_course_data()
+        self.received_request: TurnRequest | None = None
         self.received_output_schema: dict[str, Any] | None = None
 
     def inspect_account_type(self) -> str:
@@ -58,15 +61,16 @@ class StubCodexAdapter:
         self,
         *,
         request: TurnRequest,
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         cancellation: CancellationToken,
     ) -> CodexAdapterResult:
         """Record the schema and return a deterministic course."""
 
         cancellation.raise_if_cancelled()
+        self.received_request = request
         self.received_output_schema = output_schema
         return CodexAdapterResult(
-            output=valid_course_data(),
+            output=self.result_output,
             thread_id="thread-1",
             turn_id="turn-1",
             model_id=self.result_model_id or request.model_id,
@@ -106,7 +110,7 @@ def test_subscription_runtime_rejects_api_key_accounts() -> None:
 
 
 def test_subscription_runtime_uses_discovered_models_and_json_schema() -> None:
-    """The wrapper validates model entitlement and transmits the exact schema."""
+    """The wrapper transmits a strict-compatible schema for constrained output."""
 
     adapter = StubCodexAdapter()
     runtime = CodexSubscriptionRuntime(
@@ -121,9 +125,38 @@ def test_subscription_runtime_uses_discovered_models_and_json_schema() -> None:
     )
 
     assert result.artifact.course_id == "course-python-basics"
-    assert adapter.received_output_schema == Course.model_json_schema()
+    assert adapter.received_output_schema is not None
+    learning_objective_schema = adapter.received_output_schema["$defs"][
+        "LearningObjective"
+    ]
+    assert learning_objective_schema["required"] == list(
+        learning_objective_schema["properties"]
+    )
+    assert "default" not in learning_objective_schema["properties"]["assessed"]
     assert result.usage.billing_source == "chatgpt_subscription"
     assert result.usage.estimated_api_cost is None
+
+
+def test_subscription_runtime_uses_local_validation_for_unsupported_schema() -> None:
+    """Map-shaped fields use a trusted schema prompt and exact local validation."""
+
+    adapter = StubCodexAdapter(result_output=valid_review_pack_data())
+    runtime = CodexSubscriptionRuntime(
+        adapter=adapter,
+        model_policy=Gpt56ModelPolicy(),
+    )
+
+    result = runtime.run_validated_turn(
+        request=course_turn_request(),
+        artifact_model=ReviewPack,
+        cancellation=CancellationToken(),
+    )
+
+    assert result.artifact.review_pack_id == "review-python-basics"
+    assert adapter.received_output_schema is None
+    assert adapter.received_request is not None
+    assert "JSON Schema" in adapter.received_request.trusted_instructions
+    assert '"section_summaries"' in adapter.received_request.trusted_instructions
 
 
 def test_subscription_runtime_rejects_an_undiscovered_model() -> None:

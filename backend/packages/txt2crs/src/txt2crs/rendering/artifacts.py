@@ -42,6 +42,38 @@ _PRIVATE_CONTENT_PATTERNS = (
         r"[A-Za-z0-9._~+/-]{6,}"
     ),
 )
+_INLINE_MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]\n]+)\]\((https?://[^)\s]+)\)")
+_IDENTIFIER_CHARACTER_CLASS = r"A-Za-z0-9._:-"
+_PDF_PUNCTUATION_TRANSLATION = str.maketrans(
+    {
+        "\u00a0": " ",
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u2013": "-",
+        "\u2014": "-",
+        "\u2026": "...",
+    }
+)
+_REVIEW_SCHEMA_FIELD_PATTERN = re.compile(
+    r"`?\b(section|objective|exercise|flashcard|source)_id\b`?",
+    re.IGNORECASE,
+)
+_BACKTICKED_REVIEW_IDENTIFIER_PATTERN = re.compile(
+    r"`(?:practice|pe|worked|we|flashcard|fc|card|section|sec|objective|obj|lo)"
+    r"[A-Za-z0-9._:-]+`",
+    re.IGNORECASE,
+)
+_BARE_REVIEW_IDENTIFIER_PATTERN = re.compile(
+    r"\b(?:section|objective|practice|exercise|worked|flashcard)"
+    r"[-_:](?=[A-Za-z0-9._:-]*\d)[A-Za-z0-9._:-]+\b",
+    re.IGNORECASE,
+)
+_BARE_SHORT_REVIEW_IDENTIFIER_PATTERN = re.compile(
+    r"\b(?:lo|obj|sec|pe|we|fc)[-_:]?\d[A-Za-z0-9._:-]*\b",
+    re.IGNORECASE,
+)
 
 
 class RenderedOutputQaError(ValueError):
@@ -87,6 +119,140 @@ def validate_rendered_html(
         issues.append("private diagnostic or credential-shaped content is forbidden")
     if issues:
         raise RenderedOutputQaError("; ".join(issues[:20]))
+
+
+def _point_label(points: int) -> str:
+    """Return grammatically correct learner-facing point text."""
+
+    unit = "point" if points == 1 else "points"
+    return f"{points} {unit}"
+
+
+def _plain_text_from_inline_markdown(value: str) -> str:
+    """Convert the renderer's small inline Markdown subset to portable text.
+
+    HTML and Markdown retain their native link semantics. PDF and DOCX are
+    intentionally dependency-light, so those formats spell out a link target
+    and remove emphasis/code markers instead of exposing raw Markdown syntax.
+    """
+
+    text_with_readable_links = _INLINE_MARKDOWN_LINK_PATTERN.sub(
+        r"\1 (\2)",
+        value,
+    )
+    return text_with_readable_links.replace("**", "").replace("__", "").replace("`", "")
+
+
+def _summary_text(value: str) -> str:
+    """Remove one redundant leading colon after the fixed Summary label."""
+
+    stripped_value = value.lstrip()
+    if stripped_value.startswith(":"):
+        return stripped_value.removeprefix(":").lstrip()
+    return stripped_value
+
+
+def _replace_identifier_references(
+    value: str,
+    *,
+    display_label_by_identifier: dict[str, str],
+) -> str:
+    """Replace canonical validation IDs only when they occur as whole tokens."""
+
+    reader_text = value
+    # Longer identifiers run first so a short ID cannot consume part of a
+    # longer, equally valid ID. Backtick-wrapped references are common in model
+    # prose and are replaced as one unit so their Markdown markers disappear.
+    for identifier in sorted(
+        display_label_by_identifier,
+        key=len,
+        reverse=True,
+    ):
+        display_label = display_label_by_identifier[identifier]
+        reader_text = reader_text.replace(f"`{identifier}`", display_label)
+        reader_text = re.sub(
+            rf"(?<![{_IDENTIFIER_CHARACTER_CLASS}])"
+            rf"{re.escape(identifier)}"
+            rf"(?![{_IDENTIFIER_CHARACTER_CLASS}])",
+            display_label,
+            reader_text,
+        )
+    return _humanize_unresolved_review_references(reader_text)
+
+
+def _humanize_unresolved_review_references(value: str) -> str:
+    """Remove stale identifier-shaped prose that has no canonical mapping."""
+
+    reader_text = _REVIEW_SCHEMA_FIELD_PATTERN.sub(
+        lambda match: match.group(1).casefold(),
+        value,
+    )
+
+    def unresolved_identifier_label(match: re.Match[str]) -> str:
+        """Return a neutral label without inventing a canonical target."""
+
+        normalized_identifier = match.group(0).strip("`").casefold()
+        if normalized_identifier.startswith(("practice", "pe-", "pe_")):
+            return "Practice exercise"
+        if normalized_identifier.startswith(("worked", "we-", "we_")):
+            return "Worked example"
+        if normalized_identifier.startswith(("flashcard", "card", "fc-", "fc_")):
+            return "Flashcard"
+        if normalized_identifier.startswith(("section", "sec-", "sec_")):
+            return "section"
+        return "objective"
+
+    reader_text = _BACKTICKED_REVIEW_IDENTIFIER_PATTERN.sub(
+        unresolved_identifier_label,
+        reader_text,
+    )
+
+    def bare_identifier_label(match: re.Match[str]) -> str:
+        """Return a contextual neutral label for an unquoted stale ID."""
+
+        identifier_kind = re.split(r"[-_:]", match.group(0), maxsplit=1)[0].casefold()
+        if identifier_kind == "section":
+            return "the related section"
+        if identifier_kind == "objective":
+            return "the related objective"
+        if identifier_kind in {"practice", "exercise"}:
+            return "Practice exercise"
+        if identifier_kind == "worked":
+            return "Worked example"
+        return "Flashcard"
+
+    reader_text = _BARE_REVIEW_IDENTIFIER_PATTERN.sub(
+        bare_identifier_label,
+        reader_text,
+    )
+
+    def short_identifier_label(match: re.Match[str]) -> str:
+        """Humanize compact IDs such as ``lo2`` or ``pe3``."""
+
+        normalized_identifier = match.group(0).casefold()
+        if normalized_identifier.startswith(("lo", "obj")):
+            return "the related objective"
+        if normalized_identifier.startswith("sec"):
+            return "the related section"
+        if normalized_identifier.startswith("pe"):
+            return "Practice exercise"
+        if normalized_identifier.startswith("we"):
+            return "Worked example"
+        return "Flashcard"
+
+    reader_text = _BARE_SHORT_REVIEW_IDENTIFIER_PATTERN.sub(
+        short_identifier_label,
+        reader_text,
+    )
+    # A model may write "objective `lo1`". The known-ID replacement is
+    # intentionally context-free, so collapse the resulting duplicated label
+    # here after every canonical mapping is complete.
+    return re.sub(
+        r"\bobjective\s+Objective\s+(\d+)\b",
+        r"Objective \1",
+        reader_text,
+        flags=re.IGNORECASE,
+    )
 
 
 class ArtifactRenderer:
@@ -136,6 +302,7 @@ class ArtifactRenderer:
         answer_key_markdown = self._render_answer_key_markdown(
             bundle.answer_key,
             bundle.assessment,
+            bundle.course,
         )
         return {
             "course_html": RenderedArtifact(
@@ -295,22 +462,25 @@ class ArtifactRenderer:
             heading_match = re.match(r"^(#{1,6})\s+(.+)$", stripped_line)
             if heading_match is not None:
                 heading_level = min(9, len(heading_match.group(1)))
-                document.add_heading(heading_match.group(2), level=heading_level)
+                document.add_heading(
+                    _plain_text_from_inline_markdown(heading_match.group(2)),
+                    level=heading_level,
+                )
                 continue
             if stripped_line.startswith("- "):
                 document.add_paragraph(
-                    stripped_line.removeprefix("- "),
+                    _plain_text_from_inline_markdown(stripped_line.removeprefix("- ")),
                     style="List Bullet",
                 )
                 continue
             numbered_match = re.match(r"^\d+\.\s+(.+)$", stripped_line)
             if numbered_match is not None:
                 document.add_paragraph(
-                    numbered_match.group(1),
+                    _plain_text_from_inline_markdown(numbered_match.group(1)),
                     style="List Number",
                 )
                 continue
-            document.add_paragraph(stripped_line)
+            document.add_paragraph(_plain_text_from_inline_markdown(stripped_line))
 
         output_buffer = BytesIO()
         document.save(output_buffer)
@@ -396,19 +566,23 @@ class ArtifactRenderer:
                         )
                     html_parts.append(rendered_block)
                 html_parts.append(
-                    f"<p><strong>Summary:</strong> {escape(section.summary)}</p>"
+                    f"<p><strong>Summary:</strong> "
+                    f"{escape(_summary_text(section.summary))}</p>"
                     "</section>"
                 )
-            html_parts.append("<h3>Common misconceptions</h3><ul>")
-            html_parts.extend(
-                f"<li>{escape(misconception)}</li>"
-                for misconception in course_module.misconceptions
-            )
-            html_parts.append("</ul><h3>Examples</h3><ul>")
-            html_parts.extend(
-                f"<li>{escape(example)}</li>" for example in course_module.examples
-            )
-            html_parts.append("</ul>")
+            if course_module.misconceptions:
+                html_parts.append("<h3>Common misconceptions</h3><ul>")
+                html_parts.extend(
+                    f"<li>{escape(misconception)}</li>"
+                    for misconception in course_module.misconceptions
+                )
+                html_parts.append("</ul>")
+            if course_module.examples:
+                html_parts.append("<h3>Examples</h3><ul>")
+                html_parts.extend(
+                    f"<li>{escape(example)}</li>" for example in course_module.examples
+                )
+                html_parts.append("</ul>")
             html_parts.append("</section>")
         html_parts.append("<section><h2>Glossary</h2><dl>")
         for glossary_term in course.glossary:
@@ -445,6 +619,10 @@ class ArtifactRenderer:
     def _render_review_html(self, review: ReviewPack, course: Course) -> str:
         """Render the comprehensive review pack."""
 
+        display_label_by_identifier = self._review_display_labels(
+            review=review,
+            course=course,
+        )
         parts = [
             self._document_start(
                 title=f"{course.title} Review Pack",
@@ -455,7 +633,15 @@ class ArtifactRenderer:
             "<section><h2>Suggested review sequence</h2><ol>",
         ]
         parts.extend(
-            f"<li>{escape(review_step)}</li>" for review_step in review.review_sequence
+            "<li>"
+            + escape(
+                _replace_identifier_references(
+                    review_step,
+                    display_label_by_identifier=display_label_by_identifier,
+                )
+            )
+            + "</li>"
+            for review_step in review.review_sequence
         )
         parts.extend(
             [
@@ -465,8 +651,15 @@ class ArtifactRenderer:
         )
         source_by_id = {source.source_id: source for source in course.sources}
         for guide_item in review.study_guide:
+            objective = next(
+                objective
+                for objective in course.learning_objectives
+                if objective.objective_id == guide_item.objective_id
+            )
             parts.append(
-                f"<article><h3>{escape(guide_item.objective_id)}</h3>"
+                "<article><h3>"
+                f"{escape(display_label_by_identifier[guide_item.objective_id])}: "
+                f"{escape(objective.description)}</h3>"
                 f"<p>{escape(guide_item.summary)}</p><ul>"
             )
             parts.extend(
@@ -505,30 +698,93 @@ class ArtifactRenderer:
                 f"<dd>{escape(flashcard.answer)}</dd>"
             )
         parts.append("</dl></section><section><h2>Worked examples</h2>")
-        for example in review.worked_examples:
+        for example_index, example in enumerate(review.worked_examples, start=1):
             parts.append(
-                f"<article><h3>{escape(example.exercise_id)}</h3>"
+                f"<article><h3>Worked example {example_index}</h3>"
                 f"<p>{escape(example.prompt)}</p>"
                 f"<p><strong>Worked solution:</strong> "
                 f"{escape(example.solution)}</p></article>"
             )
         parts.append("</section><section><h2>Practice</h2>")
-        for exercise in review.practice_exercises:
+        for exercise_index, exercise in enumerate(
+            review.practice_exercises,
+            start=1,
+        ):
             parts.append(
-                f"<article><h3>{escape(exercise.exercise_id)}</h3>"
+                f"<article><h3>Practice exercise {exercise_index}</h3>"
                 f"<p>{escape(exercise.prompt)}</p>"
                 f"<details><summary>Solution</summary>"
                 f"<p>{escape(exercise.solution)}</p></details></article>"
             )
         parts.append("</section><section><h2>Section summaries</h2><dl>")
         for section_id, summary in sorted(review.section_summaries.items()):
-            parts.append(f"<dt>{escape(section_id)}</dt><dd>{escape(summary)}</dd>")
+            parts.append(
+                f"<dt>{escape(display_label_by_identifier[section_id])}</dt>"
+                f"<dd>{escape(summary)}</dd>"
+            )
         parts.append(
             f"</dl></section><section><h2>Cumulative summary</h2>"
             f"<p>{escape(review.cumulative_summary)}</p></section>"
             "</main></body></html>"
         )
         return "".join(parts)
+
+    def _review_display_labels(
+        self,
+        *,
+        review: ReviewPack,
+        course: Course,
+    ) -> dict[str, str]:
+        """Map internal cross-artifact IDs to stable reader-facing labels."""
+
+        display_labels = {
+            objective.objective_id: f"Objective {objective_index}"
+            for objective_index, objective in enumerate(
+                course.learning_objectives,
+                start=1,
+            )
+        }
+        display_labels.update(
+            {
+                course_module.module_id: course_module.title
+                for course_module in course.modules
+            }
+        )
+        display_labels.update(
+            {
+                section.section_id: section.title
+                for course_module in course.modules
+                for section in course_module.sections
+            }
+        )
+        display_labels.update(
+            {
+                flashcard.flashcard_id: f"Flashcard {flashcard_index}"
+                for flashcard_index, flashcard in enumerate(
+                    review.flashcards,
+                    start=1,
+                )
+            }
+        )
+        display_labels.update(
+            {
+                example.exercise_id: f"Worked example {example_index}"
+                for example_index, example in enumerate(
+                    review.worked_examples,
+                    start=1,
+                )
+            }
+        )
+        display_labels.update(
+            {
+                exercise.exercise_id: f"Practice exercise {exercise_index}"
+                for exercise_index, exercise in enumerate(
+                    review.practice_exercises,
+                    start=1,
+                )
+            }
+        )
+        return display_labels
 
     def _render_assessment_html(
         self,
@@ -551,7 +807,7 @@ class ArtifactRenderer:
         for item in assessment.items:
             parts.append(
                 f'<li id="{escape(item.item_id)}">'
-                f"<p>{escape(item.prompt)} ({item.points} points)</p>"
+                f"<p>{escape(item.prompt)} ({_point_label(item.points)})</p>"
             )
             if item.options:
                 parts.append('<ol type="A">')
@@ -570,6 +826,10 @@ class ArtifactRenderer:
         """Render instructor-only answers, explanations, and rubrics."""
 
         item_by_id = {item.item_id: item for item in assessment.items}
+        evidence_by_id = {
+            evidence.evidence_id: evidence for evidence in course.evidence
+        }
+        source_by_id = {source.source_id: source for source in course.sources}
         parts = [
             self._document_start(
                 title=f"{assessment.title} Answer Key",
@@ -580,13 +840,32 @@ class ArtifactRenderer:
         ]
         for answer in answer_key.answers:
             item = item_by_id[answer.item_id]
+            answer_source_ids = list(
+                dict.fromkeys(
+                    evidence_by_id[evidence_id].source_id
+                    for evidence_id in answer.evidence_ids
+                )
+            )
             parts.append(
                 f'<article id="answer-{escape(answer.item_id)}">'
                 f"<h2>{escape(item.prompt)}</h2>"
                 f"<p><strong>Answer:</strong> "
                 f"{escape('; '.join(answer.correct_answers))}</p>"
-                f"<p>{escape(answer.explanation)}</p><ul>"
+                f"<p>{escape(answer.explanation)}</p>"
+                "<h3>Evidence sources</h3><ul>"
             )
+            for source_id in answer_source_ids:
+                source = source_by_id[source_id]
+                safe_href = _safe_http_href(source.canonical_url)
+                source_text = escape(source.title)
+                if safe_href is not None:
+                    source_text = (
+                        f'<a href="{escape(safe_href, quote=True)}" '
+                        'rel="noopener noreferrer">'
+                        f"{source_text}</a>"
+                    )
+                parts.append(f"<li>{source_text}</li>")
+            parts.append("</ul><h3>Grading criteria</h3><ul>")
             parts.extend(
                 f"<li>{escape(grading_criterion)}</li>"
                 for grading_criterion in answer.grading_criteria
@@ -631,13 +910,17 @@ class ArtifactRenderer:
             for section in course_module.sections:
                 lines.extend([f"### {section.title}", ""])
                 lines.extend(block.text for block in section.content_blocks)
-                lines.extend(["", f"**Summary:** {section.summary}", ""])
-            lines.extend(["### Common misconceptions", ""])
-            lines.extend(
-                f"- {misconception}" for misconception in course_module.misconceptions
-            )
-            lines.extend(["", "### Examples", ""])
-            lines.extend(f"- {example}" for example in course_module.examples)
+                lines.extend(["", f"**Summary:** {_summary_text(section.summary)}", ""])
+            if course_module.misconceptions:
+                lines.extend(["### Common misconceptions", ""])
+                lines.extend(
+                    f"- {misconception}"
+                    for misconception in course_module.misconceptions
+                )
+                lines.append("")
+            if course_module.examples:
+                lines.extend(["### Examples", ""])
+                lines.extend(f"- {example}" for example in course_module.examples)
             lines.append("")
         lines.extend(["## Glossary", ""])
         lines.extend(
@@ -663,6 +946,10 @@ class ArtifactRenderer:
         """Render every canonical review component in a portable text format."""
 
         source_by_id = {source.source_id: source for source in course.sources}
+        display_label_by_identifier = self._review_display_labels(
+            review=review,
+            course=course,
+        )
         lines = [
             f"# {course.title} Review Pack",
             "",
@@ -670,14 +957,24 @@ class ArtifactRenderer:
             "",
         ]
         lines.extend(
-            f"{step_number}. {step}"
+            f"{step_number}. "
+            + _replace_identifier_references(
+                step,
+                display_label_by_identifier=display_label_by_identifier,
+            )
             for step_number, step in enumerate(review.review_sequence, start=1)
         )
         lines.extend(["", "## Study guide", ""])
+        objective_by_id = {
+            objective.objective_id: objective
+            for objective in course.learning_objectives
+        }
         for guide_item in review.study_guide:
             lines.extend(
                 [
-                    f"### {guide_item.objective_id}",
+                    "### "
+                    f"{display_label_by_identifier[guide_item.objective_id]}: "
+                    f"{objective_by_id[guide_item.objective_id].description}",
                     "",
                     guide_item.summary,
                     "",
@@ -712,10 +1009,10 @@ class ArtifactRenderer:
                 ]
             )
         lines.extend(["## Worked examples", ""])
-        for example in review.worked_examples:
+        for example_index, example in enumerate(review.worked_examples, start=1):
             lines.extend(
                 [
-                    f"### {example.exercise_id}",
+                    f"### Worked example {example_index}",
                     "",
                     example.prompt,
                     "",
@@ -724,10 +1021,13 @@ class ArtifactRenderer:
                 ]
             )
         lines.extend(["## Practice exercises", ""])
-        for exercise in review.practice_exercises:
+        for exercise_index, exercise in enumerate(
+            review.practice_exercises,
+            start=1,
+        ):
             lines.extend(
                 [
-                    f"### {exercise.exercise_id}",
+                    f"### Practice exercise {exercise_index}",
                     "",
                     exercise.prompt,
                     "",
@@ -737,7 +1037,7 @@ class ArtifactRenderer:
             )
         lines.extend(["## Section summaries", ""])
         lines.extend(
-            f"- **{section_id}:** {summary}"
+            f"- **{display_label_by_identifier[section_id]}:** {summary}"
             for section_id, summary in sorted(review.section_summaries.items())
         )
         lines.extend(
@@ -765,7 +1065,7 @@ class ArtifactRenderer:
         for item_number, item in enumerate(assessment.items, start=1):
             lines.extend(
                 [
-                    f"## {item_number}. {item.prompt} ({item.points} points)",
+                    f"## {item_number}. {item.prompt} ({_point_label(item.points)})",
                     "",
                 ]
             )
@@ -780,13 +1080,24 @@ class ArtifactRenderer:
         self,
         answer_key: AnswerKey,
         assessment: Assessment,
+        course: Course,
     ) -> str:
         """Render answers, reasoning, criteria, and point-based rubrics."""
 
         item_by_id = {item.item_id: item for item in assessment.items}
+        evidence_by_id = {
+            evidence.evidence_id: evidence for evidence in course.evidence
+        }
+        source_by_id = {source.source_id: source for source in course.sources}
         lines = [f"# {assessment.title} Answer Key", ""]
         for answer in answer_key.answers:
             item = item_by_id[answer.item_id]
+            answer_source_ids = list(
+                dict.fromkeys(
+                    evidence_by_id[evidence_id].source_id
+                    for evidence_id in answer.evidence_ids
+                )
+            )
             lines.extend(
                 [
                     f"## {item.prompt}",
@@ -794,6 +1105,18 @@ class ArtifactRenderer:
                     f"**Answer:** {'; '.join(answer.correct_answers)}",
                     "",
                     answer.explanation,
+                    "",
+                    "**Evidence sources**",
+                    "",
+                ]
+            )
+            lines.extend(
+                f"- [{source_by_id[source_id].title}]"
+                f"({source_by_id[source_id].canonical_url})"
+                for source_id in answer_source_ids
+            )
+            lines.extend(
+                [
                     "",
                     "**Grading criteria**",
                     "",
@@ -840,7 +1163,8 @@ class ArtifactRenderer:
                 plain_line = re.sub(
                     r"^(?:#{1,6}\s+|[-*]\s+|\d+\.\s+)", "", original_line
                 )
-                plain_line = plain_line.replace("**", "")
+                plain_line = _plain_text_from_inline_markdown(plain_line)
+                plain_line = plain_line.translate(_PDF_PUNCTUATION_TRANSLATION)
                 wrapped_lines = textwrap.wrap(plain_line, width=85) or [""]
                 for wrapped_line in wrapped_lines:
                     if vertical_position > 770:

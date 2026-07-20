@@ -119,7 +119,7 @@ class CodexAdapter(Protocol):
         self,
         *,
         request: TurnRequest,
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         cancellation: CancellationToken,
     ) -> CodexAdapterResult:
-        """Run one schema-constrained turn."""
+        """Run one turn with a provider schema when its subset can represent it."""

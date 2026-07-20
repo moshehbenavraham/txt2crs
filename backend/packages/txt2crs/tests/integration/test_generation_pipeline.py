@@ -20,7 +20,7 @@ from tests.factories import (
 from txt2crs.ai.budgets import BudgetExceededError, RunBudget, RunBudgetLimits
 from txt2crs.ai.fake_runtime import FakeRuntime, ScriptedTurn
 from txt2crs.ai.retry import RetrySettings
-from txt2crs.ai.runtime import CancellationToken
+from txt2crs.ai.runtime import CancellationToken, TurnRequest
 from txt2crs.ai.runtime_status import CredentialStatus, RuntimeReadinessStatus
 from txt2crs.ai.usage import RuntimeUsage
 from txt2crs.domain.models import EvidenceExcerpt, SourceRecord
@@ -181,6 +181,7 @@ def pipeline_with_evidence(
     *,
     budget: RunBudget | None = None,
     scripted_turns: tuple[ScriptedTurn, ...] | None = None,
+    request_sink: list[TurnRequest] | None = None,
 ) -> CourseGenerationPipeline:
     """Build the complete offline pipeline with six scripted AI stages."""
 
@@ -197,6 +198,7 @@ def pipeline_with_evidence(
             scripted_turn(valid_assessment_blueprint_data(), 5),
             scripted_turn(assessment_package_data(), 6),
         ),
+        request_sink=request_sink,
     )
     return CourseGenerationPipeline(
         runtime=runtime,
@@ -370,6 +372,40 @@ def test_pipeline_repairs_invalid_schema_output_exactly_once() -> None:
     assert len(result.usage_records) == 7
     assert budget.snapshot().turns == 7
     assert budget.snapshot().repairs == 1
+
+
+def test_pipeline_repairs_research_plan_that_exceeds_stored_budget() -> None:
+    """Model planning cannot make provider work exceed the durable run profile."""
+
+    oversized_research_plan = research_plan_data()
+    oversized_research_plan["maximum_sources"] = 11
+    budget = pipeline_budget(maximum_turns=7)
+    checkpoints: list[PipelineCheckpoint] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(oversized_research_plan, 1),
+            scripted_turn(research_plan_data(), 2),
+            scripted_turn(course_plan_data(), 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    assert budget.snapshot().repairs == 1
+    assert [checkpoint.stage for checkpoint in checkpoints].count("plan_research") == 1
+    accepted_research_plan = checkpoints[0].research_plan
+    assert accepted_research_plan is not None
+    assert accepted_research_plan.maximum_sources <= budget.limits.maximum_sources
 
 
 def test_pipeline_retries_one_transient_model_transport_failure() -> None:
@@ -626,6 +662,7 @@ def test_schema_valid_course_plan_gets_one_local_alignment_repair() -> None:
     drifting_plan["language"] = "he"
     budget = pipeline_budget(maximum_turns=7)
     checkpoints: list[PipelineCheckpoint] = []
+    runtime_requests: list[TurnRequest] = []
     pipeline = pipeline_with_evidence(
         frozen_evidence(),
         budget=budget,
@@ -638,6 +675,7 @@ def test_schema_valid_course_plan_gets_one_local_alignment_repair() -> None:
             scripted_turn(valid_assessment_blueprint_data(), 6),
             scripted_turn(assessment_package_data(), 7),
         ),
+        request_sink=runtime_requests,
     )
 
     pipeline.generate(
@@ -648,6 +686,74 @@ def test_schema_valid_course_plan_gets_one_local_alignment_repair() -> None:
 
     assert budget.snapshot().repairs == 1
     assert [checkpoint.stage for checkpoint in checkpoints].count("design_course") == 1
+    design_requests = [
+        request for request in runtime_requests if request.stage == "design_course"
+    ]
+    assert "copy the explicit learning-contract text verbatim" in (
+        design_requests[0].trusted_instructions.casefold()
+    )
+    assert '"curriculum_shape_limits":' in design_requests[0].untrusted_data
+    assert '"maximum_modules":2' in design_requests[0].untrusted_data
+    assert "language_mismatch" in design_requests[1].trusted_instructions
+    module_request = next(
+        request
+        for request in runtime_requests
+        if request.stage.startswith("write_module_")
+    )
+    assert "copy all canonical identifiers verbatim" in (
+        module_request.trusted_instructions.casefold()
+    )
+    assert "citation artifact_location must equal an existing block_id" in (
+        module_request.trusted_instructions
+    )
+    assert '"curriculum_shape_limits":' in module_request.untrusted_data
+
+
+def test_module_missing_factual_citation_gets_one_local_repair() -> None:
+    """Every factual block must be repaired before its module is checkpointed."""
+
+    uncited_module_draft = copy_data(valid_course_module_draft_data())
+    uncited_module_draft["citations"] = []
+    budget = pipeline_budget(maximum_turns=7)
+    checkpoints: list[PipelineCheckpoint] = []
+    runtime_requests: list[TurnRequest] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(course_plan_data(), 2),
+            scripted_turn(uncited_module_draft, 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+        request_sink=runtime_requests,
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    module_requests = [
+        request
+        for request in runtime_requests
+        if request.stage.startswith("write_module_")
+    ]
+    assert len(module_requests) == 2
+    assert "every non-model-generated content block" in (
+        module_requests[0].trusted_instructions.casefold()
+    )
+    assert "module_factual_block_missing_citation" in (
+        module_requests[1].trusted_instructions
+    )
+    assert budget.snapshot().repairs == 1
+    assert [checkpoint.stage for checkpoint in checkpoints].count(
+        "write_module:mod-foundations"
+    ) == 1
 
 
 def test_course_plan_that_fails_local_gate_twice_never_reaches_module_drafting() -> (

@@ -14,7 +14,7 @@ The selected boundary is now implemented under `src/txt2crs/` with strict
 contracts, shared budgets, two research tools, the official pinned Codex SDK,
 immutable evidence, deterministic education validation and rendering, durable
 SQLite jobs, private evaluation replay, and donor-absence tests. Generated
-protocol fixtures for Codex app-server `0.137.0a4` are committed under
+protocol fixtures for Codex app-server `0.144.4` are committed under
 `docs/fixtures/`. A default credential-free suite and an explicitly enabled
 live ChatGPT/MCP acceptance test cover the final architecture.
 >
@@ -705,10 +705,9 @@ The SDK is currently beta, and the app-server surface can evolve. Pin the exact
 SDK and runtime versions, generate and commit the matching protocol schemas, and
 run contract tests before every upgrade.
 
-At this review date, the inspected Python package was
-`openai-codex==0.1.0b3` (Python 3.10+) with its declared pinned
-`openai-codex-cli-bin==0.137.0a4` runtime. The locally installed Codex CLI used
-for a separate schema inspection was `0.144.5`; its schema includes turn output
+The reviewed package now pins `openai-codex==0.144.4` (Python 3.10+) with its
+matching `openai-codex-cli-bin==0.144.4` runtime. The locally installed Codex
+CLI used for a separate schema inspection was `0.144.6`; its schema includes turn output
 schemas, account/rate-limit/usage messages, model listing, token usage, and
 dynamic/MCP tool-call events. These observations are a versioned snapshot, not
 permission to mix CLI and SDK versions. Implementation should pin one tested SDK

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from txt2crs.ai.runtime import CancellationToken
 from txt2crs.domain.models import ResearchPlan
 from txt2crs.research.coordinator import ResearchCoordinatorService
+from txt2crs.research.evidence import hash_text
 from txt2crs.research.models import (
     ExtractedDocument,
     ExtractRequest,
@@ -118,3 +119,108 @@ def test_coordinator_honors_plan_source_limit() -> None:
 
     assert len(evidence_set.sources) == 1
     assert len(evidence_set.excerpts) == 1
+
+
+def test_coordinator_hashes_the_normalized_bounded_excerpt() -> None:
+    """A whitespace cutoff at 20,000 characters must not invalidate evidence."""
+
+    class BoundaryWhitespaceResearchTools(StubResearchTools):
+        """Return a long document whose excerpt boundary lands on whitespace."""
+
+        def extract(self, request: ExtractRequest) -> ExtractResult:
+            document_content = ("A" * 19_999) + " " + "remaining text"
+            return ExtractResult(
+                documents=[
+                    ExtractedDocument(
+                        url=request.urls[0],
+                        title="Long Python Reference",
+                        content=document_content,
+                        content_bytes=len(document_content.encode("utf-8")),
+                    )
+                ],
+                failed_urls=[],
+            )
+
+    evidence_set = ResearchCoordinatorService(
+        tools=BoundaryWhitespaceResearchTools(),
+        clock=lambda: datetime(2026, 7, 17, 12, tzinfo=UTC),
+        primary_domains={"docs.python.org"},
+    ).collect(
+        research_plan(),
+        CancellationToken(),
+        high_risk_course=False,
+    )
+
+    assert len(evidence_set.excerpts[0].excerpt) == 19_999
+    assert evidence_set.excerpts[0].content_hash == hash_text(
+        evidence_set.excerpts[0].excerpt
+    )
+
+
+def test_coordinator_does_not_research_past_attempted_source_limit() -> None:
+    """Partial extraction cannot spend the same finite source allowance twice."""
+
+    class PartialExtractionResearchTools:
+        """Return two candidates but extract only the first candidate."""
+
+        def __init__(self) -> None:
+            self.search_calls = 0
+
+        def search(self, request: SearchRequest) -> SearchResult:
+            self.search_calls += 1
+            return SearchResult(
+                query=request.query,
+                hits=[
+                    SearchHit(
+                        title=f"Reference {result_number}",
+                        url=f"https://docs.python.org/3/reference/{result_number}.html",
+                        snippet="Assignment reference",
+                        relevance_score=0.9,
+                    )
+                    for result_number in range(request.maximum_results)
+                ],
+            )
+
+        def extract(self, request: ExtractRequest) -> ExtractResult:
+            return ExtractResult(
+                documents=[
+                    ExtractedDocument(
+                        url=request.urls[0],
+                        title="Extracted reference",
+                        content="Assignment statements bind names to values.",
+                        content_bytes=43,
+                    )
+                ],
+                failed_urls=list(request.urls[1:]),
+            )
+
+    tools = PartialExtractionResearchTools()
+    two_question_plan = research_plan().model_copy(
+        update={
+            "questions": [
+                *research_plan().questions,
+                research_plan()
+                .questions[0]
+                .model_copy(
+                    update={
+                        "question_id": "question-2",
+                        "question": "What values can Python names reference?",
+                    }
+                ),
+            ],
+            "maximum_sources": 2,
+        }
+    )
+
+    evidence_set = ResearchCoordinatorService(
+        tools=tools,
+        clock=lambda: datetime(2026, 7, 17, 12, tzinfo=UTC),
+        primary_domains={"docs.python.org"},
+    ).collect(
+        two_question_plan,
+        CancellationToken(),
+        high_risk_course=False,
+    )
+
+    assert tools.search_calls == 1
+    assert len(evidence_set.sources) == 1

@@ -140,7 +140,7 @@ class FakeSdkThread:
         self,
         prompt: str,
         *,
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         model: str,
     ) -> FakeTurnHandle:
         """Record the schema-constrained turn."""

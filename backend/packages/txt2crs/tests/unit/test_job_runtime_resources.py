@@ -48,7 +48,7 @@ class RecordingCodexAdapter:
         self,
         *,
         request: TurnRequest,
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         cancellation: CancellationToken,
     ) -> CodexAdapterResult:
         """The lifecycle tests do not need to execute a real turn."""

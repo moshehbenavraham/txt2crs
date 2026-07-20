@@ -346,11 +346,21 @@ class DedicatedSystemAuthenticator:
                 getattr(completion_notification, "success", False) is True
             )
             if authentication_succeeded:
-                account_type = self._read_account_type(authentication_client)
+                try:
+                    account_type = self._read_account_type(authentication_client)
+                except Exception:
+                    # The login-completed notification can arrive just before
+                    # this app-server session exposes the newly persisted
+                    # account. Preserve the successful ceremony so a fresh
+                    # client can verify the isolated CODEX_HOME below.
+                    account_type = None
         except Exception:
             authentication_succeeded = False
         finally:
             authentication_client.close()
+
+        if authentication_succeeded and account_type is None:
+            account_type = self._read_persisted_account_type(attempt_generation)
 
         with self._lock:
             if attempt_generation != self._attempt_generation:
@@ -360,7 +370,7 @@ class DedicatedSystemAuthenticator:
             self._completion_thread = None
             if authentication_succeeded and account_type == "chatgpt":
                 self._set_authenticated_locked()
-            elif authentication_succeeded:
+            elif authentication_succeeded and account_type == "apiKey":
                 self._state = SystemAuthenticationState.failed
                 self._verification_url = None
                 self._user_code = None
@@ -368,8 +378,41 @@ class DedicatedSystemAuthenticator:
                     "A ChatGPT subscription account is required; API-key "
                     "authentication was rejected."
                 )
+            elif authentication_succeeded:
+                self._state = SystemAuthenticationState.failed
+                self._verification_url = None
+                self._user_code = None
+                self._message = (
+                    "ChatGPT authentication completed, but the saved account "
+                    "could not yet be verified. Run this command again to "
+                    "verify the connected account."
+                )
             else:
                 self._set_failed_locked()
+
+    def _read_persisted_account_type(
+        self,
+        attempt_generation: int,
+    ) -> str | None:
+        """Reopen Codex once when the login session has stale account state."""
+
+        with self._lock:
+            if attempt_generation != self._attempt_generation:
+                return None
+
+        verification_client: _AuthenticationClient | None = None
+        try:
+            # Hermes treats a completed token exchange as persisted ChatGPT
+            # auth, while AIOS detects that saved OAuth state on re-entry. A
+            # fresh SDK client gives txt2crs the same re-entry behavior without
+            # reading token bytes across this package boundary.
+            verification_client = self._client_factory()
+            return self._read_account_type(verification_client)
+        except Exception:
+            return None
+        finally:
+            if verification_client is not None:
+                verification_client.close()
 
     @staticmethod
     def _read_account_type(authentication_client: _AuthenticationClient) -> str | None:

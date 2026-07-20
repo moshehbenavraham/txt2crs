@@ -175,6 +175,37 @@ def test_api_key_account_cannot_satisfy_subscription_authentication() -> None:
     assert fake_client.closed is True
 
 
+def test_completed_login_reopens_a_transiently_unavailable_account() -> None:
+    """Fresh app-server state must verify OAuth persisted by the login server."""
+
+    login_client = FakeAuthenticationClient(account_type=None)
+    persisted_account_client = FakeAuthenticationClient(account_type="chatgpt")
+    clients = iter((login_client, persisted_account_client))
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: next(clients))
+
+    authenticator.start_device_code_login()
+    completed = authenticator.wait_for_current_attempt(timeout_seconds=2)
+
+    assert completed.state is SystemAuthenticationState.authenticated
+    assert login_client.closed is True
+    assert persisted_account_client.account_refresh_requested is True
+    assert persisted_account_client.closed is True
+
+
+def test_unavailable_account_type_does_not_claim_api_key_authentication() -> None:
+    """An inconclusive account read must not accuse a valid OAuth user."""
+
+    fake_client = FakeAuthenticationClient(account_type=None)
+    authenticator = DedicatedSystemAuthenticator(client_factory=lambda: fake_client)
+
+    authenticator.start_device_code_login()
+    completed = authenticator.wait_for_current_attempt(timeout_seconds=2)
+
+    assert completed.state is SystemAuthenticationState.failed
+    assert "could not yet be verified" in completed.message
+    assert "API-key" not in completed.message
+
+
 def test_device_code_login_rejects_non_openai_verification_origin() -> None:
     """A compromised provider response cannot turn setup into a phishing link."""
 

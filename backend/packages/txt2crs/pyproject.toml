@@ -24,8 +24,8 @@ classifiers = [
 dependencies = [
     "httpx>=0.28,<1",
     "mcp>=1.28,<2",
-    "openai-codex==0.1.0b3",
-    "openai-codex-cli-bin==0.137.0a4",
+    "openai-codex==0.144.4",
+    "openai-codex-cli-bin==0.144.4",
     "pillow>=11,<13",
     "pydantic>=2.12,<3",
     "pymupdf>=1.26,<2",

@@ -1,7 +1,7 @@
 # Codex Protocol Fixtures
 
-`codex_app_server_0.137.0a4/` was generated from the exact locked
-`openai-codex-cli-bin==0.137.0a4` executable with:
+`codex_app_server_0.144.4/` was generated from the exact locked
+`openai-codex-cli-bin==0.144.4` executable with:
 
 ```bash
 codex app-server generate-json-schema --experimental --out <directory>

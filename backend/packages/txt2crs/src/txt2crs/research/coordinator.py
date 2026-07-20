@@ -74,14 +74,18 @@ class ResearchCoordinatorService:
         """Collect at most the plan's maximum unique public sources."""
 
         ledger = EvidenceLedger()
-        seen_urls: set[str] = set()
+        attempted_urls: set[str] = set()
+        collected_urls: set[str] = set()
         candidate_records: dict[
             str,
             tuple[SourceRecord, EvidenceExcerpt, EvidenceCandidate],
         ] = {}
         for question in research_plan.questions:
             cancellation.raise_if_cancelled()
-            remaining_sources = research_plan.maximum_sources - len(candidate_records)
+            # Search candidates consume the source allowance before provider
+            # extraction. Tracking attempted URLs prevents a partial extract
+            # from spending the same finite allowance again on later questions.
+            remaining_sources = research_plan.maximum_sources - len(attempted_urls)
             if remaining_sources <= 0:
                 break
             search_result = self._tools.search(
@@ -90,11 +94,18 @@ class ResearchCoordinatorService:
                     maximum_results=min(10, remaining_sources),
                 )
             )
-            candidate_hits = [
-                hit for hit in search_result.hits if hit.url not in seen_urls
-            ][:remaining_sources]
+            candidate_hits = []
+            candidate_urls: set[str] = set()
+            for search_hit in search_result.hits:
+                if search_hit.url in attempted_urls or search_hit.url in candidate_urls:
+                    continue
+                candidate_hits.append(search_hit)
+                candidate_urls.add(search_hit.url)
+                if len(candidate_hits) >= remaining_sources:
+                    break
             if not candidate_hits:
                 continue
+            attempted_urls.update(candidate_urls)
 
             extraction_result = self._tools.extract(
                 ExtractRequest(urls=[hit.url for hit in candidate_hits])
@@ -102,10 +113,14 @@ class ResearchCoordinatorService:
             hit_by_url = {hit.url: hit for hit in candidate_hits}
             for document in extraction_result.documents:
                 cancellation.raise_if_cancelled()
-                if document.url in seen_urls:
+                if document.url in collected_urls:
                     continue
                 source_id = _stable_identifier("src", document.url)
-                excerpt_text = document.content[:20_000]
+                # The EvidenceExcerpt model trims outer whitespace. Normalize
+                # before deriving both its stable ID and hash so a 20,000
+                # character cutoff that lands on a space cannot make the
+                # validated model differ from the bytes we hashed.
+                excerpt_text = document.content[:20_000].strip()
                 evidence_id = _stable_identifier(
                     "ev",
                     f"{source_id}\n{excerpt_text}",
@@ -145,14 +160,16 @@ class ResearchCoordinatorService:
                         _PROMPT_INJECTION_PATTERN.search(excerpt_text) is not None
                     ),
                 )
-                search_hit = hit_by_url.get(document.url)
+                matched_search_hit = hit_by_url.get(document.url)
                 quality_candidate = EvidenceCandidate(
                     evidence_id=evidence_id,
                     source_id=source_id,
                     authority_tier=source.authority_tier,
                     primary_source=is_primary,
                     relevance=(
-                        search_hit.relevance_score if search_hit is not None else 0.0
+                        matched_search_hit.relevance_score
+                        if matched_search_hit is not None
+                        else 0.0
                     ),
                     # Publication dates are not supplied by the current
                     # provider contract. A neutral value remains explicit in
@@ -171,7 +188,7 @@ class ResearchCoordinatorService:
                     excerpt,
                     quality_candidate,
                 )
-                seen_urls.add(document.url)
+                collected_urls.add(document.url)
                 if len(candidate_records) >= research_plan.maximum_sources:
                     break
 

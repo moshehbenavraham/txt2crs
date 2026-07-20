@@ -17,7 +17,7 @@ from hashlib import sha256
 from ipaddress import ip_address
 from pathlib import Path
 from time import monotonic
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 from urllib.parse import urlsplit
 
 from openai_codex import ApprovalMode, Codex, CodexConfig, Sandbox
@@ -44,6 +44,15 @@ from txt2crs.ai.runtime_status import (
 from txt2crs.ai.usage import RuntimeUsage, SubscriptionQuotaState
 
 ArtifactType = TypeVar("ArtifactType", bound=BaseModel)
+_UNSUPPORTED_PROVIDER_SCHEMA_KEYWORDS = frozenset(
+    {
+        # The current Codex structured-output boundary does not accept dynamic
+        # object keys. Pydantic emits these keywords for validated mappings,
+        # such as ReviewPack.section_summaries.
+        "patternProperties",
+        "propertyNames",
+    }
+)
 
 
 class RuntimePolicyError(RuntimeError):
@@ -56,6 +65,96 @@ class InvalidModelOutputError(RuntimePolicyError):
     def __init__(self, message: str, *, usage: RuntimeUsage) -> None:
         self.usage = usage
         super().__init__(message)
+
+
+def _contains_unsupported_provider_schema_keyword(schema_value: object) -> bool:
+    """Return whether a Pydantic schema exceeds the provider's strict subset."""
+
+    if isinstance(schema_value, dict):
+        if _UNSUPPORTED_PROVIDER_SCHEMA_KEYWORDS.intersection(schema_value):
+            return True
+        return any(
+            _contains_unsupported_provider_schema_keyword(child_value)
+            for child_value in schema_value.values()
+        )
+    if isinstance(schema_value, list):
+        return any(
+            _contains_unsupported_provider_schema_keyword(child_value)
+            for child_value in schema_value
+        )
+    return False
+
+
+def _strict_provider_output_schema(
+    pydantic_schema: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Convert one supported Pydantic schema to Codex's strict object contract.
+
+    Pydantic represents a field with a default as optional even when its value
+    type already includes ``null``. The current bundled runtime requires every
+    declared property in ``required`` and rejects JSON Schema defaults. This
+    detached recursive copy preserves local constraints while making nullable
+    fields explicit instead of silently dropping them.
+    """
+
+    strict_schema = cast(
+        dict[str, Any],
+        json.loads(json.dumps(pydantic_schema)),
+    )
+
+    def normalize_schema_node(schema_node: object) -> None:
+        if isinstance(schema_node, dict):
+            schema_node.pop("default", None)
+            properties = schema_node.get("properties")
+            if isinstance(properties, dict):
+                schema_node["required"] = list(properties)
+                schema_node["additionalProperties"] = False
+            for child_value in schema_node.values():
+                normalize_schema_node(child_value)
+            return
+        if isinstance(schema_node, list):
+            for child_value in schema_node:
+                normalize_schema_node(child_value)
+
+    normalize_schema_node(strict_schema)
+    return strict_schema
+
+
+def _prepare_provider_turn(
+    *,
+    request: TurnRequest,
+    artifact_model: type[BaseModel],
+) -> tuple[TurnRequest, dict[str, Any] | None]:
+    """
+    Select strict provider enforcement or a trusted-schema local fallback.
+
+    The fallback is deliberately narrow: it is used only when the canonical
+    Pydantic schema contains dynamic mapping keywords that the provider schema
+    cannot express. The exact schema remains trusted prompt material, and the
+    returned object must still pass the same Pydantic model before acceptance.
+    """
+
+    pydantic_schema = artifact_model.model_json_schema()
+    if not _contains_unsupported_provider_schema_keyword(pydantic_schema):
+        return request, _strict_provider_output_schema(pydantic_schema)
+
+    trusted_schema_json = json.dumps(
+        pydantic_schema,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    schema_prompt_request = TurnRequest(
+        **request.model_dump(exclude={"trusted_instructions"}),
+        trusted_instructions=(
+            f"{request.trusted_instructions}\n\n"
+            "Return exactly one JSON object matching this trusted JSON Schema. "
+            "Do not wrap it in Markdown:\n"
+            f"{trusted_schema_json}"
+        ),
+    )
+    return schema_prompt_request, None
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,9 +361,13 @@ class CodexSubscriptionRuntime:
             raise RuntimePolicyError(str(model_policy_error)) from None
 
         started_at = monotonic()
-        adapter_result = self._adapter.run_turn(
+        provider_request, provider_output_schema = _prepare_provider_turn(
             request=request,
-            output_schema=artifact_model.model_json_schema(),
+            artifact_model=artifact_model,
+        )
+        adapter_result = self._adapter.run_turn(
+            request=provider_request,
+            output_schema=provider_output_schema,
             cancellation=cancellation,
         )
         cancellation.raise_if_cancelled()
@@ -404,7 +507,7 @@ class OfficialCodexSdkAdapter:
         self,
         *,
         request: TurnRequest,
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         cancellation: CancellationToken,
     ) -> CodexAdapterResult:
         """Run a schema turn and interrupt on cancellation or local deadline."""

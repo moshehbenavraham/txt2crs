@@ -116,21 +116,21 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   confirm both services return healthy and the artifact remains owner-private
   (`scripts/deploy-smoke-check.sh`, `scripts/deploy-rollback.sh`,
   `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`).
-- [ ] T016 [S0501] Provision an isolated live-proof runtime using the packaged
+- [x] T016 [S0501] Provision an isolated live-proof runtime using the packaged
   system-auth flow and private Tavily environment, verify truthful GPT-5.6,
   research, storage, worker, and admission readiness without logging values,
   and document the representative full-course gate separately from the small
   deterministic MCP subscription probe
   (`backend/packages/txt2crs/tests/acceptance/README_acceptance.md`,
   `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md`).
-- [ ] T017 [S0501] Submit exactly one bounded synthetic education topic through
+- [x] T017 [S0501] Submit exactly one bounded synthetic education topic through
   the real application/facade boundary, observe durable monotonic checkpoints,
   confirm real Tavily research precedes drafting and exact GPT-5.6 use without
   fallback, recover from refresh if needed, and wait for terminal delivery of
   four publications and exactly sixteen artifacts
   (`backend/packages/txt2crs/tests/acceptance/test_live_codex_subscription.py`,
   `docs/release/ARTIFACT_INSPECTION_1_0_0.md`).
-- [ ] T018 [S0501] Download and locally inspect every live HTML, Markdown, PDF,
+- [x] T018 [S0501] Download and locally inspect every live HTML, Markdown, PDF,
   and DOCX course/review/assessment/answer-key artifact for hash/size,
   alignment, citations, formatting, private delivery, and strict student-
   assessment versus instructor-answer separation; record one explicit

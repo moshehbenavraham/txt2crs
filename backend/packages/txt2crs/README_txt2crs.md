@@ -235,8 +235,8 @@ live subscription acceptance test is skipped unless
 
 ## Protocol and provenance controls
 
-The package pins `openai-codex==0.1.0b3` and
-`openai-codex-cli-bin==0.137.0a4`. Matching generated app-server JSON Schemas
+The package pins `openai-codex==0.144.4` and
+`openai-codex-cli-bin==0.144.4`. Matching generated app-server JSON Schemas
 are committed under `docs/fixtures/`; upgrades must regenerate and review the
 fixture before changing either pin.
 

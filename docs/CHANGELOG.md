@@ -31,6 +31,8 @@ Archived entries are stored in [`archive/`](archive/).
   and both production images without publishing or deploying.
 - Added strict, canonical, public-safe release evidence validation and a
   reproducible deterministic sample plus sixteen-artifact inspection ledger.
+- Added a concise packaged device-authentication helper and a separately gated
+  exact-Sol plus Tavily representative course acceptance proof.
 
 ### Changed
 
@@ -39,6 +41,8 @@ Archived entries are stored in [`archive/`](archive/).
 - Synchronized the root, architecture, onboarding, deployment, and visual
   design documentation with the completed Phase 04 learner journey and
   verified local backup, restore, throttling, and rollback behavior.
+- Upgraded the bundled Codex SDK/CLI and regenerated its checked protocol
+  fixture so the dedicated ChatGPT account can discover `gpt-5.6-sol`.
 
 ### Deprecated
 
@@ -46,12 +50,22 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Fixed
 
+- Fixed post-device-login verification, strict provider-schema handling,
+  bounded research planning, evidence hashing, module alignment, and
+  block-level citation repair discovered by the representative live run.
+- Fixed generated artifact labels, empty sections, stale internal identifiers,
+  inline Markdown rendering, point grammar, and instructor evidence
+  disclosure across HTML, Markdown, PDF, and DOCX.
+
 ### Security
 
 - Added fail-closed rejection for unknown, path-like, email-like, provider,
   prompt, token, credential, link, and raw artifact-body release evidence.
 - Disabled setup-action caches in the artifact-producing release job after
   workflow security analysis identified cache-poisoning risk.
+- Kept live provider state and artifact bodies owner-private, recorded only
+  bounded hashes and judgments, and purged the canonical live owner through
+  the application boundary after inspection.
 
 ## [0.7.0] - 2026-07-20
 

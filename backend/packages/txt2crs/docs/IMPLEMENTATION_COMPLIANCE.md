@@ -46,7 +46,7 @@ reusable library.
 
 ## Public SDK telemetry boundary
 
-The pinned `openai-codex==0.1.0b3` public `Codex` API exposes account state,
+The pinned `openai-codex==0.144.4` public `Codex` API exposes account state,
 model discovery, streamed per-turn token usage, and managed refresh. The pinned
 app-server protocol contains a rate-limit request, but that operation is not
 exposed by the public high-level Python API. The package therefore reports

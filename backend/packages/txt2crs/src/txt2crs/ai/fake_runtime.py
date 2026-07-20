@@ -43,11 +43,13 @@ class FakeRuntime:
         credential_status: CredentialStatus,
         models: tuple[str, ...],
         scripted_turns: tuple[ScriptedTurn, ...],
+        request_sink: list[TurnRequest] | None = None,
     ) -> None:
         self.readiness_status = readiness_status
         self.credential_status = credential_status
         self.models = models
         self._scripted_turns = deque(scripted_turns)
+        self._request_sink = request_sink
 
     @classmethod
     def with_course(
@@ -85,6 +87,8 @@ class FakeRuntime:
         """Consume one scripted result and validate it like production output."""
 
         cancellation.raise_if_cancelled()
+        if self._request_sink is not None:
+            self._request_sink.append(request)
         if self.readiness_status is RuntimeReadinessStatus.unavailable:
             raise RuntimePolicyError("The fake runtime is unavailable.")
         if self.credential_status is not CredentialStatus.valid:

@@ -79,6 +79,24 @@ def test_student_assessment_never_contains_instructor_answers() -> None:
     assert "Correct assignment" in instructor_html
 
 
+def test_answer_key_discloses_evidence_sources_without_leaking_them_to_student() -> (
+    None
+):
+    """Instructor answers retain usable evidence links from canonical course data."""
+
+    rendered = ArtifactRenderer().render_bundle(valid_bundle())
+    student_html = rendered["assessment_html"].content.decode("utf-8")
+    instructor_html = rendered["answer_key_html"].content.decode("utf-8")
+    instructor_markdown = rendered["answer_key_markdown"].content.decode("utf-8")
+
+    assert "Evidence sources" not in student_html
+    assert "The Python Tutorial" not in student_html
+    for instructor_text in (instructor_html, instructor_markdown):
+        assert "Evidence sources" in instructor_text
+        assert "The Python Tutorial" in instructor_text
+        assert "https://docs.python.org/3/tutorial/" in instructor_text
+
+
 def test_every_deliverable_has_html_markdown_searchable_pdf_and_docx() -> None:
     """Learners and instructors receive portable formats for every artifact."""
 
@@ -153,6 +171,201 @@ def test_renderers_include_every_canonical_course_and_review_section() -> None:
         "The Python Tutorial",
     ):
         assert expected_review_text in review_html
+
+
+def test_review_renderers_replace_internal_identifiers_with_reader_labels() -> None:
+    """Canonical IDs support validation but must not become learner-facing prose."""
+
+    bundle = valid_bundle()
+    bundle.review_pack.review_sequence = [
+        (
+            "Review `sec-variables`, use the `obj-variables` flashcards, "
+            "check `card-variable`, then complete `worked-variable` and "
+            "`practice-variable`."
+        )
+    ]
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    review_html = rendered["review_pack_html"].content.decode("utf-8")
+    review_markdown = rendered["review_pack_markdown"].content.decode("utf-8")
+
+    for internal_identifier in (
+        "obj-variables",
+        "sec-variables",
+        "card-variable",
+        "worked-variable",
+        "practice-variable",
+    ):
+        assert internal_identifier not in review_html
+        assert internal_identifier not in review_markdown
+    for reader_label in (
+        "Objective 1: Explain and use Python variables.",
+        "Variables",
+        "Flashcard 1",
+        "Worked example 1",
+        "Practice exercise 1",
+    ):
+        assert reader_label in review_html
+        assert reader_label in review_markdown
+
+
+def test_review_renderers_humanize_unresolved_identifier_shaped_prose() -> None:
+    """Free-form review steps must not expose stale IDs or schema field names."""
+
+    bundle = valid_bundle()
+    bundle.review_pack.review_sequence = [
+        (
+            "Review objective `obj-variables` instead of stale lo9, complete "
+            "`practice-missing-reference` in section-9-stale-title, then "
+            "revisit sec9 and the referenced `section_id` before pe9."
+        )
+    ]
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    review_text_by_format = {
+        "html": rendered["review_pack_html"].content.decode("utf-8"),
+        "markdown": rendered["review_pack_markdown"].content.decode("utf-8"),
+    }
+    pdf_document = fitz.open(
+        stream=rendered["review_pack_pdf"].content,
+        filetype="pdf",
+    )
+    try:
+        review_text_by_format["pdf"] = "\n".join(
+            page.get_text("text") for page in pdf_document
+        )
+    finally:
+        pdf_document.close()
+    review_document = Document(BytesIO(rendered["review_pack_docx"].content))
+    review_text_by_format["docx"] = "\n".join(
+        paragraph.text for paragraph in review_document.paragraphs
+    )
+
+    for review_text in review_text_by_format.values():
+        assert "Review Objective 1" in review_text
+        assert "Review objective Objective 1" not in review_text
+        assert "Practice exercise" in review_text
+        assert "practice-missing-reference" not in review_text
+        assert "the related section" in review_text
+        assert "section-9-stale-title" not in review_text
+        assert "section_id" not in review_text
+        assert "lo9" not in review_text
+        assert "sec9" not in review_text
+        assert "pe9" not in review_text
+
+
+def test_empty_optional_course_collections_do_not_render_empty_sections() -> None:
+    """An optional empty list must not leave a misleading blank publication section."""
+
+    bundle = valid_bundle()
+    bundle.course.modules[0].misconceptions = []
+    bundle.course.modules[0].examples = []
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    course_html = rendered["course_html"].content.decode("utf-8")
+    course_markdown = rendered["course_markdown"].content.decode("utf-8")
+
+    assert "Common misconceptions" not in course_html
+    assert "Common misconceptions" not in course_markdown
+    assert ">Examples<" not in course_html
+    assert "### Examples" not in course_markdown
+
+
+def test_pdf_and_docx_convert_inline_markdown_to_readable_text() -> None:
+    """Portable binary formats must not expose backticks or Markdown link syntax."""
+
+    bundle = valid_bundle()
+    bundle.review_pack.review_sequence = ["Run `python --version` before review."]
+    rendered = ArtifactRenderer().render_bundle(bundle)
+
+    pdf_document = fitz.open(
+        stream=rendered["review_pack_pdf"].content,
+        filetype="pdf",
+    )
+    try:
+        review_pdf_text = "\n".join(page.get_text("text") for page in pdf_document)
+    finally:
+        pdf_document.close()
+    course_document = Document(BytesIO(rendered["course_docx"].content))
+    course_docx_text = "\n".join(
+        paragraph.text for paragraph in course_document.paragraphs
+    )
+
+    assert "`python --version`" not in review_pdf_text
+    assert "python --version" in review_pdf_text
+    assert "[The Python Tutorial](" not in course_docx_text
+    assert "The Python Tutorial" in course_docx_text
+    assert "https://docs.python.org/3/tutorial/" in course_docx_text
+
+
+def test_pdf_normalizes_common_typographic_punctuation() -> None:
+    """English smart punctuation must remain readable with the built-in PDF font."""
+
+    bundle = valid_bundle()
+    bundle.course.modules[0].sections[0].content_blocks[
+        0
+    ].text = "A client’s resolver—when ready—answers “safely”."
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    pdf_document = fitz.open(
+        stream=rendered["course_pdf"].content,
+        filetype="pdf",
+    )
+    try:
+        course_pdf_text = "\n".join(page.get_text("text") for page in pdf_document)
+    finally:
+        pdf_document.close()
+
+    assert "client's resolver-when ready-answers" in course_pdf_text
+    assert '"safely"' in course_pdf_text
+    assert "client-s" not in course_pdf_text
+
+
+def test_summary_label_removes_one_model_supplied_leading_colon() -> None:
+    """The deterministic Summary label must not produce a visible double colon."""
+
+    bundle = valid_bundle()
+    bundle.course.modules[0].sections[
+        0
+    ].summary = ": Variables give useful names to values."
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    course_html = rendered["course_html"].content.decode("utf-8")
+    course_markdown = rendered["course_markdown"].content.decode("utf-8")
+
+    assert "Summary:</strong> Variables give" in course_html
+    assert "Summary:</strong> :" not in course_html
+    assert "**Summary:** Variables give" in course_markdown
+    assert "**Summary:** :" not in course_markdown
+
+
+def test_assessment_renderers_use_singular_point_grammar() -> None:
+    """A one-point item should read naturally in every student format."""
+
+    bundle = valid_bundle()
+    bundle.assessment.blueprint[0].total_points = 1
+    bundle.assessment.items[0].points = 1
+    bundle.answer_key.answers[0].rubric[0].points = 1
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    assessment_html = rendered["assessment_html"].content.decode("utf-8")
+    assessment_markdown = rendered["assessment_markdown"].content.decode("utf-8")
+    pdf_document = fitz.open(
+        stream=rendered["assessment_pdf"].content,
+        filetype="pdf",
+    )
+    try:
+        assessment_pdf_text = "\n".join(page.get_text("text") for page in pdf_document)
+    finally:
+        pdf_document.close()
+
+    for assessment_text in (
+        assessment_html,
+        assessment_markdown,
+        assessment_pdf_text,
+    ):
+        assert "(1 point)" in assessment_text
+        assert "(1 points)" not in assessment_text
 
 
 def test_rtl_course_uses_document_direction_and_searchable_pdf() -> None:
