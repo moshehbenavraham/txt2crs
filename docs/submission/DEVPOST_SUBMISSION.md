@@ -178,7 +178,7 @@ and final source identity are explicit instead of blended together.
 
 ## What Is Next
 
-The current `1.0.1` release is deliberately a local Docker product for
+The current `1.0.2` release is deliberately a local Docker product for
 synthetic demonstrations. The next responsible steps are:
 
 - define formal retention, deletion, provider-transfer, and public
@@ -196,7 +196,7 @@ synthetic demonstrations. The next responsible steps are:
 
 - Source repository: <https://github.com/moshehbenavraham/txt2crs>
 - Intended immutable release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.0.1>
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.0.2>
 - Public evidence map:
   [screenshots and release evidence](PUBLIC_EVIDENCE_INDEX.md)
 - Deterministic judge sample:

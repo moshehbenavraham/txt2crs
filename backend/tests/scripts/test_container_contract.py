@@ -254,8 +254,8 @@ def test_docker_workflow_probes_authoritative_local_health_endpoints() -> None:
 
     workflow_text = _read_repository_file(DOCKER_COMPOSE_WORKFLOW)
 
-    assert "curl --fail http://localhost:8012/api/v1/utils/health/" in workflow_text
-    assert "curl --fail http://localhost:5183/health" in workflow_text
+    assert "curl --fail http://localhost:8016/api/v1/utils/health/" in workflow_text
+    assert "curl --fail http://localhost:5195/health" in workflow_text
     assert "localhost:5181" not in workflow_text
 
 

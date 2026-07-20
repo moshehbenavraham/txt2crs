@@ -19,15 +19,15 @@ See [deployment policy](deployment-policy.md) and
 
 ```bash
 ./scripts/start-local.sh --status
-curl --fail http://localhost:8012/api/v1/utils/health/
-curl --fail http://localhost:5183/health
+curl --fail http://localhost:8016/api/v1/utils/health/
+curl --fail http://localhost:5195/health
 ```
 
 Open:
 
-- Frontend: <http://localhost:5183>
-- API documentation: <http://localhost:8012/docs>
-- Mailcatcher: <http://localhost:1081>
+- Frontend: <http://localhost:5195>
+- API documentation: <http://localhost:8016/docs>
+- Mailcatcher: <http://localhost:1084>
 
 Backend readiness includes PostgreSQL connectivity and the current application
 version. Frontend health is served directly by Nginx.
@@ -122,8 +122,8 @@ For an end-to-end stack smoke:
 ```bash
 ./scripts/start-local.sh
 ./scripts/deploy-smoke-check.sh \
-  http://localhost:8012/api/v1/utils/health/ \
-  http://localhost:5183/health
+  http://localhost:8016/api/v1/utils/health/ \
+  http://localhost:5195/health
 ```
 
 ## Rollback

@@ -45,11 +45,33 @@ production require an explicit non-blank `SECRET_KEY`, and reject
 | `ENABLE_PRIVATE_DEV_ROUTES` | `False` | Register `/private/*` routes; accepted only in `local` |
 | `ENABLE_PUBLIC_SIGNUP` | `False` | Permit unauthenticated `/users/signup`; accepted only in `local` |
 
+#### Docker Host Ports
+
+The root `.env` owns every Docker-published host port. Container-internal
+service ports do not change. The full host, container, direct-development, and
+test inventory is documented in [Port allocations](PORTS.md).
+
+| Variable | Default | Listener |
+|----------|---------|----------|
+| `TRAEFIK_HTTP_PORT` | `86` | Traefik HTTP / local proxy |
+| `TRAEFIK_HTTPS_PORT` | `8443` | Traefik HTTPS overlay |
+| `TRAEFIK_DASHBOARD_PORT` | `8102` | Traefik dashboard |
+| `POSTGRES_PORT` | `5450` | PostgreSQL for host tools |
+| `BACKEND_PORT` | `8016` | FastAPI backend |
+| `FRONTEND_PORT` | `5195` | Docker frontend |
+| `ADMINER_PORT` | `8103` | Adminer |
+| `MAILCATCHER_SMTP_PORT` | `1029` | Mailcatcher SMTP |
+| `MAILCATCHER_WEB_PORT` | `1084` | Mailcatcher web UI |
+| `JAEGER_UI_PORT` | `16689` | Jaeger UI |
+| `OTLP_GRPC_PORT` | `4324` | OTLP gRPC receiver |
+| `OTLP_HTTP_PORT` | `4325` | OTLP HTTP receiver |
+| `PLAYWRIGHT_REPORT_PORT` | `9327` | Playwright HTML report |
+
 #### Frontend Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FRONTEND_HOST` | `http://localhost:5181` | Frontend URL for CORS and email links; `.env.example` sets `http://localhost:5183` for Docker |
+| `FRONTEND_HOST` | `http://localhost:5196` | Frontend URL for CORS and email links; `.env.example` sets `http://localhost:5195` for Docker |
 
 #### Backend CORS
 
@@ -61,14 +83,14 @@ The effective allowlist is `FRONTEND_HOST` plus `BACKEND_CORS_ORIGINS`.
 `.env.example` supplies these additional local origins:
 
 ```
-http://localhost,http://localhost:5183,http://localhost:5184,http://localhost:8012,https://localhost,https://localhost:5183,https://localhost:5184
+http://localhost,http://localhost:5195,http://localhost:5196,http://localhost:5197,http://localhost:8016,https://localhost,https://localhost:8443
 ```
 
 #### Database Configuration
 
 | Variable | Runtime default | Description |
 |----------|-----------------|-------------|
-| `POSTGRES_PORT` | `5441` | Database server port; local Compose overrides the container connection to `5432` and publishes it on host port `5447` |
+| `POSTGRES_PORT` | `5450` | Database server port; local Compose keeps the container connection on `5432` and publishes it on host port `5450` |
 | `POSTGRES_DB` | Empty string | Database name; Docker Compose requires a value |
 | `POSTGRES_PASSWORD` | Empty string | Database password; Docker Compose requires a value and non-local deployments must not use `changethis` |
 
@@ -237,9 +259,9 @@ ENVIRONMENT=local
 ENABLE_PRIVATE_DEV_ROUTES=false
 ENABLE_PUBLIC_SIGNUP=true
 DOMAIN=localhost
-FRONTEND_HOST=http://localhost:5183
+FRONTEND_HOST=http://localhost:5195
 POSTGRES_SERVER=db
-POSTGRES_PORT=5447
+POSTGRES_PORT=5450
 SECRET_KEY=development-secret-key-change-in-production
 ```
 
@@ -260,7 +282,7 @@ Behaviors in local:
 ```env
 ENVIRONMENT=staging
 DOMAIN=localhost
-FRONTEND_HOST=http://localhost:5183
+FRONTEND_HOST=http://localhost:5195
 POSTGRES_SERVER=localhost
 SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx
@@ -281,7 +303,7 @@ Behaviors in staging:
 ```env
 ENVIRONMENT=production
 DOMAIN=localhost
-FRONTEND_HOST=http://localhost:5183
+FRONTEND_HOST=http://localhost:5195
 POSTGRES_SERVER=localhost
 SECRET_KEY=<generate-unique-key>
 SENTRY_DSN=https://xxx@sentry.io/xxx

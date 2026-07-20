@@ -8,7 +8,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 const frontendBaseUrl =
   process.env.PLAYWRIGHT_BASE_URL ??
   process.env.FRONTEND_HOST ??
-  "http://localhost:5183"
+  "http://localhost:5195"
 
 const alignToFrontendOrigin = (url: string): string =>
   url.replace(

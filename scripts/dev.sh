@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dev.sh - Local development script for Python React Boilerplate
+# dev.sh - Host-only local development script for txt2crs
 #
 # Starts database (Docker), backend (native), and frontend (native) with hot reload.
 # All output is combined in one terminal with colored prefixes.
@@ -44,7 +44,7 @@ BOLD='\033[1m'
 # =============================================================================
 
 show_help() {
-    echo -e "${CYAN}dev.sh${NC} - Local development script for Python React Boilerplate"
+    echo -e "${CYAN}dev.sh${NC} - Host-only local development for txt2crs"
     echo ""
     echo -e "${BOLD}USAGE:${NC}"
     echo "    ./scripts/dev.sh [OPTIONS]"
@@ -54,9 +54,9 @@ show_help() {
     echo "    --help    Show this help message"
     echo ""
     echo -e "${BOLD}SERVICES:${NC}"
-    echo "    PostgreSQL    → localhost:5447"
-    echo "    Backend       → http://localhost:8012"
-    echo "    Frontend      → http://localhost:5173"
+    echo "    PostgreSQL    -> localhost:5450"
+    echo "    Backend       -> http://localhost:8016"
+    echo "    Frontend      -> http://localhost:5196"
     echo ""
     exit 0
 }
@@ -66,15 +66,15 @@ show_help() {
 # =============================================================================
 
 stop_services() {
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}---------------------------------------------------------------${NC}"
     echo -e "${YELLOW}  Stopping dev services (preserving volumes)...${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}---------------------------------------------------------------${NC}"
     echo ""
 
-    # Kill any running backend processes (fastapi on port 8009)
-    if pgrep -f "fastapi.*8012" >/dev/null 2>&1; then
+    # Match only the registered txt2crs backend port.
+    if pgrep -f "fastapi.*8016" >/dev/null 2>&1; then
         echo -e "${BLUE}[BE]${NC} Stopping backend..."
-        pkill -f "fastapi.*8012" 2>/dev/null || true
+        pkill -f "fastapi.*8016" 2>/dev/null || true
         sleep 1
         echo -e "${BLUE}[BE]${NC} Backend stopped."
     else
@@ -101,9 +101,9 @@ stop_services() {
     fi
 
     echo ""
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}---------------------------------------------------------------${NC}"
     echo -e "${GREEN}  All services stopped. Database volume preserved.${NC}"
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}---------------------------------------------------------------${NC}"
     exit 0
 }
 
@@ -142,9 +142,9 @@ DB_STARTED=false
 
 cleanup() {
     echo ""
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}---------------------------------------------------------------${NC}"
     echo -e "${YELLOW}  Shutting down...${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}---------------------------------------------------------------${NC}"
 
     # Kill backend if running
     if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
@@ -180,21 +180,19 @@ trap cleanup SIGINT SIGTERM EXIT
 print_banner() {
     echo -e "${CYAN}"
     cat << 'EOF'
-  ╔═══════════════════════════════════════════════════════════════╗
-  ║                                                               ║
-  ║   🚀  BOILERPLATE - LOCAL DEVELOPMENT                          ║
-  ║                                                               ║
-  ║   Press Ctrl+C to stop all services                          ║
-  ║                                                               ║
-  ╚═══════════════════════════════════════════════════════════════╝
+  +---------------------------------------------------------------+
+  |              TXT2CRS - LOCAL DEVELOPMENT                      |
+  |                                                               |
+  |              Press Ctrl+C to stop all services                |
+  +---------------------------------------------------------------+
 EOF
     echo -e "${NC}"
 }
 
 print_status() {
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}---------------------------------------------------------------${NC}"
     echo -e "${CYAN}  $1${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}---------------------------------------------------------------${NC}"
 }
 
 prefix_output() {
@@ -265,12 +263,15 @@ cd "$PROJECT_DIR/backend"
 
 # Source .env for backend environment variables
 set -a
+# The developer owns this ignored dotenv file. ShellCheck cannot resolve a
+# runtime-computed path, so suppress only its source-discovery warning.
+# shellcheck disable=SC1091
 source "$PROJECT_DIR/.env"
 set +a
 
 # Override for local dev
 export POSTGRES_SERVER=localhost
-export POSTGRES_PORT=5447
+export POSTGRES_PORT=5450
 
 # Run prestart (migrations + create initial superuser)
 echo -e "${BLUE}[BE]${NC} Running database migrations..."
@@ -284,11 +285,11 @@ uv run python app/initial_data.py 2>&1 | prefix_output "[BE]" "${BLUE}"
 
 print_status "Starting backend (FastAPI with hot reload)..."
 
-(uv run fastapi dev app/main.py --host 0.0.0.0 --port 8012 2>&1 | prefix_output "[BE]" "${BLUE}") &
+(uv run fastapi dev app/main.py --host 0.0.0.0 --port 8016 2>&1 | prefix_output "[BE]" "${BLUE}") &
 BACKEND_PID=$!
 
-echo -e "${BLUE}[BE]${NC} Backend starting on http://localhost:8012"
-echo -e "${BLUE}[BE]${NC} API docs: http://localhost:8012/docs"
+echo -e "${BLUE}[BE]${NC} Backend starting on http://localhost:8016"
+echo -e "${BLUE}[BE]${NC} API docs: http://localhost:8016/docs"
 
 # Give backend a moment to start
 sleep 2
@@ -304,7 +305,7 @@ cd "$PROJECT_DIR/frontend"
 (npm run dev 2>&1 | prefix_output "[FE]" "${MAGENTA}") &
 FRONTEND_PID=$!
 
-echo -e "${MAGENTA}[FE]${NC} Frontend starting on http://localhost:5173"
+echo -e "${MAGENTA}[FE]${NC} Frontend starting on http://localhost:5196"
 
 # =============================================================================
 # 5. SHOW STATUS AND WAIT
@@ -313,18 +314,18 @@ echo -e "${MAGENTA}[FE]${NC} Frontend starting on http://localhost:5173"
 sleep 2
 
 echo ""
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}---------------------------------------------------------------${NC}"
 echo -e "${GREEN}  All services running!${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}---------------------------------------------------------------${NC}"
 echo ""
-echo -e "  ${GREEN}[DB]${NC} PostgreSQL    → localhost:5447"
-echo -e "  ${BLUE}[BE]${NC} Backend       → http://localhost:8012"
-echo -e "  ${BLUE}[BE]${NC} API Docs      → http://localhost:8012/docs"
-echo -e "  ${MAGENTA}[FE]${NC} Frontend      → http://localhost:5173"
+echo -e "  ${GREEN}[DB]${NC} PostgreSQL    -> localhost:5450"
+echo -e "  ${BLUE}[BE]${NC} Backend       -> http://localhost:8016"
+echo -e "  ${BLUE}[BE]${NC} API Docs      -> http://localhost:8016/docs"
+echo -e "  ${MAGENTA}[FE]${NC} Frontend      -> http://localhost:5196"
 echo ""
 echo -e "  ${YELLOW}Press Ctrl+C to stop all services${NC}"
 echo ""
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}---------------------------------------------------------------${NC}"
 echo ""
 
 # Wait for processes

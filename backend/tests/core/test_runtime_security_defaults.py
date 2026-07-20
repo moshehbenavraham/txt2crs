@@ -62,6 +62,15 @@ def test_local_environment_can_auto_generate_secret_key() -> None:
     assert settings.SECRET_KEY
 
 
+def test_host_development_defaults_use_registered_ports() -> None:
+    """Direct backend defaults must match the workstation port allocation."""
+
+    settings = Settings(_env_file=None, **_base_settings_payload())
+
+    assert settings.FRONTEND_HOST == "http://localhost:5196"
+    assert settings.POSTGRES_PORT == 5450
+
+
 def test_private_dev_routes_flag_is_rejected_outside_local() -> None:
     payload = _base_settings_payload()
     payload["ENVIRONMENT"] = "production"

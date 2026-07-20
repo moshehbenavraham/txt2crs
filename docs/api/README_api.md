@@ -6,9 +6,9 @@ readiness, privileged device authentication, email testing, and health.
 
 ## OpenAPI
 
-- Swagger UI: <http://localhost:8012/docs>
-- ReDoc: <http://localhost:8012/redoc>
-- JSON: <http://localhost:8012/api/v1/openapi.json>
+- Swagger UI: <http://localhost:8016/docs>
+- ReDoc: <http://localhost:8016/redoc>
+- JSON: <http://localhost:8016/api/v1/openapi.json>
 
 The OpenAPI document is the endpoint source of truth and generates the
 frontend client through `./scripts/generate-client.sh`.

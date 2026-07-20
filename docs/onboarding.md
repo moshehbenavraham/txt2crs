@@ -51,21 +51,21 @@ repository-root Docker Compose topology.
 
 ```bash
 ./scripts/start-local.sh --status
-curl --fail http://localhost:8012/api/v1/utils/health/
-curl --fail http://localhost:5183/health
+curl --fail http://localhost:8016/api/v1/utils/health/
+curl --fail http://localhost:5195/health
 ```
 
-- Frontend: <http://localhost:5183>
-- Backend docs: <http://localhost:8012/docs>
-- Mailcatcher: <http://localhost:1081>
-- PostgreSQL for host tools: `localhost:5447`
+- Frontend: <http://localhost:5195>
+- Backend docs: <http://localhost:8016/docs>
+- Mailcatcher: <http://localhost:1084>
+- PostgreSQL for host tools: `localhost:5450`
 
 Log in with `FIRST_SUPERUSER` and the configured
 `FIRST_SUPERUSER_PASSWORD`.
 
 ### 5. Complete course-system setup
 
-Open <http://localhost:5183/setup> as the initial superuser. The protected
+Open <http://localhost:5195/setup> as the initial superuser. The protected
 workspace shows the latest cached storage, worker, research, model, input, and
 admission checks. Use its ChatGPT connection action to authenticate the
 dedicated application identity. Configure `TAVILY_API_KEY` in `.env` when
@@ -176,9 +176,9 @@ process flag is explicitly set by the Playwright configuration.
 
 ```bash
 docker compose ps
-lsof -i :5183
-lsof -i :8012
-lsof -i :5447
+lsof -i :5195
+lsof -i :8016
+lsof -i :5450
 ```
 
 Stop only the conflicting project or change the local published port. Do not
@@ -191,7 +191,7 @@ docker compose up -d db
 docker compose logs db
 ```
 
-Containers use `db:5432`; the host-only port `5447` must not be passed to
+Containers use `db:5432`; the host-only port `5450` must not be passed to
 container services.
 
 ### The generated client is stale

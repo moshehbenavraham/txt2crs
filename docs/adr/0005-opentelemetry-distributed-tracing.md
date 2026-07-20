@@ -28,7 +28,7 @@ Implement OpenTelemetry distributed tracing as an opt-in feature with:
 
 ```bash
 OTEL_ENABLED=true                    # Enable/disable tracing
-OTLP_ENDPOINT=http://localhost:4317  # OTLP collector endpoint
+OTLP_ENDPOINT=http://localhost:4324  # Registered host OTLP gRPC endpoint
 OTEL_SERVICE_NAME=my-service         # Service name (defaults to PROJECT_NAME)
 OTEL_TRACES_SAMPLER_ARG=1.0          # Sampling rate (1.0 = all, 0.1 = 10%)
 ```
@@ -82,15 +82,15 @@ services:
   jaeger:
     image: jaegertracing/jaeger:2.19.0
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC
-      - "4318:4318"    # OTLP HTTP
+      - "16689:16686"  # Jaeger UI
+      - "4324:4317"    # OTLP gRPC
+      - "4325:4318"    # OTLP HTTP
     environment:
       - COLLECTOR_OTLP_GRPC_HOST_PORT=0.0.0.0:4317
       - COLLECTOR_OTLP_HTTP_HOST_PORT=0.0.0.0:4318
 ```
 
-Access Jaeger UI at http://localhost:16686
+Access Jaeger UI at http://localhost:16689
 
 ## Consequences
 

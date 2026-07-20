@@ -8,13 +8,13 @@ services:
   proxy:
     image: traefik:v3.7.8
     # Note: Docker provider disabled for local dev due to API version incompatibility
-    # Services are accessed directly via their exposed ports (backend:8012, frontend:5183, etc.)
+    # Services are accessed directly through the registered txt2crs host ports.
     volumes:
       # Docker socket not mounted - provider disabled
       - /dev/null:/var/run/docker.sock:ro
     ports:
-      - "82:80"
-      - "8095:8080"
+      - "${TRAEFIK_HTTP_PORT?Variable not set}:80"
+      - "${TRAEFIK_DASHBOARD_PORT?Variable not set}:8080"
     command:
       # Disable Docker provider for local development (API version compatibility issue)
       # - --providers.docker
@@ -46,7 +46,7 @@ services:
   db:
     restart: "no"
     ports:
-      - "5447:5432"
+      - "${POSTGRES_PORT?Variable not set}:5432"
 
   adminer:
     image: adminer:5.4.2
@@ -59,7 +59,7 @@ services:
     environment:
       - ADMINER_DESIGN=pepa-linha-dark
     ports:
-      - "8096:8080"
+      - "${ADMINER_PORT?Variable not set}:8080"
 
   prestart:
     environment:
@@ -68,7 +68,7 @@ services:
   backend:
     restart: "no"
     ports:
-      - "8012:8000"
+      - "${BACKEND_PORT?Variable not set}:8000"
     build:
       context: ./backend
     # The development image already declares USER appuser. Keeping the user
@@ -111,7 +111,7 @@ services:
       EMAILS_FROM_EMAIL: "noreply@example.com"
       # OpenTelemetry Configuration
       # Set OTEL_ENABLED=true to enable distributed tracing
-      # Traces viewable at http://localhost:16686 (Jaeger UI)
+      # Traces viewable at the JAEGER_UI_PORT declared in the root .env.
       OTEL_ENABLED: "${OTEL_ENABLED:-false}"
       OTLP_ENDPOINT: "http://jaeger:4317"
       OTEL_SERVICE_NAME: "${PROJECT_NAME:-txt2crs}"
@@ -123,19 +123,18 @@ services:
   mailcatcher:
     image: sj26/mailcatcher:v0.10.0
     ports:
-      - "1081:1080"
-      - "1026:1025"
+      - "${MAILCATCHER_WEB_PORT?Variable not set}:1080"
+      - "${MAILCATCHER_SMTP_PORT?Variable not set}:1025"
 
   # Jaeger for OpenTelemetry trace visualization
-  # UI: http://localhost:16686
-  # OTLP gRPC: localhost:4317, OTLP HTTP: localhost:4318
+  # Host mappings come from the registered values in the root .env.
   jaeger:
     image: jaegertracing/jaeger:2.19.0
     restart: "no"
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP HTTP receiver
+      - "${JAEGER_UI_PORT?Variable not set}:16686"
+      - "${OTLP_GRPC_PORT?Variable not set}:4317"
+      - "${OTLP_HTTP_PORT?Variable not set}:4318"
     environment:
       - COLLECTOR_OTLP_GRPC_HOST_PORT=0.0.0.0:4317
       - COLLECTOR_OTLP_HTTP_HOST_PORT=0.0.0.0:4318
@@ -143,11 +142,11 @@ services:
   frontend:
     restart: "no"
     ports:
-      - "5183:80"
+      - "${FRONTEND_PORT?Variable not set}:80"
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:8012
+        - VITE_API_URL=http://localhost:${BACKEND_PORT?Variable not set}
         - VITE_ENABLE_PUBLIC_SIGNUP=${ENABLE_PUBLIC_SIGNUP:-false}
         - VITE_HTML_PREVIEW_MAX_BYTES=${TXT2CRS_HTML_PREVIEW_MAX_BYTES:-5242880}
         - NODE_ENV=development
@@ -179,7 +178,7 @@ services:
       - ./frontend/blob-report:/app/blob-report
       - ./frontend/test-results:/app/test-results
     ports:
-      - 9324:9323
+      - "${PLAYWRIGHT_REPORT_PORT?Variable not set}:9323"
 
 networks:
   traefik-public:

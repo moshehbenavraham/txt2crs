@@ -2,10 +2,11 @@ services:
   traefik:
     image: traefik:v3.7.8
     ports:
-      # Listen on port 80, default for HTTP, necessary to redirect to HTTPS
-      - 80:80
-      # Listen on port 443, default for HTTPS
-      - 443:443
+      # Registered local defaults avoid every other project in PORT-MAP.md.
+      # A public deployment may override these values when its host exclusively
+      # owns standard ports 80 and 443 or forwards them to these listeners.
+      - "${TRAEFIK_HTTP_PORT?Variable not set}:80"
+      - "${TRAEFIK_HTTPS_PORT?Variable not set}:443"
     restart: always
     labels:
       # Enable Traefik for this service, to make it available in the public network

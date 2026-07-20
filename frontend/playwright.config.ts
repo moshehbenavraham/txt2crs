@@ -2,14 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 import 'dotenv/config'
 
 const frontendBaseURL =
-  process.env.PLAYWRIGHT_BASE_URL ?? process.env.FRONTEND_HOST ?? 'http://localhost:5183'
+  process.env.PLAYWRIGHT_BASE_URL ?? process.env.FRONTEND_HOST ?? 'http://localhost:5195'
 
 const frontendPort = (() => {
   try {
     const port = new URL(frontendBaseURL).port
-    return port || '5183'
+    return port || '5195'
   } catch {
-    return '5183'
+    return '5195'
   }
 })()
 

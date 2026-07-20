@@ -29,6 +29,8 @@ live under `backend/packages/txt2crs/docs/`.
 - [Changelog](CHANGELOG.md) records completed user-visible and engineering
   changes.
 - [Versioning](VERSIONING.md) defines release and version synchronization
+- [Port allocations](PORTS.md) lists every host-bound and container-internal
+  listener used by local, test, and optional proxy workflows.
   rules.
 - [ADR index](adr/README_adr.md) records accepted architectural decisions.
 - [File organization](FILE_ORGANIZATION.md) maps repository ownership.

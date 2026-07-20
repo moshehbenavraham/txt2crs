@@ -22,6 +22,24 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.0.2] - 2026-07-21
+
+### Added
+
+### Changed
+
+- Registered and synchronized all 18 txt2crs host-bound ports across the
+  central workstation map, Compose, host development, browser tests, startup
+  validation, and operator documentation.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [1.0.1] - 2026-07-20
 
 ### Added

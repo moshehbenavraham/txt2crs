@@ -20,8 +20,8 @@ database, backend, and frontend as healthy before the command succeeds. Verify
 the public local probes:
 
 ```bash
-curl --fail http://localhost:8012/api/v1/utils/health/
-curl --fail http://localhost:5183/health
+curl --fail http://localhost:8016/api/v1/utils/health/
+curl --fail http://localhost:5195/health
 ```
 
 The backend response includes application, version, and database status. The

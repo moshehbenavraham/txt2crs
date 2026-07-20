@@ -85,7 +85,7 @@ npm ci
 npm run dev
 ```
 
-The Compose frontend is available at <http://localhost:5183>. Common checks:
+The Compose frontend is available at <http://localhost:5195>. Common checks:
 
 ```bash
 npm run test:unit

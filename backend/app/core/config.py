@@ -22,13 +22,13 @@ Environment Variables:
     Optional (with defaults):
         - SECRET_KEY: JWT signing key (auto-generated only for local)
         - ACCESS_TOKEN_EXPIRE_MINUTES: JWT expiry (default: 1440 = 24 hours)
-        - POSTGRES_PORT: Database port (default: 5441)
+        - POSTGRES_PORT: Database port (default: 5450 for host development)
         - POSTGRES_PASSWORD: Database password (default: "")
         - POSTGRES_DB: Database name (default: "")
         - SMTP_*: Email configuration (all optional)
         - SENTRY_DSN: Sentry error tracking URL (optional)
         - BACKEND_CORS_ORIGINS: Comma-separated CORS origins (default: [])
-        - FRONTEND_HOST: Frontend URL for CORS (default: http://localhost:5181)
+        - FRONTEND_HOST: Frontend URL for CORS (default: http://localhost:5196)
 
 Example:
     Access settings anywhere in the application:
@@ -70,8 +70,8 @@ def parse_cors(v: Any) -> list[str] | str:
     Parse CORS origins from environment variable.
 
     Handles multiple input formats for flexibility in configuration:
-    - Comma-separated string: "http://localhost:3000,http://localhost:5173"
-    - JSON array string: '["http://localhost:3000"]'
+    - Comma-separated string: "http://localhost:5195,http://localhost:5196"
+    - JSON array string: '["http://localhost:5196"]'
     - Python list (when set programmatically)
 
     Args:
@@ -85,10 +85,10 @@ def parse_cors(v: Any) -> list[str] | str:
         ValueError: If the value cannot be parsed as a valid CORS origin list.
 
     Example:
-        >>> parse_cors("http://localhost:3000,http://example.com")
-        ['http://localhost:3000', 'http://example.com']
-        >>> parse_cors('["http://localhost:3000"]')
-        '["http://localhost:3000"]'  # Passed through for Pydantic to parse
+        >>> parse_cors("http://localhost:5196,http://example.com")
+        ['http://localhost:5196', 'http://example.com']
+        >>> parse_cors('["http://localhost:5196"]')
+        '["http://localhost:5196"]'  # Passed through for Pydantic to parse
     """
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",") if i.strip()]
@@ -179,7 +179,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     """JWT access token expiration in minutes. Default: 1440 (24 hours)."""
 
-    FRONTEND_HOST: str = "http://localhost:5181"
+    FRONTEND_HOST: str = "http://localhost:5196"
     """Frontend application URL. Added to CORS allowed origins automatically."""
 
     ENVIRONMENT: Literal["local", "staging", "production"]
@@ -221,7 +221,7 @@ class Settings(BaseSettings):
     """
     Additional CORS allowed origins (comma-separated or JSON array).
     FRONTEND_HOST is always included automatically via all_cors_origins.
-    Example: "http://localhost:3000,http://localhost:5173"
+    Example: "http://localhost:5195,http://localhost:5196"
     """
 
     @computed_field  # type: ignore[prop-decorator]
@@ -254,7 +254,7 @@ class Settings(BaseSettings):
     OTLP_ENDPOINT: str | None = None
     """
     OTLP exporter endpoint URL for sending traces.
-    Example: "http://localhost:4317" (gRPC) or "http://localhost:4318/v1/traces" (HTTP).
+    Example: "http://localhost:4324" (gRPC) or "http://localhost:4325/v1/traces" (HTTP).
     If not set, tracing is disabled even if OTEL_ENABLED is True.
     """
 
@@ -728,8 +728,8 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str
     """PostgreSQL server hostname or IP address. Required, no default."""
 
-    POSTGRES_PORT: int = 5441
-    """PostgreSQL server port. Default: 5441 (non-standard to avoid conflicts)."""
+    POSTGRES_PORT: int = 5450
+    """Registered host PostgreSQL port; Compose overrides internal clients to 5432."""
 
     POSTGRES_USER: str
     """PostgreSQL username for database connection. Required, no default."""
@@ -805,7 +805,7 @@ class Settings(BaseSettings):
             PostgresDsn: Validated PostgreSQL connection URI.
 
         Example:
-            postgresql+psycopg://user:pass@localhost:5441/mydb
+            postgresql+psycopg://user:pass@localhost:5450/mydb
         """
         return PostgresDsn.build(
             scheme="postgresql+psycopg",

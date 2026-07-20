@@ -17,7 +17,7 @@ Usage:
 Configuration:
     Set these environment variables to enable tracing:
     - OTEL_ENABLED=true
-    - OTLP_ENDPOINT=http://localhost:4317  (gRPC) or http://localhost:4318/v1/traces (HTTP)
+    - OTLP_ENDPOINT=http://localhost:4324  (gRPC) or http://localhost:4325/v1/traces (HTTP)
     - OTEL_SERVICE_NAME=my-service  (optional, defaults to PROJECT_NAME)
     - OTEL_TRACES_SAMPLER_ARG=1.0  (optional, 1.0 = sample all, 0.1 = sample 10%)
 
@@ -26,9 +26,9 @@ Example Docker Compose with Jaeger:
       jaeger:
         image: jaegertracing/jaeger:2.19.0
         ports:
-          - "16686:16686"  # Jaeger UI
-          - "4317:4317"    # OTLP gRPC
-          - "4318:4318"    # OTLP HTTP
+          - "16689:16686"  # Jaeger UI
+          - "4324:4317"    # OTLP gRPC
+          - "4325:4318"    # OTLP HTTP
         environment:
           - COLLECTOR_OTLP_GRPC_HOST_PORT=0.0.0.0:4317
           - COLLECTOR_OTLP_HTTP_HOST_PORT=0.0.0.0:4318

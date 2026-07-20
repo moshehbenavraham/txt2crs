@@ -17,8 +17,8 @@ before changing local state.
 
 ```bash
 docker compose ps
-curl --fail http://localhost:8012/api/v1/utils/health/
-curl --fail http://localhost:5183/health
+curl --fail http://localhost:8016/api/v1/utils/health/
+curl --fail http://localhost:5195/health
 docker compose logs --tail=200 backend
 docker compose logs --tail=200 frontend
 docker compose logs --tail=200 db
@@ -39,7 +39,7 @@ restrict access.
 
 ## Frontend Health or Stale Build
 
-1. Check `curl --fail http://localhost:5183/health`.
+1. Check `curl --fail http://localhost:5195/health`.
 2. Inspect `docker compose logs frontend`.
 3. Regenerate the API client only when backend routes changed:
    `./scripts/generate-client.sh`.

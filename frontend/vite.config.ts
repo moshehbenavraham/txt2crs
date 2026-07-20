@@ -29,6 +29,16 @@ const chunkGroups = {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Fixed registered ports fail visibly on a collision instead of Vite
+  // silently moving this project to an untracked fallback port.
+  server: {
+    port: 5196,
+    strictPort: true,
+  },
+  preview: {
+    port: 4177,
+    strictPort: true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

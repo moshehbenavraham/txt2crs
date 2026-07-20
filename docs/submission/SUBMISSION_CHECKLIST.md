@@ -33,7 +33,7 @@ human-only actions documented in
 The human operator must:
 
 1. keep the repository Private and grant the two required reviewers access;
-2. review the final local commit, then create and push `v1.0.1`;
+2. review the final local commit, then create and push `v1.0.2`;
 3. upload and verify the public YouTube video;
 4. complete the account-only Devpost fields and submit the Education entry;
 5. verify all final links and platform confirmation before the deadline.

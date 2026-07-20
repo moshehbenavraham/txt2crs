@@ -46,7 +46,7 @@ uv build --package txt2crs
 ## Current API
 
 The application OpenAPI document is authoritative:
-<http://localhost:8012/api/v1/openapi.json>.
+<http://localhost:8016/api/v1/openapi.json>.
 
 | Area | Current endpoints |
 |------|-------------------|

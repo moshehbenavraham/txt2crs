@@ -4,8 +4,8 @@ import path from "node:path"
 import { defineConfig, devices } from "@playwright/test"
 import "dotenv/config"
 
-const backendBaseUrl = "http://127.0.0.1:8013"
-const frontendBaseUrl = "http://127.0.0.1:5184"
+const backendBaseUrl = "http://127.0.0.1:8017"
+const frontendBaseUrl = "http://127.0.0.1:5197"
 const inheritedBrowserTestRootDirectory =
   process.env.TXT2CRS_BROWSER_TEST_ROOT_DIRECTORY
 const browserTestRootDirectory =
@@ -83,7 +83,7 @@ export default defineConfig({
         "uv run --directory ../backend uvicorn " +
         "tests.browser.deterministic_app:" +
         "create_deterministic_browser_app_from_environment --factory " +
-        "--host 127.0.0.1 --port 8013",
+        "--host 127.0.0.1 --port 8017",
       url: `${backendBaseUrl}/api/v1/utils/health-check/`,
       reuseExistingServer: false,
       timeout: 30_000,
@@ -101,7 +101,7 @@ export default defineConfig({
       },
     },
     {
-      command: "npm run dev -- --host 127.0.0.1 --port 5184 --strictPort",
+      command: "npm run dev -- --host 127.0.0.1 --port 5197 --strictPort",
       url: frontendBaseUrl,
       reuseExistingServer: false,
       timeout: 30_000,

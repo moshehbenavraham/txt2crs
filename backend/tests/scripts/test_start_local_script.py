@@ -29,7 +29,20 @@ DOCKER_IMAGE_FRONTEND=txt2crs-frontend
 TAG=latest
 DOMAIN=localhost
 STACK_NAME=txt2crs
-FRONTEND_HOST=http://localhost:5183
+TRAEFIK_HTTP_PORT=86
+TRAEFIK_HTTPS_PORT=8443
+TRAEFIK_DASHBOARD_PORT=8102
+POSTGRES_PORT=5450
+BACKEND_PORT=8016
+FRONTEND_PORT=5195
+ADMINER_PORT=8103
+MAILCATCHER_SMTP_PORT=1029
+MAILCATCHER_WEB_PORT=1084
+JAEGER_UI_PORT=16689
+OTLP_GRPC_PORT=4324
+OTLP_HTTP_PORT=4325
+PLAYWRIGHT_REPORT_PORT=9327
+FRONTEND_HOST=http://localhost:5195
 ENVIRONMENT=local
 PROJECT_NAME=txt2crs
 TXT2CRS_MODEL_ID=gpt-5.6-sol
@@ -70,7 +83,7 @@ services:
     ports:
       - mode: ingress
         target: 80
-        published: "5183"
+        published: "5195"
 EOF
         fi
         ;;
@@ -82,10 +95,10 @@ EOF
     *" ps --no-trunc --format "*)
         if [ "${FAKE_DOCKER_MODE:-success}" = "port-conflict" ]; then
             printf '%s\\n' \
-                "other-id|another-project-frontend-1|0.0.0.0:5183->80/tcp"
+                "other-id|another-project-frontend-1|0.0.0.0:5195->80/tcp"
         elif [ "${FAKE_DOCKER_MODE:-success}" = "own-port" ]; then
             printf '%s\\n' \
-                "current-full-container-id|txt2crs-frontend-1|0.0.0.0:5183->80/tcp"
+                "current-full-container-id|txt2crs-frontend-1|0.0.0.0:5195->80/tcp"
         fi
         ;;
     *" up "*)
@@ -297,9 +310,9 @@ def test_default_start_validates_compose_builds_waits_and_prints_next_steps(
     assert "config --quiet" in docker_commands
     assert "up --detach --build --wait" in docker_commands
     assert "TXT2CRS IS READY" in combined_output
-    assert "http://localhost:5183" in combined_output
-    assert "http://localhost:8012/docs" in combined_output
-    assert "http://localhost:5183/setup" in combined_output
+    assert "http://localhost:5195" in combined_output
+    assert "http://localhost:8016/docs" in combined_output
+    assert "http://localhost:5195/setup" in combined_output
     assert "FIRST_SUPERUSER_PASSWORD" in combined_output
 
 
@@ -339,7 +352,7 @@ def test_foreign_port_conflict_aborts_before_compose_start(tmp_path: Path) -> No
 
     assert result.returncode == 3
     assert "PORT CONFLICT" in combined_output
-    assert "5183" in combined_output
+    assert "5195" in combined_output
     assert "another-project-frontend-1" in combined_output
     assert " up " not in f" {docker_commands} "
 
@@ -357,6 +370,28 @@ def test_current_project_port_is_allowed_for_idempotent_restart(tmp_path: Path) 
     assert result.returncode == 0, combined_output
     assert "PORT CONFLICT" not in combined_output
     assert "up --detach --build --wait" in docker_commands
+
+
+def test_duplicate_host_ports_abort_before_docker(tmp_path: Path) -> None:
+    """The checked-in allocation cannot contain an internal host collision."""
+
+    environment_text = VALID_ENVIRONMENT.replace(
+        "BACKEND_PORT=8016",
+        "BACKEND_PORT=5195",
+    )
+    project_root, fake_docker_log, process_environment = _make_test_project(
+        tmp_path,
+        environment_text=environment_text,
+    )
+
+    result = _run_start_script(project_root, process_environment)
+    combined_output = result.stdout + result.stderr
+
+    assert result.returncode == 2
+    assert "BACKEND_PORT" in combined_output
+    assert "FRONTEND_PORT" in combined_output
+    assert "must use unique host ports" in combined_output
+    assert not fake_docker_log.exists()
 
 
 def test_start_failure_prints_bounded_diagnostics(tmp_path: Path) -> None:

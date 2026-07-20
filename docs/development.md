@@ -20,17 +20,17 @@ ports.
 
 | Service | Host address | Container address |
 |---------|--------------|-------------------|
-| Frontend | <http://localhost:5183> | `frontend:80` |
-| Frontend health | <http://localhost:5183/health> | `frontend:80/health` |
-| Backend API | <http://localhost:8012> | `backend:8000` |
-| Backend readiness | <http://localhost:8012/api/v1/utils/health/> | `backend:8000/api/v1/utils/health/` |
-| Swagger UI | <http://localhost:8012/docs> | `backend:8000/docs` |
-| PostgreSQL | `localhost:5447` | `db:5432` |
-| Adminer | <http://localhost:8096> | `adminer:8080` |
-| Mailcatcher UI | <http://localhost:1081> | `mailcatcher:1080` |
-| Mailcatcher SMTP | `localhost:1026` | `mailcatcher:1025` |
-| Traefik dashboard | <http://localhost:8095> | `proxy:8080` |
-| Jaeger UI | <http://localhost:16686> | `jaeger:16686` |
+| Frontend | <http://localhost:5195> | `frontend:80` |
+| Frontend health | <http://localhost:5195/health> | `frontend:80/health` |
+| Backend API | <http://localhost:8016> | `backend:8000` |
+| Backend readiness | <http://localhost:8016/api/v1/utils/health/> | `backend:8000/api/v1/utils/health/` |
+| Swagger UI | <http://localhost:8016/docs> | `backend:8000/docs` |
+| PostgreSQL | `localhost:5450` | `db:5432` |
+| Adminer | <http://localhost:8103> | `adminer:8080` |
+| Mailcatcher UI | <http://localhost:1084> | `mailcatcher:1080` |
+| Mailcatcher SMTP | `localhost:1029` | `mailcatcher:1025` |
+| Traefik dashboard | <http://localhost:8102> | `proxy:8080` |
+| Jaeger UI | <http://localhost:16689> | `jaeger:16686` |
 
 The local proxy dashboard is available, but the Docker provider is disabled
 in `docker-compose.override.yml`. Use the published localhost ports above
@@ -41,8 +41,8 @@ instead of expecting `*.localhost.tiangolo.com` routing.
 ```bash
 docker compose ps
 docker compose logs backend
-curl --fail http://localhost:8012/api/v1/utils/health/
-curl --fail http://localhost:5183/health
+curl --fail http://localhost:8016/api/v1/utils/health/
+curl --fail http://localhost:5195/health
 ```
 
 The backend readiness response includes PostgreSQL health and release version.
@@ -62,7 +62,7 @@ uv run fastapi dev app/main.py
 ```
 
 The host backend reads `backend/.env`; it reaches PostgreSQL through
-`localhost:5447`.
+`localhost:5450`.
 
 ### Frontend
 
@@ -100,7 +100,7 @@ scratch; the legacy `scripts/backup-db.sh` is not sufficient by itself.
 ## Mailcatcher
 
 Local Compose routes application email to `mailcatcher:1025`. View captured
-messages at <http://localhost:1081>; no external email is sent.
+messages at <http://localhost:1084>; no external email is sent.
 
 ## Validation
 

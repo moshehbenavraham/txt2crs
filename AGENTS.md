@@ -53,28 +53,28 @@ In no particular order.
 ## Directory Structure
 
 ```
-├── backend/
-│   ├── app/              # FastAPI application shell
-│   │   ├── api/routes/   # API endpoint handlers
-│   │   ├── core/         # Config, security, DB setup, logging, errors
-│   │   ├── mcp/          # Admin MCP server (AI agent tools)
-│   │   ├── schemas/      # Pydantic request/response models
-│   │   ├── models.py     # SQLModel database models
-│   │   └── crud.py       # Database operations
-│   ├── packages/txt2crs/ # Education engine (own docs, tests, license)
-│   └── tests/            # Application tests (+ acceptance/)
-├── frontend/src/
-│   ├── routes/           # File-based routing (TanStack Router)
-│   ├── components/       # React components
-│   ├── client/           # Generated OpenAPI client (DO NOT EDIT)
-│   ├── hooks/            # Custom React hooks
-│   └── lib/              # Shared utilities
-│       ├── schemas/      # Centralized Zod validation schemas
-│       └── types/        # Branded types (UserId, ItemId, Email)
-├── examples/             # Curated code examples (few-shot learning)
-├── scripts/              # Development and validation scripts
-├── docs/                 # Documentation (see docs/README_docs.md)
-└── make-scenarios/       # Legacy Make.com reconstruction (reference)
+|-- backend/
+|   |-- app/              # FastAPI application shell
+|   |   |-- api/routes/   # API endpoint handlers
+|   |   |-- core/         # Config, security, DB setup, logging, errors
+|   |   |-- mcp/          # Admin MCP server (AI agent tools)
+|   |   |-- schemas/      # Pydantic request/response models
+|   |   |-- models.py     # SQLModel database models
+|   |   `-- crud.py       # Database operations
+|   |-- packages/txt2crs/ # Education engine (own docs, tests, license)
+|   `-- tests/            # Application tests (+ acceptance/)
+|-- frontend/src/
+|   |-- routes/           # File-based routing (TanStack Router)
+|   |-- components/       # React components
+|   |-- client/           # Generated OpenAPI client (DO NOT EDIT)
+|   |-- hooks/            # Custom React hooks
+|   `-- lib/              # Shared utilities
+|       |-- schemas/      # Centralized Zod validation schemas
+|       `-- types/        # Branded types (UserId, ItemId, Email)
+|-- examples/             # Curated code examples (few-shot learning)
+|-- scripts/              # Development and validation scripts
+|-- docs/                 # Documentation (see docs/README_docs.md)
+`-- make-scenarios/       # Legacy Make.com reconstruction (reference)
 ```
 
 Detailed per-side guidance: [`backend/AGENTS.md`](backend/AGENTS.md) and
@@ -91,7 +91,7 @@ uv run ruff check app                          # Lint
 uv run ruff format app                         # Format
 uv run alembic upgrade head                    # Run migrations
 
-# Engine (from backend/packages/txt2crs/ — the engine's own pyproject
+# Engine (from backend/packages/txt2crs/ -- the engine's own pyproject
 # config must apply; backend/pyproject.toml excludes packages/)
 uv run --package txt2crs pytest                # Engine test suite
 uv run --package txt2crs ruff check .
@@ -190,7 +190,7 @@ Event states: `_started`, `_completed`, `_failed`, `_validated`, `_rejected`,
 ## Distributed Tracing (OpenTelemetry)
 
 ```bash
-OTEL_ENABLED=true docker compose up -d   # Traces at http://localhost:16686
+OTEL_ENABLED=true docker compose up -d   # Traces at http://localhost:16689
 ```
 
 Traced: FastAPI HTTP requests, SQLAlchemy queries, HTTPX calls. Trace IDs

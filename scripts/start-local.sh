@@ -26,9 +26,9 @@ SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIRECTORY="$(dirname -- "$SCRIPT_DIRECTORY")"
 ENVIRONMENT_FILE="$PROJECT_DIRECTORY/.env"
 
-FRONTEND_URL="http://localhost:5183"
-BACKEND_DOCUMENTATION_URL="http://localhost:8012/docs"
-SYSTEM_SETUP_URL="http://localhost:5183/setup"
+FRONTEND_URL=""
+BACKEND_DOCUMENTATION_URL=""
+SYSTEM_SETUP_URL=""
 
 ACTION="start"
 BUILD_IMAGES=true
@@ -234,6 +234,8 @@ read_environment_value() {
 }
 
 CONFIGURATION_ERRORS=""
+CONFIGURED_HOST_PORT_NAMES=()
+CONFIGURED_HOST_PORT_VALUES=()
 
 add_configuration_error() {
     CONFIGURATION_ERRORS="${CONFIGURATION_ERRORS}- $1"$'\n'
@@ -269,21 +271,92 @@ validate_secret_setting() {
     esac
 }
 
+# Validate one host port without opening a socket. Compose performs the live
+# collision check later, while this pass catches malformed or duplicate values
+# before Docker is required. Indexed arrays keep the script compatible with
+# the older Bash shipped by common macOS installations.
+validate_host_port_setting() {
+    local setting_name="$1"
+    local setting_value
+    local numeric_port
+    local existing_index
+
+    if ! setting_value="$(read_environment_value "$setting_name")" ||
+        [[ -z "$setting_value" ]]; then
+        add_configuration_error "$setting_name is missing or empty."
+        return
+    fi
+
+    if [[ ! "$setting_value" =~ ^[0-9]+$ ]]; then
+        add_configuration_error "$setting_name must be an integer from 1 to 65535."
+        return
+    fi
+
+    numeric_port=$((10#$setting_value))
+    if ((numeric_port < 1 || numeric_port > 65535)); then
+        add_configuration_error "$setting_name must be an integer from 1 to 65535."
+        return
+    fi
+
+    for existing_index in "${!CONFIGURED_HOST_PORT_VALUES[@]}"; do
+        if [[ "${CONFIGURED_HOST_PORT_VALUES[$existing_index]}" == "$numeric_port" ]]; then
+            add_configuration_error \
+                "$setting_name and ${CONFIGURED_HOST_PORT_NAMES[$existing_index]} must use unique host ports."
+            return
+        fi
+    done
+
+    CONFIGURED_HOST_PORT_NAMES+=("$setting_name")
+    CONFIGURED_HOST_PORT_VALUES+=("$numeric_port")
+}
+
 validate_environment_configuration() {
     local research_enabled
     local normalized_research_enabled
     local configured_model
+    local host_port_setting
+    local frontend_host_port
+    local backend_host_port
+    local configured_frontend_host
+    local expected_frontend_host
 
     print_section "[1/4] Validating local configuration"
 
     validate_required_setting "DOCKER_IMAGE_BACKEND"
     validate_required_setting "DOCKER_IMAGE_FRONTEND"
+    validate_required_setting "FRONTEND_HOST"
     validate_required_setting "FIRST_SUPERUSER"
     validate_required_setting "POSTGRES_DB"
     validate_required_setting "POSTGRES_USER"
     validate_secret_setting "SECRET_KEY"
     validate_secret_setting "POSTGRES_PASSWORD"
     validate_secret_setting "FIRST_SUPERUSER_PASSWORD"
+
+    for host_port_setting in \
+        TRAEFIK_HTTP_PORT \
+        TRAEFIK_HTTPS_PORT \
+        TRAEFIK_DASHBOARD_PORT \
+        POSTGRES_PORT \
+        BACKEND_PORT \
+        FRONTEND_PORT \
+        ADMINER_PORT \
+        MAILCATCHER_SMTP_PORT \
+        MAILCATCHER_WEB_PORT \
+        JAEGER_UI_PORT \
+        OTLP_GRPC_PORT \
+        OTLP_HTTP_PORT \
+        PLAYWRIGHT_REPORT_PORT; do
+        validate_host_port_setting "$host_port_setting"
+    done
+
+    if frontend_host_port="$(read_environment_value "FRONTEND_PORT")" &&
+        configured_frontend_host="$(read_environment_value "FRONTEND_HOST")"; then
+        expected_frontend_host="http://localhost:${frontend_host_port}"
+        if [[ "$configured_frontend_host" != "$expected_frontend_host" ]]; then
+            add_configuration_error \
+                "FRONTEND_HOST must match FRONTEND_PORT at $expected_frontend_host."
+        fi
+    fi
 
     if ! configured_model="$(read_environment_value "TXT2CRS_MODEL_ID")"; then
         configured_model=""
@@ -323,6 +396,12 @@ Configured secret values were not printed.
 EOF
         return 2
     fi
+
+    frontend_host_port="$(read_environment_value "FRONTEND_PORT")"
+    backend_host_port="$(read_environment_value "BACKEND_PORT")"
+    FRONTEND_URL="http://localhost:${frontend_host_port}"
+    BACKEND_DOCUMENTATION_URL="http://localhost:${backend_host_port}/docs"
+    SYSTEM_SETUP_URL="${FRONTEND_URL}/setup"
 
     print_success_line ".env contains the required judge deployment settings."
 }

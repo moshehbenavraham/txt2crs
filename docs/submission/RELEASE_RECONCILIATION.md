@@ -1,11 +1,11 @@
 # Release Reconciliation
 
-**Version**: `1.0.1`
-**Intended tag**: `v1.0.1`
+**Version**: `1.0.2`
+**Intended tag**: `v1.0.2`
 **Repository**: <https://github.com/moshehbenavraham/txt2crs>
 **Repository visibility**: Private
 **Intended release**:
-<https://github.com/moshehbenavraham/txt2crs/tree/v1.0.1>
+<https://github.com/moshehbenavraham/txt2crs/tree/v1.0.2>
 **Historical live revision**:
 `a80700863e99cdd34bed757873d969236cdf36fa`
 
@@ -15,7 +15,7 @@ The release evidence intentionally separates:
 
 1. the historical paid provider proof;
 2. the later reviewed release-candidate work; and
-3. the final commit that the human operator will tag as `v1.0.1`.
+3. the final commit that the human operator will tag as `v1.0.2`.
 
 The live proof used exact `gpt-5.6-sol` and Tavily research from revision
 `a80700863e99cdd34bed757873d969236cdf36fa`. Later documentation, media, and
@@ -46,7 +46,7 @@ After the final local release checks pass, the human operator:
 
 1. reviews the complete local release commit;
 2. grants both event reviewers private repository access;
-3. creates annotated tag `v1.0.1` on that exact commit;
+3. creates annotated tag `v1.0.2` on that exact commit;
 4. pushes the branch and tag;
 5. publishes and verifies the demo video;
 6. submits the Education entry on Devpost; and
@@ -55,5 +55,5 @@ After the final local release checks pass, the human operator:
 Exact instructions are in
 [`HUMAN_PUBLISHING_HANDOFF.md`](HUMAN_PUBLISHING_HANDOFF.md).
 
-Any tracked change after `v1.0.1` requires a new SemVer release rather than
+Any tracked change after `v1.0.2` requires a new SemVer release rather than
 moving the tag.

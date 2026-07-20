@@ -40,11 +40,11 @@ function MyPage() {
 When backend API changes, regenerate the client:
 
 ```bash
-# Backend must be running at http://localhost:8000
+# Backend must be running at http://localhost:8016
 npm run generate-client
 ```
 
-This reads from `http://localhost:8000/api/v1/openapi.json` and generates:
+This reads from `http://localhost:8016/api/v1/openapi.json` and generates:
 - `src/client/types.gen.ts` - TypeScript types
 - `src/client/schemas.gen.ts` - Zod schemas
 - `src/client/sdk.gen.ts` - API SDK functions
@@ -263,7 +263,7 @@ npx playwright show-report
 ## Build Commands
 
 ```bash
-npm run dev          # Development server (Vite defaults to port 5173)
+npm run dev          # Development server (registered port 5196)
 npm run build        # Production build
 npm run preview      # Preview production build
 npm run lint         # Lint with Biome

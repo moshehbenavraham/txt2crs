@@ -129,9 +129,9 @@ deletes named volumes or globally prunes Docker state.
 
 Open:
 
-- Learner application: <http://localhost:5183>
-- Backend API: <http://localhost:8012>
-- Superuser setup: <http://localhost:5183/setup>
+- Learner application: <http://localhost:5195>
+- Backend API: <http://localhost:8016>
+- Superuser setup: <http://localhost:5195/setup>
 
 ### 3. Connect the ChatGPT subscription
 
@@ -289,7 +289,8 @@ Current product limits:
   while every locally executable workflow equivalent passes.
 
 See [security](docs/SECURITY.md), [deployment scope](docs/deployment-policy.md),
-and [configuration](docs/CONFIGURATION.md).
+and [configuration](docs/CONFIGURATION.md). The complete collision-free host
+listener inventory is in [port allocations](docs/PORTS.md).
 
 ## Repository Layout
 
@@ -324,8 +325,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.0.1`. The human release
-operator creates the final annotated `v1.0.1` tag only after all tracked judge
+The current synchronized release version is `1.0.2`. The human release
+operator creates the final annotated `v1.0.2` tag only after all tracked judge
 assets are final and the exact commit passes the existing distribution,
 production-image, health, replacement, and privacy checks.
 
