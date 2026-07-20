@@ -1395,10 +1395,12 @@ Implementation sessions:
 
 ### Phase 5 - hardening and submission
 
-**Status:** In progress - Session 01 validated; Session 02 is preparing the
-judge assets and human publishing handoff.
+**Status:** Complete - the product, local release proof, demo media, and
+repository-safe submission assets are validated. Only human-owned external
+publication actions remain.
 
-Objective: prove the shipped artifact and complete every event requirement.
+Objective: prove the shipped artifact and prepare every repository-controlled
+event requirement.
 
 Work:
 
@@ -1433,11 +1435,13 @@ Work:
 
 Exit gate:
 
-- every checklist in Section 12 is green;
+- every repository-controlled checklist item in Section 12 is green;
 - the repository can be run by a judge from documented instructions;
 - the video shows the working product and explains both Codex and GPT-5.6;
 - the local handoff identifies the exact tested commit/tag intent; and
-- the human operator has exact verification steps for the final platforms.
+- the human operator has exact verification steps for the four external
+  actions: reviewer access, tag/push, YouTube publication, and Devpost
+  submission.
 
 Suggested implementation sessions:
 
@@ -1574,18 +1578,25 @@ uv run --package txt2crs pytest \
 
 ### Submission
 
-- [ ] The tested submission release is synchronized and tagged with its exact
-      final SemVer version.
-- [ ] One representative live GPT-5.6 course completed with real research.
-- [ ] The 16 live artifacts passed human inspection.
-- [ ] Root README contains judge-ready setup, sample, run, test, architecture,
+- [x] The tested submission release is synchronized at its exact final SemVer
+      version.
+- [x] One representative live GPT-5.6 course completed with real research.
+- [x] The 16 live artifacts passed human inspection.
+- [x] Root README contains judge-ready setup, sample, run, test, architecture,
   AI-usage, privacy, and known-limit documentation.
-- [ ] Repository licensing/access satisfies the event rules.
-- [ ] Public narrated YouTube demo is shorter than three minutes.
-- [ ] Video explains the product, Codex development work, and GPT-5.6 runtime.
-- [ ] Primary Codex `/feedback` Session ID is captured.
-- [ ] Education category and all required Devpost fields are complete.
-- [ ] Submission is confirmed before the exact deadline.
+- [x] Repository licensing is explicit and private-reviewer access steps are
+      documented.
+- [x] The reviewed narrated demo candidate is shorter than three minutes.
+- [x] Video explains the product, Codex development work, and GPT-5.6 runtime.
+- [x] Primary Codex `/feedback` Session ID is captured.
+- [x] Education-category project copy and repository-safe Devpost fields are
+      complete.
+- [ ] The human operator grants private repository access to the required
+      reviewers.
+- [ ] The human operator creates and pushes the exact final SemVer tag.
+- [ ] The human operator publishes and verifies the narrated YouTube demo.
+- [ ] The human operator completes account-only Devpost fields and confirms
+      submission before the exact deadline.
 
 ## 13. Post-submission P1 sequence
 
@@ -1640,5 +1651,7 @@ After each session:
    `docs/CHANGELOG.md`;
 4. archive the changelog per project policy when it reaches roughly 20
    entries;
-5. keep `VERSION` and package/app versions synchronized for releases; and
+5. keep the declared repository and engine release versions synchronized;
+   shell and frontend implementation versions follow their documented
+   independent policies; and
 6. do not start the next session until the current exit gate is green.

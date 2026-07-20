@@ -6,10 +6,10 @@ txt2crs is a three-package FastAPI/React monorepo. The reusable engine owns
 education-domain behavior and exposes one framework-independent application
 facade; the application shell owns transport and identity. The shell composes
 one facade, serial worker, readiness cache, and system-authentication
-coordinator for its complete lifespan. Phase 03 now exposes authenticated,
-durable learner submission plus owner-scoped status, result, manifest, and
-artifact delivery routes. Account deletion now performs engine-first owner
-erasure. The Phase 04 frontend consumes those generated contracts for public
+coordinator for its complete lifespan. The finished application exposes
+authenticated, durable learner submission plus owner-scoped status, result,
+manifest, and artifact delivery routes. Account deletion performs engine-first
+owner erasure. The frontend consumes those generated contracts for public
 discovery, strict multimode intake, durable progress, four completed
 publications, private artifact transfer, and isolated HTML preview.
 

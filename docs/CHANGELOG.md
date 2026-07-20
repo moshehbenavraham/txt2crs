@@ -12,12 +12,6 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
-- Added a polished judge package with six reviewed synthetic screenshots, a
-  narrated 02:22.600 demo candidate, complete Education-category Devpost copy,
-  and the primary Codex feedback Session ID.
-- Added a concise human-only publishing handoff for private GitHub reviewer
-  access, final tag/push, YouTube publication, and Devpost submission.
-
 ### Changed
 
 ### Deprecated
@@ -26,16 +20,17 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Fixed
 
-- Fixed complete local backups after Codex initialization by excluding only
-  the regenerable `codex-home/tmp` process-scratch directory while preserving
-  durable credentials and continuing to reject symlinks elsewhere.
-
 ### Security
 
 ## [1.0.0] - 2026-07-20
 
 ### Added
 
+- Added a polished judge package with six reviewed synthetic screenshots, a
+  narrated 02:22.600 demo candidate, complete Education-category Devpost copy,
+  and the primary Codex feedback Session ID.
+- Added a concise human-only publishing handoff for private GitHub reviewer
+  access, final tag/push, YouTube publication, and Devpost submission.
 - Added a read-only tag/manual release-validation workflow that verifies
   synchronized versions, engine distributions and checksums, frontend gates,
   and both production images without publishing or deploying.
@@ -48,6 +43,9 @@ Archived entries are stored in [`archive/`](archive/).
 
 - Declared the validated engine facade, durable FastAPI jobs boundary, and
   learner experience as the first stable public `1.0.0` release.
+- Reconciled the finished Phase 05 plan, architecture, onboarding, release
+  index, and documentation audit with the complete product and the four
+  remaining human-owned platform actions.
 - Synchronized the root, architecture, onboarding, deployment, and visual
   design documentation with the completed Phase 04 learner journey and
   verified local backup, restore, throttling, and rollback behavior.
@@ -60,6 +58,9 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Fixed
 
+- Fixed complete local backups after Codex initialization by excluding only
+  the regenerable `codex-home/tmp` process-scratch directory while preserving
+  durable credentials and continuing to reject symlinks elsewhere.
 - Fixed post-device-login verification, strict provider-schema handling,
   bounded research planning, evidence hashing, module alignment, and
   block-level citation repair discovered by the representative live run.

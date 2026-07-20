@@ -7,16 +7,16 @@ unrestricted private links.
 
 ## Current State
 
-Phase 05 Session 01 produced and validated the `1.0.0` candidate from exact
-source revision `a80700863e99cdd34bed757873d969236cdf36fa`. Its real synthetic
-GPT-5.6 plus Tavily job completed with exactly sixteen verified artifacts;
-every inspection row passes and the canonical public ledger passes the strict
-evidence validator.
+The completed release work produced and validated the `1.0.0` candidate. Its
+historical live proof is tied to exact source revision
+`a80700863e99cdd34bed757873d969236cdf36fa`: a synthetic GPT-5.6 plus Tavily
+job completed with exactly sixteen verified artifacts. Every inspection row
+passes and the canonical public ledger passes the strict evidence validator.
 
-The final annotated `v1.0.0` tag is intentionally deferred until Session 02
-completes all tracked judge assets and repeats the checks below. Tag creation
-and pushing are human-only actions. A tracked change after the tag requires a
-new SemVer release.
+All tracked judge assets are complete. The final annotated `v1.0.0` tag is
+intentionally left to the human release operator after one final review of the
+exact current commit. Tag creation and pushing are human-only actions. A
+tracked change after the tag requires a new SemVer release.
 
 ## Evidence Index
 
@@ -88,8 +88,8 @@ passing.
 
 ## Final Human Release Handoff
 
-Session 02 completes all tracked judge assets and local release checks. The
-human operator then:
+All tracked judge assets and local release checks are complete. The human
+operator then:
 
 1. reviews the exact local commit and confirms the tree is clean;
 2. rerun release/evidence tests and the repository version validator;

@@ -65,10 +65,16 @@ admission checks. Use its ChatGPT connection action to authenticate the
 dedicated application identity. Configure `TAVILY_API_KEY` in `.env` when
 research should be ready, then restart the backend so it reads the new secret.
 
-If browser device authentication is unavailable, use the recovery command
-shown on the setup page from `backend/packages/txt2crs/`. The backend accepts
-authenticated course submissions and owner-scoped result/artifact reads. The
-public `/` route explains the four generated publications.
+If browser device authentication is unavailable, use the short host recovery
+helper shown on the setup page:
+
+```bash
+./scripts/auth-codex.sh --no-browser
+```
+
+The backend accepts authenticated course submissions and owner-scoped
+result/artifact reads. The public `/` route explains the four generated
+publications.
 Authenticated learners create a request at `/create` and can refresh or
 directly reopen the owner-scoped `/jobs/{job_id}` progress URL. Completed
 jobs transform that same URL into four private publication folios for the
