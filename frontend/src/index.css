@@ -34,6 +34,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
@@ -59,15 +60,26 @@
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
 
+  /* Learner Journey Surface Roles */
+  --color-publication: var(--publication);
+  --color-publication-foreground: var(--publication-foreground);
+  --color-workbench: var(--workbench);
+  --color-workbench-foreground: var(--workbench-foreground);
+  --color-stage-track: var(--stage-track);
+  --color-stage-active: var(--stage-active);
+  --color-stage-complete: var(--stage-complete);
+
   /* Semantic Colors */
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
 
   /* Typography Families */
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 /* ============================================================================
@@ -81,9 +93,11 @@
   --radius: 0.75rem;
 
   /* === Typography === */
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   /* Font Sizes */
   --text-display-xl: 3rem;
@@ -146,10 +160,19 @@
   --border: oklch(0.9 0.008 80);
   --border-strong: oklch(0.82 0.01 75);
   --input: oklch(0.94 0.005 80);
-  --ring: oklch(0.35 0.08 160 / 0.3);
+  --ring: oklch(0.38 0.1 160);
 
   /* === Selected Surface (active navigation, chosen rows) === */
   --surface-selected: oklch(0.35 0.08 160 / 0.08);
+
+  /* === Learner Journey Roles === */
+  --publication: oklch(0.992 0.004 85);
+  --publication-foreground: oklch(0.2 0.012 60);
+  --workbench: oklch(0.972 0.008 85);
+  --workbench-foreground: oklch(0.2 0.012 60);
+  --stage-track: oklch(0.82 0.012 75);
+  --stage-active: oklch(0.38 0.1 160);
+  --stage-complete: oklch(0.65 0.13 82);
 
   /* === Semantic Colors === */
   --destructive: oklch(0.5 0.18 25);
@@ -172,7 +195,7 @@
   --sidebar-accent: oklch(0.94 0.005 80);
   --sidebar-accent-foreground: oklch(0.18 0.01 60);
   --sidebar-border: oklch(0.9 0.008 80);
-  --sidebar-ring: oklch(0.35 0.08 160 / 0.3);
+  --sidebar-ring: oklch(0.38 0.1 160);
 
   /* === Shadows - Layered for Depth === */
   --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.04);
@@ -206,6 +229,10 @@
   /* === Layout Roles === */
   --space-page-inline: clamp(1.25rem, 3vw, 3rem);
   --space-section: clamp(2rem, 4vw, 3.5rem);
+  --space-journey-section: clamp(3.5rem, 8vw, 7rem);
+  --width-reading: 44rem;
+  --width-workspace: 72rem;
+  --size-touch-target: 2.75rem;
 
   /* === Animation Timing === */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -253,10 +280,15 @@
   --popover: oklch(0.17 0.01 60);
   --popover-foreground: oklch(0.92 0.01 85);
 
-  /* === Primary - Refined Forest Green === */
-  --primary: oklch(0.55 0.1 160);
-  --primary-hover: oklch(0.6 0.11 160);
-  --primary-foreground: oklch(0.98 0.005 85);
+  /* === Primary - Luminous Forest Green === */
+  /*
+   * Dark surfaces need a brighter green when primary is used as link or
+   * caption text. Primary-filled controls pair that green with the charcoal
+   * foreground below, keeping both text roles above WCAG AA contrast.
+   */
+  --primary: oklch(0.6 0.1 160);
+  --primary-hover: oklch(0.64 0.11 160);
+  --primary-foreground: oklch(0.14 0.01 60);
 
   /* === Accent - Champagne Gold (Luminous in dark) === */
   --accent: oklch(0.78 0.14 85);
@@ -276,10 +308,19 @@
   --border: oklch(1 0 0 / 0.08);
   --border-strong: oklch(1 0 0 / 0.15);
   --input: oklch(0.22 0.01 55);
-  --ring: oklch(0.55 0.1 160 / 0.4);
+  --ring: oklch(0.72 0.12 160);
 
   /* === Selected Surface (active navigation, chosen rows) === */
   --surface-selected: oklch(0.55 0.1 160 / 0.14);
+
+  /* === Learner Journey Roles === */
+  --publication: oklch(0.19 0.012 58);
+  --publication-foreground: oklch(0.94 0.012 85);
+  --workbench: oklch(0.17 0.012 60);
+  --workbench-foreground: oklch(0.94 0.012 85);
+  --stage-track: oklch(1 0 0 / 0.22);
+  --stage-active: oklch(0.72 0.12 160);
+  --stage-complete: oklch(0.82 0.14 85);
 
   /* === Semantic Colors - Adjusted for Dark === */
   --destructive: oklch(0.6 0.18 25);
@@ -302,7 +343,7 @@
   --sidebar-accent: oklch(0.22 0.01 55);
   --sidebar-accent-foreground: oklch(0.92 0.01 85);
   --sidebar-border: oklch(1 0 0 / 0.08);
-  --sidebar-ring: oklch(0.55 0.1 160 / 0.4);
+  --sidebar-ring: oklch(0.72 0.12 160);
 
   /* === Shadows - Dark Mode === */
   --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.2);

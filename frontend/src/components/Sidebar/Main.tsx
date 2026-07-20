@@ -14,6 +14,7 @@ export type Item = {
   icon: LucideIcon
   title: string
   path: string
+  activePrefixes?: string[]
 }
 
 interface MainProps {
@@ -36,7 +37,11 @@ export function Main({ items }: MainProps) {
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive = currentPath === item.path
+            const isActive =
+              currentPath === item.path ||
+              item.activePrefixes?.some((prefix) =>
+                currentPath.startsWith(prefix),
+              ) === true
 
             return (
               <SidebarMenuItem key={item.title}>

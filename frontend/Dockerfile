@@ -14,6 +14,8 @@ COPY ./ /app/
 # Docker Compose or a direct local build supplies this argument. Unset is valid
 # for relative/local API configurations and avoids an undefined self-default.
 ARG VITE_API_URL
+# Non-secret display configuration. Authorization remains backend-owned.
+ARG VITE_ENABLE_PUBLIC_SIGNUP=false
 
 RUN npm run build
 

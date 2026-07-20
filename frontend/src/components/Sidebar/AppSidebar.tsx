@@ -1,4 +1,4 @@
-import { Home, SlidersHorizontal, Users } from "lucide-react"
+import { FilePlus2, SlidersHorizontal, Users } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -12,7 +12,14 @@ import useAuth from "@/hooks/useAuth"
 import { type Item, Main } from "./Main"
 import { User } from "./User"
 
-const baseItems: Item[] = [{ icon: Home, title: "Workspace", path: "/" }]
+const baseItems: Item[] = [
+  {
+    icon: FilePlus2,
+    title: "Create course",
+    path: "/create",
+    activePrefixes: ["/jobs/"],
+  },
+]
 
 export function AppSidebar() {
   const { user: currentUser } = useAuth()

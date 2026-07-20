@@ -18,17 +18,29 @@
  */
 
 export {
+  type ArtifactId,
+  asArtifactId,
   asEmail,
+  asIdempotencyKey,
+  asJobId,
   // Unsafe casts (for trusted sources like API responses)
   asUserId,
+  createArtifactId,
   createEmail,
+  createIdempotencyKey,
+  createJobId,
   // Factory functions (with validation)
   createUserId,
   type Email,
+  type IdempotencyKey,
+  isArtifactId,
   isEmail,
+  isIdempotencyKey,
+  isJobId,
   // Type guards
   isUserId,
   isValidUuid,
+  type JobId,
   // Types
   type UserId,
 } from "./branded"

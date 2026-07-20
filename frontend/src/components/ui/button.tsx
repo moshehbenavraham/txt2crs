@@ -24,10 +24,10 @@ const buttonVariants = cva(
                   hover:bg-[oklch(0.40_0.09_160)] hover:-translate-y-0.5
                   hover:shadow-[0_6px_20px_oklch(0.35_0.08_160/0.3),0_12px_32px_oklch(0.35_0.08_160/0.2)]
                   active:translate-y-0 active:shadow-[0_4px_14px_oklch(0.35_0.08_160/0.25)]
-                  dark:bg-[oklch(0.55_0.10_160)]
-                  dark:shadow-[0_4px_14px_oklch(0.55_0.10_160/0.3),0_8px_24px_oklch(0.55_0.10_160/0.2)]
-                  dark:hover:bg-[oklch(0.60_0.11_160)]
-                  dark:hover:shadow-[0_6px_20px_oklch(0.55_0.10_160/0.35),0_12px_32px_oklch(0.55_0.10_160/0.25)]`,
+                  dark:bg-[oklch(0.60_0.10_160)]
+                  dark:shadow-[0_4px_14px_oklch(0.60_0.10_160/0.3),0_8px_24px_oklch(0.60_0.10_160/0.2)]
+                  dark:hover:bg-[oklch(0.64_0.11_160)]
+                  dark:hover:shadow-[0_6px_20px_oklch(0.60_0.10_160/0.35),0_12px_32px_oklch(0.60_0.10_160/0.25)]`,
 
         // Destructive - Deep Burgundy
         destructive: `bg-destructive text-white
@@ -67,7 +67,7 @@ const buttonVariants = cva(
 
         // Link - Underlined text link
         link: `text-primary underline-offset-4 hover:underline p-0 h-auto
-               dark:text-[oklch(0.55_0.10_160)]`,
+               dark:text-[oklch(0.60_0.10_160)]`,
       },
       size: {
         // Default - Comfortable padding

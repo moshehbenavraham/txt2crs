@@ -26,11 +26,14 @@ export function Footer() {
   return (
     <footer className="border-t border-border/50 py-6 px-8">
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-        <p className="text-muted-foreground/70 text-[13px] tracking-wide">
+        <p className="text-muted-foreground text-[13px] tracking-wide">
           <span className="font-medium text-muted-foreground">
             {PRODUCT_NAME}
           </span>
-          <span className="mx-2 text-border">|</span>
+          <span
+            aria-hidden="true"
+            className="mx-2 inline-block h-3 w-px bg-border-strong align-[-0.08em]"
+          />
           {currentYear}
         </p>
         <div className="flex items-center gap-1">

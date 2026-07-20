@@ -50,7 +50,7 @@
     "4": {
       "name": "Learner Experience",
       "description": "Connect the durable jobs API to a public landing, strict multimode intake, refresh-safe progress, four-publication results, private previews and downloads, and accessible responsive validation.",
-      "status": "not_started",
+      "status": "in_progress",
       "session_count": 2
     }
   },
@@ -110,29 +110,15 @@
     {
       "id": "phase03-session03-account-purge-and-donor-retirement",
       "package": "backend"
+    },
+    {
+      "id": "phase04-session01-public-landing-intake-and-progress",
+      "package": null
     }
   ],
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase02-session02-serial-worker-supervisor",
-      "package": "backend",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session02-serial-worker-supervisor",
-      "package": "backend",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session03-cached-readiness-and-observability",
-      "package": "backend",
-      "status": "planned"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase02-session03-cached-readiness-and-observability",
       "package": "backend",
       "status": "validated"
@@ -231,6 +217,22 @@
       "date": "2026-07-20",
       "session": "phase03-session03-account-purge-and-donor-retirement",
       "package": "backend",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session01-public-landing-intake-and-progress",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session01-public-landing-intake-and-progress",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase04-session01-public-landing-intake-and-progress",
+      "package": null,
       "status": "completed"
     }
   ]

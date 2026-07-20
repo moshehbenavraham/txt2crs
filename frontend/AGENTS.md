@@ -10,7 +10,7 @@
 | Components | `src/components/` |
 | Hooks | `src/hooks/` |
 | Zod schemas | `src/lib/schemas/` (centralized validation) |
-| Branded types | `src/lib/types/` (UserId, Email) |
+| Branded types | `src/lib/types/` (UserId, JobId, IdempotencyKey, Email) |
 | Utilities | `src/utils.ts`, `src/lib/utils.ts` |
 | UI library | `src/components/ui/` (shadcn/ui) |
 
@@ -18,7 +18,8 @@
 
 1. **Create file** in `src/routes/` matching URL structure
 2. **Export route config** with `createFileRoute()`
-3. **Use `useSuspenseQuery()`** for data fetching
+3. **Use TanStack Query** for server state; choose Suspense or explicit states
+   to match the owning route
 4. **Add to navigation** in `src/components/Sidebar/`
 
 ```typescript
@@ -52,59 +53,42 @@ This reads from `http://localhost:8000/api/v1/openapi.json` and generates:
 
 ## Data Fetching Pattern
 
-Use TanStack Query with suspense:
+Use the reviewed job query options for course progress. They own the generated
+client call, exhaustive status policy, visibility cadence, transient backoff,
+terminal stop, and revision guard:
 
 ```typescript
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { JobsService } from "@/client"
+import { useJobProgressQuery } from "@/components/CourseProgress/queries"
+import type { JobId } from "@/lib/types"
 
-function JobStatus({ jobId }: { jobId: string }) {
-  const { data: job } = useSuspenseQuery({
-    queryKey: ["jobs", jobId],
-    queryFn: () =>
-      JobsService.readJob({
-        path: { job_id: jobId },
-      }),
-  })
+function JobStatus({ jobId }: { jobId: JobId }) {
+  const jobQuery = useJobProgressQuery(jobId)
 
-  return <p>{job.progress.message}</p>
+  if (!jobQuery.data) return <p>Loading course progress...</p>
+  return <p>{jobQuery.data.progress.message}</p>
 }
 ```
 
 ## Mutation Pattern
 
-```typescript
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { type JobSubmissionRequest, JobsService } from "@/client"
-import useCustomToast from "@/hooks/useCustomToast"
+Course intake must use the existing submission hook. It already owns secure
+idempotency-key lifecycle, exact failed retries, JSON/upload delegation,
+single-flight protection, safe Problem Details, and typed job navigation:
 
-type SubmitCourseVariables = {
-  request: JobSubmissionRequest
-  idempotencyKey: string
-}
+```typescript
+import { useCourseSubmission } from "@/hooks/useCourseSubmission"
+import type { CourseIntakeValues } from "@/lib/schemas"
 
 function CourseSubmissionForm() {
-  const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
-
-  const mutation = useMutation({
-    mutationFn: ({ request, idempotencyKey }: SubmitCourseVariables) =>
-      JobsService.submitJob({
-        body: request,
-        headers: { "Idempotency-Key": idempotencyKey },
-      }),
-    onSuccess: (job) => {
-      queryClient.invalidateQueries({ queryKey: ["jobs", job.job_id] })
-      showSuccessToast("Course request accepted")
-    },
-    onError: (error) => {
-      showErrorToast(error)
-    },
-  })
-
-  // ...
+  const { submitCourse, isSubmitting } = useCourseSubmission()
+  const onValidSubmit = (values: CourseIntakeValues) => submitCourse(values)
+  // Pass onValidSubmit and isSubmitting to the form composition.
 }
 ```
+
+Do not call `crypto.randomUUID()` in a course form or persist an idempotency
+key. A changed canonical draft and an exact failed retry intentionally have
+different key-lifecycle rules.
 
 ## Form Handling Pattern
 
@@ -139,14 +123,15 @@ function LoginForm() {
 | `fields.ts` | Reusable field schemas (email, password, etc.) |
 | `auth.ts` | Login, signup, password reset |
 | `user.ts` | User management (admin + settings) |
+| `job.ts` | Strict five-mode course intake and generated payload shaping |
 | `index.ts` | Re-exports all schemas |
 
-Add course-input schemas here when implementing submission forms, and keep
-their bounds synchronized with the backend Pydantic request models.
+Keep course-input bounds synchronized with backend Pydantic request models.
+Inactive source fields must be removed rather than sent empty.
 
 ## Error Handling
 
-Global auth errors (401, 403) are handled automatically in `src/main.tsx` via TanStack Query's `QueryCache` and `MutationCache` — they redirect to `/login`.
+Global auth errors (401, 403) are handled automatically in `src/main.tsx` via TanStack Query's `QueryCache` and `MutationCache`; they redirect to `/login`.
 
 For component-level errors, use `useCustomToast`:
 
@@ -176,13 +161,16 @@ function MyComponent() {
 
 ```
 src/components/
-├── Admin/            # Admin-only components
-├── Common/           # Shared across features
-├── Sidebar/          # Navigation components
-├── SystemSetup/      # Codex and research readiness/setup
-├── UserSettings/     # User settings components
-├── ui/               # shadcn/ui primitives (DO NOT EDIT DIRECTLY)
-└── theme-provider.tsx
+|-- Admin/            # Admin-only components
+|-- Common/           # Shared across features
+|-- CourseIntake/     # Five-mode source and learning-intent workbench
+|-- CourseProgress/   # Owner-scoped polling, presentation, and stage rail
+|-- Landing/          # Public one-source-to-publications story
+|-- Sidebar/          # Navigation components
+|-- SystemSetup/      # Codex and research readiness/setup
+|-- UserSettings/     # User settings components
+|-- ui/               # shadcn/ui primitives (DO NOT EDIT DIRECTLY)
+`-- theme-provider.tsx
 ```
 
 ## UI Components (shadcn/ui)
@@ -226,6 +214,17 @@ Routes under `_layout/` require authentication:
 // All routes in src/routes/_layout/ are protected
 ```
 
+The public root is `/`. The protected learner entry is `/create`, and durable
+progress lives at `/jobs/$jobId`. Validate dynamic IDs at the route boundary
+and preserve identical recovery copy for missing and foreign-owned jobs.
+
+## Public Signup Visibility
+
+`VITE_ENABLE_PUBLIC_SIGNUP` is a non-secret, build-time display choice and
+defaults false. The backend `ENABLE_PUBLIC_SIGNUP` check is authoritative.
+Never infer authorization from frontend visibility or describe the setting as
+a security boundary.
+
 ## Styling
 
 Use Tailwind CSS classes:
@@ -241,6 +240,11 @@ Use Tailwind CSS classes:
 ```bash
 # E2E tests with Playwright
 npx playwright test
+
+# Provider-free complete and failed course journeys
+npx playwright test --config playwright.jobs.config.ts
+TXT2CRS_BROWSER_SCENARIO=failed \
+  npx playwright test --config playwright.jobs.config.ts
 
 # Run specific test file
 npx playwright test tests/dashboard.spec.ts
@@ -268,6 +272,7 @@ npm run generate-client  # Regenerate API client
 | Hook | Purpose |
 |------|---------|
 | `useAuth()` | Authentication state and actions |
+| `useCourseSubmission()` | Canonical submit/retry and job navigation |
 | `useCustomToast()` | Success/error toast notifications |
 | `useCopyToClipboard()` | Copy text to clipboard |
 | `useMobile()` | Mobile viewport detection |
@@ -280,3 +285,6 @@ npm run generate-client  # Regenerate API client
 3. **Never** edit files in `src/client/`
 4. **Prefer** shadcn/ui components over custom implementations
 5. **Use** the `@/` path alias for imports
+6. **Compose** course submission and progress boundaries; do not duplicate them
+7. **Do not claim** retention, provider privacy, or compliance guarantees the
+   product contract does not make

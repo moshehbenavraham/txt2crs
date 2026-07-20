@@ -59,7 +59,7 @@ const useAuth = () => {
     mutationFn: login,
     onSuccess: () => {
       resetAuthQueryCache(queryClient)
-      navigate({ to: "/" })
+      navigate({ to: "/create" })
     },
     onError: handleError.bind(showErrorToast),
   })

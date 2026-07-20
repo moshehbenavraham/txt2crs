@@ -68,10 +68,23 @@ research should be ready, then restart the backend so it reads the new secret.
 If browser device authentication is unavailable, use the recovery command
 shown on the setup page from `backend/packages/txt2crs/`. The Phase 03 backend
 accepts authenticated course submissions and owner-scoped result/artifact
-reads. The authenticated `/` route truthfully explains the four generated
-publications; the learner submission, progress, and results workflow arrives
-in Phase 04. Course-system setup can therefore become ready before that
-interactive workflow is available.
+reads. The public `/` route explains the four generated publications.
+Authenticated learners create a request at `/create` and can refresh or
+directly reopen the owner-scoped `/jobs/{job_id}` progress URL. Completed
+result and artifact presentation is expanded in the next learner-journey
+session.
+
+Public account creation is disabled by default. Set
+`ENABLE_PUBLIC_SIGNUP=true` only for a local installation that should accept
+signup, then rebuild/restart the frontend and backend:
+
+```bash
+ENABLE_PUBLIC_SIGNUP=true docker compose up -d --build backend frontend
+```
+
+The frontend flag controls visible access copy; the backend still authorizes
+the request. Because `VITE_*` values are public browser build data, never put a
+secret in them.
 
 ## Manual Development
 
@@ -118,6 +131,22 @@ cd frontend
 npx playwright test
 ```
 
+For the isolated provider-free course journey, keep PostgreSQL running and use
+the dedicated configuration:
+
+```bash
+docker compose up -d --wait db
+cd frontend
+npx playwright test --config playwright.jobs.config.ts
+TXT2CRS_BROWSER_SCENARIO=failed \
+  npx playwright test --config playwright.jobs.config.ts
+```
+
+The dedicated test application uses the normal authentication, job routes,
+serial worker, and generated frontend client with a finite deterministic
+engine scenario. It is unavailable unless its test-only process flag is
+explicitly set by the Playwright configuration.
+
 ## Common Problems
 
 ### A published port is already in use
@@ -150,6 +179,16 @@ git diff -- frontend/openapi.json frontend/src/client
 ```
 
 Generation owns those files. Do not edit `frontend/src/client/` manually.
+TanStack route generation similarly owns `frontend/src/routeTree.gen.ts`; run
+the frontend build after route changes.
+
+### A course source appears to be retained in the browser
+
+The intake preview is local and bounded. Uploaded files are not parsed, source
+content is not placed in URLs or `localStorage`, and the optional pre-login
+prompt handoff uses `sessionStorage`. Do not translate those browser choices
+into claims about server retention, third-party provider policy, or regulatory
+compliance; consult the deployment's actual policies instead.
 
 ## Next Reading
 

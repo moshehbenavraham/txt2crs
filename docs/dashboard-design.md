@@ -8,10 +8,11 @@
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* -- expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Phase 03 transition implemented. The authenticated root is a
-> truthful static four-publication overview; the donor library and `/items`
-> route are retired. Legacy library blueprints below are history only and must
-> not be implemented. Phase 04 owns the interactive course-job workspace.
+> **Status**: Phase 04 learner-journey hierarchy is defined. The public
+> landing, authenticated `/create`, and owner `/jobs/$jobId` surfaces use the
+> generated course-job contract; result delivery follows in Session 02. The
+> donor library and `/items` route remain retired. Legacy library blueprints
+> below are history only and must not be implemented.
 > Last updated: 2026-07-20
 
 ## Table of Contents
@@ -64,17 +65,18 @@ console* (discards brand equity; auth and product would feel unrelated).
 
 ### Load-bearing decisions
 
-1. **Stable page identity.** The authenticated root `h1` is "Course
-   workspace"; the user's name lives in supporting copy. An email address is
-   never a title.
-2. **Truthful product structure.** The current root names the four generated
-   publications without inventing job counts, recency, or history. Phase 04
-   may add operational structure only where the job API supplies it.
+1. **Stable page identity.** The public root names the one-source-to-four-
+   publications promise. Authenticated identity begins at `Create a course`;
+   an email address is never a page title.
+2. **Truthful product structure.** The public root names the four generated
+   publications without inventing job counts, recency, or history. Intake and
+   progress add operational structure only where the job API supplies it.
 3. **Proximity groups default content.** Surface tone and keylines for
    structure; shadows reserved for overlays and true elevation.
-4. **Expressive vs. operational type are separate.** Playfair Display for
-   page identity and narrative sections, Outfit for controls and dense
-   content, JetBrains Mono only for IDs, counts, and technical values.
+4. **Expressive vs. operational type are separate.** The local display serif
+   carries page identity and narrative sections, system sans carries controls
+   and dense content, and system mono is reserved for IDs, counts, and
+   technical values.
 5. **Color has one job at a time.** Forest green = action, selection, active
    navigation. Gold = earned emphasis or a completed index state, never every
    decorative edge.
@@ -92,26 +94,27 @@ console* (discards brand equity; auth and product would feel unrelated).
 ### Font stack
 
 ```css
---font-display: "Playfair Display", Georgia, serif;  /* headlines, nav, index numbers */
---font-body: "Outfit", system-ui, sans-serif;        /* UI text, forms */
---font-mono: "JetBrains Mono", monospace;            /* code, IDs, counts */
+--font-display: Georgia, "Times New Roman", serif; /* headlines and page identity */
+--font-body: system-ui, "Segoe UI", sans-serif;    /* UI text and forms */
+--font-mono: ui-monospace, Consolas, monospace;    /* code, IDs, counts */
 ```
 
-Loaded via Google Fonts in `frontend/index.html` with `preconnect` and
-`display=swap` (Playfair 400-700, Outfit 300-600, JetBrains Mono 400-500).
+The production stack is local/system-only. It makes first paint deterministic,
+keeps the Nginx content-security policy closed to third-party styles/fonts,
+and avoids a learner-network dependency.
 
 ### Scale
 
 | Role | Font | Weight | Size | Tracking | Use |
 |------|------|--------|------|----------|-----|
-| Display XL | Playfair Display | 600 | 48px | -0.02em | Hero headlines |
-| Display L | Playfair Display | 500 | 32px | -0.01em | Page titles |
-| Display M | Playfair Display | 500 | 24px | -0.01em | Section headers |
-| Heading | Outfit | 600 | 18px | -0.01em | Card titles, nav items |
-| Body | Outfit | 400 | 15px | 0 | Primary text |
-| Body Small | Outfit | 400 | 13px | 0.01em | Secondary text |
-| Caption | Outfit | 500 | 11px | 0.05em | Labels, badges |
-| Mono | JetBrains Mono | 400 | 13px | 0 | Code, data values |
+| Display XL | Georgia/system serif | 600 | 48px | -0.02em | Hero headlines |
+| Display L | Georgia/system serif | 500 | 32px | -0.01em | Page titles |
+| Display M | Georgia/system serif | 500 | 24px | -0.01em | Section headers |
+| Heading | System sans | 600 | 18px | -0.01em | Card titles, nav items |
+| Body | System sans | 400 | 15px | 0 | Primary text |
+| Body Small | System sans | 400 | 13px | 0.01em | Secondary text |
+| Caption | System sans | 500 | 11px | 0.05em | Labels, badges |
+| Mono | System mono | 400 | 13px | 0 | Code, data values |
 
 CSS variables in `frontend/src/index.css`: sizes (`--text-display-xl` 3rem ->
 `--text-caption` 0.6875rem), line heights (`--leading-tight` 1.1 ->
@@ -121,8 +124,8 @@ CSS variables in `frontend/src/index.css`: sizes (`--text-display-xl` 3rem ->
 ### Usage discipline
 
 - One expressive `h1` per page; responsive size, stable line height.
-- Playfair only where a section carries narrative weight; Outfit semibold in
-  operational panels.
+- Display serif appears only where a section carries narrative weight; system
+  sans semibold appears in operational panels.
 - No emoji or decorative punctuation in page identity -- warmth comes from
   concise copy and the user's name.
 
@@ -159,6 +162,23 @@ walnut, champagne gold and graphite, forest green and midnight blue.
 | `--warning` | `oklch(0.70 0.15 70)` | Amber |
 | `--destructive` | `oklch(0.50 0.18 25)` | Deep burgundy |
 | `--info` | `oklch(0.50 0.10 250)` | Slate blue |
+
+### Learner journey roles
+
+Feature composition uses semantic roles rather than route-local raw colors:
+
+| Role | Light | Dark | Use |
+|------|-------|------|-----|
+| `--publication` | Paper white | Warm charcoal paper | Course/review/test/key publication sheets |
+| `--workbench` | Quiet parchment | Deep neutral workbench | Intake and progress grouping surfaces |
+| `--stage-track` | Strong warm keyline | 22% light keyline | Inactive progress relationship |
+| `--stage-active` | Forest | Luminous forest | Current server-derived stage |
+| `--stage-complete` | Restrained gold | Luminous gold | Earned completed stage marker |
+
+Publication and workbench foreground roles always carry normal text. Stage
+color accompanies labels and server copy; it never communicates state alone.
+Focus rings use an opaque forest role in both themes so they remain visible
+against background, workbench, and publication surfaces.
 
 ### Dark mode
 
@@ -246,6 +266,10 @@ Shell-level layout roles (not route accidents):
 ```css
 --space-page-inline: clamp(1.25rem, 3vw, 3rem); /* page gutter */
 --space-section: clamp(2rem, 4vw, 3.5rem);      /* section rhythm */
+--space-journey-section: clamp(3.5rem, 8vw, 7rem);
+--width-reading: 44rem;
+--width-workspace: 72rem;
+--size-touch-target: 2.75rem;                   /* 44px */
 ```
 
 ### Border radius
@@ -490,7 +514,7 @@ interaction requirement.
 | **Alert** | `default`, `destructive`, `success`, `warning`, `info`, `accent` |
 | **Dialog** | Backdrop blur, display-type titles, `shadow-xl`, refined close button |
 | **Skeleton** | `luxuryShimmer` gradient (2s, 200% background-size) |
-| **Sonner** | Semantic colors, Outfit, theme-aware |
+| **Sonner** | Semantic colors, system sans, theme-aware |
 
 shadcn/ui config (`frontend/components.json`): style `new-york`, base color
 `neutral`, CSS variables on, Lucide icons.
@@ -514,13 +538,13 @@ shadcn/ui config (`frontend/components.json`): style `new-york`, base color
 treatment and router-driven `aria-current`), `User` (avatar + account
 dropdown).
 
-### Course workspace (`frontend/src/routes/_layout/index.tsx`)
+### Learner journey
 
-The Phase 03 transition route owns one static, authenticated overview. It uses
-`PageHeader`, four semantic asset cards, account settings navigation, and a
-superuser-only setup action. It intentionally makes no course-job query until
-Phase 04 implements submission and progress from generated `JobsService`
-contracts.
+The public landing, authenticated intake, and owner progress route form one
+source-to-publications story. They use publication/workbench/stage roles from
+`frontend/src/index.css`, generated `JobsService` contracts, and the same
+editorial typography as the protected shell. The UI never renders provider
+turns, internal checkpoints, local paths, or model controls.
 
 ### System setup (`frontend/src/components/SystemSetup/`, plus `Pending/`)
 
@@ -551,20 +575,69 @@ LinkedIn, YouTube). SVGs in `frontend/public/assets/images/`: `apex-logo.svg`
 | Route | File | Description |
 |-------|------|-------------|
 | `/login`, `/signup`, `/recover-password`, `/reset-password` | `routes/*.tsx` | Public auth flow, consistent luxury styling |
-| `/` | `_layout/index.tsx` | Authenticated four-publication course-workspace overview |
+| `/` | `routes/index.tsx` | Public one-source-to-four-publications product story |
+| `/create` | `routes/_layout/create.tsx` | Authenticated multimode course intake |
+| `/jobs/$jobId` | `routes/_layout/jobs.$jobId.tsx` | Owner-scoped revisioned progress and terminal handoff |
 | `/settings` | `_layout/settings.tsx` | User settings (tabbed) |
 | `/admin` | `_layout/admin.tsx` | Admin panel (superuser only) |
 | `/setup` | `_layout/setup.tsx` | System readiness and device authentication (superuser only) |
 
+### Public landing (`/`)
+
+**User job:** understand the transformation, optionally preserve one bounded
+topic, and enter the configured access path. **Primary action:** `Save topic
+and continue to sign in`; direct sign-in remains available beside it.
+
+Desktop uses an asymmetric narrative: identity, a tab-scoped topic handoff,
+and truthful AI/privacy copy occupy the wider column; one bounded source sheet
+points to a two-by-two publication ledger named Course, Review materials,
+Student assessment, and Instructor answer key. A compact evidence strip
+explains research, cross-document alignment, and private owner access without
+fabricated metrics or compliance claims. Mobile becomes one reading sequence:
+identity, handoff, access, source, four publications, process, privacy. The
+visual relationship uses keylines and spacing, not ornamental gradients or
+animated connectors.
+
+### Course intake (`/create`)
+
+**User job:** provide one source plus enforced learning intent and submit one
+durable request. **Primary action:** `Create my learning package`.
+
+The workbench reads top to bottom: page identity; source-mode control; active
+source editor and bounded metadata preview; optional learning intent; age and
+literal AI/research consent; one submit action. At wide viewports, the source
+editor and a quiet outcome sidecar may form an 8/4 relationship. Below `lg`
+they become a single logical column. Inactive source controls unregister, file
+content is never parsed for preview, and no model/provider selector appears.
+Validation stays next to its field, and submission moves focus to the first
+invalid control.
+
+### Course progress (`/jobs/$jobId`)
+
+**User job:** understand durable server state and recover from a safe terminal
+outcome. The heading remains `Building your learning package` until the server
+returns a terminal status.
+
+The stage rail uses the finite generated statuses: queued, researching,
+drafting, validating, rendering, delivering, then ready. Its rows carry stable
+text labels, while the adjacent update panel renders the server's safe progress
+message. Unknown totals use activity copy rather than a guessed percentage.
+Warnings are a separate reading region. Reconnecting keeps the last safe
+snapshot visible. Failed and cancelled states replace the active-stage
+treatment with stable recovery actions. Completed points to the Session 02
+result composition without inventing preview data. On mobile the rail remains
+vertical and labels wrap; no horizontal timeline or document scroll is
+permitted.
+
 ### Shared page header
 
-Product routes (Course workspace, Admin, Settings, System setup) use
+Protected product routes (Course creation, Admin, Settings, System setup) use
 `Common/PageHeader.tsx`:
 
 ```tsx
 <PageHeader
   eyebrow="Workspace"          // optional section eyebrow
-  title="Workspace overview"   // the page's single h1 (Playfair Display)
+  title="Workspace overview"   // the page's single h1 (display serif)
   description="..."            // concise copy, max-w-prose
   actions={<...>}              // wrapping action group
 />
@@ -841,11 +914,12 @@ npm run lint && npm run typecheck && npm run build
 npx playwright test          # when the backend/test environment is available
 ```
 
-Current E2E coverage verifies the four-publication workspace, retired-route
-not-found behavior, mobile fit and 44px account action, reduced-motion
-navigation, system setup states, and the maintained auth/admin/settings
-surfaces. Phase 04 must add its submission, progress, result, and artifact
-states alongside implementation.
+Current E2E coverage verifies the public four-publication story, configured
+access, retired-route not-found behavior, multimode submission, duplicate
+prevention, owner-scoped progress/re-entry, safe failure and ownership
+recovery, mobile fit and touch actions, reduced-motion navigation, system
+setup states, and the maintained auth/admin/settings surfaces. Result and
+artifact workspace coverage expands with Session 02.
 
 ### Rendered QA matrix
 
@@ -853,7 +927,7 @@ Check each surface at 1440x900, the 768px boundary, 375x812, and 320px, in
 light and dark, with keyboard, and under reduced motion:
 
 - Protected shell (expanded/collapsed) and the mobile navigation sheet
-- Course workspace overview and Phase 04 states as they are implemented
+- Public landing, course intake, active progress, and every terminal state
 - System setup pending / ready / action required / waiting / authenticated /
   unavailable / failed / permission
 - Admin desktop table and mobile record list

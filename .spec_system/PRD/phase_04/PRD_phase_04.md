@@ -1,10 +1,10 @@
 # PRD Phase 04: Learner Experience
 
-**Status**: Not Started
+**Status**: In Progress
 **Sessions**: 2 (initial estimate)
 **Estimated Duration**: 1-2 days
 
-**Progress**: 0/2 sessions (0%)
+**Progress**: 1/2 sessions (50%)
 
 ---
 
@@ -22,20 +22,20 @@ API or an explicitly local form state.
 
 | Session | Name | Status | Est. Tasks | Validated |
 |---------|------|--------|------------|-----------|
-| 01 | Public Landing, Intake, and Progress | Not Started | ~20-25 | - |
+| 01 | Public Landing, Intake, and Progress | Complete | 25 | 2026-07-20 |
 | 02 | Results, Preview, and Experience Validation | Not Started | ~20-25 | - |
 
 ---
 
 ## Completed Sessions
 
-None yet.
+- Session 01: Public Landing, Intake, and Progress - completed 2026-07-20.
 
 ---
 
 ## Upcoming Sessions
 
-- Session 01: Public Landing, Intake, and Progress
+- Session 02: Results, Preview, and Experience Validation
 
 ---
 

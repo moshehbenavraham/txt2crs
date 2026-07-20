@@ -7,16 +7,15 @@ const documentOverflowX = (page: Page) =>
       document.documentElement.clientWidth,
   )
 
-test("Dashboard describes the four-part learning package without donor navigation", async ({
+test("Public landing describes the four-part learning package without donor navigation", async ({
   page,
 }) => {
   await page.goto("/")
 
   await expect(
-    page.getByRole("heading", { name: "Course workspace" }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole("heading", { name: "One input. Four learning assets." }),
+    page.getByRole("heading", {
+      name: "Turn one source into a complete learning package",
+    }),
   ).toBeVisible()
   await expect(
     page.getByRole("heading", { name: "Deep-researched course" }),
@@ -29,6 +28,9 @@ test("Dashboard describes the four-part learning package without donor navigatio
   ).toBeVisible()
   await expect(
     page.getByRole("heading", { name: "Instructor answer key" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Sign in to create a course" }),
   ).toBeVisible()
   await expect(page.getByRole("link", { name: "Items" })).not.toBeVisible()
 })
@@ -46,38 +48,42 @@ test("Retired donor route resolves to the application not-found surface", async 
 test.describe("Mobile viewport", () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
-  test("Dashboard fits the mobile viewport with a 44px account action", async ({
+  test("Public landing fits mobile and hands an authenticated user to creation", async ({
     page,
   }) => {
     await page.goto("/")
     await expect(
-      page.getByRole("heading", { name: "Course workspace" }),
+      page.getByRole("heading", {
+        name: "Turn one source into a complete learning package",
+      }),
     ).toBeVisible()
 
     expect(await documentOverflowX(page)).toBeLessThanOrEqual(0)
 
-    const accountLink = page.getByRole("link", { name: "Account settings" })
-    const box = await accountLink.boundingBox()
+    const creationLink = page.getByRole("link", {
+      name: "Sign in to create a course",
+    })
+    const box = await creationLink.boundingBox()
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
-    await accountLink.click()
-    await expect(page).toHaveURL(/\/settings$/)
+    await creationLink.click()
+    await expect(page).toHaveURL(/\/create$/)
     await expect(
-      page.getByRole("heading", { name: "User Settings" }),
+      page.getByRole("heading", { name: "Create a course" }),
     ).toBeVisible()
   })
 })
 
 test.describe("Reduced motion", () => {
-  test("Account navigation resolves directly to its complete final state", async ({
+  test("Creation handoff resolves directly to its complete final state", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" })
     await page.goto("/")
 
-    await page.getByRole("link", { name: "Account settings" }).click()
-    await expect(page).toHaveURL(/\/settings$/)
+    await page.getByRole("link", { name: "Sign in to create a course" }).click()
+    await expect(page).toHaveURL(/\/create$/)
     await expect(
-      page.getByRole("heading", { name: "User Settings" }),
+      page.getByRole("heading", { name: "Create a course" }),
     ).toBeVisible()
   })
 })

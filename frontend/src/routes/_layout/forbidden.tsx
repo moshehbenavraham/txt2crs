@@ -21,9 +21,9 @@ function ForbiddenPage() {
       <p className="max-w-lg text-muted-foreground">
         You do not have permission to access that page.
       </p>
-      <Link to="/">
-        <Button>Go to dashboard</Button>
-      </Link>
+      <Button asChild>
+        <Link to="/create">Return to course creation</Link>
+      </Button>
     </div>
   )
 }

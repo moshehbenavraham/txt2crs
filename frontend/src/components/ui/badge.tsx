@@ -18,7 +18,7 @@ const badgeVariants = cva(
         // Default - Forest Green
         default: `border-transparent bg-primary text-primary-foreground
                   [a&]:hover:bg-[oklch(0.40_0.09_160)]
-                  dark:bg-[oklch(0.55_0.10_160)]`,
+                  dark:bg-[oklch(0.60_0.10_160)]`,
 
         // Secondary - Subtle surface
         secondary: `border-border bg-surface-2 text-foreground

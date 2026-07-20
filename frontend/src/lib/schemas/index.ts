@@ -33,6 +33,16 @@
 export {
   confirmPasswordField,
   confirmPasswordFieldOptional,
+  courseAudienceField,
+  courseConsentField,
+  courseLearnerAgeGroupField,
+  courseLearningGoalField,
+  courseLearningLevelField,
+  coursePriorKnowledgeField,
+  coursePromptField,
+  courseSourceFileField,
+  courseSourceTextField,
+  courseSourceUrlField,
   // Email fields
   emailField,
   emailFieldOptional,
@@ -51,6 +61,19 @@ export {
   passwordField,
   passwordFieldOptional,
 } from "./fields"
+
+// =============================================================================
+// Course Job Schemas
+// =============================================================================
+
+export {
+  buildJobSubmissionPayload,
+  type CourseIntakeFormValues,
+  type CourseIntakeValues,
+  type CourseSubmissionPayload,
+  courseIntakeSchema,
+  createDefaultCourseIntakeValues,
+} from "./job"
 
 // =============================================================================
 // Authentication Schemas

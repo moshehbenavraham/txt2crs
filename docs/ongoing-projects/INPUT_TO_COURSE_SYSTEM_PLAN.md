@@ -4,7 +4,7 @@
 > **Delivery status:** Engine application boundary and FastAPI composition/
 > readiness complete; the learner workflow is not implemented
 > **Initial baseline release:** 0.3.1
-> **Current release:** 0.6.0
+> **Current release:** 0.6.1
 > **Created:** 2026-07-18
 > **Last verified:** 2026-07-19
 > **Owner:** txt2crs project

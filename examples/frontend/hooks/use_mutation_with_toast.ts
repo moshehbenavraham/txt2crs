@@ -1,100 +1,51 @@
 /**
- * EXAMPLE: Submit a course job with TanStack Query and toast feedback
+ * EXAMPLE: Compose the canonical course-submission boundary
  *
- * PATTERN: Mutation with an explicit idempotency key
- * USE WHEN: Sending a prompt, URL, text source, or file-backed request
- * TAGS: mutation, toast, tanstack-query, jobs, idempotency
+ * PATTERN: Feature hook composition, not a second mutation
+ * USE WHEN: Wiring a validated prompt, text, URL, YouTube, or file form
+ * TAGS: mutation, jobs, idempotency, generated-client, course-intake
  *
- * Based on the current `/api/v1/jobs` generated client contract.
+ * Course submission has more lifecycle rules than a generic mutation:
+ * duplicate triggers share one in-flight request, an exact failed retry keeps
+ * its idempotency key, changed input rotates that key, uploads use the
+ * generated multipart call, and accepted IDs drive typed navigation.
+ * `useCourseSubmission` owns all of those rules and the reviewed error toast.
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useCourseSubmission } from "@/hooks/useCourseSubmission"
+import type { CourseIntakeValues } from "@/lib/schemas"
 
-import {
-  type JobAcceptedPublic,
-  type JobSubmissionRequest,
-  JobsService,
-} from "@/client"
-import { handleError } from "@/utils"
-
-import { jobKeys } from "./use_query_with_suspense"
-
-/**
- * Keep the request and its retry key together.
- *
- * A caller must reuse the same idempotency key only when retrying the exact
- * same logical submission. A changed prompt or preference needs a new key.
- */
-export interface SubmitCourseVariables {
-  request: JobSubmissionRequest
-  idempotencyKey: string
+export interface CourseSubmissionAction {
+  submit: (values: CourseIntakeValues) => void
+  isSubmitting: boolean
+  inlineError: string | null
 }
 
 /**
- * Submit one JSON-backed course request.
+ * Adapt the product hook to a small form-facing interface.
  *
- * @example
- * ```tsx
- * const submitCourse = useSubmitCourse()
- *
- * submitCourse.mutate({
- *   idempotencyKey: crypto.randomUUID(),
- *   request: {
- *     consent_to_ai_processing: true,
- *     learner_age_group: "adult",
- *     preferences: {
- *       level: "beginner",
- *       audience: null,
- *       prior_knowledge: null,
- *       learning_goals: [],
- *       language: "en",
- *     },
- *     input: { type: "prompt", value: "Teach me the basics of photosynthesis" },
- *   },
- * })
- * ```
+ * Do not generate or persist an idempotency key in the component. Do not call
+ * `JobsService` directly here; doing either would split the reviewed retry
+ * behavior across two owners.
  */
-export function useSubmitCourse() {
-  const queryClient = useQueryClient()
+export function useCourseSubmissionAction(): CourseSubmissionAction {
+  const { submitCourse, isSubmitting, submissionErrorMessage } =
+    useCourseSubmission()
 
-  return useMutation({
-    mutationFn: ({ request, idempotencyKey }: SubmitCourseVariables) =>
-      JobsService.submitJob({
-        body: request,
-        headers: {
-          "Idempotency-Key": idempotencyKey,
-        },
-      }),
-
-    onSuccess: (acceptedJob: JobAcceptedPublic) => {
-      // Seed the accepted state only if a route already reads this key. The
-      // canonical status endpoint will supply the richer polling projection.
-      queryClient.invalidateQueries({
-        queryKey: jobKeys.detail(acceptedJob.job_id),
-      })
-
-      toast.success("Course request accepted", {
-        description: "Research and generation can now begin.",
-      })
-    },
-
-    onError: (error: Error) => {
-      // The shared handler translates generated client errors into the
-      // application's reviewed, learner-safe message.
-      handleError(error)
-    },
-  })
+  return {
+    submit: submitCourse,
+    isSubmitting,
+    inlineError: submissionErrorMessage,
+  }
 }
 
-// Mutation-state example:
+// Form composition:
 //
-// const mutation = useSubmitCourse()
-// mutation.isPending  -> disable duplicate submit controls
-// mutation.isError    -> retain form input so the learner can retry
-// mutation.isSuccess  -> navigate using mutation.data.job_id
+// const submission = useCourseSubmissionAction()
+// form.handleSubmit(submission.submit)
+// submission.isSubmitting -> disable every mutable intake control
+// submission.inlineError  -> render beside the primary action with role=alert
 //
-// Use `mutateAsync` only when the caller must sequence navigation or another
-// action after the server durably accepts the job.
+// The hook navigates to `/jobs/$jobId` only after durable server acceptance.
 
-export default useSubmitCourse
+export default useCourseSubmissionAction

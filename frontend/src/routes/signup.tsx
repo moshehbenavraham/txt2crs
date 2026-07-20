@@ -20,14 +20,15 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import { buildPageTitle } from "@/lib/branding"
+import { publicSignupVisible } from "@/lib/public-config"
 import { type SignupFormData, signupSchema } from "@/lib/schemas"
 
 export const Route = createFileRoute("/signup")({
-  component: SignUp,
+  component: SignupPage,
   beforeLoad: async () => {
     if (isLoggedIn()) {
       throw redirect({
-        to: "/",
+        to: "/create",
       })
     }
   },
@@ -40,7 +41,33 @@ export const Route = createFileRoute("/signup")({
   }),
 })
 
-function SignUp() {
+function SignupPage() {
+  return publicSignupVisible ? <SignupForm /> : <SignupUnavailable />
+}
+
+function SignupUnavailable() {
+  return (
+    <AuthLayout>
+      <div className="flex flex-col gap-7 text-center">
+        <div>
+          <p className="text-caption text-primary">Configured access</p>
+          <h1 className="mt-3 font-display text-[28px] font-semibold tracking-tight text-foreground">
+            Account access is invite-only
+          </h1>
+          <p className="mt-4 text-[15px] text-muted-foreground">
+            This installation&apos;s operator provisions learner accounts.
+            Request access from them, then return here to sign in.
+          </p>
+        </div>
+        <LoadingButton type="button" asChild>
+          <RouterLink to="/login">Return to sign in</RouterLink>
+        </LoadingButton>
+      </div>
+    </AuthLayout>
+  )
+}
+
+function SignupForm() {
   const { signUpMutation } = useAuth()
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -75,7 +102,7 @@ function SignUp() {
               Create an account
             </h1>
             <p className="font-body text-[15px] text-muted-foreground">
-              Get started with your free account
+              Create access for this local learning studio
             </p>
           </div>
 
@@ -163,6 +190,12 @@ function SignUp() {
               Create Account
             </LoadingButton>
           </div>
+
+          <p className="text-center text-body-sm text-muted-foreground">
+            If account creation has been disabled since this page loaded, the
+            server will decline the request. Ask the installation operator for
+            access.
+          </p>
 
           {/* Footer link */}
           <div className="text-center font-body text-[14px] text-muted-foreground">

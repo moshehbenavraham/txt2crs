@@ -18,3 +18,5 @@ function getEnvVar(name: string): string {
 export const firstSuperuser = getEnvVar("FIRST_SUPERUSER")
 export const firstSuperuserPassword = getEnvVar("FIRST_SUPERUSER_PASSWORD")
 export const apiBaseUrl = getEnvVar("VITE_API_URL")
+export const authFile =
+  process.env.PLAYWRIGHT_AUTH_FILE ?? "playwright/.auth/user.json"

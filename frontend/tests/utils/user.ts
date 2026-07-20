@@ -22,9 +22,9 @@ export async function logInUser(page: Page, email: string, password: string) {
   await page.getByTestId("email-input").fill(email)
   await page.getByTestId("password-input").fill(password)
   await page.getByRole("button", { name: /log in|sign in/i }).click()
-  await page.waitForURL("/")
+  await page.waitForURL("/create")
   await expect(
-    page.getByRole("heading", { name: "Course workspace" }),
+    page.getByRole("heading", { name: "Create a course" }),
   ).toBeVisible()
 }
 

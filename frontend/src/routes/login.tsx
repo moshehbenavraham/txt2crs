@@ -20,6 +20,8 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import { buildPageTitle } from "@/lib/branding"
+import { readCoursePromptDraft } from "@/lib/course-draft"
+import { publicSignupVisible } from "@/lib/public-config"
 import { type LoginFormData, loginSchema } from "@/lib/schemas"
 
 export const Route = createFileRoute("/login")({
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
     if (isLoggedIn()) {
       throw redirect({
-        to: "/",
+        to: "/create",
       })
     }
   },
@@ -42,6 +44,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const { loginMutation } = useAuth()
+  const hasSavedPrompt = readCoursePromptDraft() !== null
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
@@ -70,8 +73,13 @@ function Login() {
               Welcome back
             </h1>
             <p className="font-body text-[15px] text-muted-foreground">
-              Sign in to continue to your account
+              Sign in to continue to your learning studio
             </p>
+            {hasSavedPrompt ? (
+              <p className="text-body-sm text-primary">
+                Your saved course topic will be ready after sign in.
+              </p>
+            ) : null}
           </div>
 
           {/* Form fields */}
@@ -134,19 +142,37 @@ function Login() {
             </LoadingButton>
           </div>
 
-          {/* Footer link */}
+          {/* Configured access guidance */}
           <div className="text-center font-body text-[14px] text-muted-foreground">
-            Don't have an account?{" "}
-            <RouterLink
-              to="/signup"
-              className={`
-                font-medium text-foreground
-                transition-colors duration-200
-                hover:text-primary
-              `}
-            >
-              Create account
-            </RouterLink>
+            {publicSignupVisible ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <RouterLink
+                  to="/signup"
+                  className={`
+                    font-medium text-foreground
+                    transition-colors duration-200
+                    hover:text-primary
+                  `}
+                >
+                  Create account
+                </RouterLink>
+              </>
+            ) : (
+              <>
+                Need access?{" "}
+                <RouterLink
+                  to="/signup"
+                  className={`
+                    font-medium text-foreground
+                    transition-colors duration-200
+                    hover:text-primary
+                  `}
+                >
+                  View account access
+                </RouterLink>
+              </>
+            )}
           </div>
         </form>
       </Form>

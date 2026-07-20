@@ -50,7 +50,7 @@ export const Route = createFileRoute("/_layout")({
 })
 
 const SECTION_LABELS: Record<string, string> = {
-  "/": "Workspace",
+  "/create": "Create course",
   "/admin": "Admin",
   "/setup": "System setup",
   "/settings": "Settings",
@@ -65,7 +65,9 @@ function SectionLabel() {
     pathname.length > 1 && pathname.endsWith("/")
       ? pathname.slice(0, -1)
       : pathname
-  const label = SECTION_LABELS[normalized]
+  const label = normalized.startsWith("/jobs/")
+    ? "Course progress"
+    : SECTION_LABELS[normalized]
 
   if (!label) {
     return null

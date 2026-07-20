@@ -4,6 +4,13 @@ import { randomPassword } from "./utils/random.ts"
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
+// The default Compose suite exercises the configured operator account. The
+// isolated jobs suite creates a fresh normal user instead, so login assertions
+// must follow the credentials owned by the active test environment.
+const loginEmail = process.env.PLAYWRIGHT_TEST_USER_EMAIL ?? firstSuperuser
+const loginPassword =
+  process.env.PLAYWRIGHT_TEST_USER_PASSWORD ?? firstSuperuserPassword
+
 const fillForm = async (page: Page, email: string, password: string) => {
   await page.getByTestId("email-input").fill(email)
   await page.getByTestId("password-input").fill(password)
@@ -12,7 +19,7 @@ const fillForm = async (page: Page, email: string, password: string) => {
 const verifyInput = async (page: Page, testId: string) => {
   const input = page.getByTestId(testId)
   await expect(input).toBeVisible()
-  await expect(input).toHaveText("")
+  await expect(input).toHaveValue("")
   await expect(input).toBeEditable()
 }
 
@@ -40,20 +47,20 @@ test("Forgot Password link is visible", async ({ page }) => {
 test("Log in with valid email and password ", async ({ page }) => {
   await page.goto("/login")
 
-  await fillForm(page, firstSuperuser, firstSuperuserPassword)
+  await fillForm(page, loginEmail, loginPassword)
   await page.getByRole("button", { name: "Sign In" }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/create")
 
   await expect(
-    page.getByRole("heading", { name: "Course workspace" }),
+    page.getByRole("heading", { name: "Create a course" }),
   ).toBeVisible()
 })
 
 test("Log in with invalid email", async ({ page }) => {
   await page.goto("/login")
 
-  await fillForm(page, "invalidemail", firstSuperuserPassword)
+  await fillForm(page, "invalidemail", loginPassword)
   await page.getByRole("button", { name: "Sign In" }).click()
 
   await expect(page.getByText("Invalid email address")).toBeVisible()
@@ -63,7 +70,7 @@ test("Log in with invalid password", async ({ page }) => {
   const password = randomPassword()
 
   await page.goto("/login")
-  await fillForm(page, firstSuperuser, password)
+  await fillForm(page, loginEmail, password)
   await page.getByRole("button", { name: "Sign In" }).click()
 
   await expect(page.getByText("Incorrect email or password")).toBeVisible()
@@ -74,13 +81,13 @@ test("Log in with invalid password", async ({ page }) => {
 test("Successful log out", async ({ page }) => {
   await page.goto("/login")
 
-  await fillForm(page, firstSuperuser, firstSuperuserPassword)
+  await fillForm(page, loginEmail, loginPassword)
   await page.getByRole("button", { name: "Sign In" }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/create")
 
   await expect(
-    page.getByRole("heading", { name: "Course workspace" }),
+    page.getByRole("heading", { name: "Create a course" }),
   ).toBeVisible()
 
   await page.getByTestId("user-menu").click()
@@ -91,20 +98,20 @@ test("Successful log out", async ({ page }) => {
 test("Logged-out user cannot access protected routes", async ({ page }) => {
   await page.goto("/login")
 
-  await fillForm(page, firstSuperuser, firstSuperuserPassword)
+  await fillForm(page, loginEmail, loginPassword)
   await page.getByRole("button", { name: "Sign In" }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/create")
 
   await expect(
-    page.getByRole("heading", { name: "Course workspace" }),
+    page.getByRole("heading", { name: "Create a course" }),
   ).toBeVisible()
 
   await page.getByTestId("user-menu").click()
   await page.getByRole("menuitem", { name: "Log out" }).click()
   await page.waitForURL("/login")
 
-  await page.goto("/settings")
+  await page.goto("/create")
   await page.waitForURL("/login")
 })
 

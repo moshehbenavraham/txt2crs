@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from txt2crs.application import Txt2CrsApplication
+from txt2crs.jobs import ExecutionProfile
 
 from app.api.main import api_router
 from app.core.config import Settings, settings
@@ -62,6 +63,7 @@ Txt2CrsAuthenticationFactory = Callable[
     ],
     SystemAuthenticationCoordinator,
 ]
+Txt2CrsExecutionProfileFactory = Callable[[Settings], ExecutionProfile]
 
 # Multipart boundaries and headers are counted in the HTTP request body but
 # are not part of the learner file. This finite allowance lets one exact-limit
@@ -145,6 +147,9 @@ def create_app(
     txt2crs_authentication_factory: Txt2CrsAuthenticationFactory = (
         build_txt2crs_authentication
     ),
+    txt2crs_execution_profile_factory: Txt2CrsExecutionProfileFactory = (
+        build_execution_profile
+    ),
 ) -> FastAPI:
     """
     Construct a FastAPI application with an injectable engine lifecycle.
@@ -212,7 +217,9 @@ def create_app(
                     application=txt2crs_application,
                     readiness=txt2crs_readiness,
                     worker=txt2crs_worker,
-                    execution_profile=build_execution_profile(application_settings),
+                    execution_profile=txt2crs_execution_profile_factory(
+                        application_settings
+                    ),
                 )
             if txt2crs_worker is not None:
                 txt2crs_worker.start()

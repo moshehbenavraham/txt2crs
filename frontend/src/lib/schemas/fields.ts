@@ -9,6 +9,163 @@
 import { z } from "zod"
 
 // =============================================================================
+// Course Job Fields
+// =============================================================================
+
+/** Backend ``PromptText``: a short topic or course instruction. */
+export const coursePromptField = z
+  .string()
+  .trim()
+  .min(3, { message: "Describe the course in at least 3 characters" })
+  .max(10_000, { message: "Keep the course topic under 10,000 characters" })
+
+/** Backend ``PastedText`` after its whitespace-stripping request boundary. */
+export const courseSourceTextField = z
+  .string()
+  .trim()
+  .min(1, { message: "Paste some source text" })
+  .max(200_000, { message: "Pasted text must be at most 200,000 characters" })
+
+/**
+ * Shape-only HTTPS validation mirrored from ``_HttpsJobInput``.
+ *
+ * Host safety, redirects, DNS resolution, and YouTube routing remain inside
+ * the txt2crs package. The browser only rejects syntax the shell rejects.
+ */
+export const courseSourceUrlField = z
+  .string()
+  .trim()
+  .min(9, { message: "Enter a complete HTTPS URL" })
+  .max(2_048, { message: "The URL must be at most 2,048 characters" })
+  .superRefine((value, refinementContext) => {
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(value)
+    } catch {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "Enter a valid absolute HTTPS URL",
+      })
+      return
+    }
+
+    if (
+      parsedUrl.protocol !== "https:" ||
+      !parsedUrl.hostname ||
+      parsedUrl.username ||
+      parsedUrl.password ||
+      parsedUrl.hash
+    ) {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "Use HTTPS without credentials or a fragment",
+      })
+    }
+  })
+
+/** Optional learner audience, represented as an empty form field before submit. */
+export const courseAudienceField = z
+  .string()
+  .trim()
+  .max(500, { message: "Audience must be at most 500 characters" })
+
+/** Optional prior-knowledge description. */
+export const coursePriorKnowledgeField = z.string().trim().max(2_000, {
+  message: "Prior knowledge must be at most 2,000 characters",
+})
+
+/** One bounded learner-selected objective. */
+export const courseLearningGoalField = z
+  .string()
+  .trim()
+  .min(3, { message: "Learning goals need at least 3 characters" })
+  .max(500, { message: "Each learning goal must be at most 500 characters" })
+
+/** Reviewed depth options from the generated ``JobLearningLevel`` contract. */
+export const courseLearningLevelField = z.enum([
+  "auto",
+  "beginner",
+  "intermediate",
+  "advanced",
+  "mixed",
+])
+
+/** Privacy-minimized age context from the generated shell contract. */
+export const courseLearnerAgeGroupField = z.enum([
+  "minor",
+  "adult",
+  "not_provided",
+])
+
+/** The backend accepts the literal boolean ``true`` and no truthy substitute. */
+export const courseConsentField = z.literal(true, {
+  error: "Allow AI and research processing to create the course",
+})
+
+export const MAXIMUM_COURSE_UPLOAD_BYTES = 20_971_520
+
+const reviewedCourseUploadTypes = {
+  ".pdf": "application/pdf",
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".pptx":
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+} as const
+
+/** Validate local upload facts only; document parsing remains server-owned. */
+export const courseSourceFileField = z
+  .custom<File>(
+    (value) => typeof File !== "undefined" && value instanceof File,
+    { message: "Choose a PDF, DOCX, or PPTX file" },
+  )
+  .superRefine((file, refinementContext) => {
+    if (file.size === 0) {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "The selected file is empty",
+      })
+    }
+    if (file.size > MAXIMUM_COURSE_UPLOAD_BYTES) {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "The selected file must be 20 MB or smaller",
+      })
+    }
+    if (
+      file.name.length > 255 ||
+      file.name !== file.name.trim() ||
+      file.name === "." ||
+      file.name === ".." ||
+      file.name.includes("/") ||
+      file.name.includes("\\") ||
+      [...file.name].some((character) => {
+        const codePoint = character.codePointAt(0) ?? 0
+        return codePoint < 32 || codePoint === 127
+      })
+    ) {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "The file name is not supported",
+      })
+      return
+    }
+
+    const extensionIndex = file.name.lastIndexOf(".")
+    const extension =
+      extensionIndex >= 0 ? file.name.slice(extensionIndex).toLowerCase() : ""
+    const expectedMediaType =
+      reviewedCourseUploadTypes[
+        extension as keyof typeof reviewedCourseUploadTypes
+      ]
+    if (!expectedMediaType || file.type !== expectedMediaType) {
+      refinementContext.addIssue({
+        code: "custom",
+        message: "Choose a PDF, DOCX, or PPTX file with the matching file type",
+      })
+    }
+  })
+
+// =============================================================================
 // Email Fields
 // =============================================================================
 

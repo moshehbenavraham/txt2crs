@@ -58,6 +58,27 @@ export type UserId = Brand<string, "UserId">
 export type Email = Brand<string, "Email">
 
 // ============================================================================
+// Course Job Domain Types
+// ============================================================================
+
+/**
+ * Public engine job identifiers are finite package identifiers, not UUIDs.
+ * Keeping a separate brand prevents a user ID from becoming a job route.
+ */
+export type JobId = Brand<string, "JobId">
+
+/** Artifact identifiers share the package grammar but remain a distinct role. */
+export type ArtifactId = Brand<string, "ArtifactId">
+
+/**
+ * Owner-scoped retry identity.
+ *
+ * Its grammar permits a separator as the first character, unlike job and
+ * artifact identifiers, so it must never reuse their validation function.
+ */
+export type IdempotencyKey = Brand<string, "IdempotencyKey">
+
+// ============================================================================
 // Type Guards
 // ============================================================================
 
@@ -67,6 +88,12 @@ const UUID_PATTERN =
 
 /** Email regex pattern (simplified, RFC 5322 compliant subset) */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Mirrored backend ``JobIdentifier`` and ``ArtifactIdentifier`` grammar. */
+const COURSE_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+
+/** Mirrored backend owner-scoped ``IdempotencyKey`` grammar. */
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/
 
 /**
  * Type guard to check if a string is a valid UUID format.
@@ -96,6 +123,21 @@ export function isUserId(value: string): value is UserId {
  */
 export function isEmail(value: string): value is Email {
   return EMAIL_PATTERN.test(value)
+}
+
+/** Return whether a string is a finite public job identifier. */
+export function isJobId(value: string): value is JobId {
+  return COURSE_IDENTIFIER_PATTERN.test(value)
+}
+
+/** Return whether a string is a finite public artifact identifier. */
+export function isArtifactId(value: string): value is ArtifactId {
+  return COURSE_IDENTIFIER_PATTERN.test(value)
+}
+
+/** Return whether a string is a finite owner-scoped retry key. */
+export function isIdempotencyKey(value: string): value is IdempotencyKey {
+  return IDEMPOTENCY_KEY_PATTERN.test(value)
 }
 
 // ============================================================================
@@ -135,6 +177,34 @@ export function createEmail(value: string): Email {
   return value
 }
 
+/** Validate untrusted route or form input before branding it as a job ID. */
+export function createJobId(value: string): JobId {
+  if (!isJobId(value)) {
+    throw new Error(
+      "Invalid JobId: expected 1-128 letters, numbers, dots, underscores, colons, or hyphens.",
+    )
+  }
+  return value
+}
+
+/** Validate untrusted input before branding it as an artifact ID. */
+export function createArtifactId(value: string): ArtifactId {
+  if (!isArtifactId(value)) {
+    throw new Error("Invalid ArtifactId: expected a finite package identifier.")
+  }
+  return value
+}
+
+/** Validate untrusted retry identity before storing or sending it. */
+export function createIdempotencyKey(value: string): IdempotencyKey {
+  if (!isIdempotencyKey(value)) {
+    throw new Error(
+      "Invalid IdempotencyKey: expected 1-128 reviewed identifier characters.",
+    )
+  }
+  return value
+}
+
 // ============================================================================
 // Unsafe Conversion (for API responses)
 // ============================================================================
@@ -163,4 +233,19 @@ export function asUserId(value: string): UserId {
  */
 export function asEmail(value: string): Email {
   return value as Email
+}
+
+/** Cast a generated, backend-validated response identity to ``JobId``. */
+export function asJobId(value: string): JobId {
+  return value as JobId
+}
+
+/** Cast a generated, backend-validated response identity to ``ArtifactId``. */
+export function asArtifactId(value: string): ArtifactId {
+  return value as ArtifactId
+}
+
+/** Cast a trusted locally generated retry identity to ``IdempotencyKey``. */
+export function asIdempotencyKey(value: string): IdempotencyKey {
+  return value as IdempotencyKey
 }
