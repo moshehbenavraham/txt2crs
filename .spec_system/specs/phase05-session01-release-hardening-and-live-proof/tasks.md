@@ -70,7 +70,7 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   create the dated changelog heading without inventing a frontend version
   (`VERSION`, `backend/packages/txt2crs/pyproject.toml`, `backend/uv.lock`,
   `docs/VERSIONING.md`, `docs/CHANGELOG.md`).
-- [x] T009 [S0501] Reconcile the master implementation plan’s already-proven
+- [x] T009 [S0501] Reconcile the master implementation plan's already-proven
   P0 definition-of-done rows from validated Phase 00-04 evidence and document
   candidate-before-assets-before-tag ordering without reopening implemented
   behavior
@@ -150,7 +150,7 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
 
 ## Testing (6 tasks)
 
-- [ ] T020 [S0501] Run focused release/evidence tests, package metadata tests,
+- [x] T020 [S0501] Run focused release/evidence tests, package metadata tests,
   release workflow/security workflow contracts, Ruff, mypy, typos, and
   canonical evidence regeneration; confirm a second generation is byte-for-
   byte identical
@@ -165,7 +165,7 @@ Legend: `[x]` completed; `[ ]` pending; `[P]` parallelizable; `[S0501]` session 
   broad browser regression, mobile/desktop/accessibility/reduced-motion
   checks, and generated OpenAPI/client immutability
   (`frontend/`).
-- [ ] T023 [S0501] Run every locally executable GitHub workflow equivalent,
+- [x] T023 [S0501] Run every locally executable GitHub workflow equivalent,
   pre-commit over tracked and explicit new files, Gitleaks, Zizmor, Python/npm
   dependency audits, documentation links, ASCII/LF, executable-bit, secret,
   path, generated-file, and diff-hygiene checks; preserve remote CodeQL as the

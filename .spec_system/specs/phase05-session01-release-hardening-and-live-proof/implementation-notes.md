@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 10:15 IDT
+**Last Updated**: 2026-07-20 10:21 IDT
 
 ---
 
@@ -11,13 +11,97 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks Completed | 17 / 25 |
+| Tasks Completed | 19 / 25 |
 | Estimated Remaining | 1-2 hours plus external live prerequisites |
 | Blockers | Tavily credential and GPT-5.6 entitlement; deterministic work continues |
 
 ---
 
 ## Task Log
+
+### Task T020 - Run Focused Release Gates
+
+**Started**: 2026-07-20 10:20 IDT
+**Completed**: 2026-07-20 10:21 IDT
+**Duration**: 1 minute
+
+**Notes**:
+- Re-ran release identity/privacy/canonicalization and both quality/security
+  workflow contracts. The test fixture writes the same canonical candidate
+  twice and requires byte identity.
+- Repeated real repository candidate-version validation twice. The public
+  candidate ledger remains deliberately absent because T017-T019 are not
+  complete; T024, not this validator test, owns its final generation.
+
+**Files Changed**:
+- No tracked product file changed.
+
+**Verification**:
+- Command/check: focused shell release/workflow pytest and Ruff
+  - Result: PASS - 32 tests; 4 files linted/formatted.
+- Command/check: engine metadata, Ruff, and mypy
+  - Result: PASS - 2 package metadata tests; 138-source mypy graph; Ruff.
+- Command/check: repeated repository candidate CLI
+  - Result: PASS - both byte-identical outputs report
+    `release-version=1.0.0`.
+- UI product-surface check: N/A.
+- UI craft check: N/A.
+
+**BQC Fixes**:
+- Evidence honesty: deterministic canonicalization is proven without writing
+  an incomplete public live ledger.
+
+### Task T023 - Run Workflow And Security Equivalents
+
+**Started**: 2026-07-20 10:16 IDT
+**Completed**: 2026-07-20 10:20 IDT
+**Duration**: 4 minutes
+
+**Notes**:
+- Ran every locally executable quality, workflow, dependency, secret, text,
+  generated-file, and diff check. Remote Actions remains a zero-step billing
+  condition and CodeQL remains the one documented remote-only low finding.
+- The first structured validator call lacked the ignored clean-worktree
+  environment and still contained Playwright's ignored auth state. Supplying
+  the example environment and deleting that test state made all nine checks
+  green.
+- Scoped documentation links to release/plan deliverables. The engine's
+  research supplement intentionally cites an external donor checkout and is
+  not a portable repository-local link set.
+- Normalized one active-session smart apostrophe and made the release CLI's
+  existing shebang executable so tracked mode and invocation agree.
+
+**Files Changed**:
+- `scripts/release_evidence.py` - executable mode for its existing CLI
+  shebang.
+- `.spec_system/specs/phase05-session01-release-hardening-and-live-proof/tasks.md`
+  - ASCII apostrophe.
+
+**Verification**:
+- Command/check: `scripts/validate-changes.sh --json`
+  - Result: PASS - 9/9 backend, engine, and frontend checks.
+- Command/check: `pre-commit run --all-files`
+  - Result: PASS - all 15 hooks, including Ruff, mypy, ty, Biome, TypeScript,
+    generated client, typos, and Zizmor.
+- Command/check: Gitleaks, Zizmor, and actionlint
+  - Result: PASS - 61 commits and about 10.28 MB scanned with no leak; all ten
+    workflows pass; actionlint is silent.
+- Command/check: Python and npm dependency audits
+  - Result: PASS - no known vulnerability; only local `app` and `txt2crs`
+    packages are correctly non-PyPI; npm reports zero vulnerabilities.
+- Command/check: release links, ASCII/LF, changed shebang modes, public
+    secret/path patterns, generated files, diff hygiene, and tag absence
+  - Result: PASS - 7 release/plan documents and 10 local targets; 6 active
+    release files; changed CLIs executable; no risky public value; generated
+    client clean; no `v1.0.0`.
+- UI product-surface check: N/A - covered by T022.
+- UI craft check: N/A.
+
+**BQC Fixes**:
+- Evidence correctness: no all-document portability claim is made for the
+  deliberately external AIOS supplement.
+- File contract: active release material is ASCII/LF and the release CLI mode
+  now matches its shebang.
 
 ### Task T022 - Run Complete Frontend And Browser Matrix
 
@@ -611,3 +695,18 @@ must identify the same immutable revision.
 - Tests: 26 focused release/workflow cases pass; candidate CLI accepts
   `1.0.0`; final CLI rejects a mismatched tag.
 - Next task: T014 - build and inspect production images.
+
+### Checkpoint 2
+
+- Completed since prior checkpoint: T011-T015 and T021-T023.
+- Scope check: clean candidate, build artifacts, production images,
+  replacement proof, and complete provider-independent regression/security
+  validation.
+- Tests: engine 470/1 live skip; backend 506; frontend unit 132;
+  deterministic browser 16/1 skip twice; broad browser 69/11 intentional
+  skips; all workflow/security equivalents green.
+- External gates: Tavily remains absent and the valid ChatGPT account is not
+  entitled to exact `gpt-5.6`; T016-T020 and T024-T025 remain open where they
+  depend on truthful live/canonical evidence.
+- Next task: finish every provider-independent portion of T020 and T024, then
+  preserve the exact external handoff.
