@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 10:28 IDT
+**Last Updated**: 2026-07-20 10:32 IDT
 
 ---
 
@@ -711,6 +711,8 @@ tasks remain executable.
 **Resolution**: Pending external credential availability. Continue every
 deterministic and release-candidate task first; never substitute another
 provider or fabricate a live result.
+**Rechecked**: 2026-07-20 10:32 IDT - process environment, root `.env`,
+backend `.env`, and retained candidate backend all remain empty or absent.
 **Time Lost**: 0 minutes.
 
 ### Blocker 2: The Valid ChatGPT Account Is Not Entitled To GPT-5.6
@@ -727,6 +729,9 @@ release validation.
 **Verification**: `TXT2CRS_RUN_LIVE_CODEX=1 uv run --package txt2crs pytest
 packages/txt2crs/tests/acceptance -m live -q --tb=short` reached the entitlement
 assertion and failed there before any generation turn.
+**Rechecked**: 2026-07-20 10:32 IDT - the authenticated credential remains
+valid, exact `gpt-5.6` discovery remains unavailable, and the probe again
+stopped at readiness before a generation turn.
 **Time Lost**: 0 minutes.
 
 ---
@@ -773,3 +778,16 @@ must identify the same immutable revision.
   T024-T025 remain open.
 - Next task: provision both external prerequisites, then resume T016 without
   substituting a provider or model.
+
+### Checkpoint 3
+
+- Resumed the Apex `implement` workflow from clean revision
+  `d3b7516975d093502c5a64c6130caee40e0c5f79`.
+- Re-ran the non-secret Tavily presence audit and exact packaged live
+  entitlement test. Both external blockers are unchanged; no paid generation
+  turn or synthetic live job ran.
+- Confirmed the retained candidate backend, frontend, and database are
+  healthy. The incomplete candidate JSON and premature `v1.0.0` tag remain
+  absent.
+- Next task: T016 immediately after a private Tavily key and a ChatGPT account
+  entitled to exact `gpt-5.6` are available.
