@@ -65,7 +65,6 @@ class ErrorCode(StrEnum):
     Error code ranges:
         - 1xxx: Authentication errors
         - 2xxx: User-related errors
-        - 3xxx: Item-related errors
         - 4xxx: Validation errors
         - 5xxx: Rate limiting errors
         - 6xxx: System readiness and engine errors
@@ -92,11 +91,7 @@ class ErrorCode(StrEnum):
     USER_INACTIVE = "USER_2004"
     USER_INVALID_PASSWORD = "USER_2005"
     USER_PASSWORD_MISMATCH = "USER_2006"
-
-    # Item errors (3xxx)
-    ITEM_NOT_FOUND = "ITEM_3001"
-    ITEM_ALREADY_EXISTS = "ITEM_3002"
-    ITEM_PERMISSION_DENIED = "ITEM_3003"
+    USER_PURGE_FAILED = "USER_2007"
 
     # Validation errors (4xxx)
     VALIDATION_ERROR = "VALIDATION_4001"
@@ -154,11 +149,9 @@ class ErrorMessages:
     PASSWORD_SAME_AS_CURRENT: Final = (
         "New password cannot be the same as the current password"
     )
-
-    # Item messages
-    ITEM_NOT_FOUND: Final = "Item not found"
-    ITEM_NOT_FOUND_BY_ID: Final = "Item with ID '{item_id}' not found"
-    ITEM_PERMISSION_DENIED: Final = "Not enough permissions to access this item"
+    ACCOUNT_PURGE_FAILED: Final = (
+        "Account deletion is temporarily unavailable. Please retry."
+    )
 
     # Validation messages
     VALIDATION_FAILED: Final = "One or more fields failed validation"
@@ -196,7 +189,8 @@ class Pagination:
 
     Example:
         >>> from app.core.constants import Pagination
-        >>> items = get_items(limit=min(limit, Pagination.MAX_LIMIT))
+        >>> requested_limit = 250
+        >>> page_size = min(requested_limit, Pagination.MAX_LIMIT)
     """
 
     DEFAULT_SKIP: Final = 0
@@ -236,18 +230,6 @@ class PasswordPolicy:
     MAX_LENGTH: Final = 128
 
 
-class ItemContentTypes(StrEnum):
-    """Content type discriminators for items.
-
-    Used to categorize items in the database.
-
-    Example:
-        >>> item.content_type = ItemContentTypes.GENERAL
-    """
-
-    GENERAL = "general"
-
-
 # Error code to HTTP status mapping
 ERROR_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.AUTH_INVALID_CREDENTIALS: HTTPStatusCode.UNAUTHORIZED,
@@ -262,9 +244,7 @@ ERROR_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.USER_INACTIVE: HTTPStatusCode.FORBIDDEN,
     ErrorCode.USER_INVALID_PASSWORD: HTTPStatusCode.BAD_REQUEST,
     ErrorCode.USER_PASSWORD_MISMATCH: HTTPStatusCode.BAD_REQUEST,
-    ErrorCode.ITEM_NOT_FOUND: HTTPStatusCode.NOT_FOUND,
-    ErrorCode.ITEM_ALREADY_EXISTS: HTTPStatusCode.CONFLICT,
-    ErrorCode.ITEM_PERMISSION_DENIED: HTTPStatusCode.FORBIDDEN,
+    ErrorCode.USER_PURGE_FAILED: HTTPStatusCode.SERVICE_UNAVAILABLE,
     ErrorCode.VALIDATION_ERROR: HTTPStatusCode.UNPROCESSABLE_ENTITY,
     ErrorCode.INVALID_INPUT: HTTPStatusCode.BAD_REQUEST,
     ErrorCode.MISSING_REQUIRED_FIELD: HTTPStatusCode.BAD_REQUEST,

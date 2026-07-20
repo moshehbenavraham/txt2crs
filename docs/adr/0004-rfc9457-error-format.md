@@ -47,10 +47,11 @@ Error codes follow a numbered namespace pattern:
 | Range | Domain | Examples |
 |-------|--------|----------|
 | 1xxx | Authentication | AUTH_1001 (invalid credentials), AUTH_1002 (token expired) |
-| 2xxx | User | USER_2001 (not found), USER_2002 (already exists) |
-| 3xxx | Item | ITEM_3001 (not found), ITEM_3002 (already exists) |
+| 2xxx | User | USER_2001 (not found), USER_2002 (already exists), USER_2007 (owner purge failed) |
 | 4xxx | Validation | VALIDATION_4001 (validation error), VALIDATION_4002 (invalid input) |
 | 5xxx | Rate Limiting | RATE_5001 (rate limit exceeded) |
+| 6xxx | Course System | SYSTEM_6001 (not ready), SYSTEM_6002 (engine operation failed) |
+| 7xxx | Course Job | JOB_7001 (not found), JOB_7002 (admission rejected) |
 | 9xxx | Server | SERVER_9001 (internal error), SERVER_9002 (service unavailable) |
 
 ### 3. Exception Classes

@@ -1,197 +1,122 @@
-# Database Schema Documentation
+# Database Schema
 
-> Entity-Relationship Diagram and schema documentation for the Python React Boilerplate
+The application deliberately uses two persistence boundaries:
 
-## Entity-Relationship Diagram
+- PostgreSQL stores shell-owned user identity and authentication data.
+- Tenant-scoped SQLite under the private txt2crs state directory stores
+  engine-owned course jobs, checkpoints, lifecycle events, and artifact
+  metadata.
+
+The FastAPI shell accesses course state only through the public `txt2crs`
+application facade. Engine tables are not SQLModel application tables and are
+documented by the reusable package.
+
+## PostgreSQL Entity Diagram
 
 ```mermaid
 erDiagram
-    USER ||--o{ ITEM : owns
     USER {
-        uuid id PK "Primary key, auto-generated UUID v4"
-        varchar(255) email UK "Unique, indexed, max 255 chars"
-        varchar hashed_password "Argon2id hashed, never stored in plain text"
-        boolean is_active "Account status, default true"
-        boolean is_superuser "Admin privileges, default false"
+        uuid id PK "Application-generated UUID"
+        varchar(255) email UK "Unique and indexed"
+        varchar hashed_password "Argon2id or upgradeable legacy hash"
+        boolean is_active "Account status"
+        boolean is_superuser "Administrative privilege"
         varchar(255) full_name "Optional display name"
-        timestamptz created_at "UTC creation time, nullable for legacy rows"
-    }
-    ITEM {
-        uuid id PK "Primary key, auto-generated UUID v4"
-        uuid owner_id FK "References user.id, CASCADE DELETE"
-        varchar(255) title "Required, min 1 char"
-        varchar(255) description "Optional, max 255 chars"
-        varchar(2048) source_url "Optional, external URL"
-        text content "Optional, unlimited length"
-        varchar(50) content_type "Type discriminator: 'general'"
-        json item_metadata "Optional, arbitrary key-value data"
-        timestamptz created_at "UTC creation time, nullable for legacy rows"
+        timestamptz created_at "UTC creation time; nullable for legacy rows"
     }
 ```
 
-## Tables
+## Current PostgreSQL Tables
 
-### User Table
+### User
 
-Stores user accounts and authentication information.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY, DEFAULT uuid4() | Unique identifier |
-| `email` | VARCHAR(255) | UNIQUE, NOT NULL, INDEX | User's email address |
-| `hashed_password` | VARCHAR | NOT NULL | Argon2id hash; legacy Bcrypt hashes upgrade on login |
-| `is_active` | BOOLEAN | DEFAULT TRUE | Whether account is active |
-| `is_superuser` | BOOLEAN | DEFAULT FALSE | Admin privileges flag |
-| `full_name` | VARCHAR(255) | NULL | User's display name |
-| `created_at` | TIMESTAMPTZ | NULL | UTC creation timestamp; nullable for legacy rows |
-
-**Indexes:**
-- `ix_user_email` - B-tree index on `email` for fast lookups
-
-**Notes:**
-- Password is hashed using Argon2id before storage
-- `is_active` can be set to `false` to soft-disable accounts
-- Only users with `is_superuser=true` can access admin endpoints
-
-### Item Table
-
-Stores user-created items/content.
+The quoted PostgreSQL table `"user"` stores application accounts and
+authentication state.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY, DEFAULT uuid4() | Unique identifier |
-| `owner_id` | UUID | FOREIGN KEY -> user.id, NOT NULL | Owner reference |
-| `title` | VARCHAR(255) | NOT NULL, CHECK(length >= 1) | Item title |
-| `description` | VARCHAR(255) | NULL | Short description |
-| `source_url` | VARCHAR(2048) | NULL | External URL reference |
-| `content` | TEXT | NULL | Full content body |
-| `content_type` | VARCHAR(50) | NULL | Type discriminator |
-| `item_metadata` | JSON | NULL | Arbitrary metadata |
-| `created_at` | TIMESTAMPTZ | NULL | UTC creation timestamp; nullable for legacy rows |
+| `id` | UUID | PRIMARY KEY, NOT NULL | Application-generated account identifier |
+| `email` | VARCHAR(255) | UNIQUE, NOT NULL, INDEX | Validated login email |
+| `hashed_password` | VARCHAR | NOT NULL | Password hash; never plaintext |
+| `is_active` | BOOLEAN | NOT NULL | Whether login is allowed; application default true |
+| `is_superuser` | BOOLEAN | NOT NULL | Administrator access; application default false |
+| `full_name` | VARCHAR(255) | NULL | Optional display name |
+| `created_at` | TIMESTAMPTZ | NULL | UTC creation time; nullable for migrated rows |
 
-**Foreign Keys:**
-- `owner_id` -> `user.id` with `ON DELETE CASCADE`
+The `ix_user_email` B-tree index supports login and administrative lookup.
+The database uniqueness constraint is the final protection against duplicate
+emails.
 
-**Notes:**
-- Items are automatically deleted when their owner is deleted (CASCADE)
-- `content_type` is validated at the application level (currently only "general")
-- `item_metadata` stores arbitrary JSON for extensibility
+## Owner-State Erasure
 
-## Relationships
+User deletion spans both persistence boundaries and therefore follows a fixed
+order:
 
-### User -> Item (One-to-Many)
+1. Authorize the requester and resolve the target PostgreSQL user.
+2. Call `Txt2CrsApplication.purge_owner(user_id=target_user_id)`.
+3. The engine cancels and joins matching active execution, removes private
+   artifacts, and transactionally removes that owner's SQLite job state.
+4. Only after purge succeeds, delete and commit the PostgreSQL user.
 
-```
-User (1) -----< Item (0..*)
-```
+An engine purge failure returns `USER_2007` and leaves the PostgreSQL row
+unchanged for retry. If PostgreSQL fails after a successful purge, the API
+reports that database failure truthfully; repeating the idempotent engine
+purge is safe before retrying the user delete.
 
-- One user can own many items
-- Each item belongs to exactly one user
-- Deleting a user cascades to delete all their items
-- Items cannot exist without an owner
+## Alembic History
 
-## Content Types
+The current head is `a7d9c2e4f601`. Its upgrade removes the retired scaffold
+content table after durable course jobs replace that domain.
 
-The `content_type` field in items uses a discriminator pattern:
+Its downgrade recreates the complete previous table shape, foreign key,
+primary key, and owner index so the preceding application revision can start.
+The downgrade is schema-only: rows intentionally removed by the upgrade
+cannot be reconstructed. Operators must not interpret a successful downgrade
+as data recovery.
 
-| Value | Description |
-|-------|-------------|
-| `general` | Standard user content |
+Historical migration files remain immutable even when they mention retired
+schema. New PostgreSQL changes require a new reviewed Alembic revision:
 
-Future content types can be added by extending the `ContentType` literal in `models.py`.
-
-## Constraints Summary
-
-### NOT NULL Constraints
-
-| Table | Columns |
-|-------|---------|
-| User | `id`, `email`, `hashed_password`, `is_active`, `is_superuser` |
-| Item | `id`, `owner_id`, `title` |
-
-### Unique Constraints
-
-| Table | Columns | Name |
-|-------|---------|------|
-| User | `email` | `user_email_key` |
-
-### Check Constraints
-
-| Table | Column | Constraint |
-|-------|--------|------------|
-| Item | `title` | `length(title) >= 1` |
-
-## Migration Notes
-
-### Creating New Tables
-
-1. Define SQLModel class in `backend/app/models.py`
-2. Generate migration: `alembic revision --autogenerate -m "description"`
-3. Review generated migration in `backend/alembic/versions/`
-4. Apply: `alembic upgrade head`
-
-### Adding Columns
-
-When adding nullable columns:
-```python
-# models.py
-new_field: str | None = Field(default=None, max_length=255)
+```bash
+cd backend
+uv run alembic revision --autogenerate -m "describe the schema change"
+uv run alembic upgrade head
+uv run alembic check
 ```
 
-When adding required columns:
-1. Add as nullable first
-2. Migrate existing data
-3. Add NOT NULL constraint in second migration
+Always inspect autogenerated operations and verify upgrade, one-revision
+downgrade, and re-upgrade against disposable PostgreSQL before release.
 
-### Index Guidelines
+## Common User Queries
 
-Add indexes for:
-- Foreign keys (automatically indexed in PostgreSQL)
-- Frequently queried columns
-- Columns used in WHERE clauses
-- Columns used in ORDER BY
+### Get a User by Email
 
-## Query Patterns
-
-### Get User by Email
 ```python
 statement = select(User).where(User.email == email)
 user = session.exec(statement).first()
 ```
 
-### Get User's Items with Pagination
+### Count Active Users
+
 ```python
 statement = (
-    select(Item)
-    .where(Item.owner_id == user_id)
-    .order_by(col(Item.created_at).desc().nulls_last())
-    .offset(skip)
-    .limit(limit)
+    select(func.count())
+    .select_from(User)
+    .where(User.is_active == True)  # noqa: E712
 )
-items = session.exec(statement).all()
+active_user_count = session.exec(statement).one()
 ```
 
-### Count User's Items
-```python
-statement = select(func.count()).where(Item.owner_id == user_id)
-count = session.exec(statement).one()
-```
+SQLModel and SQLAlchemy parameterize values; never build SQL from untrusted
+strings.
 
-## Data Types Reference
+## Security Notes
 
-| Python Type | PostgreSQL Type | SQLModel Field |
-|-------------|-----------------|----------------|
-| `uuid.UUID` | `UUID` | `Field(default_factory=uuid.uuid4)` |
-| `str` | `VARCHAR(n)` | `Field(max_length=n)` |
-| `str` (unlimited) | `TEXT` | `Field(sa_type=Text)` |
-| `bool` | `BOOLEAN` | `Field(default=False)` |
-| `dict` | `JSON` | `Field(sa_type=JSON)` |
-| `EmailStr` | `VARCHAR(255)` | `Field(max_length=255)` |
-
-## Security Considerations
-
-1. **Password Storage**: Never store plain text passwords; always use `get_password_hash()`
-2. **User Enumeration**: Use constant-time comparison for authentication
-3. **SQL Injection**: SQLModel/SQLAlchemy parameterizes all queries automatically
-4. **Cascade Deletes**: Understand cascade behavior before deleting records
-5. **Soft Deletes**: Consider `is_active` pattern instead of hard deletes for audit trails
+1. Hash passwords through the shared security helper; never persist plaintext.
+2. Keep user-not-found authentication responses non-enumerating.
+3. Treat `is_superuser` as a privileged field unavailable to self-service
+   profile updates.
+4. Keep the engine SQLite database and artifact tree private to UID/GID 1001.
+5. Never query or mutate engine persistence directly from FastAPI routes.
+6. Run owner purge before PostgreSQL deletion; database cascades cannot erase
+   the separate engine store or private artifact files.

@@ -83,8 +83,6 @@ def _map_http_exception_to_error_code(status_code: int, detail: str) -> ErrorCod
         return ErrorCode.USER_INVALID_PASSWORD
     if "already exists" in detail_lc:
         return ErrorCode.USER_ALREADY_EXISTS
-    if "item not found" in detail_lc:
-        return ErrorCode.ITEM_NOT_FOUND
     if "user not found" in detail_lc or "user with this" in detail_lc:
         return ErrorCode.USER_NOT_FOUND
 

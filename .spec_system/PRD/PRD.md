@@ -189,7 +189,7 @@ This system delivers the product via phases. Each phase is implemented through
 | 00 | Application Baseline | 1 | Complete |
 | 01 | Engine Application Boundary | 5 | Complete |
 | 02 | Composition and Readiness | 5 | Complete |
-| 03 | Durable Jobs API | 3 | Not Started |
+| 03 | Durable Jobs API | 3 | Complete |
 | 04 | Learner Experience | 2 | Not Started |
 | 05 | Hardening and Submission | 2 | Not Started |
 

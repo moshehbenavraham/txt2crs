@@ -67,12 +67,13 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # Event naming: {domain}.{action}_{state}
-logger.info("user.create_started", extra={"email": email})
+logger.info("user.create_started")
 try:
     user = create_user(session, user_create)
     logger.info("user.create_completed", extra={"user_id": str(user.id)})
-except Exception as e:
-    logger.error("user.create_failed", extra={"error": str(e)})
+except Exception:
+    # Keep exception text, email, and other PII out of routine logs.
+    logger.error("user.create_failed", extra={"reason_code": "write_failed"})
     raise
 ```
 
@@ -102,16 +103,18 @@ Use `Annotated` types for FastAPI dependencies:
 
 ```python
 from typing import Annotated
-from fastapi import Depends
+from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from app.api.deps import get_current_user, get_db
+from app.models import User, UserPublic
 
 SessionDep = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+router = APIRouter()
 
-@router.get("/items")
-def read_items(session: SessionDep, current_user: CurrentUser):
-    # ...
+@router.get("/profile", response_model=UserPublic)
+def read_profile(current_user: CurrentUser) -> UserPublic:
+    return UserPublic.model_validate(current_user)
 ```
 
 ## Testing
@@ -147,7 +150,7 @@ from app.core.constants import (
 return Response(status_code=HTTPStatusCode.CREATED)
 
 # Pagination
-items = get_items(limit=min(limit, Pagination.MAX_LIMIT))
+bounded_limit = min(limit, Pagination.MAX_LIMIT)
 
 # Error messages
 detail = ErrorMessages.USER_NOT_FOUND_BY_EMAIL.format(email=email)
@@ -158,29 +161,51 @@ detail = ErrorMessages.USER_NOT_FOUND_BY_EMAIL.format(email=email)
 ### Success responses
 
 ```python
-from app.schemas.item import ItemPublic, ItemsPublic
+from fastapi import Depends
+from sqlmodel import func, select
 
-@router.get("/items", response_model=ItemsPublic)
-def read_items(...) -> ItemsPublic:
-    items = crud.get_items(session, owner_id=current_user.id)
-    return ItemsPublic(data=items, count=len(items))
+from app.api.deps import SessionDep, get_current_active_superuser
+from app.models import User, UserPublic, UsersPublic
+
+@router.get(
+    "/users",
+    response_model=UsersPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def read_users(session: SessionDep) -> UsersPublic:
+    users = session.exec(select(User).limit(100)).all()
+    count = session.exec(select(func.count()).select_from(User)).one()
+    return UsersPublic(
+        data=[UserPublic.model_validate(user) for user in users],
+        count=count,
+    )
 ```
 
 ### Error responses
 
 ```python
+from uuid import UUID
+
+from fastapi import Depends
+
 from app.core.exceptions import AppException
 from app.core.constants import ErrorCode
+from app.api.deps import SessionDep, get_current_active_superuser
+from app.models import User, UserPublic
 
-@router.get("/items/{item_id}")
-def read_item(item_id: UUID, ...) -> ItemPublic:
-    item = crud.get_item(session, item_id=item_id)
-    if not item:
+@router.get(
+    "/users/{user_id}",
+    response_model=UserPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def read_user(user_id: UUID, session: SessionDep) -> UserPublic:
+    user = session.get(User, user_id)
+    if not user:
         raise AppException(
-            code=ErrorCode.ITEM_NOT_FOUND,
-            detail=f"Item with ID '{item_id}' not found"
+            code=ErrorCode.USER_NOT_FOUND,
+            detail=f"User with ID '{user_id}' not found",
         )
-    return item
+    return UserPublic.model_validate(user)
 ```
 
 ## Security Notes

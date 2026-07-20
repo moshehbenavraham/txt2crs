@@ -11,21 +11,12 @@ import {
 } from "./client"
 import { client } from "./client.gen"
 import type {
-  DeleteApiV1ItemsByIdData,
-  DeleteApiV1ItemsByIdErrors,
-  DeleteApiV1ItemsByIdResponses,
   DeleteApiV1UsersByUserIdData,
   DeleteApiV1UsersByUserIdErrors,
   DeleteApiV1UsersByUserIdResponses,
   DeleteApiV1UsersMeData,
   DeleteApiV1UsersMeErrors,
   DeleteApiV1UsersMeResponses,
-  GetApiV1ItemsByIdData,
-  GetApiV1ItemsByIdErrors,
-  GetApiV1ItemsByIdResponses,
-  GetApiV1ItemsData,
-  GetApiV1ItemsErrors,
-  GetApiV1ItemsResponses,
   GetApiV1JobsByJobIdArtifactsByArtifactIdData,
   GetApiV1JobsByJobIdArtifactsByArtifactIdErrors,
   GetApiV1JobsByJobIdArtifactsByArtifactIdResponses,
@@ -61,9 +52,6 @@ import type {
   PatchApiV1UsersMePasswordErrors,
   PatchApiV1UsersMePasswordResponses,
   PatchApiV1UsersMeResponses,
-  PostApiV1ItemsData,
-  PostApiV1ItemsErrors,
-  PostApiV1ItemsResponses,
   PostApiV1JobsData,
   PostApiV1JobsErrors,
   PostApiV1JobsResponses,
@@ -96,9 +84,6 @@ import type {
   PostApiV1UtilsTestEmailData,
   PostApiV1UtilsTestEmailErrors,
   PostApiV1UtilsTestEmailResponses,
-  PutApiV1ItemsByIdData,
-  PutApiV1ItemsByIdErrors,
-  PutApiV1ItemsByIdResponses,
 } from "./types.gen"
 
 export type Options<
@@ -407,7 +392,13 @@ export class UsersService {
    *
    * Permanently delete the current user's account.
    *
-   * **Warning:** This action cannot be undone. All associated data will be deleted.
+   * **Warning:** This action cannot be undone. Engine-owned course requests,
+   * checkpoints, delivery records, and artifacts are purged before the account.
+   * This operation does not erase retained logs or backup copies; their retention
+   * is handled separately.
+   *
+   * **Failure behavior:** A purge failure leaves the account intact. If engine
+   * purge succeeds but PostgreSQL deletion fails, retrying is safe.
    *
    * **Restriction:** Superusers cannot delete themselves through this endpoint
    * to prevent accidental loss of admin access.
@@ -574,11 +565,17 @@ export class UsersService {
   /**
    * Delete user (Admin)
    *
-   * Permanently delete a user and all their associated data.
+   * Permanently delete a user's live account and engine-owned course state.
    *
    * **Access:** Superuser only
    *
-   * **Warning:** This action cannot be undone. All user's items will also be deleted.
+   * **Warning:** This action cannot be undone. Engine-owned course requests,
+   * checkpoints, delivery records, and artifacts are purged before the account.
+   * This operation does not erase retained logs or backup copies; their retention
+   * is handled separately.
+   *
+   * **Failure behavior:** A purge failure leaves the account intact. If engine
+   * purge succeeds but PostgreSQL deletion fails, retrying is safe.
    *
    * **Restriction:** Superusers cannot delete themselves through this endpoint.
    */
@@ -750,178 +747,6 @@ export class UtilsService {
       responseStyle: "data",
       url: "/api/v1/utils/health/",
       ...options,
-    })
-  }
-}
-
-export class ItemsService {
-  /**
-   * List items
-   *
-   * Retrieve a paginated list of items with optional filtering.
-   *
-   * **Access Control:**
-   * - Regular users: Returns only items owned by the current user
-   * - Superusers: Returns all items in the system
-   *
-   * **Pagination:**
-   * - Use `skip` and `limit` parameters for pagination
-   * - Maximum limit is 100 items per request
-   *
-   * **Filtering:**
-   * - Filter by `content_type` to get items of a specific type
-   */
-  public static readItems<ThrowOnError extends boolean = true>(
-    options?: Options<GetApiV1ItemsData, ThrowOnError>,
-  ): RequestResult<
-    GetApiV1ItemsResponses,
-    GetApiV1ItemsErrors,
-    ThrowOnError,
-    "data"
-  > {
-    return (options?.client ?? client).get<
-      GetApiV1ItemsResponses,
-      GetApiV1ItemsErrors,
-      ThrowOnError,
-      "data"
-    >({
-      responseStyle: "data",
-      security: [{ scheme: "bearer", type: "http" }],
-      url: "/api/v1/items/",
-      ...options,
-    })
-  }
-
-  /**
-   * Create item
-   *
-   * Create a new item owned by the current user.
-   *
-   * The item will be automatically assigned to the authenticated user.
-   * All items have a `content_type` that defaults to "general".
-   */
-  public static createItem<ThrowOnError extends boolean = true>(
-    options: Options<PostApiV1ItemsData, ThrowOnError>,
-  ): RequestResult<
-    PostApiV1ItemsResponses,
-    PostApiV1ItemsErrors,
-    ThrowOnError,
-    "data"
-  > {
-    return (options.client ?? client).post<
-      PostApiV1ItemsResponses,
-      PostApiV1ItemsErrors,
-      ThrowOnError,
-      "data"
-    >({
-      responseStyle: "data",
-      security: [{ scheme: "bearer", type: "http" }],
-      url: "/api/v1/items/",
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    })
-  }
-
-  /**
-   * Delete item
-   *
-   * Permanently delete an item by ID.
-   *
-   * **Warning:** This action cannot be undone.
-   *
-   * **Access Control:**
-   * - Regular users: Can only delete items they own
-   * - Superusers: Can delete any item
-   */
-  public static deleteItem<ThrowOnError extends boolean = true>(
-    options: Options<DeleteApiV1ItemsByIdData, ThrowOnError>,
-  ): RequestResult<
-    DeleteApiV1ItemsByIdResponses,
-    DeleteApiV1ItemsByIdErrors,
-    ThrowOnError,
-    "data"
-  > {
-    return (options.client ?? client).delete<
-      DeleteApiV1ItemsByIdResponses,
-      DeleteApiV1ItemsByIdErrors,
-      ThrowOnError,
-      "data"
-    >({
-      responseStyle: "data",
-      security: [{ scheme: "bearer", type: "http" }],
-      url: "/api/v1/items/{id}",
-      ...options,
-    })
-  }
-
-  /**
-   * Get item by ID
-   *
-   * Retrieve a single item by its unique identifier.
-   *
-   * **Access Control:**
-   * - Regular users: Can only retrieve items they own
-   * - Superusers: Can retrieve any item
-   */
-  public static readItem<ThrowOnError extends boolean = true>(
-    options: Options<GetApiV1ItemsByIdData, ThrowOnError>,
-  ): RequestResult<
-    GetApiV1ItemsByIdResponses,
-    GetApiV1ItemsByIdErrors,
-    ThrowOnError,
-    "data"
-  > {
-    return (options.client ?? client).get<
-      GetApiV1ItemsByIdResponses,
-      GetApiV1ItemsByIdErrors,
-      ThrowOnError,
-      "data"
-    >({
-      responseStyle: "data",
-      security: [{ scheme: "bearer", type: "http" }],
-      url: "/api/v1/items/{id}",
-      ...options,
-    })
-  }
-
-  /**
-   * Update item
-   *
-   * Update an existing item by ID.
-   *
-   * **Partial Updates:**
-   * Only fields included in the request body will be updated.
-   * Omitted fields retain their current values.
-   *
-   * **Access Control:**
-   * - Regular users: Can only update items they own
-   * - Superusers: Can update any item
-   */
-  public static updateItem<ThrowOnError extends boolean = true>(
-    options: Options<PutApiV1ItemsByIdData, ThrowOnError>,
-  ): RequestResult<
-    PutApiV1ItemsByIdResponses,
-    PutApiV1ItemsByIdErrors,
-    ThrowOnError,
-    "data"
-  > {
-    return (options.client ?? client).put<
-      PutApiV1ItemsByIdResponses,
-      PutApiV1ItemsByIdErrors,
-      ThrowOnError,
-      "data"
-    >({
-      responseStyle: "data",
-      security: [{ scheme: "bearer", type: "http" }],
-      url: "/api/v1/items/{id}",
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
     })
   }
 }

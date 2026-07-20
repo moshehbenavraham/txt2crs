@@ -159,10 +159,10 @@ class AuthorizationError(AppException):
 
 
 class NotFoundError(AppException):
-    """Exception for resource not found errors.
+    """Exception for a shell-owned user that was not found.
 
     Args:
-        resource: Type of resource (e.g., "User", "Item")
+        resource: Public resource label used in the safe detail.
         identifier: Resource identifier that was not found
 
     Example:
@@ -171,15 +171,8 @@ class NotFoundError(AppException):
     """
 
     def __init__(self, resource: str, identifier: str) -> None:
-        # Determine error code based on resource type
-        code_map = {
-            "User": ErrorCode.USER_NOT_FOUND,
-            "Item": ErrorCode.ITEM_NOT_FOUND,
-        }
-        code = code_map.get(resource, ErrorCode.ITEM_NOT_FOUND)
-
         super().__init__(
-            code=code,
+            code=ErrorCode.USER_NOT_FOUND,
             detail=f"{resource} with ID '{identifier}' not found",
         )
 

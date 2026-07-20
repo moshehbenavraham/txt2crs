@@ -19,7 +19,7 @@ from txt2crs.jobs import (
     PublicJobProjectionError,
 )
 
-from app.core.constants import ErrorCode
+from app.core.constants import ErrorCode, ErrorMessages
 from app.core.exceptions import AppException
 
 
@@ -62,6 +62,14 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
             code=ErrorCode.JOB_NOT_FOUND,
             detail="The requested course job was not found.",
         )
+    elif isinstance(error, OwnerPurgeError):
+        # Account deletion is the only shell operation that invokes owner
+        # purge. Report a retryable account error without retaining artifact,
+        # SQLite, executor, or provider context from the package exception.
+        translated = AppException(
+            code=ErrorCode.USER_PURGE_FAILED,
+            detail=ErrorMessages.ACCOUNT_PURGE_FAILED,
+        )
     elif isinstance(error, (ConcurrencyConflictError, ExecutorAlreadyUsedError)):
         translated = AppException(
             code=ErrorCode.JOB_CONFLICT,
@@ -78,7 +86,6 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
             ApplicationCloseError,
             ArtifactIntegrityError,
             JobRequestCompatibilityError,
-            OwnerPurgeError,
             PublicJobProjectionError,
         ),
     ):

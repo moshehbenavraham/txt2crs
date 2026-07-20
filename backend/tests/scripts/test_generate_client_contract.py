@@ -255,3 +255,56 @@ def test_artifact_download_generates_format_accurate_auth_contract() -> None:
         assert parameter["schema"]["maxLength"] == 128
         assert parameter["schema"]["pattern"] == ("^[A-Za-z0-9][A-Za-z0-9._:-]*$")
     assert "etag" not in json.dumps(operation).casefold()
+
+
+def test_generated_contract_contains_no_retired_donor_item_surface() -> None:
+    """Source removal must flow through OpenAPI and every generated client file."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    assert all(not path.startswith("/api/v1/items") for path in openapi["paths"])
+    assert {
+        "ItemCreate",
+        "ItemPublic",
+        "ItemUpdate",
+        "ItemsPublic",
+    }.isdisjoint(openapi["components"]["schemas"])
+
+    generated_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(GENERATED_CLIENT_ROOT.rglob("*"))
+        if path.is_file()
+    )
+    for retired_identifier in (
+        '"/api/v1/items/',
+        "ItemsService",
+        "ApiV1Items",
+        "ItemCreate",
+        "ItemPublic",
+        "ItemUpdate",
+        "ItemsPublic",
+    ):
+        assert retired_identifier not in generated_source
+
+
+def test_account_delete_contract_documents_retryable_partial_failures() -> None:
+    """Both erasure routes must expose their new 500/503 outcomes to clients."""
+
+    openapi = json.loads(OPENAPI_DOCUMENT.read_text(encoding="utf-8"))
+    for route_path in (
+        "/api/v1/users/me",
+        "/api/v1/users/{user_id}",
+    ):
+        responses = openapi["paths"][route_path]["delete"]["responses"]
+        assert responses["500"] == {
+            "description": (
+                "Engine erasure may already be complete; retrying account "
+                "deletion is safe."
+            ),
+            "content": {"application/problem+json": {}},
+        }
+        assert responses["503"] == {
+            "description": (
+                "Account deletion is temporarily unavailable. Please retry."
+            ),
+            "content": {"application/problem+json": {}},
+        }

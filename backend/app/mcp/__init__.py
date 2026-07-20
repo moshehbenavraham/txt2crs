@@ -5,7 +5,7 @@ This module provides an MCP server that exposes database introspection,
 code validation, and schema discovery tools to AI agents. The server
 enables AI agents to:
 
-- Explore database contents (users, items) with read-only access
+- Explore user and schema metadata with read-only access
 - Validate code changes (run linting, type checking, tests)
 - Discover API schemas and endpoints
 - Access project configuration and structure

@@ -76,18 +76,51 @@ def _use_database(database_name: str) -> Generator[None]:
         settings.POSTGRES_DB = original_database_name
 
 
-def _assert_head_item_schema(database_url: str) -> None:
+def _assert_item_table_is_absent(database_url: str) -> None:
+    """The current application head must contain no donor item table."""
+
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        assert "user" in inspector.get_table_names()
+        assert "item" not in inspector.get_table_names()
+    finally:
+        engine.dispose()
+
+
+def _assert_pre_retirement_item_schema(database_url: str) -> None:
+    """A one-revision downgrade recreates the complete final donor schema."""
+
     engine = create_engine(database_url)
     try:
         inspector = inspect(engine)
         columns = {column["name"]: column for column in inspector.get_columns("item")}
-        assert columns["owner_id"]["nullable"] is False
-        assert {
+        assert set(columns) == {
+            "id",
+            "title",
+            "description",
             "source_url",
             "content",
             "content_type",
             "item_metadata",
-        }.issubset(columns)
+            "created_at",
+            "owner_id",
+        }
+        assert columns["id"]["nullable"] is False
+        assert columns["owner_id"]["nullable"] is False
+        assert columns["title"]["nullable"] is False
+        assert columns["description"]["nullable"] is True
+        assert columns["created_at"]["nullable"] is True
+        assert str(columns["id"]["type"]) == "UUID"
+        assert str(columns["owner_id"]["type"]) == "UUID"
+        assert str(columns["title"]["type"]) == "VARCHAR(255)"
+        assert str(columns["description"]["type"]) == "VARCHAR(255)"
+        assert str(columns["source_url"]["type"]) == "VARCHAR(2048)"
+        assert str(columns["content"]["type"]) == "TEXT"
+        assert str(columns["content_type"]["type"]) == "VARCHAR(50)"
+        assert str(columns["item_metadata"]["type"]) == "JSON"
+        assert str(columns["created_at"]["type"]) == "TIMESTAMP"
+        assert columns["created_at"]["type"].timezone is True
 
         index_names = {index["name"] for index in inspector.get_indexes("item")}
         assert "ix_item_owner_id" in index_names
@@ -100,6 +133,20 @@ def _assert_head_item_schema(database_url: str) -> None:
         assert owner_fk["constrained_columns"] == ["owner_id"]
         assert owner_fk["referred_table"] == "user"
         assert owner_fk.get("options", {}).get("ondelete") == "CASCADE"
+    finally:
+        engine.dispose()
+
+
+def _assert_item_row_count(database_url: str, *, expected_count: int) -> None:
+    """Inspect donor rows only while the schema exists."""
+
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            actual_count = connection.execute(
+                text('SELECT count(*) FROM "item"')
+            ).scalar_one()
+        assert actual_count == expected_count
     finally:
         engine.dispose()
 
@@ -216,17 +263,142 @@ def test_item_owner_index_migration_adds_and_removes_index(
     assert calls[1][2] == {"table_name": "item"}
 
 
-def test_alembic_round_trip_head_to_d98_and_back_preserves_item_schema_invariants() -> (
-    None
-):
+def test_donor_retirement_migration_drops_and_recreates_complete_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The destructive revision is reversible only at the schema level."""
+
+    migration = _load_migration("a7d9c2e4f601_drop_donor_item_table.py")
+    calls: list[tuple[str, tuple[object, ...], dict[str, object]]] = []
+    fake_op = SimpleNamespace(
+        f=lambda value: value,
+        drop_table=lambda *args, **kwargs: calls.append(("drop_table", args, kwargs)),
+        create_table=lambda *args, **kwargs: calls.append(
+            ("create_table", args, kwargs)
+        ),
+        create_index=lambda *args, **kwargs: calls.append(
+            ("create_index", args, kwargs)
+        ),
+    )
+    monkeypatch.setattr(migration, "op", fake_op)
+
+    migration.upgrade()
+    migration.downgrade()
+
+    assert calls[0] == ("drop_table", ("item",), {})
+    create_table_call = calls[1]
+    assert create_table_call[0] == "create_table"
+    assert create_table_call[1][0] == "item"
+    donor_columns = {
+        argument.name
+        for argument in create_table_call[1][1:]
+        if hasattr(argument, "name") and argument.name is not None
+    }
+    assert donor_columns == {
+        "id",
+        "title",
+        "description",
+        "source_url",
+        "content",
+        "content_type",
+        "item_metadata",
+        "created_at",
+        "owner_id",
+        "item_pkey",
+        "item_owner_id_fkey",
+    }
+    assert calls[2] == (
+        "create_index",
+        ("ix_item_owner_id", "item", ["owner_id"]),
+        {"unique": False},
+    )
+
+
+def test_clean_database_upgrades_to_item_free_head() -> None:
+    """A fresh database reaches the same item-free schema as an existing one."""
+
+    alembic_config = _get_alembic_config()
+    with _temporary_database() as db_name, _use_database(db_name):
+        command.upgrade(alembic_config, "head")
+        _assert_item_table_is_absent(str(settings.SQLALCHEMY_DATABASE_URI))
+
+
+def test_populated_existing_database_upgrade_drops_donor_rows() -> None:
+    """Upgrade intentionally removes the complete donor table and its data."""
+
+    alembic_config = _get_alembic_config()
+    with _temporary_database() as db_name, _use_database(db_name):
+        command.upgrade(alembic_config, "fe56fa70289e")
+        database_url = str(settings.SQLALCHEMY_DATABASE_URI)
+        engine = create_engine(database_url)
+        owner_id = uuid4()
+        donor_item_id = uuid4()
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        'INSERT INTO "user" '
+                        "(email, is_active, is_superuser, full_name, id, "
+                        "hashed_password, created_at) "
+                        "VALUES (:email, true, false, null, :id, :password, now())"
+                    ),
+                    {
+                        "email": "migration-owner@example.com",
+                        "id": owner_id,
+                        "password": "not-a-real-password-hash",
+                    },
+                )
+                connection.execute(
+                    text(
+                        'INSERT INTO "item" '
+                        "(id, title, description, owner_id, source_url, content, "
+                        "content_type, item_metadata, created_at) "
+                        "VALUES (:id, :title, null, :owner_id, null, null, "
+                        "null, null, now())"
+                    ),
+                    {
+                        "id": donor_item_id,
+                        "title": "Donor row intentionally retired",
+                        "owner_id": owner_id,
+                    },
+                )
+        finally:
+            engine.dispose()
+        _assert_item_row_count(database_url, expected_count=1)
+
+        command.upgrade(alembic_config, "head")
+
+        _assert_item_table_is_absent(database_url)
+
+
+def test_head_downgrade_recreates_empty_schema_then_reupgrade_removes_it() -> None:
+    """Rollback restores compatibility, never intentionally deleted rows."""
+
     alembic_config = _get_alembic_config()
     with _temporary_database() as db_name, _use_database(db_name):
         command.upgrade(alembic_config, "head")
         database_url = str(settings.SQLALCHEMY_DATABASE_URI)
-        _assert_head_item_schema(database_url)
+        _assert_item_table_is_absent(database_url)
+
+        command.downgrade(alembic_config, "fe56fa70289e")
+        _assert_pre_retirement_item_schema(database_url)
+        _assert_item_row_count(database_url, expected_count=0)
+
+        command.upgrade(alembic_config, "head")
+        _assert_item_table_is_absent(database_url)
+
+
+def test_pre_retirement_round_trip_to_d98_preserves_historical_invariants() -> None:
+    """Historical migration coverage remains independent of the new head."""
+
+    alembic_config = _get_alembic_config()
+    with _temporary_database() as db_name, _use_database(db_name):
+        command.upgrade(alembic_config, "fe56fa70289e")
+        database_url = str(settings.SQLALCHEMY_DATABASE_URI)
+        _assert_pre_retirement_item_schema(database_url)
 
         command.downgrade(alembic_config, "d98dd8ec85a3")
         _assert_downgraded_item_schema(database_url)
 
-        command.upgrade(alembic_config, "head")
-        _assert_head_item_schema(database_url)
+        command.upgrade(alembic_config, "fe56fa70289e")
+        _assert_pre_retirement_item_schema(database_url)

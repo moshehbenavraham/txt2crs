@@ -173,138 +173,6 @@ export type HealthCheckResponse = {
 }
 
 /**
- * ItemCreate
- *
- * Request body for creating a new item.
- *
- * Requires title, all other fields are optional. Rejects unknown fields
- * to prevent API misuse.
- */
-export type ItemCreate = {
-  /**
-   * Title
-   */
-  title: string
-  /**
-   * Description
-   */
-  description?: string | null
-  /**
-   * Source Url
-   */
-  source_url?: string | null
-  /**
-   * Content
-   */
-  content?: string | null
-  /**
-   * Content Type
-   */
-  content_type?: "general" | null
-  /**
-   * Item Metadata
-   */
-  item_metadata?: {
-    [key: string]: unknown
-  } | null
-}
-
-/**
- * ItemPublic
- */
-export type ItemPublic = {
-  /**
-   * Title
-   */
-  title: string
-  /**
-   * Description
-   */
-  description?: string | null
-  /**
-   * Source Url
-   */
-  source_url?: string | null
-  /**
-   * Content
-   */
-  content?: string | null
-  /**
-   * Content Type
-   */
-  content_type?: "general" | null
-  /**
-   * Item Metadata
-   */
-  item_metadata?: {
-    [key: string]: unknown
-  } | null
-  /**
-   * Id
-   */
-  id: string
-  /**
-   * Owner Id
-   */
-  owner_id: string
-  /**
-   * Created At
-   */
-  created_at?: string | null
-}
-
-/**
- * ItemUpdate
- *
- * Request body for updating an item.
- *
- * All fields are optional for partial updates. Rejects unknown fields
- * to prevent API misuse.
- */
-export type ItemUpdate = {
-  /**
-   * Title
-   */
-  title?: string | null
-  /**
-   * Description
-   */
-  description?: string | null
-  /**
-   * Source Url
-   */
-  source_url?: string | null
-  /**
-   * Content
-   */
-  content?: string | null
-  /**
-   * Content Type
-   */
-  content_type?: "general" | null
-  /**
-   * Item Metadata
-   */
-  item_metadata?: {
-    [key: string]: unknown
-  } | null
-}
-
-/**
- * ItemsPublic
- */
-export type ItemsPublic = {
-  /**
-   * Data
-   */
-  data: Array<ItemPublic>
-  /**
-   * Count
-   */
-  count: number
-}
-
-/**
  * JobAcceptedPublic
  *
  * Allowlisted response returned only after a durable package commit.
@@ -1363,6 +1231,14 @@ export type DeleteApiV1UsersMeErrors = {
    * Superusers cannot delete themselves
    */
   403: unknown
+  /**
+   * Engine erasure may already be complete; retrying account deletion is safe.
+   */
+  500: unknown
+  /**
+   * Account deletion is temporarily unavailable. Please retry.
+   */
+  503: unknown
 }
 
 export type DeleteApiV1UsersMeResponses = {
@@ -1530,6 +1406,14 @@ export type DeleteApiV1UsersByUserIdErrors = {
    * Validation Error
    */
   422: HttpValidationError
+  /**
+   * Engine erasure may already be complete; retrying account deletion is safe.
+   */
+  500: unknown
+  /**
+   * Account deletion is temporarily unavailable. Please retry.
+   */
+  503: unknown
 }
 
 export type DeleteApiV1UsersByUserIdError =
@@ -1705,218 +1589,6 @@ export type GetApiV1UtilsHealthResponses = {
 
 export type GetApiV1UtilsHealthResponse =
   GetApiV1UtilsHealthResponses[keyof GetApiV1UtilsHealthResponses]
-
-export type GetApiV1ItemsData = {
-  body?: never
-  path?: never
-  query?: {
-    /**
-     * Skip
-     *
-     * Number of items to skip for pagination
-     */
-    skip?: number
-    /**
-     * Limit
-     *
-     * Maximum number of items to return (1-100)
-     */
-    limit?: number
-    /**
-     * Content Type
-     *
-     * Filter by content type
-     */
-    content_type?: "general" | null
-  }
-  url: "/api/v1/items/"
-}
-
-export type GetApiV1ItemsErrors = {
-  /**
-   * Not authenticated
-   */
-  401: unknown
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type GetApiV1ItemsError = GetApiV1ItemsErrors[keyof GetApiV1ItemsErrors]
-
-export type GetApiV1ItemsResponses = {
-  /**
-   * Successfully retrieved items
-   */
-  200: ItemsPublic
-}
-
-export type GetApiV1ItemsResponse =
-  GetApiV1ItemsResponses[keyof GetApiV1ItemsResponses]
-
-export type PostApiV1ItemsData = {
-  body: ItemCreate
-  path?: never
-  query?: never
-  url: "/api/v1/items/"
-}
-
-export type PostApiV1ItemsErrors = {
-  /**
-   * Not authenticated
-   */
-  401: unknown
-  /**
-   * Validation error in request body
-   */
-  422: unknown
-}
-
-export type PostApiV1ItemsResponses = {
-  /**
-   * Item successfully created
-   */
-  201: ItemPublic
-}
-
-export type PostApiV1ItemsResponse =
-  PostApiV1ItemsResponses[keyof PostApiV1ItemsResponses]
-
-export type DeleteApiV1ItemsByIdData = {
-  body?: never
-  path: {
-    /**
-     * Id
-     *
-     * Unique identifier of the item to delete
-     */
-    id: string
-  }
-  query?: never
-  url: "/api/v1/items/{id}"
-}
-
-export type DeleteApiV1ItemsByIdErrors = {
-  /**
-   * Not authenticated
-   */
-  401: unknown
-  /**
-   * Not enough permissions to delete this item
-   */
-  403: unknown
-  /**
-   * Item not found
-   */
-  404: unknown
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type DeleteApiV1ItemsByIdError =
-  DeleteApiV1ItemsByIdErrors[keyof DeleteApiV1ItemsByIdErrors]
-
-export type DeleteApiV1ItemsByIdResponses = {
-  /**
-   * Item successfully deleted
-   */
-  200: Message
-}
-
-export type DeleteApiV1ItemsByIdResponse =
-  DeleteApiV1ItemsByIdResponses[keyof DeleteApiV1ItemsByIdResponses]
-
-export type GetApiV1ItemsByIdData = {
-  body?: never
-  path: {
-    /**
-     * Id
-     *
-     * Unique identifier of the item
-     */
-    id: string
-  }
-  query?: never
-  url: "/api/v1/items/{id}"
-}
-
-export type GetApiV1ItemsByIdErrors = {
-  /**
-   * Not authenticated
-   */
-  401: unknown
-  /**
-   * Not enough permissions to access this item
-   */
-  403: unknown
-  /**
-   * Item not found
-   */
-  404: unknown
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type GetApiV1ItemsByIdError =
-  GetApiV1ItemsByIdErrors[keyof GetApiV1ItemsByIdErrors]
-
-export type GetApiV1ItemsByIdResponses = {
-  /**
-   * Item successfully retrieved
-   */
-  200: ItemPublic
-}
-
-export type GetApiV1ItemsByIdResponse =
-  GetApiV1ItemsByIdResponses[keyof GetApiV1ItemsByIdResponses]
-
-export type PutApiV1ItemsByIdData = {
-  body: ItemUpdate
-  path: {
-    /**
-     * Id
-     *
-     * Unique identifier of the item to update
-     */
-    id: string
-  }
-  query?: never
-  url: "/api/v1/items/{id}"
-}
-
-export type PutApiV1ItemsByIdErrors = {
-  /**
-   * Not authenticated
-   */
-  401: unknown
-  /**
-   * Not enough permissions to update this item
-   */
-  403: unknown
-  /**
-   * Item not found
-   */
-  404: unknown
-  /**
-   * Validation error in request body
-   */
-  422: unknown
-}
-
-export type PutApiV1ItemsByIdResponses = {
-  /**
-   * Item successfully updated
-   */
-  200: ItemPublic
-}
-
-export type PutApiV1ItemsByIdResponse =
-  PutApiV1ItemsByIdResponses[keyof PutApiV1ItemsByIdResponses]
 
 export type PostApiV1JobsData = {
   body: JobSubmissionRequest

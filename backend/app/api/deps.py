@@ -14,11 +14,10 @@ Type Aliases:
 Usage:
     from app.api.deps import SessionDep, CurrentUser
 
-    @router.get("/items")
-    def get_items(session: SessionDep, current_user: CurrentUser):
-        # session is an active SQLModel Session
+    @router.get("/profile")
+    def get_profile(current_user: CurrentUser):
         # current_user is the authenticated User object
-        return session.exec(select(Item).where(Item.owner_id == current_user.id)).all()
+        return current_user
 
 Security Model:
     - OAuth2 password flow with JWT Bearer tokens

@@ -1,5 +1,5 @@
 """
-Database CRUD operations for User and Item models.
+Database CRUD operations for the shell-owned User model.
 
 This module provides create, read, update functions for the core domain models.
 All functions follow the pattern of receiving a database session and returning
@@ -20,17 +20,12 @@ Usage:
 
     # Authenticate user
     user = crud.authenticate(session=session, email="user@example.com", password="secret")
-
-    # Create item
-    item = crud.create_item(session=session, item_in=item_data, owner_id=user.id)
 """
-
-import uuid
 
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.models import User, UserCreate, UserUpdate
 
 # Valid hashes used only to equalize password work for failed authentication.
 # Their source passwords are not credentials and the hashes are never stored.
@@ -277,60 +272,3 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
         session.commit()
         session.refresh(db_user)
     return db_user
-
-
-def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item:
-    """Create a new item owned by the specified user.
-
-    Creates an item record with the provided data and assigns ownership
-    to the specified user ID.
-
-    Preconditions:
-        - session: Active database session (not closed/rolled back)
-        - item_in.title: 1-255 characters, non-empty after whitespace strip
-        - item_in.description: Optional, max 1000 characters if provided
-        - owner_id: Valid UUID referencing an existing, active user
-
-    Postconditions:
-        - Returns Item with auto-generated UUID id
-        - Item.owner_id == owner_id
-        - Item.title == item_in.title (whitespace stripped)
-        - Item exists in database (committed)
-        - Item.id is unique across all items
-
-    Invariants:
-        - Item.id is immutable after creation
-        - Item.owner_id is immutable after creation
-        - Item always has exactly one owner
-
-    Args:
-        session: Database session for query execution.
-        item_in: Item creation data (title, description, content_type, etc.).
-        owner_id: UUID of the user who will own this item.
-
-    Returns:
-        The created Item object with generated UUID and timestamps.
-
-    Raises:
-        IntegrityError: If owner_id doesn't reference valid user (FK constraint).
-        ValidationError: If item_in fails Pydantic validation.
-
-    Example:
-        >>> from app.models import ItemCreate
-        >>> item_data = ItemCreate(
-        ...     title="Meeting Notes",
-        ...     description="Q4 planning meeting notes"
-        ... )
-        >>> item = create_item(
-        ...     session=session,
-        ...     item_in=item_data,
-        ...     owner_id=current_user.id
-        ... )
-        >>> assert item.id is not None
-        >>> assert item.owner_id == current_user.id
-    """
-    db_item = Item.model_validate(item_in, update={"owner_id": owner_id})
-    session.add(db_item)
-    session.commit()
-    session.refresh(db_item)
-    return db_item

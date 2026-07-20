@@ -75,16 +75,16 @@ def test_not_found_route_returns_semantic_not_found_problem(
     client: TestClient,
     superuser_token_headers: dict[str, str],
 ) -> None:
-    item_id = uuid.uuid4()
+    user_id = uuid.uuid4()
     response = client.get(
-        f"{settings.API_V1_STR}/items/{item_id}",
+        f"{settings.API_V1_STR}/users/{user_id}",
         headers=superuser_token_headers,
     )
     _assert_problem_detail(
         response,
         expected_status=404,
-        expected_code=ErrorCode.ITEM_NOT_FOUND,
-        expected_detail=f"Item with ID '{item_id}' not found",
+        expected_code=ErrorCode.USER_NOT_FOUND,
+        expected_detail=f"User with ID '{user_id}' not found",
     )
 
 

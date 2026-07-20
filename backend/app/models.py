@@ -1,13 +1,10 @@
 """
 Database and API schema models.
 
-This module defines all SQLModel-based models for the application, including:
-- Database table models (User, Item)
-- API request schemas (UserCreate, ItemCreate, etc.)
-- API response schemas (UserPublic, ItemPublic, etc.)
+This module defines the shell-owned user table plus authentication API models.
 
 Model Categories:
-    - Base models: Shared field definitions (UserBase, ItemBase)
+    - Base models: Shared user field definitions
     - Create models: Input validation for POST requests
     - Update models: Input validation for PUT/PATCH requests
     - Public models: Response serialization
@@ -20,14 +17,11 @@ Validation:
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from pydantic import ConfigDict, EmailStr, model_validator
-from sqlalchemy import JSON, Column, DateTime, String, Text
-from sqlmodel import Field, Relationship, SQLModel
-
-# Content type for stored items - validated at Pydantic level, stored as string in DB
-ContentType = Literal["general"]
+from sqlalchemy import Column, DateTime
+from sqlmodel import Field, SQLModel
 
 
 def get_datetime_utc() -> datetime:
@@ -176,7 +170,6 @@ class User(UserBase, table=True):
         default_factory=get_datetime_utc,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
-    items: list[Item] = Relationship(back_populates="owner", cascade_delete=True)
 
 
 # Properties to return via API, id is always required
@@ -187,78 +180,6 @@ class UserPublic(UserBase):
 
 class UsersPublic(SQLModel):
     data: list[UserPublic]
-    count: int
-
-
-# Shared properties
-class ItemBase(SQLModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
-    # API result fields - all optional for backward compatibility
-    source_url: str | None = Field(default=None, max_length=2048)
-    content: str | None = Field(default=None, sa_type=Text)
-    content_type: ContentType | None = Field(
-        default=None,
-        max_length=50,
-        # SQLModel's typed ``sa_type`` argument accepts a SQLAlchemy type
-        # class, not a configured type instance.  Supplying the complete
-        # column keeps the database's existing VARCHAR(50) contract while
-        # allowing both mypy and ty to validate this model without an ignore.
-        sa_column=Column(String(50), nullable=True),
-    )
-    item_metadata: dict[str, Any] | None = Field(default=None, sa_type=JSON)
-
-
-class ItemCreate(ItemBase):
-    """
-    Request body for creating a new item.
-
-    Requires title, all other fields are optional. Rejects unknown fields
-    to prevent API misuse.
-    """
-
-    model_config = cast(Any, _STRICT_REQUEST_CONFIG)
-
-
-class ItemUpdate(SQLModel):
-    """
-    Request body for updating an item.
-
-    All fields are optional for partial updates. Rejects unknown fields
-    to prevent API misuse.
-    """
-
-    model_config = cast(Any, _STRICT_REQUEST_CONFIG)
-    title: str | None = Field(default=None, min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
-    source_url: str | None = Field(default=None, max_length=2048)
-    content: str | None = None
-    content_type: ContentType | None = None
-    item_metadata: dict[str, Any] | None = None
-
-
-# Database model, database table inferred from class name
-class Item(ItemBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime | None = Field(
-        default_factory=get_datetime_utc,
-        sa_column=Column(DateTime(timezone=True), nullable=True),
-    )
-    owner_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE", index=True
-    )
-    owner: User | None = Relationship(back_populates="items")
-
-
-# Properties to return via API, id is always required
-class ItemPublic(ItemBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    created_at: datetime | None = None
-
-
-class ItemsPublic(SQLModel):
-    data: list[ItemPublic]
     count: int
 
 

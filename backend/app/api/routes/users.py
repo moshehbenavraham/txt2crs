@@ -22,26 +22,38 @@ from fastapi import (
     Request,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, delete, func, select
+from sqlmodel import col, func, select
+from txt2crs.application import (
+    ApplicationClosedError,
+    OwnerPurgeError,
+    Txt2CrsApplication,
+)
 
 from app import crud
 from app.api.deps import (
     CurrentUser,
     SessionDep,
+    Txt2CrsApplicationDep,
     get_current_active_superuser,
 )
 from app.core.config import settings
-from app.core.constants import ErrorCode
+from app.core.constants import (
+    ContentTypes,
+    ErrorCode,
+    ErrorMessages,
+    HTTPStatusCode,
+)
 from app.core.exceptions import (
     AppException,
     AuthorizationError,
     ConflictError,
     NotFoundError,
 )
+from app.core.logging import get_logger
 from app.core.rate_limit import SIGNUP_RATE_LIMIT, limiter
 from app.core.security import get_password_hash, verify_password
+from app.core.txt2crs_errors import translate_txt2crs_exception
 from app.models import (
-    Item,
     Message,
     UpdatePassword,
     User,
@@ -59,6 +71,21 @@ from app.utils import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+logger = get_logger(__name__)
+_ACCOUNT_DELETE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    # Purge can finish before PostgreSQL fails. The response must not imply a
+    # distributed rollback; callers can safely retry the idempotent operation.
+    HTTPStatusCode.INTERNAL_SERVER_ERROR: {
+        "description": (
+            "Engine erasure may already be complete; retrying account deletion is safe."
+        ),
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+    HTTPStatusCode.SERVICE_UNAVAILABLE: {
+        "description": ErrorMessages.ACCOUNT_PURGE_FAILED,
+        "content": {ContentTypes.PROBLEM_JSON: {}},
+    },
+}
 
 
 def _raise_user_update_integrity_error(exc: IntegrityError) -> None:
@@ -81,6 +108,56 @@ def _raise_user_update_integrity_error(exc: IntegrityError) -> None:
         )
     raise AppException(
         code=ErrorCode.INVALID_INPUT, detail="Invalid user update payload"
+    )
+
+
+def _purge_user_engine_state(
+    *,
+    application: Txt2CrsApplication,
+    user_id: uuid.UUID,
+) -> None:
+    """
+    Establish the package owner barrier before PostgreSQL identity deletion.
+
+    The public facade already cancels and joins matching executor work, then
+    removes artifacts before transactionally deleting engine job parents. The
+    shell deliberately does not reproduce any of that behavior here.
+    """
+
+    safe_user_id = str(user_id)
+    logger.info(
+        "user.engine_purge_started",
+        extra={"user_id": safe_user_id},
+    )
+    translated_error: AppException | None = None
+    try:
+        application.purge_owner(user_id=safe_user_id)
+    except (ApplicationClosedError, OwnerPurgeError) as error:
+        # Never log ``error``: package exceptions may contain an artifact path,
+        # provider detail, or persistence context. A finite reason is enough
+        # for operations to distinguish readiness from purge failure.
+        reason_code = (
+            "application_closed"
+            if isinstance(error, ApplicationClosedError)
+            else "owner_purge_failed"
+        )
+        logger.error(
+            "user.engine_purge_failed",
+            extra={
+                "user_id": safe_user_id,
+                "reason_code": reason_code,
+            },
+        )
+        translated_error = translate_txt2crs_exception(error)
+
+    if translated_error is not None:
+        # Raise after leaving the ``except`` block. This prevents Python from
+        # attaching the private package exception as ``__context__``.
+        raise translated_error from None
+
+    logger.info(
+        "user.engine_purge_completed",
+        extra={"user_id": safe_user_id},
     )
 
 
@@ -380,12 +457,19 @@ def read_user_me(current_user: CurrentUser) -> Any:
     description="""
 Permanently delete the current user's account.
 
-**Warning:** This action cannot be undone. All associated data will be deleted.
+**Warning:** This action cannot be undone. Engine-owned course requests,
+checkpoints, delivery records, and artifacts are purged before the account.
+This operation does not erase retained logs or backup copies; their retention
+is handled separately.
+
+**Failure behavior:** A purge failure leaves the account intact. If engine
+purge succeeds but PostgreSQL deletion fails, retrying is safe.
 
 **Restriction:** Superusers cannot delete themselves through this endpoint
 to prevent accidental loss of admin access.
     """,
     responses={
+        **_ACCOUNT_DELETE_ERROR_RESPONSES,
         200: {
             "description": "Account successfully deleted",
             "content": {
@@ -398,12 +482,24 @@ to prevent accidental loss of admin access.
         403: {"description": "Superusers cannot delete themselves"},
     },
 )
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+def delete_user_me(
+    session: SessionDep,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+) -> Any:
     """Delete own user."""
     if current_user.is_superuser:
         raise AuthorizationError(
             detail="Super users are not allowed to delete themselves"
         )
+    # Engine-owned requests, checkpoints, delivery rows, artifacts, and any
+    # active executor must settle before this authenticated identity can
+    # disappear. If purge fails, the helper raises before the SQLModel session
+    # is mutated, leaving the user available for a safe retry.
+    _purge_user_engine_state(
+        application=application,
+        user_id=current_user.id,
+    )
     session.delete(current_user)
     session.commit()
     return Message(message="User deleted successfully")
@@ -610,15 +706,22 @@ def update_user(
     response_model=Message,
     summary="Delete user (Admin)",
     description="""
-Permanently delete a user and all their associated data.
+Permanently delete a user's live account and engine-owned course state.
 
 **Access:** Superuser only
 
-**Warning:** This action cannot be undone. All user's items will also be deleted.
+**Warning:** This action cannot be undone. Engine-owned course requests,
+checkpoints, delivery records, and artifacts are purged before the account.
+This operation does not erase retained logs or backup copies; their retention
+is handled separately.
+
+**Failure behavior:** A purge failure leaves the account intact. If engine
+purge succeeds but PostgreSQL deletion fails, retrying is safe.
 
 **Restriction:** Superusers cannot delete themselves through this endpoint.
     """,
     responses={
+        **_ACCOUNT_DELETE_ERROR_RESPONSES,
         200: {
             "description": "User successfully deleted",
             "content": {
@@ -635,6 +738,7 @@ Permanently delete a user and all their associated data.
 def delete_user(
     session: SessionDep,
     current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
     user_id: Annotated[
         uuid.UUID,
         Path(
@@ -651,8 +755,13 @@ def delete_user(
         raise AuthorizationError(
             detail="Super users are not allowed to delete themselves"
         )
-    statement = delete(Item).where(col(Item.owner_id) == user_id)
-    session.exec(statement)
+    # Complete authorization before mutation, then establish the same public
+    # owner barrier used by self-service deletion. The target UUID is passed
+    # unchanged; the acting administrator's owner state is never touched.
+    _purge_user_engine_state(
+        application=application,
+        user_id=user_id,
+    )
     session.delete(user)
     session.commit()
     return Message(message="User deleted successfully")

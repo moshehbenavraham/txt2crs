@@ -8,8 +8,8 @@ facade; the application shell owns transport and identity. The shell composes
 one facade, serial worker, readiness cache, and system-authentication
 coordinator for its complete lifespan. Phase 03 now exposes authenticated,
 durable learner submission plus owner-scoped status, result, manifest, and
-artifact delivery routes. Account purge integration and the learner UI remain
-later-session work.
+artifact delivery routes. Account deletion now performs engine-first owner
+erasure; the learner UI remains Phase 04 work.
 
 ```text
 React SPA
@@ -17,7 +17,7 @@ React SPA
     | generated OpenAPI client / HTTPS
     v
 FastAPI shell
-    |-- PostgreSQL: users and temporary donor items
+    |-- PostgreSQL: application users
     |-- private state volume: engine SQLite, artifacts, Codex home
     |-- authenticated course submission, result, artifact, and readiness APIs
     |-- superuser setup API
@@ -39,7 +39,7 @@ surface; the two boundaries must never be merged.
 |-----------|----------|------------|------------------------|
 | Backend shell | `backend/app/` | FastAPI, SQLModel, PostgreSQL | HTTP, JWT identity, configuration, migrations, facade composition, serial work, cached readiness, system authentication, errors, and observability |
 | Education engine | `backend/packages/txt2crs/` | Pydantic, SQLite, Codex, FastMCP | Public application facade/factories, ingestion, research, generation, policy, jobs, recovery, artifacts, owner lifecycle, rendering, and evaluation |
-| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, temporary items, and current shell UI |
+| Frontend | `frontend/` | React 19, Vite, TanStack, Tailwind | Authentication, users, superuser system setup, and current shell UI; the job workspace lands in Phase 04 |
 | Local topology | `docker-compose.yml` | Docker Compose | PostgreSQL, one backend process, frontend, and persistent private state |
 
 ## Ownership Boundaries
@@ -49,9 +49,8 @@ surface; the two boundaries must never be merged.
 - PostgreSQL is authoritative for application users. Tenant-scoped engine
   SQLite is authoritative for generation jobs.
 - Engine owner erasure cancels tracked work, removes private artifacts, then
-  transactionally deletes SQLite job parents. Phase 03 must make the shell
-  account-deletion flow call that public operation before deleting the
-  PostgreSQL user.
+  transactionally deletes SQLite job parents. Both shell account-deletion
+  flows call that public operation before deleting the PostgreSQL user.
 - The backend image runs exactly one non-root FastAPI process while the serial
   worker and SQLite topology remain in use.
 - `/var/lib/txt2crs` is the image-owned persistent mount containing the job

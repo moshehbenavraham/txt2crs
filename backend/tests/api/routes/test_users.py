@@ -1,16 +1,87 @@
+import logging
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
+from txt2crs.application import ApplicationClosedError, OwnerPurgeError
 
 from app import crud
+from app.api.deps import get_txt2crs_application
 from app.core.config import settings
 from app.core.constants import ContentTypes, ErrorCode
 from app.core.security import verify_password
+from app.main import app
 from app.models import User, UserCreate
 from tests.utils.utils import random_email, random_lower_string
+
+
+class RecordingOwnerPurgeApplication:
+    """
+    Small public-boundary fake used only to observe account-erasure ordering.
+
+    The route must depend on the public facade operation, but these focused
+    tests should not open the engine's SQLite or artifact stores. Acceptance
+    coverage exercises the real facade separately.
+    """
+
+    def __init__(self, *, failure_count: int = 0) -> None:
+        self.failure_count = failure_count
+        self.purged_user_ids: list[str] = []
+        self.events: list[str] = []
+
+    def purge_owner(self, *, user_id: str) -> None:
+        """Record the exact pseudonymous owner and optionally fail safely."""
+
+        self.purged_user_ids.append(user_id)
+        self.events.append("engine-purge")
+        if self.failure_count > 0:
+            self.failure_count -= 1
+            raise OwnerPurgeError("private learner path /var/lib/txt2crs/owner-secret")
+
+
+class ClosedOwnerPurgeApplication(RecordingOwnerPurgeApplication):
+    """Record the call, then model a facade that has begun shutting down."""
+
+    def purge_owner(self, *, user_id: str) -> None:
+        self.purged_user_ids.append(user_id)
+        self.events.append("engine-purge")
+        raise ApplicationClosedError(
+            "private lifecycle detail /var/lib/txt2crs/owner-secret"
+        )
+
+
+@contextmanager
+def _override_owner_purge_application(
+    application: RecordingOwnerPurgeApplication,
+) -> Iterator[None]:
+    """Install one focused dependency override and always remove it."""
+
+    app.dependency_overrides[get_txt2crs_application] = lambda: application
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_txt2crs_application, None)
+
+
+def _login_headers_for_user(
+    client: TestClient,
+    *,
+    email: str,
+    password: str,
+) -> dict[str, str]:
+    """Authenticate a test user before mutation-order instrumentation starts."""
+
+    response = client.post(
+        f"{settings.API_V1_STR}/login/access-token",
+        data={"username": email, "password": password},
+    )
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def _assert_null_email_validation_problem(response) -> None:
@@ -535,11 +606,14 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     a_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {a_token}"}
 
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/me",
-        headers=headers,
-    )
+    application = RecordingOwnerPurgeApplication()
+    with _override_owner_purge_application(application):
+        r = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
     assert r.status_code == 200
+    assert application.purged_user_ids == [str(user_id)]
     deleted_user = r.json()
     assert deleted_user["message"] == "User deleted successfully"
     result = db.exec(select(User).where(User.id == user_id)).first()
@@ -550,16 +624,227 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     assert user_db is None
 
 
+def test_delete_user_me_purges_engine_before_postgresql_delete(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Self-delete must establish the public engine barrier before DB writes."""
+
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=password),
+    )
+    user_id = user.id
+    headers = _login_headers_for_user(
+        client,
+        email=str(user.email),
+        password=password,
+    )
+    application = RecordingOwnerPurgeApplication()
+    original_delete = Session.delete
+    original_commit = Session.commit
+
+    def record_delete(session: Session, instance: object) -> None:
+        application.events.append("postgres-delete")
+        original_delete(session, instance)
+
+    def record_commit(session: Session) -> None:
+        application.events.append("postgres-commit")
+        original_commit(session)
+
+    monkeypatch.setattr(Session, "delete", record_delete)
+    monkeypatch.setattr(Session, "commit", record_commit)
+
+    with _override_owner_purge_application(application):
+        response = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+
+    assert response.status_code == 200
+    assert application.purged_user_ids == [str(user_id)]
+    assert application.events == [
+        "engine-purge",
+        "postgres-delete",
+        "postgres-commit",
+    ]
+
+
+def test_delete_user_me_preserves_identity_when_engine_purge_fails_then_retries(
+    client: TestClient,
+    db: Session,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A safe retry must finish deletion after the first purge attempt fails."""
+
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=password),
+    )
+    user_id = user.id
+    headers = _login_headers_for_user(
+        client,
+        email=str(user.email),
+        password=password,
+    )
+    application = RecordingOwnerPurgeApplication(failure_count=1)
+
+    with (
+        _override_owner_purge_application(application),
+        caplog.at_level(logging.INFO),
+    ):
+        failed_response = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+        db.expire_all()
+        assert db.get(User, user_id) is not None
+
+        retry_response = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+
+    assert failed_response.status_code == 503
+    assert failed_response.json()["code"] == "USER_2007"
+    assert failed_response.json()["detail"] == (
+        "Account deletion is temporarily unavailable. Please retry."
+    )
+    assert "owner-secret" not in failed_response.text
+    purge_failure_records = [
+        record
+        for record in caplog.records
+        if record.getMessage() == "user.engine_purge_failed"
+    ]
+    assert len(purge_failure_records) == 1
+    assert purge_failure_records[0].user_id == str(user_id)
+    assert purge_failure_records[0].reason_code == "owner_purge_failed"
+    rendered_logs = " ".join(str(record.__dict__) for record in caplog.records)
+    assert str(user.email) not in rendered_logs
+    assert "owner-secret" not in rendered_logs
+    assert "/var/lib/txt2crs" not in rendered_logs
+    assert retry_response.status_code == 200
+    assert application.purged_user_ids == [str(user_id), str(user_id)]
+    db.expire_all()
+    assert db.get(User, user_id) is None
+
+
+def test_delete_user_me_preserves_identity_when_application_is_closed(
+    client: TestClient,
+    db: Session,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Lifecycle shutdown is a safe retryable 503 with no private context."""
+
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=password),
+    )
+    user_id = user.id
+    headers = _login_headers_for_user(
+        client,
+        email=str(user.email),
+        password=password,
+    )
+    application = ClosedOwnerPurgeApplication()
+
+    with (
+        _override_owner_purge_application(application),
+        caplog.at_level(logging.INFO),
+    ):
+        response = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == ErrorCode.SYSTEM_NOT_READY.value
+    assert response.json()["detail"] == "The course system is not ready."
+    assert "owner-secret" not in response.text
+    failure_records = [
+        record
+        for record in caplog.records
+        if record.getMessage() == "user.engine_purge_failed"
+    ]
+    assert len(failure_records) == 1
+    assert failure_records[0].user_id == str(user_id)
+    assert failure_records[0].reason_code == "application_closed"
+    assert "owner-secret" not in " ".join(
+        str(record.__dict__) for record in caplog.records
+    )
+    assert application.purged_user_ids == [str(user_id)]
+    db.expire_all()
+    assert db.get(User, user_id) is not None
+
+
+def test_delete_user_me_retries_after_postgresql_fails_after_successful_purge(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A DB failure cannot undo purge, but the next idempotent retry can finish."""
+
+    password = random_lower_string()
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=password),
+    )
+    user_id = user.id
+    headers = _login_headers_for_user(
+        client,
+        email=str(user.email),
+        password=password,
+    )
+    application = RecordingOwnerPurgeApplication()
+    original_commit = Session.commit
+
+    def fail_postgresql_commit(_session: Session) -> None:
+        application.events.append("postgres-commit-failed")
+        raise RuntimeError("private PostgreSQL transaction detail")
+
+    monkeypatch.setattr(Session, "commit", fail_postgresql_commit)
+    with (
+        _override_owner_purge_application(application),
+        pytest.raises(RuntimeError, match="private PostgreSQL"),
+    ):
+        client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+
+    db.expire_all()
+    assert db.get(User, user_id) is not None
+    monkeypatch.setattr(Session, "commit", original_commit)
+
+    with _override_owner_purge_application(application):
+        retry_response = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=headers,
+        )
+
+    assert retry_response.status_code == 200
+    assert application.purged_user_ids == [str(user_id), str(user_id)]
+    db.expire_all()
+    assert db.get(User, user_id) is None
+
+
 def test_delete_user_me_as_superuser(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/me",
-        headers=superuser_token_headers,
-    )
+    application = RecordingOwnerPurgeApplication()
+    with _override_owner_purge_application(application):
+        r = client.delete(
+            f"{settings.API_V1_STR}/users/me",
+            headers=superuser_token_headers,
+        )
     assert r.status_code == 403
     response = r.json()
     assert response["detail"] == "Super users are not allowed to delete themselves"
+    assert application.purged_user_ids == []
 
 
 def test_delete_user_super_user(
@@ -570,27 +855,112 @@ def test_delete_user_super_user(
     user_in = UserCreate(email=username, password=password)
     user = crud.create_user(session=db, user_create=user_in)
     user_id = user.id
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/{user_id}",
-        headers=superuser_token_headers,
-    )
+    application = RecordingOwnerPurgeApplication()
+    with _override_owner_purge_application(application):
+        r = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
     assert r.status_code == 200
+    assert application.purged_user_ids == [str(user_id)]
     deleted_user = r.json()
     assert deleted_user["message"] == "User deleted successfully"
     result = db.exec(select(User).where(User.id == user_id)).first()
     assert result is None
 
 
+def test_superuser_delete_purges_target_before_postgresql_delete(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admin deletion must purge the target owner, never the acting admin."""
+
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=random_lower_string()),
+    )
+    user_id = user.id
+    application = RecordingOwnerPurgeApplication()
+    original_delete = Session.delete
+    original_commit = Session.commit
+
+    def record_delete(session: Session, instance: object) -> None:
+        application.events.append("postgres-delete")
+        original_delete(session, instance)
+
+    def record_commit(session: Session) -> None:
+        application.events.append("postgres-commit")
+        original_commit(session)
+
+    monkeypatch.setattr(Session, "delete", record_delete)
+    monkeypatch.setattr(Session, "commit", record_commit)
+
+    with _override_owner_purge_application(application):
+        response = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
+
+    assert response.status_code == 200
+    assert application.purged_user_ids == [str(user_id)]
+    assert application.events == [
+        "engine-purge",
+        "postgres-delete",
+        "postgres-commit",
+    ]
+
+
+def test_superuser_delete_preserves_target_on_purge_failure_then_retries(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """Admin retry repeats idempotent owner purge before finishing deletion."""
+
+    user = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=random_lower_string()),
+    )
+    user_id = user.id
+    application = RecordingOwnerPurgeApplication(failure_count=1)
+
+    with _override_owner_purge_application(application):
+        failed_response = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
+        db.expire_all()
+        assert db.get(User, user_id) is not None
+
+        retry_response = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
+
+    assert failed_response.status_code == 503
+    assert failed_response.json()["code"] == "USER_2007"
+    assert "owner-secret" not in failed_response.text
+    assert retry_response.status_code == 200
+    assert application.purged_user_ids == [str(user_id), str(user_id)]
+    db.expire_all()
+    assert db.get(User, user_id) is None
+
+
 def test_delete_user_not_found(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     user_id = uuid.uuid4()
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/{user_id}",
-        headers=superuser_token_headers,
-    )
+    application = RecordingOwnerPurgeApplication()
+    with _override_owner_purge_application(application):
+        r = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
     assert r.status_code == 404
     assert r.json()["detail"] == f"User with ID '{user_id}' not found"
+    assert application.purged_user_ids == []
 
 
 def test_delete_user_current_super_user_error(
@@ -600,12 +970,15 @@ def test_delete_user_current_super_user_error(
     assert super_user
     user_id = super_user.id
 
-    r = client.delete(
-        f"{settings.API_V1_STR}/users/{user_id}",
-        headers=superuser_token_headers,
-    )
+    application = RecordingOwnerPurgeApplication()
+    with _override_owner_purge_application(application):
+        r = client.delete(
+            f"{settings.API_V1_STR}/users/{user_id}",
+            headers=superuser_token_headers,
+        )
     assert r.status_code == 403
     assert r.json()["detail"] == "Super users are not allowed to delete themselves"
+    assert application.purged_user_ids == []
 
 
 def test_delete_user_without_privileges(

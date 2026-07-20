@@ -6,10 +6,11 @@
 > see git history).
 >
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
-> index* — expressive page identity joined to compact, honest operational
+> index* -- expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Implemented (shell, dashboard, system setup, tokens, motion,
-> reduced-motion).
+> **Status**: Phase 02 shell direction implemented. Legacy library blueprints
+> are retained only as layout history and are superseded by the Phase 04
+> course-job workspace.
 > Last updated: 2026-07-19
 
 ## Table of Contents
@@ -50,15 +51,15 @@ console* (discards brand equity; auth and product would feel unrelated).
 
 ### Core principles
 
-1. **Confidence through restraint** — luxury doesn't shout; every element
+1. **Confidence through restraint** -- luxury doesn't shout; every element
    earns its presence.
-2. **Typography as architecture** — type carries 80% of the personality;
+2. **Typography as architecture** -- type carries 80% of the personality;
    display/body contrast creates rhythm.
-3. **Depth without clutter** — layers, shadows, and subtle texture create
+3. **Depth without clutter** -- layers, shadows, and subtle texture create
    dimensionality; never busy.
-4. **Motion as choreography** — animation feels inevitable, not decorative;
+4. **Motion as choreography** -- animation feels inevitable, not decorative;
    orchestrated reveals over scattered micro-interactions.
-5. **The detail is the design** — borders, shadows, spacing; 1px matters.
+5. **The detail is the design** -- borders, shadows, spacing; 1px matters.
 
 ### Load-bearing decisions
 
@@ -95,7 +96,7 @@ console* (discards brand equity; auth and product would feel unrelated).
 ```
 
 Loaded via Google Fonts in `frontend/index.html` with `preconnect` and
-`display=swap` (Playfair 400–700, Outfit 300–600, JetBrains Mono 400–500).
+`display=swap` (Playfair 400-700, Outfit 300-600, JetBrains Mono 400-500).
 
 ### Scale
 
@@ -110,9 +111,9 @@ Loaded via Google Fonts in `frontend/index.html` with `preconnect` and
 | Caption | Outfit | 500 | 11px | 0.05em | Labels, badges |
 | Mono | JetBrains Mono | 400 | 13px | 0 | Code, data values |
 
-CSS variables in `frontend/src/index.css`: sizes (`--text-display-xl` 3rem →
-`--text-caption` 0.6875rem), line heights (`--leading-tight` 1.1 →
-`--leading-relaxed` 1.625), tracking (`--tracking-tighter` -0.02em →
+CSS variables in `frontend/src/index.css`: sizes (`--text-display-xl` 3rem ->
+`--text-caption` 0.6875rem), line heights (`--leading-tight` 1.1 ->
+`--leading-relaxed` 1.625), tracking (`--tracking-tighter` -0.02em ->
 `--tracking-wider` 0.05em).
 
 ### Usage discipline
@@ -120,7 +121,7 @@ CSS variables in `frontend/src/index.css`: sizes (`--text-display-xl` 3rem →
 - One expressive `h1` per page; responsive size, stable line height.
 - Playfair only where a section carries narrative weight; Outfit semibold in
   operational panels.
-- No emoji or decorative punctuation in page identity — warmth comes from
+- No emoji or decorative punctuation in page identity -- warmth comes from
   concise copy and the user's name.
 
 ---
@@ -215,13 +216,13 @@ navigation item together with a forest index keyline.
   dropdowns, sheets, and temporary elevation.
 - Feature code uses semantic `success` / `warning` / `info` / `muted` roles,
   never raw status grays and greens.
-- Status color is never the only signal — status text always accompanies it.
+- Status color is never the only signal -- status text always accompanies it.
 - Light and dark are independent compositions with the same semantic
   hierarchy; validate both in every change.
 
 ### Theme behavior
 
-`frontend/src/components/theme-provider.tsx` — `"dark" | "light" | "system"`.
+`frontend/src/components/theme-provider.tsx` -- `"dark" | "light" | "system"`.
 First-visit default is **`system`** (set in `frontend/src/main.tsx`);
 explicit selection persists in localStorage under `vite-ui-theme`. The
 provider applies a `light`/`dark` class to `document.documentElement` and
@@ -236,7 +237,7 @@ whole page or leave icons half-transitioned under reduced motion.
 
 Base unit 4px: `--space-1` (4px) through `--space-20` (80px) on the standard
 4/8/12/16/20/24/32/40/48/64/80 progression. Container widths: `--container-sm`
-640px → `--container-2xl` 1400px.
+640px -> `--container-2xl` 1400px.
 
 Shell-level layout roles (not route accidents):
 
@@ -254,7 +255,7 @@ Shell-level layout roles (not route accidents):
 | `--radius-lg` | 16px | Major workspace surfaces, overlays |
 | `--radius-xl` | 20px | Largest containers |
 
-Pills are reserved for compact status or taxonomy — not navigation,
+Pills are reserved for compact status or taxonomy -- not navigation,
 containers, or actions.
 
 ### Layout philosophy
@@ -263,34 +264,34 @@ Generous whitespace (space is luxury), asymmetric balance, hierarchy through
 size and position, breathing room. Use proximity before adding a border or
 container. Section rhythm is larger than internal component spacing. A
 12-column grid appears only where content relationships require it. Mobile
-gutters start at 20–24px and must work at 320px.
+gutters start at 20-24px and must work at 320px.
 
 ### Protected shell (`frontend/src/routes/_layout.tsx`)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  SIDEBAR (280px)  │  COMMAND STRIP (sticky, 56px)               │
-│  Logo             │  [trigger] [brand mark <md] [section label] │
-│  Navigation       │─────────────────────────────────────────────│
-│  • Dashboard      │  CONTENT AREA                               │
-│  • Items          │    max-width: max-w-6xl (shell role)        │
-│  • …              │    gutter: --space-page-inline              │
-│  Settings         │                                             │
-│  User             │  (no footer in the protected workspace;     │
-│                   │   social links live on auth surfaces)       │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|  SIDEBAR (280px)  |  COMMAND STRIP (sticky, 56px)               |
+|  Logo             |  [trigger] [brand mark <md] [section label] |
+|  Navigation       |---------------------------------------------|
+|  * Dashboard      |  CONTENT AREA                               |
+|  * Items          |    max-width: max-w-6xl (shell role)        |
+|  * ...              |    gutter: --space-page-inline              |
+|  Settings         |                                             |
+|  User             |  (no footer in the protected workspace;     |
+|                   |   social links live on auth surfaces)       |
++-----------------------------------------------------------------+
 ```
 
 - `SidebarInset` renders the single `main` landmark; route content uses a
   plain `div`.
-- The command strip carries the sidebar trigger (44×44 on mobile), a compact
+- The command strip carries the sidebar trigger (44x44 on mobile), a compact
   brand mark below `md`, and the current section label, over
   `bg-background/80 backdrop-blur-sm`.
 - Sidebar collapses to icons with immediate tooltips on desktop; on mobile it
   is a Radix sheet with focus containment that closes after route selection,
   with account and appearance controls reachable inside.
 - Active navigation uses a quiet surface tint (`--surface-selected`) plus a
-  forest index keyline — no full-width pill; `aria-current` comes from router
+  forest index keyline -- no full-width pill; `aria-current` comes from router
   links.
 - The persistent shell never animates during route changes; loading a
   protected route keeps the shell stable; forbidden and route-error states
@@ -309,7 +310,7 @@ logo panel, entrance animation.
 |---------|-----------------|-----|
 | Form grid | `grid gap-4 sm:grid-cols-2` (or `-3`) | Form layouts |
 | Form item | `grid gap-2` | Field wrapper |
-| Page header | `Common/PageHeader.tsx` | See [§8](#shared-page-header) |
+| Page header | `Common/PageHeader.tsx` | See [Section 8](#shared-page-header) |
 | Card layout | `flex flex-col gap-6` | Vertical content |
 | Table wrapper | `relative w-full overflow-hidden rounded-2xl border` | Responsive tables |
 | Button group | `flex w-fit items-stretch` | Grouped buttons |
@@ -329,11 +330,11 @@ Layered shadows, defined in `frontend/src/index.css`:
 | `--shadow-xl` | 4 layers to 96px | 64px @ 60% |
 | `--shadow-accent` | forest-tinted CTA glow | brighter forest tint |
 
-Reserved for overlays and truly elevated surfaces (see §3 discipline).
+Reserved for overlays and truly elevated surfaces (see Section 3 discipline).
 
 Background treatments: `.texture-noise` (SVG noise overlay at 3% opacity,
 `mix-blend-mode: overlay`), `.bg-gradient-mesh` (layered radial gradients of
-accent/primary/surface — auth surfaces only), `.separator-elegant` (1px
+accent/primary/surface -- auth surfaces only), `.separator-elegant` (1px
 gradient hairline).
 
 ---
@@ -380,8 +381,8 @@ Only keyframes with live consumers exist:
 ### Semantic reveal groups
 
 No outlet-level entrance replay and no `nth-child` stagger. The dashboard
-settles in explicit reading order — header, library status, then
-preview/actions — capped at three groups, inside
+settles in explicit reading order -- header, library status, then
+preview/actions -- capped at three groups, inside
 `prefers-reduced-motion: no-preference`:
 
 ```css
@@ -397,12 +398,12 @@ Routine query refetches never replay entrances; content updates in place.
 
 Selecting "Open library" on the dashboard continues the library surface into
 the Items workspace via TanStack Router's built-in `viewTransition` link
-option — no motion dependency. The dashboard preview and Items table share
+option -- no motion dependency. The dashboard preview and Items table share
 `view-transition-name: library-surface`; the sidebar (`app-sidebar`) and
 command strip (`command-strip`) claim their own names so the shell stays
 fixed. Unsupported browsers navigate normally;
 `usePrefersReducedMotion()` disables the transition in JavaScript. This is
-the only route transition — it must not become a global cross-fade.
+the only route transition -- it must not become a global cross-fade.
 
 ### Supporting roles
 
@@ -410,10 +411,10 @@ the only route transition — it must not become a global cross-fade.
 |-------------|------|-------|
 | Dashboard sections settle on first data load | Hierarchy | CSS, three semantic groups |
 | Sidebar expand/collapse | Orientation | CSS transition, role tokens |
-| Button press / selection | Feedback | CSS transform/color, 80–160ms |
+| Button press / selection | Feedback | CSS transform/color, 80-160ms |
 | Dialog, menu, select, sheet | Continuity + focus context | Radix state classes + tokens |
 | Item created/updated | Feedback + attention | Toast + brief `rowHighlight` |
-| Loading → content | Continuity | Geometry-matched skeleton, no large shift |
+| Loading -> content | Continuity | Geometry-matched skeleton, no large shift |
 | Filter change / refetch | None | Content stays stable |
 
 ### Quiet regions
@@ -430,9 +431,9 @@ routine refetches.
 | Pending | Honest status, stable skeleton geometry; indefinite work has status copy |
 | Settled | No lingering `will-change`, blur, transform, or pointer-blocking layer |
 | Hover | Enhancement only; no hover-exclusive information |
-| Press | Immediate 80–160ms feedback without delaying the action |
+| Press | Immediate 80-160ms feedback without delaying the action |
 | Focus | Stable visible ring; transforms must not clip or obscure it |
-| Touch | Complete behavior, 44×44 practical targets, no hover dependency |
+| Touch | Complete behavior, 44x44 practical targets, no hover dependency |
 | Exit | Focus returns to a live trigger; disappearing UI cannot retain focus |
 | Interruption | Rapid navigation/toggling resolves to the latest correct state |
 | Error | Recovery action stays still and prominent |
@@ -440,9 +441,9 @@ routine refetches.
 
 ### Reduced motion
 
-A project-wide safety clamp resolves every animation and transition — custom
+A project-wide safety clamp resolves every animation and transition -- custom
 utilities, Radix state animations, `tw-animate-css`, shimmer loops, theme
-icons, and view transitions — instantly to the complete final state:
+icons, and view transitions -- instantly to the complete final state:
 
 ```css
 @media (prefers-reduced-motion: reduce) {
@@ -461,7 +462,7 @@ icons, and view transitions — instantly to the complete final state:
 ```
 
 Test Dialog, Dropdown Menu, Select, Sheet, Tooltip, theme selection, and
-route navigation separately — disabling the page entrance alone is not
+route navigation separately -- disabling the page entrance alone is not
 sufficient coverage.
 
 ### Dependency policy
@@ -475,11 +476,11 @@ interaction requirement.
 
 ## 7. Components
 
-### UI primitives (`frontend/src/components/ui/`, 25 components — protected, see §12)
+### UI primitives (`frontend/src/components/ui/`, 25 components -- protected, see Section 12)
 
 | Component | Highlights |
 |-----------|-----------|
-| **Button** | Variants: `default` (forest + accent shadow, hover lift), `secondary`, `outline`, `ghost`, `accent` (gold), `destructive` (burgundy), `link`. Sizes: `sm` h-9 → `lg` h-13, plus `icon`/`icon-sm`/`icon-lg` (32–44px) |
+| **Button** | Variants: `default` (forest + accent shadow, hover lift), `secondary`, `outline`, `ghost`, `accent` (gold), `destructive` (burgundy), `link`. Sizes: `sm` h-9 -> `lg` h-13, plus `icon`/`icon-sm`/`icon-lg` (32-44px) |
 | **Card** | `default`, `elevated` (hover lift), `feature` (gradient + accent top line), `interactive`, `muted` |
 | **Input/Textarea** | h-12, rounded-xl, surface-1, primary focus ring, destructive invalid border, 200ms transitions |
 | **Table** | Rounded-2xl container, surface-2 header, uppercase tracked header text, hover row highlight |
@@ -498,7 +499,7 @@ shadcn/ui config (`frontend/components.json`): style `new-york`, base color
 |-----------|-------------|
 | `Logo` | Theme-aware; `full` / `icon` / `responsive` variants; optional link wrapper |
 | `AuthLayout` | Gradient mesh + noise, entrance animation |
-| `PageHeader` | Shared page identity — see [§8](#shared-page-header) |
+| `PageHeader` | Shared page identity -- see [Section 8](#shared-page-header) |
 | `Footer` | Auth-surface footer with social links; never rendered in the protected shell |
 | `Appearance` | Theme switcher (sidebar + standalone) |
 | `DataTable` | TanStack Table with pagination; optional `renderMobileRow` renders a feature-specific record list below `md` from the same paginated row model |
@@ -517,7 +518,7 @@ dropdown).
 |-----------|---------|
 | `WorkspaceHeader` | Page identity + `Create item` / `Open library`; the user's name appears only in supporting copy |
 | `LibraryIndex` | Numbered sections: 01 Library status (exact count), 02 Library preview, 03 Workspace actions / Administration (role-aware) |
-| `LibraryPreview` | Compact record rows labeled a *preview* — no "recent" or trend language (see §9) |
+| `LibraryPreview` | Compact record rows labeled a *preview* -- no "recent" or trend language (see Section 9) |
 | `DashboardEmpty` | "Start your workspace" onboarding replacing zero-value modules |
 | `Pending/PendingDashboard` | Static, geometry-matched placeholders (no shimmer) |
 | `queries.ts` | Suspense query options on existing service + query-key conventions |
@@ -539,7 +540,7 @@ dropdown).
 
 Icons: Lucide (primary), React Icons (auth-footer social only: GitHub,
 LinkedIn, YouTube). SVGs in `frontend/public/assets/images/`: `apex-logo.svg`
-/ `apex-logo-light.svg` (200×40), `apex-icon.svg` / `apex-icon-light.svg`,
+/ `apex-logo-light.svg` (200x40), `apex-icon.svg` / `apex-icon-light.svg`,
 `favicon.png`.
 
 ---
@@ -587,46 +588,46 @@ Identity: eyebrow `Workspace`, `h1` `Workspace overview`, supporting copy
 library.`, actions `Create item` + `Open library`.
 
 ```text
-┌────────────────────────────────────────────────────────────────────┐
-│ Workspace                                                          │
-│ Workspace overview                   [Open library] [Create item]  │
-│ Good to see you, …                                                 │
-├────────────────────────────────────────────────────────────────────┤
-│ 01  LIBRARY STATUS                                                 │
-│     24 items            descriptive status / exact counts only     │
-│                                                                    │
-│ 02  LIBRARY PREVIEW                              Open all items →  │
-│     Title               Type       Source              Actions     │
-│     … compact rows, not nested cards …                             │
-│                                                                    │
-│ 03  WORKSPACE ACTIONS OR ADMINISTRATION                            │
-│     Role-aware shortcuts and exact counts only                     │
-└────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------+
+| Workspace                                                          |
+| Workspace overview                   [Open library] [Create item]  |
+| Good to see you, ...                                                 |
++--------------------------------------------------------------------+
+| 01  LIBRARY STATUS                                                 |
+|     24 items            descriptive status / exact counts only     |
+|                                                                    |
+| 02  LIBRARY PREVIEW                              Open all items ->  |
+|     Title               Type       Source              Actions     |
+|     ... compact rows, not nested cards ...                             |
+|                                                                    |
+| 03  WORKSPACE ACTIONS OR ADMINISTRATION                            |
+|     Role-aware shortcuts and exact counts only                     |
++--------------------------------------------------------------------+
 ```
 
-On mobile the rail becomes a compact section index label (`01 · Library
-status`); actions become full-width (or two-column only when both stay ≥44px
+On mobile the rail becomes a compact section index label (`01 * Library
+status`); actions become full-width (or two-column only when both stay >=44px
 high with readable labels); preview rows stack title/type, clamped
 description, source, and the actions menu.
 
 **States:**
 
-- **Pending** — header and actions stay usable; static geometry-matched
+- **Pending** -- header and actions stay usable; static geometry-matched
   placeholders; no full-page shimmer; no entrance replay on refetch.
-- **Empty** — one focused onboarding state: title `Start your workspace`,
+- **Empty** -- one focused onboarding state: title `Start your workspace`,
   body `Create an item to begin organizing your notes, references, or saved
   content.`, action `Create item`. Settings (and admin, for superusers)
   remain reachable.
-- **Populated** — exact total plus compact preview; long titles wrap to two
+- **Populated** -- exact total plus compact preview; long titles wrap to two
   lines; descriptions clamp with a non-hover recovery path; missing optional
   values use neutral copy (`No source`), not warnings.
-- **Error** — page identity stays visible; inline `We could not load your
+- **Error** -- page identity stays visible; inline `We could not load your
   library` with `Try again`; Settings and Log out remain reachable; non-auth
   data errors never redirect to Login.
-- **Success** — existing toast contract after creation; refetch without
+- **Success** -- existing toast contract after creation; refetch without
   entrance replay; a newly visible preview row gets a brief background
   emphasis (`rowHighlight`) and an announcement, no reorder spectacle.
-- **Permission** — the Administration section is absent for regular users,
+- **Permission** -- the Administration section is absent for regular users,
   not disabled; direct-URL permission failures keep the Forbidden recovery
   path.
 
@@ -695,7 +696,7 @@ appear in the browser.
 **Desktop:** table representation with Title over ID hierarchy and minimal
 decorative elevation; filters and `Create item` live in the shared header.
 
-**Mobile:** a feature-level item record list from the same query data — title
+**Mobile:** a feature-level item record list from the same query data -- title
 and type first, description clamped to two lines, source when present, ID and
 metadata in details/edit dialog, actions menu visible without horizontal
 scrolling, pagination and counts understandable. Never bend the table
@@ -705,7 +706,7 @@ at the desktop table's breakpoint.
 ### Admin
 
 **Desktop:** table with permission checks, current-user marker, role, status,
-action menu. **Mobile:** user record list — name and email as primary
+action menu. **Mobile:** user record list -- name and email as primary
 identity, status/role as text plus semantic treatment, actions immediately
 reachable, current-user marker adjacent to the name. Finding a person's role
 or actions must never require horizontal scrolling.
@@ -739,22 +740,16 @@ Every displayed value must have a truthful definition backed by the API.
 
 | Dashboard content | API support | Rule |
 |-------------------|-------------|------|
-| Total item count | Exact `ItemsPublic.count` | Show it |
-| Library preview | `ItemsPublic.data`, no documented recency order | Label `Library preview`, never `Recent items`; small stable subset |
-| Empty vs populated | Exact count and data | Show it |
+| Total job count | No aggregate endpoint | Do not infer it from a paginated or single-job response |
+| Job status/result | Owner-scoped `JobStatusPublic` projection | Render only the returned revisioned state and fixed progress copy |
+| Artifact availability | Owner-scoped verified manifest | Show only path-free entries returned by the API |
 | Total user count | Exact `UsersPublic.count` | Superuser Administration section only |
-| Source/content/metadata coverage | Derivable only from the returned page | Defer until an aggregate endpoint exists, or label the sample explicitly |
 | Recent activity, trends, last update | No timestamps or ordered feed | Do not design or ship until the backend contract changes |
-| Item readiness / health | Undefined product meaning | Resolve semantics before showing any score or warning |
 
 If richer dashboard data is approved, add a read-only aggregate endpoint
-(exact count, content-type distribution, field coverage, explicitly ordered
-preview) rather than fetching every record into the browser. Timestamps are a
-prerequisite for any recency or trend language.
-
-Open product questions (constrain copy, do not block work): the user-facing
-noun for "Item"; whether missing source/content/metadata is incomplete work
-or a valid item type; whether the backend adds timestamps and aggregates.
+(exact count and explicitly ordered preview) rather than fetching every
+record into the browser. Timestamps are a prerequisite for any recency or
+trend language.
 
 ### System setup contract
 
@@ -789,7 +784,7 @@ Tailwind default breakpoints: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 | Auth layout | Single column | 2-column grid |
 
 Hard requirements: no document-level horizontal scroll at 320px or 200% zoom;
-primary mobile controls ≥44px where practical; layouts hold at 320, 375, 768,
+primary mobile controls >=44px where practical; layouts hold at 320, 375, 768,
 and 1440px in both themes.
 
 ---
@@ -808,9 +803,9 @@ and 1440px in both themes.
   expansion, pointer/focus tooltip, or a details surface.
 - Important create, update, delete, and load-failure outcomes are announced;
   motion never carries status alone.
-- Full reduced-motion support (§6) and keyboard operability throughout.
+- Full reduced-motion support (Section 6) and keyboard operability throughout.
 - Contrast: verify **rendered** text and UI contrast against WCAG 2.2 AA in
-  both themes — measured, not assumed from token math.
+  both themes -- measured, not assumed from token math.
 
 ---
 
@@ -826,7 +821,7 @@ and 1440px in both themes.
   `_layout.tsx`, centralized Zod schemas and branded types, and accessible
   names / `data-testid` hooks unless tests migrate in the same change.
 - Keep behavioral refactors separate from visual-system changes where
-  practical. New motion dependencies are prohibited (§6).
+  practical. New motion dependencies are prohibited (Section 6).
 
 ---
 
@@ -850,7 +845,7 @@ slice.
 
 ### Rendered QA matrix
 
-Check each surface at 1440×900, the 768px boundary, 375×812, and 320px, in
+Check each surface at 1440x900, the 768px boundary, 375x812, and 320px, in
 light and dark, with keyboard, and under reduced motion:
 
 - Protected shell (expanded/collapsed) and the mobile navigation sheet
@@ -872,7 +867,7 @@ permanent `will-change`.
 ### Acceptance criteria
 
 - Page identity, exact supported library state, and `Create item` are visible
-  within the first viewport at 375×812 and 1440×900.
+  within the first viewport at 375x812 and 1440x900.
 - The direction reads as an editorial workspace index, not a KPI dashboard.
 - No displayed metric implies timestamps, trends, completeness, or recency
   the API does not provide.
@@ -881,7 +876,7 @@ permanent `will-change`.
   Admin expose identity, status/type, and actions without table scrolling.
 - Keyboard focus is visible, overlay focus is contained and returned, and
   hover-only affordances have focus/touch equivalents.
-- The single shared-surface transition works only on Dashboard → Items and
+- The single shared-surface transition works only on Dashboard -> Items and
   falls back cleanly; reduced motion leaves complete static content; no new
   motion runtime ships.
 - Generated files, protected primitives, auth/query/form contracts, and test

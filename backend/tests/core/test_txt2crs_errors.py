@@ -15,7 +15,13 @@ from txt2crs.jobs import (
 )
 from txt2crs.security.policy import PolicyDecision, PolicyOutcome, PolicyStage
 
-from app.core.constants import ERROR_STATUS_MAP, ErrorCode, HTTPStatusCode
+from app.core import constants
+from app.core.constants import (
+    ERROR_STATUS_MAP,
+    ErrorCode,
+    ErrorMessages,
+    HTTPStatusCode,
+)
 from app.core.txt2crs_errors import translate_txt2crs_exception
 
 
@@ -41,7 +47,7 @@ def test_known_package_errors_map_to_stable_shell_codes() -> None:
         ),
         (
             OwnerPurgeError("private filesystem path"),
-            ErrorCode.ENGINE_OPERATION_FAILED,
+            ErrorCode.USER_PURGE_FAILED,
         ),
         (
             ArtifactIntegrityError("private artifact path and hash"),
@@ -105,3 +111,34 @@ def test_new_job_error_codes_preserve_released_range_and_statuses() -> None:
     assert ERROR_STATUS_MAP[ErrorCode.JOB_POLICY_REJECTED] == (
         HTTPStatusCode.UNPROCESSABLE_ENTITY
     )
+
+
+def test_account_purge_failure_is_registered_retryable_and_context_free() -> None:
+    """Cross-store erasure failure has one stable retryable shell contract."""
+
+    translated = translate_txt2crs_exception(
+        OwnerPurgeError(
+            "owner@example.com /private/artifacts/owner-secret provider-response"
+        )
+    )
+
+    assert ErrorCode.USER_PURGE_FAILED.value == "USER_2007"
+    assert ERROR_STATUS_MAP[ErrorCode.USER_PURGE_FAILED] == (
+        HTTPStatusCode.SERVICE_UNAVAILABLE
+    )
+    assert translated.code is ErrorCode.USER_PURGE_FAILED
+    assert translated.detail == ErrorMessages.ACCOUNT_PURGE_FAILED
+    assert translated.__cause__ is None
+    assert translated.__context__ is None
+    assert "owner@example.com" not in str(translated)
+    assert "owner-secret" not in str(translated)
+
+
+def test_retired_item_error_namespace_and_content_constants_are_absent() -> None:
+    """The removed donor domain cannot remain in the public error contract."""
+
+    assert all(not code.value.startswith("ITEM_") for code in ErrorCode)
+    assert not hasattr(ErrorMessages, "ITEM_NOT_FOUND")
+    assert not hasattr(ErrorMessages, "ITEM_NOT_FOUND_BY_ID")
+    assert not hasattr(ErrorMessages, "ITEM_PERMISSION_DENIED")
+    assert not hasattr(constants, "ItemContentTypes")

@@ -2,8 +2,7 @@
 
 The current FastAPI shell exposes authentication, user administration,
 durable course-job submission and owner-scoped results, cached course-system
-readiness, privileged device authentication, temporary item CRUD, email
-testing, and health.
+readiness, privileged device authentication, email testing, and health.
 
 ## OpenAPI
 
@@ -49,15 +48,15 @@ test-email operations enforce their route-specific authorization.
 | POST | `/api/v1/users/signup` | Register a user when public signup is enabled |
 | GET, PATCH, DELETE | `/api/v1/users/{user_id}` | Superuser user administration |
 
-### Temporary Items
+Both user-deletion routes authorize and resolve their target before mutation,
+then purge that owner's engine state before committing the PostgreSQL delete.
+If cancellation, artifact removal, or engine-state deletion fails, the API
+returns a retryable `USER_2007` `503` response and keeps the user row. Once the
+engine purge succeeds, a later PostgreSQL failure is reported truthfully; the
+already-erased engine state makes retry safe.
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET, POST | `/api/v1/items/` | List/create current-user items |
-| GET, PUT, DELETE | `/api/v1/items/{id}` | Read/update/delete one owned item |
-
-The donor domain remains only until durable jobs acceptance coverage protects
-its Phase 03 replacement.
+Account deletion does not erase retained logs or backup copies. Their
+retention remains a separate release-policy concern.
 
 ### Course Jobs
 

@@ -52,12 +52,19 @@ The application OpenAPI document is authoritative:
 |------|-------------------|
 | Authentication | `/api/v1/login/access-token`, `/api/v1/login/test-token`, `/api/v1/password-recovery`, `/api/v1/reset-password/` |
 | Users | `/api/v1/users/`, `/api/v1/users/me`, `/api/v1/users/me/password`, `/api/v1/users/signup`, `/api/v1/users/{user_id}` |
-| Temporary donor domain | `/api/v1/items/`, `/api/v1/items/{id}` |
+| Course jobs | `/api/v1/jobs`, `/api/v1/jobs/upload`, `/api/v1/jobs/{job_id}`, `/api/v1/jobs/{job_id}/artifacts`, `/api/v1/jobs/{job_id}/artifacts/{artifact_id}` |
 | System | `/api/v1/system/readiness`, `/api/v1/system/auth/start`, `/api/v1/system/auth/status` |
 | Operations | `/api/v1/utils/health/`, `/api/v1/utils/health-check/`, `/api/v1/utils/test-email/` |
 
-Course-generation routes do not exist yet. The `items` domain remains until
-durable jobs acceptance coverage protects the Phase 03 migration.
+Course requests are accepted into the engine's durable tenant-scoped job
+store. Status, result, manifest, and artifact reads are owner-scoped and
+served through the public package facade.
+
+Self-service and administrator account deletion call the engine's owner purge
+before deleting the PostgreSQL user. Purge cancels and joins matching work,
+removes private artifacts, and deletes engine job state. A purge failure
+returns `USER_2007` and leaves the user row intact so the operation can be
+retried safely.
 
 All shell errors use RFC 9457 Problem Details with stable error codes and trace
 IDs. See [`../docs/api/README_api.md`](../docs/api/README_api.md).
@@ -125,6 +132,9 @@ uv run alembic check
 ```
 
 Application database changes require a new reversible Alembic revision.
+Revision `a7d9c2e4f601` removed the retired donor table; its downgrade restores
+only that historical table schema because deleted donor rows are
+irrecoverable.
 
 ## Email Templates
 

@@ -44,7 +44,7 @@
     "3": {
       "name": "Durable Jobs API",
       "description": "Expose durable learner submission, owner-scoped job and artifact delivery, restart recovery, coordinated account purge, and donor-domain retirement.",
-      "status": "in_progress",
+      "status": "complete",
       "session_count": 3
     }
   },
@@ -100,29 +100,15 @@
     {
       "id": "phase03-session02-owner-scoped-job-results-and-recovery",
       "package": "backend"
+    },
+    {
+      "id": "phase03-session03-account-purge-and-donor-retirement",
+      "package": "backend"
     }
   ],
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase02-session01-engine-composition-lifecycle",
-      "package": "backend",
-      "status": "validated"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session01-engine-composition-lifecycle",
-      "package": "backend",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
-      "session": "phase02-session02-serial-worker-supervisor",
-      "package": "backend",
-      "status": "planned"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase02-session02-serial-worker-supervisor",
       "package": "backend",
       "status": "validated"
@@ -220,6 +206,24 @@
     {
       "date": "2026-07-20",
       "session": "phase03-session02-owner-scoped-job-results-and-recovery",
+      "package": "backend",
+      "status": "completed"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session03-account-purge-and-donor-retirement",
+      "package": "backend",
+      "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session03-account-purge-and-donor-retirement",
+      "package": "backend",
+      "status": "validated"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase03-session03-account-purge-and-donor-retirement",
       "package": "backend",
       "status": "completed"
     }

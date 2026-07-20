@@ -16,7 +16,7 @@ Example:
     Configure in claude_desktop_config.json:
         {
             "mcpServers": {
-                "python-react-boilerplate": {
+                "txt2crs-admin": {
                     "command": "uv",
                     "args": ["--directory", "/path/to/backend", "run", "python", "-m", "app.mcp.server"]
                 }
@@ -25,18 +25,19 @@ Example:
 """
 
 import subprocess
+from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 from mcp.server.fastmcp import FastMCP
 from sqlmodel import Session, func, select
 
 from app.core.config import settings
 from app.core.db import engine
-from app.models import Item, User
+from app.models import User
 
 # Initialize MCP server
-mcp = FastMCP(name="python-react-boilerplate")
+mcp = FastMCP(name="txt2crs-admin")
+BACKEND_ROOT = str(Path(__file__).resolve().parents[2])
 
 
 # =============================================================================
@@ -132,111 +133,6 @@ def get_user_by_email(email: str) -> dict[str, Any] | None:
             "full_name": user.full_name,
             "is_active": user.is_active,
             "is_superuser": user.is_superuser,
-            "item_count": len(user.items) if user.items else 0,
-        }
-
-
-@mcp.tool()
-def list_items(
-    skip: int = 0,
-    limit: int = 20,
-    owner_id: str | None = None,
-) -> dict[str, Any]:
-    """
-    List items in the database with pagination.
-
-    Returns a paginated list of items. Optionally filter by owner.
-
-    Args:
-        skip: Number of records to skip for pagination. Defaults to 0.
-        limit: Maximum number of items to return. Defaults to 20, max 100.
-        owner_id: Optional UUID string to filter items by owner.
-
-    Returns:
-        Dictionary with 'items' list and 'total_count' integer.
-
-    Example:
-        list_items(skip=0, limit=10)
-        # Returns: {"items": [...], "total_count": 15}
-
-        list_items(owner_id="550e8400-e29b-41d4-a716-446655440000")
-        # Returns items owned by the specified user
-    """
-    limit = min(limit, 100)  # Cap at 100
-
-    with Session(engine) as session:
-        # Build query
-        query = select(Item)
-
-        if owner_id:
-            try:
-                owner_uuid = UUID(owner_id)
-                query = query.where(Item.owner_id == owner_uuid)
-            except ValueError:
-                return {"error": f"Invalid UUID format: {owner_id}"}
-
-        # Get total count
-        count_query = select(func.count()).select_from(query.subquery())
-        total_count = session.exec(count_query).one()
-
-        # Get paginated results
-        query = query.offset(skip).limit(limit)
-        items = session.exec(query).all()
-
-        return {
-            "items": [
-                {
-                    "id": str(item.id),
-                    "title": item.title,
-                    "description": item.description,
-                    "content_type": item.content_type,
-                    "owner_id": str(item.owner_id),
-                }
-                for item in items
-            ],
-            "total_count": total_count,
-            "skip": skip,
-            "limit": limit,
-        }
-
-
-@mcp.tool()
-def get_item(item_id: str) -> dict[str, Any] | None:
-    """
-    Get a specific item by ID.
-
-    Retrieves complete item information including content and metadata.
-
-    Args:
-        item_id: UUID string of the item to retrieve.
-
-    Returns:
-        Item data dictionary if found, None otherwise.
-
-    Example:
-        get_item("550e8400-e29b-41d4-a716-446655440000")
-        # Returns: {"id": "...", "title": "...", "content": "...", ...}
-    """
-    try:
-        item_uuid = UUID(item_id)
-    except ValueError:
-        return {"error": f"Invalid UUID format: {item_id}"}
-
-    with Session(engine) as session:
-        item = session.get(Item, item_uuid)
-
-        if not item:
-            return None
-
-        return {
-            "id": str(item.id),
-            "title": item.title,
-            "description": item.description,
-            "content": item.content,
-            "content_type": item.content_type,
-            "source_url": item.source_url,
-            "item_metadata": item.item_metadata,
-            "owner_id": str(item.owner_id),
         }
 
 
@@ -253,7 +149,7 @@ def get_database_stats() -> dict[str, Any]:
 
     Example:
         get_database_stats()
-        # Returns: {"user_count": 10, "item_count": 42, ...}
+        # Returns: {"user_count": 10, "active_user_count": 9, ...}
     """
     with Session(engine) as session:
         user_count = session.exec(select(func.count()).select_from(User)).one()
@@ -263,7 +159,6 @@ def get_database_stats() -> dict[str, Any]:
         superuser_count = session.exec(
             select(func.count()).select_from(User).where(User.is_superuser == True)  # noqa: E712
         ).one()
-        item_count = session.exec(select(func.count()).select_from(Item)).one()
 
         # Extract host/db from URI (hide credentials)
         db_uri = settings.SQLALCHEMY_DATABASE_URI
@@ -278,7 +173,6 @@ def get_database_stats() -> dict[str, Any]:
             "user_count": user_count,
             "active_user_count": active_user_count,
             "superuser_count": superuser_count,
-            "item_count": item_count,
             "database_url": db_host,
         }
 
@@ -321,14 +215,12 @@ def _run_command(cmd: list[str], cwd: str | None = None) -> dict[str, Any]:
 
 
 @mcp.tool()
-def run_ruff_check(fix: bool = False) -> dict[str, Any]:
+def run_ruff_check() -> dict[str, Any]:
     """
     Run ruff linting on the backend code.
 
-    Executes ruff to check for style and code quality issues.
-
-    Args:
-        fix: If True, automatically fix fixable issues. Defaults to False.
+    Executes a read-only ruff check for style and code quality issues. File
+    mutation is intentionally unavailable through the administrative MCP.
 
     Returns:
         Dictionary with 'success' boolean and 'output' string.
@@ -336,17 +228,9 @@ def run_ruff_check(fix: bool = False) -> dict[str, Any]:
     Example:
         run_ruff_check()
         # Returns: {"success": True, "output": "All checks passed!"}
-
-        run_ruff_check(fix=True)
-        # Returns: {"success": True, "output": "Fixed 3 issues"}
     """
     cmd = ["uv", "run", "ruff", "check", "app"]
-    if fix:
-        cmd.append("--fix")
-
-    return _run_command(
-        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
-    )
+    return _run_command(cmd, cwd=BACKEND_ROOT)
 
 
 @mcp.tool()
@@ -364,9 +248,7 @@ def run_mypy_check() -> dict[str, Any]:
         # Returns: {"success": True, "output": "Success: no issues found in 33 source files"}
     """
     cmd = ["uv", "run", "mypy", "app", "--strict"]
-    return _run_command(
-        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
-    )
+    return _run_command(cmd, cwd=BACKEND_ROOT)
 
 
 @mcp.tool()
@@ -402,9 +284,7 @@ def run_tests(
         cmd.extend(["-m", markers])
     cmd.append("--tb=short")
 
-    return _run_command(
-        cmd, cwd="/home/aiwithapex/projects/python-react-boilerplate/backend"
-    )
+    return _run_command(cmd, cwd=BACKEND_ROOT)
 
 
 @mcp.tool()
@@ -422,22 +302,20 @@ def run_full_validation() -> dict[str, Any]:
         run_full_validation()
         # Returns: {"overall_success": True, "ruff": {...}, "mypy": {...}, "tests": {...}}
     """
-    backend_path = "/home/aiwithapex/projects/python-react-boilerplate/backend"
-
     results: dict[str, Any] = {
         "overall_success": True,
         "steps": [],
     }
 
     # Run ruff
-    ruff_result = _run_command(["uv", "run", "ruff", "check", "app"], cwd=backend_path)
+    ruff_result = _run_command(["uv", "run", "ruff", "check", "app"], cwd=BACKEND_ROOT)
     results["steps"].append({"name": "ruff", **ruff_result})
     if not ruff_result["success"]:
         results["overall_success"] = False
 
     # Run ruff format check
     format_result = _run_command(
-        ["uv", "run", "ruff", "format", "--check", "app"], cwd=backend_path
+        ["uv", "run", "ruff", "format", "--check", "app"], cwd=BACKEND_ROOT
     )
     results["steps"].append({"name": "ruff-format", **format_result})
     if not format_result["success"]:
@@ -445,7 +323,7 @@ def run_full_validation() -> dict[str, Any]:
 
     # Run mypy
     mypy_result = _run_command(
-        ["uv", "run", "mypy", "app", "--strict"], cwd=backend_path
+        ["uv", "run", "mypy", "app", "--strict"], cwd=BACKEND_ROOT
     )
     results["steps"].append({"name": "mypy", **mypy_result})
     if not mypy_result["success"]:
@@ -454,7 +332,7 @@ def run_full_validation() -> dict[str, Any]:
     # Run unit tests (without database dependency)
     test_result = _run_command(
         ["uv", "run", "pytest", "tests/models/", "-v", "--tb=short"],
-        cwd=backend_path,
+        cwd=BACKEND_ROOT,
     )
     results["steps"].append({"name": "tests-unit", **test_result})
     if not test_result["success"]:

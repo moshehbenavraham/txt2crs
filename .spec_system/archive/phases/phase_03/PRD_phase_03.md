@@ -1,10 +1,10 @@
 # PRD Phase 03: Durable Jobs API
 
-**Status**: In Progress
+**Status**: Complete
 **Sessions**: 3 (reconciled estimate)
 **Estimated Duration**: 2-3 days
 
-**Progress**: 2/3 sessions (67%)
+**Progress**: 3/3 sessions (100%)
 
 ---
 
@@ -31,7 +31,7 @@ recovery, projections, artifact integrity, and owner purge.
 |---------|------|--------|------------|-----------|
 | 01 | Durable Job Submission and Admission | Complete | 25 | 2026-07-20 |
 | 02 | Owner-Scoped Job Results and Recovery | Complete | 25 | 2026-07-20 |
-| 03 | Account Purge and Donor Retirement | Not Started | 24 | - |
+| 03 | Account Purge and Donor Retirement | Complete | 24 | 2026-07-20 |
 
 ---
 
@@ -39,12 +39,13 @@ recovery, projections, artifact integrity, and owner purge.
 
 - Session 01: Durable Job Submission and Admission - completed 2026-07-20.
 - Session 02: Owner-Scoped Job Results and Recovery - completed 2026-07-20.
+- Session 03: Account Purge and Donor Retirement - completed 2026-07-20.
 
 ---
 
 ## Upcoming Sessions
 
-- Session 03: Account Purge and Donor Retirement
+None. Phase 03 is complete.
 
 ---
 
@@ -192,29 +193,29 @@ retry without orphaning private engine data.
 
 Phase complete when:
 
-- [ ] All 3 sessions completed.
-- [ ] Strict JSON and multipart requests reject unknown fields, unsupported
+- [x] All 3 sessions completed.
+- [x] Strict JSON and multipart requests reject unknown fields, unsupported
   types, oversize bodies, signature mismatches, and unsafe OOXML expansion
   before provider work.
-- [ ] `202 Accepted` occurs only after exact durable commit and contains the
+- [x] `202 Accepted` occurs only after exact durable commit and contains the
   stable owner-scoped job location.
-- [ ] Same-key/same-request retries return the original job; same-key/changed
+- [x] Same-key/same-request retries return the original job; same-key/changed
   request returns a stable `409`.
-- [ ] Readiness, signup policy, rate limits, admission, and package errors map
+- [x] Readiness, signup policy, rate limits, admission, and package errors map
   to registered RFC 9457 shell errors without private context.
-- [ ] Status, result, manifest, and artifact routes are owner-scoped,
+- [x] Status, result, manifest, and artifact routes are owner-scoped,
   projection-safe, private/no-store, and polling friendly.
-- [ ] Artifact downloads verify integrity, use safe filenames and nosniff
+- [x] Artifact downloads verify integrity, use safe filenames and nosniff
   headers, expose no path, and close their package stream on every outcome.
-- [ ] Restart from accepted and active checkpoints completes from stored
+- [x] Restart from accepted and active checkpoints completes from stored
   state, while delivery replay does not repeat accepted model work.
-- [ ] Both user deletion routes purge engine state before PostgreSQL identity
+- [x] Both user deletion routes purge engine state before PostgreSQL identity
   and preserve retryability on purge failure.
-- [ ] No item route, model, CRUD helper, error, test, documentation claim,
+- [x] No item route, model, CRUD helper, error, test, documentation claim,
   generated client operation, or admin MCP tool remains.
-- [ ] Alembic handles clean and existing upgrades and a supported
+- [x] Alembic handles clean and existing upgrades and a supported
   downgrade/upgrade schema round trip.
-- [ ] Backend, engine, generated-client, migration, and application acceptance
+- [x] Backend, engine, generated-client, migration, and application acceptance
   validation remains green.
 
 ---
