@@ -111,17 +111,17 @@ if [ "$OUTPUT_JSON" = true ]; then
     # Run backend checks
     if [ "$RUN_BACKEND" = true ]; then
         run_json_check "backend-lint" \
-            "uv run ruff check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py" \
+            "uv run ruff check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py" \
             "$PROJECT_ROOT/backend"
         run_json_check "backend-format" \
-            "uv run ruff format --check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py" \
+            "uv run ruff format --check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py" \
             "$PROJECT_ROOT/backend"
         run_json_check "backend-typecheck" "uv run mypy app --strict" "$PROJECT_ROOT/backend"
         # These two focused suites intentionally bypass the application-wide,
         # database-owning conftest. They validate pure settings and deployment
         # files and must remain runnable without PostgreSQL.
         run_json_check "backend-baseline-tests" \
-            "uv run pytest --confcutdir=tests/core tests/core/test_logging.py tests/core/test_txt2crs_settings.py -q && uv run pytest --confcutdir=tests/scripts tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py -q" \
+            "uv run pytest --confcutdir=tests/core tests/core/test_logging.py tests/core/test_txt2crs_settings.py -q && uv run pytest --confcutdir=tests/scripts tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py -q" \
             "$PROJECT_ROOT/backend"
     fi
 
@@ -205,18 +205,18 @@ if [ "$RUN_BACKEND" = true ]; then
 
     # Linting with ruff
     run_check "Backend: Linting (ruff check)" \
-        "uv run ruff check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py" \
+        "uv run ruff check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py" \
         "$PROJECT_ROOT/backend"
 
     # Format checking with ruff (check only, don't modify)
     run_check "Backend: Format check (ruff format)" \
-        "uv run ruff format --check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py" \
+        "uv run ruff format --check app ../scripts/local_state_archive.py tests/core/test_logging.py tests/core/test_txt2crs_settings.py tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py" \
         "$PROJECT_ROOT/backend"
 
     # Run the credential-free and database-free shell baseline regressions.
     # Full route tests still use the Compose PostgreSQL service below.
     run_check "Backend: Baseline contract tests" \
-        "uv run pytest --confcutdir=tests/core tests/core/test_logging.py tests/core/test_txt2crs_settings.py -q && uv run pytest --confcutdir=tests/scripts tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py -q" \
+        "uv run pytest --confcutdir=tests/core tests/core/test_logging.py tests/core/test_txt2crs_settings.py -q && uv run pytest --confcutdir=tests/scripts tests/scripts/test_container_contract.py tests/scripts/test_generate_client_contract.py tests/scripts/test_local_backup_contract.py tests/scripts/test_quality_workflow_contract.py tests/scripts/test_security_workflow_contract.py tests/scripts/test_start_local_script.py -q" \
         "$PROJECT_ROOT/backend"
 
     # Unit tests (fast subset, no integration tests requiring DB)

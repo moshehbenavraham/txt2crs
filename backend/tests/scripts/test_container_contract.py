@@ -206,6 +206,8 @@ def test_development_override_exposes_only_repository_contract_inputs() -> None:
         "./docker-compose.yml:/workspace/docker-compose.yml:ro",
         "./docker-compose.override.yml:/workspace/docker-compose.override.yml:ro",
         "./.env.example:/workspace/.env.example:ro",
+        "./backend/.env.example:/workspace/backend/.env.example:ro",
+        "./frontend/.env.example:/workspace/frontend/.env.example:ro",
         "./.gitleaksignore:/workspace/.gitleaksignore:ro",
         "./.github/workflows:/workspace/.github/workflows:ro",
         "./scripts:/workspace/scripts:ro",

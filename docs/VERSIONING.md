@@ -8,9 +8,10 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.0.0`. It is the first
-stable public API release. Future compatibility decisions follow Semantic
-Versioning from this public boundary.
+The current repository and Python package release is `1.0.1`. It is the first
+maintenance release after the stable public API boundary established by
+`1.0.0`. Future compatibility decisions follow Semantic Versioning from that
+public boundary.
 
 ## Choosing the next version
 

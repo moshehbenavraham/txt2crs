@@ -22,83 +22,39 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.0.1] - 2026-07-20
+
+### Added
+
+- Added a judge-facing `scripts/start-local.sh` assistant with ASCII branding,
+  inert `.env` validation, Docker and Compose preflights, foreign port
+  detection, health-waiting startup, bounded failure diagnostics, status and
+  stop modes, and exact setup handoff instructions.
+
+### Changed
+
+- Replaced the donor-era clean rebuild helper with a safe compatibility wrapper
+  and made the startup assistant the primary README, onboarding, and local
+  deployment path.
+- Clarified and cross-linked the canonical Docker/judge, host-backend, and
+  host-frontend environment templates so each workflow names its source of
+  truth and intended copy location.
+
+### Deprecated
+
+### Removed
+
+- Removed judge-path global Docker cache pruning, hardcoded donor container and
+  volume names, destructive reset mode, and fixed sleeps.
+
+### Fixed
+
+### Security
+
+- The startup assistant never sources `.env`, prints configured secrets,
+  deletes persistent volumes, or prunes unrelated Docker state.
+
 ## [1.0.0] - 2026-07-20
 
-### Added
-
-- Added a polished judge package with six reviewed synthetic screenshots, a
-  narrated 02:22.600 demo candidate, complete Education-category Devpost copy,
-  and the primary Codex feedback Session ID.
-- Added a concise human-only publishing handoff for private GitHub reviewer
-  access, final tag/push, YouTube publication, and Devpost submission.
-- Added a read-only tag/manual release-validation workflow that verifies
-  synchronized versions, engine distributions and checksums, frontend gates,
-  and both production images without publishing or deploying.
-- Added strict, canonical, public-safe release evidence validation and a
-  reproducible deterministic sample plus sixteen-artifact inspection ledger.
-- Added a concise packaged device-authentication helper and a separately gated
-  exact-Sol plus Tavily representative course acceptance proof.
-
-### Changed
-
-- Declared the validated engine facade, durable FastAPI jobs boundary, and
-  learner experience as the first stable public `1.0.0` release.
-- Reconciled the finished Phase 05 plan, architecture, onboarding, release
-  index, and documentation audit with the complete product and the four
-  remaining human-owned platform actions.
-- Synchronized the root, architecture, onboarding, deployment, and visual
-  design documentation with the completed Phase 04 learner journey and
-  verified local backup, restore, throttling, and rollback behavior.
-- Upgraded the bundled Codex SDK/CLI and regenerated its checked protocol
-  fixture so the dedicated ChatGPT account can discover `gpt-5.6-sol`.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-- Fixed complete local backups after Codex initialization by excluding only
-  the regenerable `codex-home/tmp` process-scratch directory while preserving
-  durable credentials and continuing to reject symlinks elsewhere.
-- Fixed post-device-login verification, strict provider-schema handling,
-  bounded research planning, evidence hashing, module alignment, and
-  block-level citation repair discovered by the representative live run.
-- Fixed generated artifact labels, empty sections, stale internal identifiers,
-  inline Markdown rendering, point grammar, and instructor evidence
-  disclosure across HTML, Markdown, PDF, and DOCX.
-
-### Security
-
-- Added fail-closed rejection for unknown, path-like, email-like, provider,
-  prompt, token, credential, link, and raw artifact-body release evidence.
-- Disabled setup-action caches in the artifact-producing release job after
-  workflow security analysis identified cache-poisoning risk.
-- Kept live provider state and artifact bodies owner-private, recorded only
-  bounded hashes and judgments, and purged the canonical live owner through
-  the application boundary after inspection.
-
-## [0.7.0] - 2026-07-20
-
-### Added
-
-- Added the completed-job four-publication workspace with generated-client
-  HTML, Markdown, PDF, and DOCX downloads, source/conflict disclosure, and a
-  collapsed instructor answer key.
-
-### Changed
-
-- Changed the durable job progress route to transform into private results on
-  completion and added a strict public HTML-preview size setting.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-- Added byte/media verification, preview-only HTML transformation, restrictive
-  CSP, empty-capability iframe sandboxing, no-referrer isolation, duplicate
-  transfer prevention, abort handling, and revocable Blob URL cleanup.
+The complete dated release history is preserved in
+[`archive/CHANGELOG_20260720.md`](archive/CHANGELOG_20260720.md).

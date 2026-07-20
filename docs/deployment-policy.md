@@ -13,11 +13,14 @@ donor-era hosted-platform decision.
 
 ```bash
 cp .env.example .env
-# Replace local placeholder secrets.
-docker compose up --detach --build --wait
+# Replace local placeholder secrets and set TAVILY_API_KEY.
+./scripts/start-local.sh
 ```
 
-The command starts the complete application topology:
+The judge-facing assistant performs non-destructive environment, Docker,
+Compose, and port preflight checks before it runs the authoritative
+`docker compose up --detach --build --wait` command. It starts the complete
+application topology:
 
 - PostgreSQL with persistent application data;
 - one non-root FastAPI process hosting the reusable engine;

@@ -10,11 +10,14 @@ Create `.env` from the tracked example if it does not exist:
 
 ```bash
 cp .env.example .env
-docker compose up --detach --build --wait
+# Replace the required secret placeholders and set TAVILY_API_KEY.
+./scripts/start-local.sh
 ```
 
-Docker reports the database, backend, and frontend as healthy before the
-command succeeds. Verify the public local probes:
+The startup assistant checks `.env`, Docker, Compose, and host ports before
+delegating to `docker compose up --detach --build --wait`. Docker reports the
+database, backend, and frontend as healthy before the command succeeds. Verify
+the public local probes:
 
 ```bash
 curl --fail http://localhost:8012/api/v1/utils/health/
@@ -31,7 +34,7 @@ frontend response is:
 ## Stop Without Deleting Data
 
 ```bash
-docker compose down --remove-orphans
+./scripts/start-local.sh --stop
 ```
 
 This removes containers and the Compose network but preserves named volumes.

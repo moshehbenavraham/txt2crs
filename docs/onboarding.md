@@ -5,6 +5,7 @@ Use this checklist for a clean local setup.
 ## Prerequisites
 
 - [ ] Git with SSH access to the repository
+- [ ] Bash (Git Bash is sufficient on Windows)
 - [ ] Docker Engine/Desktop with Compose v2
 - [ ] Python 3.14 and [uv](https://docs.astral.sh/uv/)
 - [ ] Node.js 26.5+ and npm 12
@@ -25,7 +26,8 @@ cp .env.example .env
 ```
 
 Replace at least `SECRET_KEY`, `POSTGRES_PASSWORD`, and
-`FIRST_SUPERUSER_PASSWORD`. Generate independent values:
+`FIRST_SUPERUSER_PASSWORD`. Set `TAVILY_API_KEY` for the default
+research-enabled judge journey. Generate independent values:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -36,15 +38,19 @@ Never commit `.env`.
 ### 3. Start the full stack
 
 ```bash
-docker compose up -d --wait
+./scripts/start-local.sh
 ```
 
-The command starts PostgreSQL, database migrations/seed, one backend process,
-the Nginx frontend, Mailcatcher, and local support services.
+The command validates the environment, Docker runtime, Compose topology, and
+published ports before it builds and starts PostgreSQL, database
+migrations/seed, one backend process, the Nginx frontend, Mailcatcher, and
+local support services. It delegates startup and health waiting to the
+repository-root Docker Compose topology.
 
 ### 4. Verify
 
 ```bash
+./scripts/start-local.sh --status
 curl --fail http://localhost:8012/api/v1/utils/health/
 curl --fail http://localhost:5183/health
 ```

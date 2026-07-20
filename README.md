@@ -90,7 +90,7 @@ and the separately identified
 ### Prerequisites
 
 - Docker Engine with Compose
-- Git
+- Git and Bash (Git Bash is sufficient on Windows)
 - A ChatGPT subscription identity for live Codex generation
 - A Tavily API key for live research
 
@@ -117,8 +117,15 @@ the shared judge/demo profile.
 ### 2. Start the complete application
 
 ```bash
-docker compose up --detach --build --wait
+./scripts/start-local.sh
 ```
+
+The startup assistant validates `.env`, Docker, Compose, and local port
+availability before running the authoritative
+`docker compose up --detach --build --wait` deployment. It waits for declared
+health checks, prints bounded diagnostics on failure, and shows the exact
+application and setup URLs on success. It is safe to run repeatedly and never
+deletes named volumes or globally prunes Docker state.
 
 Open:
 
@@ -150,7 +157,7 @@ setup page for the Docker Compose application.
 Stop containers while preserving PostgreSQL and private engine-state volumes:
 
 ```bash
-docker compose down
+./scripts/start-local.sh --stop
 ```
 
 The authoritative detailed paths are
@@ -317,8 +324,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.0.0`. The human release
-operator creates the final annotated `v1.0.0` tag only after all tracked judge
+The current synchronized release version is `1.0.1`. The human release
+operator creates the final annotated `v1.0.1` tag only after all tracked judge
 assets are final and the exact commit passes the existing distribution,
 production-image, health, replacement, and privacy checks.
 

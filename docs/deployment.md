@@ -7,8 +7,9 @@ only in-scope release, demonstration, and judge execution target.
 
 ```bash
 cp .env.example .env
-# Replace SECRET_KEY, POSTGRES_PASSWORD, and FIRST_SUPERUSER_PASSWORD.
-docker compose up --detach --build --wait
+# Replace SECRET_KEY, POSTGRES_PASSWORD, FIRST_SUPERUSER_PASSWORD, and
+# TAVILY_API_KEY.
+./scripts/start-local.sh
 ```
 
 See [deployment policy](deployment-policy.md) and
@@ -17,7 +18,7 @@ See [deployment policy](deployment-policy.md) and
 ## Verify the Running Application
 
 ```bash
-docker compose ps
+./scripts/start-local.sh --status
 curl --fail http://localhost:8012/api/v1/utils/health/
 curl --fail http://localhost:5183/health
 ```
@@ -47,13 +48,13 @@ SQLite jobs, artifacts, and Codex-managed credentials.
 Stop while preserving data:
 
 ```bash
-docker compose down --remove-orphans
+./scripts/start-local.sh --stop
 ```
 
 Rebuild the complete tested topology:
 
 ```bash
-docker compose up --detach --build --wait
+./scripts/start-local.sh
 ```
 
 Deleting volumes is destructive and not part of a normal deployment:
@@ -119,7 +120,7 @@ evidence remain in
 For an end-to-end stack smoke:
 
 ```bash
-docker compose up --detach --build --wait
+./scripts/start-local.sh
 ./scripts/deploy-smoke-check.sh \
   http://localhost:8012/api/v1/utils/health/ \
   http://localhost:5183/health
