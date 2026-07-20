@@ -54,9 +54,9 @@ The estimated source-code scope is:
 
 | Scope | Estimated non-test LOC |
 |---|---:|
-| Hermes-derived, locally adapted logic | 940–1,355 |
-| New `txt2crs` implementation | 2,900–4,400 |
-| **Total** | **3,840–5,755** |
+| Hermes-derived, locally adapted logic | 940-1,355 |
+| New `txt2crs` implementation | 2,900-4,400 |
+| **Total** | **3,840-5,755** |
 
 These are planning estimates, not implementation quotas. Tests, fixtures,
 generated protocol schemas, migrations, and documentation are excluded.
@@ -88,12 +88,12 @@ architecture:
 - Scenario 1 accepts a plain-text request and stores customer/job data.
 - Scenario 2 creates or updates the customer and Drive-folder records.
 - Scenario 3 performs four serial model calls: course generation, filename
-  generation, HTML rendering, and a 5–10-question short-answer quiz.
+  generation, HTML rendering, and a 5-10-question short-answer quiz.
 - The scenarios contain no web research, retrieval, evidence ledger, citation
   verification, comprehensive review pack, assessment blueprint, durable job
   state machine, or structured course contract.
 
-The extraction must therefore replace—not reproduce—the one-shot model chain.
+The extraction must therefore replace--not reproduce--the one-shot model chain.
 Filename generation and HTML/PDF formatting should become deterministic code.
 The model budget saved there is better spent on explicit research, staged
 writing, and validation.
@@ -192,7 +192,7 @@ The classifications mean:
 - **Reject/exclude:** useful for understanding the alternative, but must not
   enter the selected implementation.
 
-“Full-pull candidate” never means retaining a runtime import or path to this
+"Full-pull candidate" never means retaining a runtime import or path to this
 directory. Every copied file becomes a locally owned `txt2crs` file.
 
 ### Agent kernel, budgets, tools, and recovery
@@ -275,7 +275,7 @@ Hermes does not contain a coherent implementation of the required course
 schemas, evidence ledger, claim-citation graph, curriculum planner, review pack,
 assessment blueprint, accessible renderer, per-user job state, or delivery
 idempotency. Those requirements remain local builds; the paths above are agent,
-runtime, retrieval, and ingestion implementation examples—not substitutes for
+runtime, retrieval, and ingestion implementation examples--not substitutes for
 the education-specific system.
 
 ## Minimum coherent extraction
@@ -284,19 +284,19 @@ the education-specific system.
 
 | Area | Classification | Estimated adapted LOC |
 |---|---|---:|
-| Iteration budget | Mostly copy | 35–50 |
-| Tool-loop guardrails | Pure logic adapted | 180–260 |
-| Generic retry/backoff | Mostly copy | 35–55 |
-| Tavily client and normalization | Pure logic adapted | 140–190 |
-| URL/DNS/redirect safety | Pure logic adapted | 220–300 |
-| Codex event, usage, timeout, and auth-error behavior | Pure behavior reimplemented | 150–220 |
-| Local MCP server wiring | Behavior reimplemented | 70–110 |
-| YouTube transcript helper | Pure logic adapted | 60–90 |
-| PDF extraction helper | Pure logic adapted | 50–80 |
-| **Total** |  | **940–1,355** |
+| Iteration budget | Mostly copy | 35-50 |
+| Tool-loop guardrails | Pure logic adapted | 180-260 |
+| Generic retry/backoff | Mostly copy | 35-55 |
+| Tavily client and normalization | Pure logic adapted | 140-190 |
+| URL/DNS/redirect safety | Pure logic adapted | 220-300 |
+| Codex event, usage, timeout, and auth-error behavior | Pure behavior reimplemented | 150-220 |
+| Local MCP server wiring | Behavior reimplemented | 70-110 |
+| YouTube transcript helper | Pure logic adapted | 60-90 |
+| PDF extraction helper | Pure logic adapted | 50-80 |
+| **Total** |  | **940-1,355** |
 
-“Mostly copy” still means changing imports, types, names, comments, and tests so
-the result is a normal local module. “Reimplemented” means the Hermes behavior is
+"Mostly copy" still means changing imports, types, names, comments, and tests so
+the result is a normal local module. "Reimplemented" means the Hermes behavior is
 useful evidence, but copying the source would import too much coupling or
 duplicate an official SDK feature.
 
@@ -304,15 +304,15 @@ duplicate an official SDK feature.
 
 | Area | Estimated non-test LOC |
 |---|---:|
-| Domain schemas and artifact validation | 500–750 |
-| Bounded workflow kernel, job state, cancellation, checkpoints | 350–500 |
-| Research service, evidence ledger, citation validation | 500–750 |
-| Education generation stages and quality checks | 500–750 |
-| Remaining document/media ingestion | 300–500 |
-| Request identity, webhook, authorization, idempotency | 250–400 |
-| Deterministic render/delivery layer | 300–450 |
-| Policy, focused redaction, observability | 200–300 |
-| **Total** | **2,900–4,400** |
+| Domain schemas and artifact validation | 500-750 |
+| Bounded workflow kernel, job state, cancellation, checkpoints | 350-500 |
+| Research service, evidence ledger, citation validation | 500-750 |
+| Education generation stages and quality checks | 500-750 |
+| Remaining document/media ingestion | 300-500 |
+| Request identity, webhook, authorization, idempotency | 250-400 |
+| Deterministic render/delivery layer | 300-450 |
+| Policy, focused redaction, observability | 200-300 |
+| **Total** | **2,900-4,400** |
 
 ## Source and symbol inventory
 
@@ -333,7 +333,7 @@ must not become runtime paths.
 - Remove: Hermes-specific naming and any assumption that a single model loop is
   the entire job.
 - Destination: `src/txt2crs/ai/budgets.py`.
-- Estimate: 35–50 adapted LOC.
+- Estimate: 35-50 adapted LOC.
 - Tests to port conceptually:
   [`/home/aiwithapex/projects/hermes/tests/run_agent/test_iteration_budget_race.py`](/home/aiwithapex/projects/hermes/tests/run_agent/test_iteration_budget_race.py).
 
@@ -355,7 +355,7 @@ subscription quota.
 - Remove: Hermes tool-name conventions, result classifiers, registry access,
   and generic function-call payloads.
 - Destination: `src/txt2crs/ai/tool_guardrails.py`.
-- Estimate: 180–260 adapted LOC.
+- Estimate: 180-260 adapted LOC.
 - Tests to adapt:
   [`/home/aiwithapex/projects/hermes/tests/agent/test_tool_guardrails.py`](/home/aiwithapex/projects/hermes/tests/agent/test_tool_guardrails.py)
   and
@@ -374,7 +374,7 @@ from arbitrary text.
 - Extract: bounded exponential backoff with injected randomness for tests.
 - Remove: provider-specific retry branches.
 - Destination: `src/txt2crs/ai/retry.py`.
-- Estimate: 35–55 adapted LOC.
+- Estimate: 35-55 adapted LOC.
 - Tests to adapt:
   [`/home/aiwithapex/projects/hermes/tests/test_retry_utils.py`](/home/aiwithapex/projects/hermes/tests/test_retry_utils.py).
 
@@ -396,7 +396,7 @@ from arbitrary text.
   environment, Hermes redaction, approval routing, and Hermes run-agent types.
 - Destination: `src/txt2crs/ai/codex_runtime.py`,
   `src/txt2crs/ai/errors.py`, and `src/txt2crs/ai/usage.py`.
-- Estimate: included in the 150–220 LOC Codex behavior allocation.
+- Estimate: included in the 150-220 LOC Codex behavior allocation.
 - Tests to translate:
   [`/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_app_server_session.py`](/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_app_server_session.py),
   [`/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_app_server_runtime.py`](/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_app_server_runtime.py),
@@ -420,7 +420,7 @@ from arbitrary text.
   reasoning display, `AIAgent` coupling, and Responses-API fallback.
 - Destination: `src/txt2crs/ai/events.py` and
   `src/txt2crs/ai/usage.py`.
-- Estimate: included in the 150–220 LOC Codex behavior allocation.
+- Estimate: included in the 150-220 LOC Codex behavior allocation.
 - Tests to translate:
   [`/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_event_projector.py`](/home/aiwithapex/projects/hermes/tests/agent/transports/test_codex_event_projector.py).
 
@@ -440,7 +440,7 @@ private chain-of-thought.
 - Remove: Hermes tool registry, `handle_function_call`, environment plumbing,
   tool discovery, and all unrelated tools.
 - Destination: `src/txt2crs/research/mcp_server.py`.
-- Estimate: 70–110 LOC.
+- Estimate: 70-110 LOC.
 - Tests to translate:
   [`/home/aiwithapex/projects/hermes/tests/agent/transports/test_hermes_tools_mcp_server.py`](/home/aiwithapex/projects/hermes/tests/agent/transports/test_hermes_tools_mcp_server.py).
 
@@ -459,7 +459,7 @@ private chain-of-thought.
 - Remove: Hermes provider base classes, environment lookup, interruption
   globals, provider registry, and arbitrary base-URL configuration.
 - Destination: `src/txt2crs/research/tavily.py`.
-- Estimate: 140–190 adapted LOC.
+- Estimate: 140-190 adapted LOC.
 - Tests to adapt:
   [`/home/aiwithapex/projects/hermes/tests/tools/test_web_tools_tavily.py`](/home/aiwithapex/projects/hermes/tests/tools/test_web_tools_tavily.py).
 
@@ -480,7 +480,7 @@ approved HTTPS origin in production, returns typed `SearchHit` and
 - Remove: Hermes feature flags, provider exceptions, QQ-specific behavior,
   compatibility utilities, and fail-open modes.
 - Destination: `src/txt2crs/security/url_safety.py`.
-- Estimate: 220–300 adapted LOC.
+- Estimate: 220-300 adapted LOC.
 - Tests to adapt:
   [`/home/aiwithapex/projects/hermes/tests/tools/test_url_safety.py`](/home/aiwithapex/projects/hermes/tests/tools/test_url_safety.py).
 
@@ -498,14 +498,14 @@ It must cap redirects, response bytes, decompression, and total fetch time.
   [`/home/aiwithapex/projects/hermes/skills/media/youtube-content/scripts/fetch_transcript.py`](/home/aiwithapex/projects/hermes/skills/media/youtube-content/scripts/fetch_transcript.py).
 - Useful symbols: PDF extraction/metadata helpers; `extract_video_id`,
   `format_timestamp`, `fetch_transcript`.
-- Why: they cover two high-value “any input” forms without importing a large
+- Why: they cover two high-value "any input" forms without importing a large
   ingestion framework.
 - Extract: text/metadata extraction and video-ID/timestamp/transcript logic.
 - Remove: command-line interfaces, file-output behavior, global environment
   reads, and free-form string returns.
 - Destination: `src/txt2crs/ingestion/pdf.py` and
   `src/txt2crs/ingestion/youtube.py`.
-- Estimate: 110–170 adapted LOC combined.
+- Estimate: 110-170 adapted LOC combined.
 - Tests: create local fixtures for malformed PDFs, encrypted PDFs, empty pages,
   transcript absence, alternate YouTube URL forms, timestamps, language
   selection, and maximum size/duration.
@@ -633,7 +633,7 @@ For every stage:
 
 1. Load the last accepted checkpoint and remaining `RunBudget`.
 2. Build a prompt from trusted instructions, versioned task data, and bounded
-   evidence—not raw application secrets or unrelated job content.
+   evidence--not raw application secrets or unrelated job content.
 3. Start or resume an isolated Codex thread.
 4. Stream typed events into a local progress ledger.
 5. Allow only registered research tools.
@@ -724,11 +724,11 @@ bundle and regenerate its schemas.
 | Model discovery | Custom cache/fallback logic | RPC | SDK/app-server model list |
 | Structured output | Custom adapter/validation | `outputSchema` | `output_schema` plus local validation |
 | Tool identity/encrypted reasoning | Application must preserve wire semantics | Server owns semantics | Server/SDK owns semantics |
-| Estimated runtime-specific local code | Roughly 1,900–2,900 adapted LOC | Roughly 1,200–1,800 adapted LOC | **Roughly 220–330 wrapper/MCP LOC** |
+| Estimated runtime-specific local code | Roughly 1,900-2,900 adapted LOC | Roughly 1,200-1,800 adapted LOC | **Roughly 220-330 wrapper/MCP LOC** |
 | Security burden | Highest | Medium | **Lowest** |
 | Decision | Reject | Reject as redundant | **Select** |
 
-The direct path is not “more independent”; it makes `txt2crs` dependent on
+The direct path is not "more independent"; it makes `txt2crs` dependent on
 private protocol behavior. The app-server SDK is an external declared
 dependency, not a Hermes dependency, and is the smallest supportable path.
 
@@ -752,7 +752,7 @@ dependency, not a Hermes dependency, and is the smallest supportable path.
    application user.
 8. Never place access tokens in the database, events, analytics, exception
    telemetry, prompts, or research tools.
-9. Surface “reauthentication required” without echoing provider response bodies.
+9. Surface "reauthentication required" without echoing provider response bodies.
 
 Codex stores login details in its configured credential store and automatically
 refreshes them; file-based credentials must be treated like passwords. The
@@ -1194,7 +1194,7 @@ The extraction is complete only when all of the following are true.
 - Dependency locks contain no Hermes package, VCS/path reference, or submodule.
 - No executable source launches, imports, calls, locates, or reads Hermes.
 - No configuration or deployment artifact mounts Hermes or `~/.hermes`.
-- Any remaining word “Hermes” is limited to reviewed documentation, license, or
+- Any remaining word "Hermes" is limited to reviewed documentation, license, or
   provenance comments.
 
 ### Subscription runtime
@@ -1274,5 +1274,5 @@ official runtime.
 
 This is the smallest code pull that can fulfill the complete AI needs while
 honoring the hard rule that Hermes disappears after extraction: approximately
-**940–1,355 adapted donor LOC**, **2,900–4,400 new local LOC**, and no Hermes
+**940-1,355 adapted donor LOC**, **2,900-4,400 new local LOC**, and no Hermes
 runtime dependency of any kind.

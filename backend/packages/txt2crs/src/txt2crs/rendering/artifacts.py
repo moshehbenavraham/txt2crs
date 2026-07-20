@@ -610,7 +610,7 @@ class ArtifactRenderer:
                 else title
             )
             html_parts.append(
-                f'<li id="source-{index}">{source_text} — '
+                f'<li id="source-{index}">{source_text} \u2014 '
                 f"{escape(source.publisher_or_author)}</li>"
             )
         html_parts.append("</ol></section></body></html>")
@@ -897,7 +897,7 @@ class ArtifactRenderer:
             parts.append("</ul><h3>Rubric</h3><ul>")
             parts.extend(
                 f"<li>{escape(criterion.criterion)}: "
-                f"{criterion.points} — {escape(criterion.description)}</li>"
+                f"{criterion.points} \u2014 {escape(criterion.description)}</li>"
                 for criterion in answer.rubric
             )
             parts.append("</ul></article>")
@@ -1154,7 +1154,8 @@ class ArtifactRenderer:
             )
             lines.extend(["", "**Rubric**", ""])
             lines.extend(
-                f"- {criterion.criterion}: {criterion.points} — {criterion.description}"
+                f"- {criterion.criterion}: {criterion.points} \u2014 "
+                f"{criterion.description}"
                 for criterion in answer.rubric
             )
             lines.append("")

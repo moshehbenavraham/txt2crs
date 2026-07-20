@@ -39,7 +39,7 @@ def test_filename_is_deterministic_ascii_and_path_safe() -> None:
     """Filename generation never needs a model and cannot traverse paths."""
 
     assert derive_safe_filename("../../Python: Variables?!") == "python-variables"
-    assert derive_safe_filename("  קורס Python  ") == "python"
+    assert derive_safe_filename("  \u05e7\u05d5\u05e8\u05e1 Python  ") == "python"
     assert derive_safe_filename("...") == "course"
 
 
@@ -393,7 +393,9 @@ def test_rtl_course_uses_document_direction_and_searchable_pdf() -> None:
 
     bundle = valid_bundle()
     bundle.course.language = "he"
-    bundle.course.title = "מבוא למשתנים"
+    bundle.course.title = (
+        "\u05de\u05d1\u05d5\u05d0 \u05dc\u05de\u05e9\u05ea\u05e0\u05d9\u05dd"
+    )
     rendered = ArtifactRenderer().render_bundle(bundle)
 
     course_html = rendered["course_html"].content.decode("utf-8")

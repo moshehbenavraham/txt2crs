@@ -3,7 +3,7 @@
 **Session ID**: `phase05-session01-release-hardening-and-live-proof`
 **Package**: null (cross-cutting)
 **Started**: 2026-07-20 09:13 IDT
-**Last Updated**: 2026-07-20 14:59 IDT
+**Last Updated**: 2026-07-20 15:22 IDT
 
 ---
 
@@ -1223,4 +1223,18 @@ must identify the same immutable revision.
   Review repairs are intentionally not relabeled as that already-proven live
   revision. Session 02 must rebuild and revalidate its final immutable commit
   before creating `v1.0.0`.
+- Next command: `validate`.
+
+### Checkpoint 6
+
+- The Apex validation changed-file scan identified three session-touched files
+  that retained Unicode bytes from the recorded base commit. The stricter
+  current-file gate failed even though the earlier added-line gate passed.
+- Normalized donor-document punctuation to ASCII and replaced the renderer's
+  em dash plus Hebrew test data with ASCII `\u` escapes. Runtime strings and
+  multilingual filename behavior remain unchanged.
+- The complete base-to-working-tree inventory now contains 444 current regular
+  changed paths, one deleted compatibility fixture, zero non-ASCII files, and
+  zero CRLF files. All 21 renderer tests, Ruff format, and Ruff lint pass.
+- The code-review report now records this fourth low finding as resolved.
 - Next command: `validate`.

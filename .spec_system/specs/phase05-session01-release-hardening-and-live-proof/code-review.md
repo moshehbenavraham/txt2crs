@@ -128,6 +128,13 @@ No critical findings.
   - The completed task list still told the next agent to rerun `implement`.
   Fix: advance the handoff through `creview` and now to `validate`. Status:
   FIXED.
+- `backend/packages/txt2crs/docs/HERMES_MINIMUM_CODE_PULL_EVALUATION.md`,
+  `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py`,
+  `backend/packages/txt2crs/tests/unit/test_rendering.py` - The validation
+  changed-file scan found Unicode bytes that predated the session but remained
+  in three session-touched files. Fix: normalize donor-document punctuation to
+  ASCII and express the renderer's em dash plus Hebrew test data with ASCII
+  `\u` escapes, preserving runtime output. Status: FIXED.
 
 ## Assumptions and Deliberate Non-Fixes
 
@@ -187,7 +194,7 @@ No critical findings.
 | Hooks | `pre-commit run --all-files` | PASS | All 15 hooks passed after one mechanical Ruff format |
 | Candidate identity | Repository/evidence validators, canonical regeneration, `cmp`, `sha256sum` | PASS | Exact `a807008...`; canonical hash `43e811...bbbd`; byte-identical |
 | Secret/diff/tag hygiene | `git diff --check`, redacted Gitleaks stdin scan of base diff, untracked/tag/resource inspections | PASS | No leak, whitespace error, untracked input, `v1.0.0` tag, temporary database, or temporary image |
-| Text conventions | Added-line ASCII and CRLF scan over the complete base diff | PASS | All added lines ASCII and LF; smart-punctuation test uses ASCII `\\u` escapes |
+| Text conventions | Current-file ASCII/CRLF scan over the complete base diff plus focused renderer test | PASS | All 444 current regular changed paths are ASCII/LF; one path is a deleted compatibility fixture; 21 renderer tests preserve Unicode behavior through ASCII `\\u` escapes |
 | Final diff re-read | `git diff "$BASE"` plus generated-fixture provenance and untracked inventory | PASS | All 445 final paths reviewed; no unresolved finding or debug artifact |
 
 ## Security and Behavioral Review
@@ -212,7 +219,7 @@ No critical findings.
 1. Reviewed all 444 implementation paths since the exact base plus this report,
    including 12 commits, 339 protocol-fixture paths, 21 archive moves, and 84
    other source/test/config/docs paths.
-2. Resolved 0 critical, 3 high, 6 medium, and 3 low findings; every code or
+2. Resolved 0 critical, 3 high, 6 medium, and 4 low findings; every code or
    tooling correction has a regression or exact static/runtime proof.
 3. Preserved the exact historical live candidate identity instead of
    relabeling later repairs; Session 02 owns final immutable rebuild/tag proof.
@@ -221,7 +228,7 @@ No critical findings.
 
 Summary:
 - Reviewed all changes since base commit `8758080` (445 final paths)
-- Findings: 0 critical, 3 high, 6 medium, 3 low; all resolved
+- Findings: 0 critical, 3 high, 6 medium, 4 low; all resolved
 - Evidence: full engine/backend/frontend suites, migrations, image inspection,
   release/canonical checks, concurrent codegen, hooks, Gitleaks, and final diff
 - Remaining blockers: none
