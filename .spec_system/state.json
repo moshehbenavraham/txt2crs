@@ -129,12 +129,6 @@
   "next_session_history": [
     {
       "date": "2026-07-19",
-      "session": "phase02-session04-system-readiness-and-auth-api",
-      "package": "backend",
-      "status": "completed"
-    },
-    {
-      "date": "2026-07-19",
       "session": "phase02-session05-operator-setup-experience",
       "package": "frontend",
       "status": "planned"
@@ -243,6 +237,11 @@
       "date": "2026-07-20",
       "session": "phase05-session01-release-hardening-and-live-proof",
       "status": "planned"
+    },
+    {
+      "date": "2026-07-20",
+      "session": "phase05-session01-release-hardening-and-live-proof",
+      "status": "validated"
     }
   ]
 }
