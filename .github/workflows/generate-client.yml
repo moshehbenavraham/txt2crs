@@ -6,12 +6,17 @@ on:
       - opened
       - synchronize
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
   generate-client:
+    name: Generate and verify the API client
     permissions:
-      contents: write
+      contents: write # May commit the deterministic client on same-repository PRs.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

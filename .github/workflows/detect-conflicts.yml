@@ -5,13 +5,18 @@ on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] -- The pinned action reads merge metadata and never checks out pull request code.
     types: [synchronize]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
   main:
+    name: Label merge conflicts
     permissions:
       contents: read
-      pull-requests: write
+      pull-requests: write # Adds and removes the configured conflict label.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

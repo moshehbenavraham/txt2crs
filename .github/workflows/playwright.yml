@@ -16,15 +16,20 @@ on:
         required: false
         default: 'false'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
   changes:
+    name: Detect browser-relevant changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: read # Reads changed paths to select the browser test job.
     # Set job outputs to values from filter step
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
@@ -45,6 +50,7 @@ jobs:
             - .github/workflows/playwright.yml
 
   test-playwright:
+    name: Run Playwright shard ${{ matrix.shardIndex }} of ${{ matrix.shardTotal }}
     needs:
       - changes
     if: ${{ needs.changes.outputs.changed == 'true' }}
@@ -86,7 +92,10 @@ jobs:
     - if: always()
       run: docker compose down -v --remove-orphans
     - name: Run Playwright tests
-      run: docker compose run --rm playwright npx playwright test --fail-on-flaky-tests --trace=retain-on-failure --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      env:
+        SHARD_INDEX: ${{ matrix.shardIndex }}
+        SHARD_TOTAL: ${{ matrix.shardTotal }}
+      run: docker compose run --rm playwright npx playwright test --fail-on-flaky-tests --trace=retain-on-failure --shard="${SHARD_INDEX}/${SHARD_TOTAL}"
     - run: docker compose down -v --remove-orphans
     - name: Upload blob report to GitHub Actions Artifacts
       if: ${{ !cancelled() }}
@@ -98,6 +107,7 @@ jobs:
         retention-days: 1
 
   merge-playwright-reports:
+    name: Merge Playwright reports
     needs:
       - test-playwright
       - changes
@@ -136,6 +146,7 @@ jobs:
 
   # https://github.com/marketplace/actions/alls-green#why
   alls-green-playwright:  # This job does nothing and is only used for the branch protection
+    name: Require all Playwright jobs
     if: always()
     needs:
       - test-playwright

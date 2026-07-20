@@ -94,7 +94,7 @@ repos:
 
       - id: zizmor
         name: Zizmor
-        entry: bash -c 'cd backend && uv run zizmor ../.github/workflows'
+        entry: bash -c 'cd backend && uv run zizmor --pedantic ../.github/workflows'
         language: system
         files: ^\.github/workflows/
         require_serial: true

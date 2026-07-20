@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      actions: read
+      actions: read # Lets CodeQL coordinate analysis workflow metadata.
       contents: read
-      packages: read
-      security-events: write
+      packages: read # Lets CodeQL resolve repository packages.
+      security-events: write # Uploads SARIF to the repository security view.
     strategy:
       fail-fast: false
       matrix:

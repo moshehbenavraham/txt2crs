@@ -10,11 +10,16 @@ on:
       - opened
       - synchronize
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
 
   test-docker-compose:
+    name: Test the Compose application
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

@@ -11,16 +11,21 @@ on:
       - frontend/package.json
       - frontend/package-lock.json
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
   check-author:
+    name: Restrict dependency changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      issues: write # Adds one explanation to an untrusted dependency PR.
+      pull-requests: write # Closes an untrusted dependency PR.
     steps:
       - name: Restrict dependency changes to trusted authors
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
