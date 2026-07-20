@@ -13,7 +13,7 @@ historical live proof is tied to exact source revision
 job completed with exactly sixteen verified artifacts. Every inspection row
 passes and the canonical public ledger passes the strict evidence validator.
 
-All tracked judge assets are complete. The final annotated `v1.0.2` tag is
+All tracked judge assets are complete. The final annotated `v1.0.3` tag is
 intentionally left to the human release operator after one final review of the
 exact current commit. Tag creation and pushing are human-only actions. A
 tracked change after the tag requires a new SemVer release.
@@ -34,7 +34,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.0.2 \
+  --expected-version 1.0.3 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```
@@ -97,7 +97,7 @@ operator then:
 4. rebuild and inspect both production images;
 5. run production health and replacement smoke checks;
 6. grants both required reviewers private repository access;
-7. creates annotated tag `v1.0.2` on that exact commit;
+7. creates annotated tag `v1.0.3` on that exact commit;
 8. pushes the commit and tag and verifies the remote refs;
 9. publishes the verified demo video; and
 10. completes and submits the Education entry on Devpost.

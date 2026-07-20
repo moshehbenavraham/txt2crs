@@ -14,8 +14,13 @@ cp .env.example .env
 ./scripts/start-local.sh
 ```
 
-The startup assistant checks `.env`, Docker, Compose, and host ports before
-delegating to `docker compose up --detach --build --wait`. Docker reports the
+The startup assistant checks `.env`, Docker, Compose, and host ports before it
+starts PostgreSQL alone. It verifies the configured password over authenticated
+container networking and, when a preserved local volume has an older password,
+updates that database role in place without deleting records or printing the
+secret. It then delegates to `docker compose up --detach --build --wait`.
+The optional Playwright runner is available through its explicit `test` profile
+and does not participate in ordinary application startup. Docker reports the
 database, backend, and frontend as healthy before the command succeeds. Verify
 the public local probes:
 

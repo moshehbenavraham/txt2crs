@@ -121,11 +121,15 @@ the shared judge/demo profile.
 ```
 
 The startup assistant validates `.env`, Docker, Compose, and local port
-availability before running the authoritative
-`docker compose up --detach --build --wait` deployment. It waits for declared
-health checks, prints bounded diagnostics on failure, and shows the exact
-application and setup URLs on success. It is safe to run repeatedly and never
-deletes named volumes or globally prunes Docker state.
+availability, then starts PostgreSQL first and verifies the configured password
+over the same authenticated network path used by the backend. If a preserved
+local volume still has an older password, the assistant updates that role in
+place without deleting records or printing the secret. It then runs the
+authoritative `docker compose up --detach --build --wait` deployment, excluding
+the explicit test-only Playwright profile. It waits for declared health checks,
+prints bounded diagnostics on failure, and shows the exact application and
+setup URLs on success. It is safe to run repeatedly and never deletes named
+volumes or globally prunes Docker state.
 
 Open:
 
@@ -325,8 +329,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.0.2`. The human release
-operator creates the final annotated `v1.0.2` tag only after all tracked judge
+The current synchronized release version is `1.0.3`. The human release
+operator creates the final annotated `v1.0.3` tag only after all tracked judge
 assets are final and the exact commit passes the existing distribution,
 production-image, health, replacement, and privacy checks.
 

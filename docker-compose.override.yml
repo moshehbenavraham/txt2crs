@@ -152,6 +152,11 @@ services:
         - NODE_ENV=development
 
   playwright:
+    # Playwright is a one-shot test runner, not a long-running application
+    # service. Explicit `docker compose run playwright ...` commands still
+    # enable this profile automatically, while ordinary `up --wait` excludes
+    # the successful exit that Compose would otherwise report as a failure.
+    profiles: ["test"]
     build:
       context: ./frontend
       dockerfile: Dockerfile.playwright

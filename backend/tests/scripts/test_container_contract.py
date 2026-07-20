@@ -195,6 +195,15 @@ def test_development_override_keeps_a_single_reload_process() -> None:
     assert "--workers" not in backend_service
 
 
+def test_optional_playwright_runner_does_not_join_default_startup() -> None:
+    """A successful one-shot test runner must not fail Compose's global wait."""
+
+    compose_override_text = _read_repository_file(COMPOSE_OVERRIDE_FILE)
+    playwright_service = _compose_service(compose_override_text, "playwright")
+
+    assert 'profiles: ["test"]' in playwright_service
+
+
 def test_development_override_exposes_only_repository_contract_inputs() -> None:
     """Container tests may read public contracts without mounting secrets or Git."""
 

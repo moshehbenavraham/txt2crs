@@ -18,9 +18,11 @@ cp .env.example .env
 ```
 
 The judge-facing assistant performs non-destructive environment, Docker,
-Compose, and port preflight checks before it runs the authoritative
-`docker compose up --detach --build --wait` command. It starts the complete
-application topology:
+Compose, and port preflight checks, starts PostgreSQL, and reconciles a
+preserved local volume's role password with `.env` without deleting records.
+It then runs the authoritative `docker compose up --detach --build --wait`
+command. The explicit test-only Playwright profile stays outside ordinary
+application startup. The command starts the complete application topology:
 
 - PostgreSQL with persistent application data;
 - one non-root FastAPI process hosting the reusable engine;

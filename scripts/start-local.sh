@@ -591,6 +591,99 @@ else
 fi
 
 print_info_line "Compose will preserve existing named volumes."
+
+# PostgreSQL reads POSTGRES_PASSWORD only while initializing an empty data
+# directory. A judge may reasonably change .env and rerun this safe command
+# while keeping the named volume. Start only the database first so we can test
+# the password over its non-loopback address, which exercises the same SCRAM
+# authentication rule used by the backend container.
+verify_local_database_password() {
+    "${COMPOSE_COMMAND[@]}" exec -T db bash -ceu '
+        PGPASSWORD="$POSTGRES_PASSWORD" psql \
+            --host "$HOSTNAME" \
+            --username "$POSTGRES_USER" \
+            --dbname "$POSTGRES_DB" \
+            --no-psqlrc \
+            --tuples-only \
+            --no-align \
+            --command "SELECT 1;" >/dev/null
+    '
+}
+
+# The official PostgreSQL image trusts local Unix-socket connections inside
+# the database container. Use that narrow local recovery path to make the
+# current .env password authoritative without dropping the volume or exposing
+# the secret in terminal output or the host process arguments.
+synchronize_local_database_password() {
+    print_warning_line \
+        "The existing database volume uses an older password; synchronizing it."
+
+    if ! "${COMPOSE_COMMAND[@]}" exec -T db bash -ceu '
+        escaped_database_role="$(
+            printf "%s" "$POSTGRES_USER" | sed "s/\"/\"\"/g"
+        )"
+        escaped_database_password="$(
+            printf "%s" "$POSTGRES_PASSWORD" | sed "s/'"'"'/'"'"''"'"'/g"
+        )"
+        printf "ALTER ROLE \"%s\" WITH PASSWORD '\''%s'\'';\n" \
+            "$escaped_database_role" "$escaped_database_password" |
+            psql \
+                --username "$POSTGRES_USER" \
+                --dbname "$POSTGRES_DB" \
+                --no-psqlrc \
+                --set ON_ERROR_STOP=1 >/dev/null
+    '; then
+        print_error_heading "DATABASE PASSWORD SYNC FAILED"
+        cat >&2 <<'EOF'
+
+The existing PostgreSQL volume could not adopt the credentials from .env.
+No volume was deleted. Review the database log and configured role name.
+EOF
+        "${COMPOSE_COMMAND[@]}" logs --no-color --tail 40 db || true
+        return 1
+    fi
+
+    if ! verify_local_database_password 2>/dev/null; then
+        print_error_heading "DATABASE PASSWORD VERIFICATION FAILED"
+        cat >&2 <<'EOF'
+
+PostgreSQL accepted the password update but remote authentication still fails.
+No volume was deleted. Review the database authentication configuration.
+EOF
+        return 1
+    fi
+
+    print_success_line "Database password matches the current .env configuration."
+}
+
+prepare_local_database() {
+    print_info_line "Starting PostgreSQL and validating persisted credentials."
+    if ! "${COMPOSE_COMMAND[@]}" up --detach --wait db; then
+        print_error_heading "DATABASE START FAILED"
+        cat >&2 <<'EOF'
+
+PostgreSQL did not reach its declared healthy state.
+No volume was deleted. The last 40 database log lines follow.
+EOF
+        "${COMPOSE_COMMAND[@]}" logs --no-color --tail 40 db || true
+        return 1
+    fi
+
+    if verify_local_database_password 2>/dev/null; then
+        print_success_line "Database password matches the current .env configuration."
+        return 0
+    fi
+
+    synchronize_local_database_password
+}
+
+if prepare_local_database; then
+    :
+else
+    database_preparation_exit_code=$?
+    exit "$database_preparation_exit_code"
+fi
+
 if [[ "$BUILD_IMAGES" == true ]]; then
     print_info_line "Building current backend and frontend images."
     if "${COMPOSE_COMMAND[@]}" up --detach --build --wait; then

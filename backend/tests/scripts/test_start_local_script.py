@@ -101,8 +101,21 @@ EOF
                 "current-full-container-id|txt2crs-frontend-1|0.0.0.0:5195->80/tcp"
         fi
         ;;
+    *" exec -T db bash -ceu "*"SELECT 1"*)
+        if [ "${FAKE_DOCKER_MODE:-success}" = "password-mismatch" ] &&
+            [ ! -f "$FAKE_DOCKER_PASSWORD_SYNC_MARKER" ]; then
+            printf '%s\\n' "fake password authentication failure" >&2
+            exit 1
+        fi
+        printf '%s\\n' "fake database password accepted"
+        ;;
+    *" exec -T db bash -ceu "*"ALTER ROLE"*)
+        : > "$FAKE_DOCKER_PASSWORD_SYNC_MARKER"
+        printf '%s\\n' "fake database password synchronized"
+        ;;
     *" up "*)
-        if [ "${FAKE_DOCKER_MODE:-success}" = "up-failure" ]; then
+        if [ "${FAKE_DOCKER_MODE:-success}" = "up-failure" ] &&
+            [[ " $* " != *" up --detach --wait db "* ]]; then
             printf '%s\\n' "fake compose startup failure" >&2
             exit 1
         fi
@@ -153,10 +166,12 @@ def _make_test_project(
     fake_docker.chmod(fake_docker.stat().st_mode | stat.S_IXUSR)
 
     fake_docker_log = temporary_path / "docker.log"
+    fake_docker_password_sync_marker = temporary_path / "password-synchronized"
     process_environment = os.environ.copy()
     process_environment.update(
         {
             "FAKE_DOCKER_LOG": str(fake_docker_log),
+            "FAKE_DOCKER_PASSWORD_SYNC_MARKER": str(fake_docker_password_sync_marker),
             "NO_COLOR": "1",
             "PATH": f"{fake_binary_directory}:{process_environment['PATH']}",
         }
@@ -308,12 +323,37 @@ def test_default_start_validates_compose_builds_waits_and_prints_next_steps(
 
     assert result.returncode == 0, combined_output
     assert "config --quiet" in docker_commands
+    assert "up --detach --wait db" in docker_commands
+    assert "SELECT 1" in docker_commands
+    assert "ALTER ROLE" not in docker_commands
     assert "up --detach --build --wait" in docker_commands
     assert "TXT2CRS IS READY" in combined_output
     assert "http://localhost:5195" in combined_output
     assert "http://localhost:8016/docs" in combined_output
     assert "http://localhost:5195/setup" in combined_output
     assert "FIRST_SUPERUSER_PASSWORD" in combined_output
+
+
+def test_stale_database_password_is_synchronized_without_deleting_data(
+    tmp_path: Path,
+) -> None:
+    """A reused volume must adopt .env credentials without losing its records."""
+
+    project_root, fake_docker_log, process_environment = _make_test_project(tmp_path)
+    process_environment["FAKE_DOCKER_MODE"] = "password-mismatch"
+
+    result = _run_start_script(project_root, process_environment)
+    combined_output = result.stdout + result.stderr
+    docker_commands = fake_docker_log.read_text(encoding="ascii")
+
+    assert result.returncode == 0, combined_output
+    assert docker_commands.count("SELECT 1") == 2
+    assert docker_commands.count("ALTER ROLE") == 1
+    assert "database password" in combined_output.lower()
+    assert "test-database-password" not in combined_output
+    assert "test-database-password" not in docker_commands
+    assert "--volumes" not in docker_commands
+    assert "prune" not in docker_commands
 
 
 def test_no_build_status_and_stop_modes_remain_non_destructive(tmp_path: Path) -> None:

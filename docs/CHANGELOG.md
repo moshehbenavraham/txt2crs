@@ -22,6 +22,28 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.0.3] - 2026-07-21
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Reconciled PostgreSQL role passwords with the current local `.env` during
+  judge startup so preserved database volumes no longer leave `prestart`
+  retrying authentication for five minutes; the recovery preserves records and
+  does not print the configured secret.
+- Moved the one-shot Playwright container behind its explicit `test` profile so
+  a successful test-runner exit no longer makes ordinary Compose health waiting
+  report a healthy deployment as failed.
+
+### Security
+
 ## [1.0.2] - 2026-07-21
 
 ### Added
