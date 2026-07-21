@@ -120,14 +120,17 @@ def assessment_package_data() -> dict[str, Any]:
     }
 
 
-def frozen_evidence() -> FrozenEvidenceSet:
+def frozen_evidence(
+    *,
+    quality_warnings: list[str] | None = None,
+) -> FrozenEvidenceSet:
     """Freeze the same source and excerpt used by the final course."""
 
     course_data = valid_course_data()
     ledger = EvidenceLedger()
     ledger.add_source(SourceRecord.model_validate(course_data["sources"][0]))
     ledger.add_excerpt(EvidenceExcerpt.model_validate(course_data["evidence"][0]))
-    return ledger.freeze()
+    return ledger.freeze(quality_warnings=quality_warnings)
 
 
 def frozen_education_evidence() -> FrozenEvidenceSet:
@@ -503,17 +506,25 @@ def test_pipeline_retries_one_transient_model_transport_failure() -> None:
     assert all(usage.retries == 0 for usage in result.usage_records[1:])
 
 
-def test_pipeline_refuses_to_call_an_empty_result_deep_researched() -> None:
-    """The product promise fails explicitly when no research evidence exists."""
+def test_pipeline_reports_research_quality_warning_without_failing_generation() -> None:
+    """A research-floor warning reaches final output instead of killing the job."""
 
-    empty_ledger = EvidenceLedger()
-    pipeline = pipeline_with_evidence(empty_ledger.freeze())
+    research_warning = (
+        "Research coverage warning: Collected sources did not meet the plan's "
+        "authoritative-source target."
+    )
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(quality_warnings=[research_warning])
+    )
 
-    with pytest.raises(PipelineGenerationError, match="research"):
-        pipeline.generate(
-            preparation=prepared_generation_for_pipeline(),
-            cancellation=CancellationToken(),
-        )
+    result = pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+    )
+
+    assert result.course.course_id == "course-python-basics"
+    assert research_warning in result.course.unresolved_or_conflicting_claims
+    assert len(result.rendered_artifacts) == 16
 
 
 def test_pipeline_cancellation_stops_before_checkpointable_output() -> None:

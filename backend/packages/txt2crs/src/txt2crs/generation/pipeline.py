@@ -1218,9 +1218,16 @@ def _assemble_course(
         ],
         unresolved_or_conflicting_claims=list(
             dict.fromkeys(
-                unresolved_claim
-                for module_draft in module_drafts
-                for unresolved_claim in (module_draft.unresolved_or_conflicting_claims)
+                [
+                    *evidence_set.quality_warnings,
+                    *(
+                        unresolved_claim
+                        for module_draft in module_drafts
+                        for unresolved_claim in (
+                            module_draft.unresolved_or_conflicting_claims
+                        )
+                    ),
+                ]
             )
         ),
         evidence=evidence_set.excerpts,

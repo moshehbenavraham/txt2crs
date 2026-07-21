@@ -6,11 +6,16 @@ from pydantic import Field, model_validator
 
 from txt2crs.domain.models import StrictContract
 
+# Tavily rejects search queries above 400 characters.  Keep the boundary in
+# the provider-neutral request contract so every caller fails locally and the
+# coordinator can deliberately fit generated queries before any paid request.
+MAXIMUM_SEARCH_QUERY_CHARACTERS = 400
+
 
 class SearchRequest(StrictContract):
     """A focused, bounded public-web search."""
 
-    query: str = Field(min_length=2, max_length=500)
+    query: str = Field(min_length=2, max_length=MAXIMUM_SEARCH_QUERY_CHARACTERS)
     maximum_results: int = Field(default=5, ge=1, le=10)
 
 

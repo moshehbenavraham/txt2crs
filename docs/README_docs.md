@@ -30,6 +30,13 @@ live under `backend/packages/txt2crs/docs/`.
 
 - [Product requirements](../.spec_system/PRD/PRD.md) contain the completed
   phased build plan and current durable requirements.
+- [Course generation logging plan](ongoing-projects/COURSE_GENERATION_LOGGING_PLAN.md)
+  defines the proposed test-first work needed for safe, correlated, high-quality
+  generation diagnostics.
+- [PostgreSQL artifact storage plan](ongoing-projects/POSTGRES_ARTIFACT_STORAGE_PLAN.md)
+  defines the future decision gates, schema direction, migration phases,
+  recovery semantics, and rollback requirements for storing rendered files in
+  PostgreSQL.
 - [Apex considerations](../.spec_system/CONSIDERATIONS.md) retain active
   architecture constraints and institutional memory.
 - [Changelog](CHANGELOG.md) records completed user-visible and engineering

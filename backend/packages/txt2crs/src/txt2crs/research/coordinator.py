@@ -17,6 +17,7 @@ from txt2crs.domain.models import (
 )
 from txt2crs.research.evidence import EvidenceLedger, FrozenEvidenceSet, hash_text
 from txt2crs.research.models import (
+    MAXIMUM_SEARCH_QUERY_CHARACTERS,
     ExtractRequest,
     ExtractResult,
     SearchRequest,
@@ -24,7 +25,6 @@ from txt2crs.research.models import (
 )
 from txt2crs.research.quality import (
     EvidenceCandidate,
-    EvidenceSelectionError,
     rank_and_select_evidence,
 )
 
@@ -50,9 +50,16 @@ _COMMUNITY_DOMAINS = frozenset(
 _STANDARDS_DOMAINS = frozenset({"ietf.org", "rfc-editor.org", "w3.org", "iso.org"})
 _ACADEMIC_DOMAINS = frozenset({"arxiv.org"})
 _EDUCATION_RESEARCH_PATTERN = re.compile(
-    r"(?i)\b(?:assessment design|cognitive load|education research|"
-    r"instructional design|learning objectives?|pedagog\w*|retrieval practice|"
-    r"teaching methods?)\b"
+    # Education sources use much broader vocabulary than the original six
+    # exact phrases.  Keep the expressions specific enough that, for example,
+    # "machine learning" does not count as pedagogy, while common phrases such
+    # as "writing instruction" and "educational measurement" do.
+    r"(?i)\b(?:assessment(?: design| practice| strategy| validity)?|"
+    r"cognitive (?:load|science)|curricul\w*|educat\w*|feedback|"
+    r"guided practice|instructional design|(?:direct|explicit|writing) instruction|"
+    r"learning[-\s]+(?:activities|activity|design|objectives?|outcomes?|science|"
+    r"strategies|strategy|theor(?:y|ies))|pedagog\w*|retrieval practice|"
+    r"scaffold\w*|student learning|teaching methods?)\b"
 )
 _TRACKING_QUERY_KEYS = frozenset(
     {
@@ -63,6 +70,15 @@ _TRACKING_QUERY_KEYS = frozenset(
         "ref",
         "source",
     }
+)
+
+_AUTHORITY_COVERAGE_WARNING = (
+    "Research coverage warning: Collected sources did not meet the plan's "
+    "authoritative-source target."
+)
+_EDUCATION_COVERAGE_WARNING = (
+    "Research coverage warning: Collected sources did not meet the plan's "
+    "education-evidence target."
 )
 
 
@@ -123,12 +139,51 @@ class ResearchCoordinatorService:
                 1,
                 (remaining_sources + remaining_questions - 1) // remaining_questions,
             )
+            # Tavily optimizes for topical relevance and can return a complete
+            # set of plausible blog posts even when the accepted plan requires
+            # university, government, standards, or academic evidence.  Keep
+            # each still-unmet floor explicit in the provider query instead of
+            # discovering only after the final extract that the whole job can
+            # never pass its deterministic evidence gate.
+            authoritative_candidate_count = sum(
+                candidate.authority_tier in {"primary", "authoritative"}
+                for _source, _excerpt, candidate in candidate_records.values()
+            )
+            education_candidate_count = sum(
+                _is_education_research(
+                    source_title=source.title,
+                    excerpt_text=excerpt.excerpt,
+                )
+                for source, excerpt, _candidate in candidate_records.values()
+            )
+            education_sources_still_required = max(
+                0,
+                research_plan.minimum_education_sources - education_candidate_count,
+            )
+            question_targets_education = _is_education_research(
+                source_title=question.question,
+                excerpt_text=" ".join(question.preferred_source_types),
+            )
             search_result = self._tools.search(
                 SearchRequest(
                     query=_build_search_query(
                         question=question.question,
                         preferred_source_types=question.preferred_source_types,
                         primary_domains=self._primary_domains,
+                        require_authoritative_source=(
+                            authoritative_candidate_count
+                            < research_plan.minimum_authoritative_sources
+                        ),
+                        require_education_source=(
+                            education_sources_still_required > 0
+                            and (
+                                question_targets_education
+                                # If a provider did not satisfy an earlier
+                                # focused question, use the final available
+                                # question as a bounded recovery opportunity.
+                                or remaining_questions == 1
+                            )
+                        ),
                     ),
                     maximum_results=min(
                         10,
@@ -254,7 +309,7 @@ class ResearchCoordinatorService:
             maximum_per_source=1,
             high_risk_claim=high_risk_course,
         )
-        validate_evidence_requirements(
+        quality_warnings = validate_evidence_requirements(
             research_plan=research_plan,
             selected_candidates=[score.candidate for score in selected_scores],
             education_evidence_ids={
@@ -276,7 +331,10 @@ class ResearchCoordinatorService:
             ]
             ledger.add_source(source)
             ledger.add_excerpt(excerpt)
-        return ledger.freeze(selection_scores=selected_scores)
+        return ledger.freeze(
+            selection_scores=selected_scores,
+            quality_warnings=quality_warnings,
+        )
 
 
 def validate_evidence_requirements(
@@ -284,42 +342,39 @@ def validate_evidence_requirements(
     research_plan: ResearchPlan,
     selected_candidates: list[EvidenceCandidate],
     education_evidence_ids: set[str],
-) -> None:
-    """Prove a frozen selection meets the plan, not merely its numeric cap."""
+) -> list[str]:
+    """Return bounded disclosure notes for unmet research-quality targets."""
 
+    quality_warnings: list[str] = []
     authoritative_count = sum(
         candidate.authority_tier in {"primary", "authoritative"}
         for candidate in selected_candidates
     )
     if authoritative_count < research_plan.minimum_authoritative_sources:
-        raise EvidenceSelectionError(
-            "Research plan requires more authoritative evidence."
-        )
+        quality_warnings.append(_AUTHORITY_COVERAGE_WARNING)
     education_count = sum(
         candidate.evidence_id in education_evidence_ids
         for candidate in selected_candidates
     )
     if education_count < research_plan.minimum_education_sources:
-        raise EvidenceSelectionError(
-            "Research plan requires more education or assessment evidence."
-        )
+        quality_warnings.append(_EDUCATION_COVERAGE_WARNING)
+    return quality_warnings
 
 
 def validate_frozen_evidence_requirements(
     *,
     research_plan: ResearchPlan,
     evidence_set: FrozenEvidenceSet,
-) -> None:
-    """Recheck durable evidence when a pipeline resumes from a checkpoint."""
+) -> list[str]:
+    """Recompute bounded quality notes when a pipeline resumes."""
 
+    quality_warnings: list[str] = []
     authoritative_count = sum(
         source.authority_tier in {"primary", "authoritative"}
         for source in evidence_set.sources
     )
     if authoritative_count < research_plan.minimum_authoritative_sources:
-        raise EvidenceSelectionError(
-            "Research plan requires more authoritative evidence."
-        )
+        quality_warnings.append(_AUTHORITY_COVERAGE_WARNING)
     source_by_id = {source.source_id: source for source in evidence_set.sources}
     education_count = sum(
         _is_education_research(
@@ -329,9 +384,8 @@ def validate_frozen_evidence_requirements(
         for excerpt in evidence_set.excerpts
     )
     if education_count < research_plan.minimum_education_sources:
-        raise EvidenceSelectionError(
-            "Research plan requires more education or assessment evidence."
-        )
+        quality_warnings.append(_EDUCATION_COVERAGE_WARNING)
+    return quality_warnings
 
 
 def _build_search_query(
@@ -339,8 +393,10 @@ def _build_search_query(
     question: str,
     preferred_source_types: list[str],
     primary_domains: set[str],
+    require_authoritative_source: bool,
+    require_education_source: bool,
 ) -> str:
-    """Keep plan authority preferences visible to the search provider."""
+    """Keep still-unmet evidence requirements visible to the search provider."""
 
     source_types = ", ".join(preferred_source_types)
     normalized_research_request = " ".join(
@@ -361,7 +417,36 @@ def _build_search_query(
         if relevant_domains
         else ""
     )
-    return f"{question} Preferred source types: {source_types}.{authority_hint}"
+    query_focus_parts: list[str] = []
+    if require_authoritative_source:
+        # Front-load the requirement because provider ranking weighs the first
+        # search terms more reliably than a long preferred-source suffix.
+        query_focus_parts.append(
+            "Authoritative evidence required: university academic research, "
+            "official government guidance, or standards-body sources."
+        )
+    if require_education_source:
+        query_focus_parts.append(
+            "Education evidence required: learning science, instructional design, "
+            "teaching, or assessment research directly relevant to the topic."
+        )
+    query_focus = " ".join(query_focus_parts)
+    if query_focus:
+        query_focus = f"{query_focus} "
+    unbounded_query = (
+        f"{query_focus}{question} Preferred source types: {source_types}."
+        f"{authority_hint}"
+    )
+    if len(unbounded_query) <= MAXIMUM_SEARCH_QUERY_CHARACTERS:
+        return unbounded_query
+
+    # Research plans are model-generated and can legitimately contain a long
+    # question plus several detailed source preferences.  SearchRequest owns a
+    # hard provider-boundary limit, so preserve the front-loaded evidence-floor
+    # focus and topic while trimming only the tail instead of failing the whole
+    # course before its first provider call.
+    truncated_query = unbounded_query[: MAXIMUM_SEARCH_QUERY_CHARACTERS - 3].rstrip()
+    return f"{truncated_query}..."
 
 
 def _canonicalize_url(url: str) -> str:
@@ -446,16 +531,45 @@ def _classify_source(
         return "community", "community"
     if _domain_matches(normalized_hostname, primary_domains):
         return "official_documentation", "primary"
-    if normalized_hostname.endswith(".gov"):
+    if _has_regulated_domain_suffix(
+        normalized_hostname,
+        regulated_labels={"gov", "gouv", "go"},
+    ):
         return "government", "authoritative"
     if _domain_matches(normalized_hostname, _STANDARDS_DOMAINS):
         return "standards_body", "authoritative"
-    if normalized_hostname.endswith(".edu") or _domain_matches(
+    if _has_regulated_domain_suffix(
         normalized_hostname,
-        _ACADEMIC_DOMAINS,
-    ):
+        regulated_labels={"edu", "ac"},
+    ) or _domain_matches(normalized_hostname, _ACADEMIC_DOMAINS):
         return "academic", "authoritative"
     return "reputable_secondary", "secondary"
+
+
+def _has_regulated_domain_suffix(
+    hostname: str,
+    *,
+    regulated_labels: set[str],
+) -> bool:
+    """Recognize both US and country-code institutional domain suffixes.
+
+    US institutions end directly in labels such as ``.edu`` and ``.gov``.
+    Many other registries put the same regulated label before a two-letter
+    country code, for example ``.edu.au``, ``.ac.uk``, and ``.gov.uk``.  The
+    final-label length check deliberately avoids trusting lookalikes such as
+    ``gov.com`` or ``edu.example``.
+    """
+
+    hostname_labels = hostname.split(".")
+    if not hostname_labels:
+        return False
+    if hostname_labels[-1] in regulated_labels:
+        return True
+    return (
+        len(hostname_labels) >= 2
+        and len(hostname_labels[-1]) == 2
+        and hostname_labels[-2] in regulated_labels
+    )
 
 
 def _domain_matches(hostname: str, domains: set[str] | frozenset[str]) -> bool:

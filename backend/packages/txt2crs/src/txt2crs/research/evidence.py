@@ -14,6 +14,7 @@ from txt2crs.domain.models import (
     EvidenceExcerpt,
     HashValue,
     SchemaVersion,
+    ShortText,
     SourceRecord,
     StrictContract,
 )
@@ -69,6 +70,11 @@ class FrozenEvidenceSet(StrictContract):
         default_factory=list,
         max_length=2_000,
     )
+    # Research quality floors guide collection, but missing a floor must not
+    # discard otherwise usable evidence or prevent the educational products
+    # from being generated. These bounded, public-safe notes travel with the
+    # immutable evidence version and are disclosed in final course results.
+    quality_warnings: list[ShortText] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def validate_structure(self) -> "FrozenEvidenceSet":
@@ -100,6 +106,7 @@ class FrozenEvidenceSet(StrictContract):
             self.sources,
             self.excerpts,
             self.selection_scores,
+            self.quality_warnings,
         )
         if expected_version != self.evidence_version:
             raise CitationValidationError(
@@ -160,6 +167,7 @@ class EvidenceLedger:
         self,
         *,
         selection_scores: list[ScoredEvidence] | None = None,
+        quality_warnings: list[str] | None = None,
     ) -> FrozenEvidenceSet:
         """Return the same deterministic evidence version on every later call."""
 
@@ -170,16 +178,19 @@ class EvidenceLedger:
                 key=lambda item: item.evidence_id,
             )
             retained_scores = list(selection_scores or [])
+            retained_quality_warnings = list(dict.fromkeys(quality_warnings or []))
             self._frozen_set = FrozenEvidenceSet(
                 schema_version="1.0",
                 evidence_version=_derive_evidence_version(
                     sources,
                     excerpts,
                     retained_scores,
+                    retained_quality_warnings,
                 ),
                 sources=sources,
                 excerpts=excerpts,
                 selection_scores=retained_scores,
+                quality_warnings=retained_quality_warnings,
             )
         return self._frozen_set
 
@@ -309,10 +320,11 @@ def _derive_evidence_version(
     sources: list[SourceRecord],
     excerpts: list[EvidenceExcerpt],
     selection_scores: list[ScoredEvidence],
+    quality_warnings: list[str],
 ) -> str:
     """Hash canonical JSON so ordering never changes evidence identity."""
 
-    canonical_payload = {
+    canonical_payload: dict[str, object] = {
         "sources": [
             source.model_dump(mode="json")
             for source in sorted(sources, key=lambda item: item.source_id)
@@ -326,6 +338,10 @@ def _derive_evidence_version(
             for scored_evidence in selection_scores
         ],
     }
+    # Preserve the evidence identity of legacy warning-free checkpoints while
+    # binding every new warning to the immutable version that discloses it.
+    if quality_warnings:
+        canonical_payload["quality_warnings"] = quality_warnings
     canonical_json = json.dumps(
         canonical_payload,
         ensure_ascii=False,
