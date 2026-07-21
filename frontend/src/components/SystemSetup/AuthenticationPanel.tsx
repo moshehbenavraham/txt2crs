@@ -25,6 +25,8 @@ import {
   type SetupAlertVariant,
 } from "./presentation"
 
+const CODEX_DEVICE_AUTH_URL = "https://auth.openai.com/codex/device"
+
 interface AuthenticationPanelProps {
   authentication: SystemAuthenticationPublic
   isStarting: boolean
@@ -94,6 +96,27 @@ export function AuthenticationPanel({
           </AlertDescription>
         </Alert>
 
+        {/*
+          Keep the reviewed OpenAI destination independent from the short-lived
+          device challenge. This gives operators a safe, predictable link in
+          every authentication state, including before a code has been issued.
+        */}
+        <Button
+          variant="outline"
+          className="h-auto min-h-11 w-full justify-start whitespace-normal py-3 text-left"
+          asChild
+        >
+          <a
+            href={CODEX_DEVICE_AUTH_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open Codex device authentication"
+          >
+            <ExternalLink data-icon="inline-start" className="shrink-0" />
+            <span className="break-all">{CODEX_DEVICE_AUTH_URL}</span>
+          </a>
+        </Button>
+
         {hasChallenge ? (
           <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface-2 p-4 sm:p-5">
             <div className="flex flex-col gap-1">
@@ -104,22 +127,11 @@ export function AuthenticationPanel({
                 {authentication.user_code}
               </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button className="h-11 sm:h-10" asChild>
-                <a
-                  href={authentication.verification_url ?? undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Open OpenAI verification page"
-                >
-                  <ExternalLink data-icon="inline-start" />
-                  Open verification page
-                </a>
-              </Button>
+            <div>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 sm:h-10"
+                className="h-11 w-full sm:h-10 sm:w-auto"
                 onClick={handleCopyCode}
                 aria-label="Copy authentication code"
               >

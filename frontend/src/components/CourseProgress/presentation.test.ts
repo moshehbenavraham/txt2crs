@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { JobStatusPublic } from "@/client"
 import {
   buildJobProgressPresentation,
+  getActiveJobTimingPresentation,
   getInputWarningsPresentation,
   getProgressUnitsLabel,
 } from "./presentation"
@@ -86,6 +87,72 @@ describe("course progress presentation", () => {
     expect(
       getProgressUnitsLabel({ completed_units: 3, total_units: null }),
     ).toBe("3 course-building steps confirmed")
+  })
+
+  it("derives live elapsed, activity, and pace-based remaining time from confirmed backend timestamps", () => {
+    expect(
+      getActiveJobTimingPresentation(
+        {
+          created_at: "2026-07-21T10:00:00Z",
+          updated_at: "2026-07-21T10:01:00Z",
+          progress: {
+            completed_units: 4,
+            total_units: 12,
+          },
+        },
+        Date.parse("2026-07-21T10:01:20Z"),
+      ),
+    ).toEqual({
+      elapsedTimeLabel: "1m 20s",
+      estimatedTimeLeftLabel: "~2m 0s",
+      latestActivityLabel: "20s ago",
+      progressPercentage: 33,
+    })
+  })
+
+  it("keeps the ETA honest when there is not enough confirmed pace data", () => {
+    const nowMilliseconds = Date.parse("2026-07-21T10:02:00Z")
+    const baseSnapshot = {
+      created_at: "2026-07-21T10:00:00Z",
+      updated_at: "2026-07-21T10:01:00Z",
+    }
+
+    expect(
+      getActiveJobTimingPresentation(
+        {
+          ...baseSnapshot,
+          progress: { completed_units: 0, total_units: 12 },
+        },
+        nowMilliseconds,
+      ).estimatedTimeLeftLabel,
+    ).toBe("Calculating")
+    expect(
+      getActiveJobTimingPresentation(
+        {
+          ...baseSnapshot,
+          progress: { completed_units: 3, total_units: null },
+        },
+        nowMilliseconds,
+      ).estimatedTimeLeftLabel,
+    ).toBe("Calculating")
+    expect(
+      getActiveJobTimingPresentation(
+        {
+          ...baseSnapshot,
+          progress: { completed_units: 12, total_units: 12 },
+        },
+        nowMilliseconds,
+      ).estimatedTimeLeftLabel,
+    ).toBe("Finalizing")
+    expect(
+      getActiveJobTimingPresentation(
+        {
+          ...baseSnapshot,
+          progress: { completed_units: 6, total_units: 12 },
+        },
+        Date.parse("2026-07-21T10:03:00Z"),
+      ).estimatedTimeLeftLabel,
+    ).toBe("~1m 0s")
   })
 
   it("preserves bounded extraction warnings and names a truncated remainder", () => {

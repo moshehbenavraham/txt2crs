@@ -8,7 +8,7 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.0.4`. It is the fourth
+The current repository and Python package release is `1.0.5`. It is the fifth
 maintenance release after the stable public API boundary established by
 `1.0.0`. Future compatibility decisions follow Semantic Versioning from that
 public boundary.

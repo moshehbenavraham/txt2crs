@@ -1,12 +1,15 @@
 import { onlineManager } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import {
+  Activity,
   Check,
   Circle,
   CircleDot,
   Clipboard,
+  Clock3,
   FileCheck2,
   RefreshCw,
+  Timer,
   TriangleAlert,
   WifiOff,
 } from "lucide-react"
@@ -15,8 +18,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { PageHeader } from "@/components/Common/PageHeader"
 import {
   buildJobProgressPresentation,
+  getActiveJobTimingPresentation,
   getInputWarningsPresentation,
   getProgressUnitsLabel,
+  getTimeSinceLabel,
   type ProductStagePresentation,
 } from "@/components/CourseProgress/presentation"
 import { useJobProgressQuery } from "@/components/CourseProgress/queries"
@@ -38,41 +43,19 @@ function useBrowserOnlineState(): boolean {
   )
 }
 
-function useElapsedTimeLabel(createdAt: string, shouldUpdate: boolean): string {
+function useLiveCurrentTime(): number {
   const [currentTime, setCurrentTime] = useState(() => Date.now())
 
   useEffect(() => {
-    if (!shouldUpdate) {
-      return
-    }
     const intervalId = window.setInterval(() => {
       setCurrentTime(Date.now())
-    }, 30_000)
+    }, 1_000)
     return () => {
       window.clearInterval(intervalId)
     }
-  }, [shouldUpdate])
+  }, [])
 
-  const createdTimestamp = Date.parse(createdAt)
-  if (!Number.isFinite(createdTimestamp)) {
-    return "Started recently"
-  }
-  const elapsedMinutes = Math.max(
-    0,
-    Math.floor((currentTime - createdTimestamp) / 60_000),
-  )
-  if (elapsedMinutes < 1) {
-    return "Started less than a minute ago"
-  }
-  if (elapsedMinutes < 60) {
-    return `Started ${elapsedMinutes.toLocaleString()} ${
-      elapsedMinutes === 1 ? "minute" : "minutes"
-    } ago`
-  }
-  const elapsedHours = Math.floor(elapsedMinutes / 60)
-  return `Started about ${elapsedHours.toLocaleString()} ${
-    elapsedHours === 1 ? "hour" : "hours"
-  } ago`
+  return currentTime
 }
 
 function isUniformUnavailableError(error: unknown): boolean {
@@ -137,9 +120,11 @@ export function CourseProgressPage({ jobId }: CourseProgressPageProps) {
     <CourseProgressWorkspace
       jobId={jobId}
       snapshot={jobQuery.data}
+      isCheckingForUpdates={jobQuery.isFetching}
       isReconnecting={
         !isOnline || jobQuery.isError || jobQuery.fetchStatus === "paused"
       }
+      lastCheckedAt={jobQuery.dataUpdatedAt}
     />
   )
 }
@@ -147,18 +132,21 @@ export function CourseProgressPage({ jobId }: CourseProgressPageProps) {
 interface CourseProgressWorkspaceProps {
   jobId: JobId
   snapshot: NonNullable<ReturnType<typeof useJobProgressQuery>["data"]>
+  isCheckingForUpdates: boolean
   isReconnecting: boolean
+  lastCheckedAt: number
 }
 
 function CourseProgressWorkspace({
   jobId,
   snapshot,
+  isCheckingForUpdates,
   isReconnecting,
+  lastCheckedAt,
 }: CourseProgressWorkspaceProps) {
   const presentation = buildJobProgressPresentation(snapshot)
   const inputWarnings = getInputWarningsPresentation(snapshot.input)
   const isActive = presentation.kind === "active"
-  const elapsedTimeLabel = useElapsedTimeLabel(snapshot.created_at, isActive)
   const safeStatusMessage =
     presentation.kind === "failed"
       ? (snapshot.failure?.message ?? snapshot.progress.message)
@@ -234,16 +222,18 @@ function CourseProgressWorkspace({
           </p>
 
           {isActive ? (
-            <div className="mt-8 border-t border-border pt-6">
-              <p className="text-body-sm text-muted-foreground">
-                {elapsedTimeLabel}. Completion time varies with source and
-                course scope.
-              </p>
-              <p className="mt-2 text-body-sm text-muted-foreground">
-                You can close this page and return to the same private job.
-              </p>
-            </div>
+            <LiveProgressTelemetry
+              snapshot={snapshot}
+              isCheckingForUpdates={isCheckingForUpdates}
+              isReconnecting={isReconnecting}
+              lastCheckedAt={lastCheckedAt}
+            />
           ) : null}
+
+          <span className="sr-only" role="status" aria-live="polite">
+            Confirmed update {snapshot.revision}: {safeStatusMessage}{" "}
+            {getProgressUnitsLabel(snapshot.progress)}
+          </span>
 
           {presentation.kind === "completed" ? (
             <CompletionHandoff snapshot={snapshot} />
@@ -260,6 +250,150 @@ function CourseProgressWorkspace({
         <CourseResultsWorkspace jobId={jobId} snapshot={snapshot} />
       ) : null}
     </div>
+  )
+}
+
+interface LiveProgressTelemetryProps {
+  snapshot: CourseProgressWorkspaceProps["snapshot"]
+  isCheckingForUpdates: boolean
+  isReconnecting: boolean
+  lastCheckedAt: number
+}
+
+/**
+ * Isolate the one-second clock so the large stage rail and results workspace
+ * do not rerender merely to keep elapsed and estimated time current.
+ */
+function LiveProgressTelemetry({
+  snapshot,
+  isCheckingForUpdates,
+  isReconnecting,
+  lastCheckedAt,
+}: LiveProgressTelemetryProps) {
+  const currentTimeMilliseconds = useLiveCurrentTime()
+  const timing = getActiveJobTimingPresentation(
+    snapshot,
+    currentTimeMilliseconds,
+  )
+  const progressUnitsLabel = getProgressUnitsLabel(snapshot.progress)
+  const totalUnits = snapshot.progress.total_units
+  const hasKnownTotal = totalUnits !== null && totalUnits !== undefined
+  const statusCheckLabel =
+    lastCheckedAt > 0
+      ? getTimeSinceLabel(lastCheckedAt, currentTimeMilliseconds)
+      : "pending"
+
+  return (
+    <section
+      aria-label="Live course progress"
+      className="mt-8 border-t border-border pt-6"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={`mt-1.5 size-2.5 shrink-0 rounded-full ring-4 ${
+              isReconnecting
+                ? "bg-warning ring-warning/15"
+                : "bg-primary ring-primary/15"
+            }`}
+          />
+          <div className="min-w-0">
+            <p className="font-medium text-foreground">
+              {isReconnecting
+                ? "Backend updates paused"
+                : "Live backend updates"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {isCheckingForUpdates && !isReconnecting
+                ? "Checking for the next confirmed update now"
+                : `Status checked ${statusCheckLabel}`}
+            </p>
+          </div>
+        </div>
+        <p className="shrink-0 text-caption text-primary">
+          Confirmed update {snapshot.revision.toLocaleString()}
+        </p>
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-end justify-between gap-4">
+          <p className="text-xs text-muted-foreground">Confirmed progress</p>
+          <p className="text-xs font-medium text-foreground">
+            {progressUnitsLabel}
+          </p>
+        </div>
+        <div
+          role="progressbar"
+          aria-label="Confirmed course-building progress"
+          aria-valuemin={hasKnownTotal ? 0 : undefined}
+          aria-valuemax={hasKnownTotal ? totalUnits : undefined}
+          aria-valuenow={
+            hasKnownTotal ? snapshot.progress.completed_units : undefined
+          }
+          aria-valuetext={progressUnitsLabel}
+          className="mt-3 h-2 overflow-hidden bg-muted"
+        >
+          <div
+            className={
+              timing.progressPercentage === null
+                ? "h-full w-1/3 bg-primary/60"
+                : "h-full bg-primary transition-[width] duration-(--motion-duration-state) ease-(--ease-out-quart) motion-reduce:transition-none"
+            }
+            style={
+              timing.progressPercentage === null
+                ? undefined
+                : { width: `${timing.progressPercentage}%` }
+            }
+          />
+        </div>
+      </div>
+
+      <dl className="mt-6 grid gap-px border border-border bg-border sm:grid-cols-3">
+        <div className="bg-background p-4">
+          <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock3 aria-hidden="true" className="size-4" />
+            Elapsed
+          </dt>
+          <dd
+            data-testid="elapsed-time"
+            className="mt-2 font-mono text-lg font-medium text-foreground"
+          >
+            {timing.elapsedTimeLabel}
+          </dd>
+        </div>
+        <div className="bg-background p-4">
+          <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Timer aria-hidden="true" className="size-4" />
+            Estimated time left
+          </dt>
+          <dd
+            data-testid="estimated-time-left"
+            className="mt-2 font-mono text-lg font-medium text-foreground"
+          >
+            {timing.estimatedTimeLeftLabel}
+          </dd>
+        </div>
+        <div className="bg-background p-4">
+          <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Activity aria-hidden="true" className="size-4" />
+            Latest checkpoint
+          </dt>
+          <dd className="mt-2 font-mono text-lg font-medium text-foreground">
+            {timing.latestActivityLabel}
+          </dd>
+        </div>
+      </dl>
+
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        Only durable backend checkpoints move the meter; an active stage may
+        work for several minutes between confirmed updates. The estimate
+        recalculates as those checkpoints arrive and may change because
+        research, drafting, and rendering take different amounts of time.
+      </p>
+      <p className="mt-2 text-body-sm text-muted-foreground">
+        You can close this page and return to the same private job.
+      </p>
+    </section>
   )
 }
 

@@ -30,6 +30,24 @@ export interface InputWarningsPresentation {
   hasAdditionalWarnings: boolean
 }
 
+export interface ActiveJobTimingPresentation {
+  elapsedTimeLabel: string
+  estimatedTimeLeftLabel: string
+  latestActivityLabel: string
+  progressPercentage: number | null
+}
+
+type ActiveJobTimingSnapshot = Pick<
+  JobStatusPublic,
+  "created_at" | "updated_at"
+> & {
+  progress: Pick<JobProgressPublic, "completed_units" | "total_units">
+}
+
+const MILLISECONDS_PER_SECOND = 1_000
+const SECONDS_PER_MINUTE = 60
+const MINUTES_PER_HOUR = 60
+
 const productStageDefinitions: readonly ProductStageDefinition[] = [
   {
     id: "queued",
@@ -162,6 +180,110 @@ export function getProgressUnitsLabel(
     return `${progress.completed_units.toLocaleString()} course-building steps confirmed`
   }
   return `${progress.completed_units.toLocaleString()} of ${progress.total_units.toLocaleString()} course-building steps confirmed`
+}
+
+/** Format a non-negative duration as a compact value that can tick each second. */
+function formatCompactDuration(durationMilliseconds: number): string {
+  const totalSeconds = Math.max(
+    0,
+    Math.floor(durationMilliseconds / MILLISECONDS_PER_SECOND),
+  )
+  if (totalSeconds < SECONDS_PER_MINUTE) {
+    return `${totalSeconds}s`
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE)
+  const remainingSeconds = totalSeconds % SECONDS_PER_MINUTE
+  if (totalMinutes < MINUTES_PER_HOUR) {
+    return `${totalMinutes}m ${remainingSeconds}s`
+  }
+
+  const hours = Math.floor(totalMinutes / MINUTES_PER_HOUR)
+  const remainingMinutes = totalMinutes % MINUTES_PER_HOUR
+  return `${hours}h ${remainingMinutes}m`
+}
+
+/**
+ * Describe how recently the browser received or the backend confirmed a fact.
+ *
+ * Future timestamps are treated as "just now" so small client/server clock
+ * differences never produce a confusing negative duration.
+ */
+export function getTimeSinceLabel(
+  timestamp: string | number,
+  currentTimeMilliseconds: number,
+): string {
+  const timestampMilliseconds =
+    typeof timestamp === "number" ? timestamp : Date.parse(timestamp)
+  if (!Number.isFinite(timestampMilliseconds)) {
+    return "Awaiting update"
+  }
+
+  const ageMilliseconds = Math.max(
+    0,
+    currentTimeMilliseconds - timestampMilliseconds,
+  )
+  if (ageMilliseconds < 5 * MILLISECONDS_PER_SECOND) {
+    return "just now"
+  }
+  return `${formatCompactDuration(ageMilliseconds)} ago`
+}
+
+/**
+ * Build honest live timing from durable public job facts.
+ *
+ * The ETA uses the average pace of already-confirmed units at `updated_at`.
+ * It recalculates whenever a newer backend revision arrives instead of
+ * pretending every active step has a precise countdown. Unknown totals, zero
+ * progress, and invalid timestamps receive explicit non-numeric fallbacks.
+ */
+export function getActiveJobTimingPresentation(
+  snapshot: ActiveJobTimingSnapshot,
+  currentTimeMilliseconds: number,
+): ActiveJobTimingPresentation {
+  const createdAtMilliseconds = Date.parse(snapshot.created_at)
+  const updatedAtMilliseconds = Date.parse(snapshot.updated_at)
+  const hasValidCreatedAt = Number.isFinite(createdAtMilliseconds)
+  const hasValidUpdatedAt = Number.isFinite(updatedAtMilliseconds)
+  const elapsedTimeLabel = hasValidCreatedAt
+    ? formatCompactDuration(currentTimeMilliseconds - createdAtMilliseconds)
+    : "Not available"
+  const latestActivityLabel = hasValidUpdatedAt
+    ? getTimeSinceLabel(updatedAtMilliseconds, currentTimeMilliseconds)
+    : "Awaiting update"
+
+  const { completed_units: completedUnits, total_units: totalUnits } =
+    snapshot.progress
+  const progressPercentage =
+    typeof totalUnits === "number" && totalUnits > 0
+      ? Math.min(100, Math.round((completedUnits / totalUnits) * 100))
+      : null
+
+  let estimatedTimeLeftLabel = "Calculating"
+  if (typeof totalUnits === "number" && completedUnits >= totalUnits) {
+    estimatedTimeLeftLabel = "Finalizing"
+  } else if (
+    typeof totalUnits === "number" &&
+    completedUnits > 0 &&
+    hasValidCreatedAt &&
+    hasValidUpdatedAt &&
+    updatedAtMilliseconds > createdAtMilliseconds
+  ) {
+    const confirmedElapsedMilliseconds =
+      updatedAtMilliseconds - createdAtMilliseconds
+    const averageMillisecondsPerConfirmedUnit =
+      confirmedElapsedMilliseconds / completedUnits
+    const remainingMilliseconds =
+      averageMillisecondsPerConfirmedUnit * (totalUnits - completedUnits)
+    estimatedTimeLeftLabel = `~${formatCompactDuration(remainingMilliseconds)}`
+  }
+
+  return {
+    elapsedTimeLabel,
+    estimatedTimeLeftLabel,
+    latestActivityLabel,
+    progressPercentage,
+  }
 }
 
 /**

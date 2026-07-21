@@ -1166,6 +1166,113 @@ test.describe("authenticated course intake", () => {
     await context.setOffline(false)
   })
 
+  test("shows live backend activity, elapsed time, and a recalculating completion estimate", async ({
+    page,
+  }) => {
+    const progressJobId = "job-browser-live-progress"
+    const createdAtMilliseconds = Date.now() - 80_000
+    let statusReadCount = 0
+
+    await page.route(`**/api/v1/jobs/${progressJobId}`, async (route) => {
+      statusReadCount += 1
+      const hasAdvanced = statusReadCount >= 2
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: {
+          schema_version: "1.0",
+          job_id: progressJobId,
+          status: hasAdvanced ? "drafting" : "researching",
+          revision: hasAdvanced ? 4 : 3,
+          created_at: new Date(createdAtMilliseconds).toISOString(),
+          updated_at: new Date(
+            createdAtMilliseconds + (hasAdvanced ? 55_000 : 40_000),
+          ).toISOString(),
+          progress: {
+            stage: hasAdvanced ? "drafting" : "researching",
+            message: hasAdvanced
+              ? "Writing the course modules."
+              : "Researching the course source.",
+            completed_units: hasAdvanced ? 4 : 3,
+            total_units: 12,
+          },
+          input: {
+            type: "prompt",
+            display_name: "Course prompt",
+            size_bytes: 48,
+            extraction_warnings: [],
+            warnings_truncated: false,
+          },
+          failure: null,
+          result: null,
+          artifacts: {
+            available: false,
+            count: 0,
+            manifest_url: null,
+          },
+        },
+      })
+    })
+
+    await page.goto(`/jobs/${progressJobId}`)
+    const liveProgress = page.getByRole("region", {
+      name: "Live course progress",
+    })
+    await expect(liveProgress).toBeVisible()
+    await expect(
+      liveProgress.getByText("Elapsed", { exact: true }),
+    ).toBeVisible()
+    await expect(
+      liveProgress.getByText("Estimated time left", { exact: true }),
+    ).toBeVisible()
+    await expect(liveProgress).toContainText("Confirmed update 3")
+
+    const confirmedProgress = page.getByRole("progressbar", {
+      name: "Confirmed course-building progress",
+    })
+    await expect(confirmedProgress).toHaveAttribute("aria-valuenow", "3")
+    await expect(confirmedProgress).toHaveAttribute("aria-valuemax", "12")
+
+    await expect(liveProgress).toContainText("Confirmed update 4", {
+      timeout: 5_000,
+    })
+    await expect(
+      page.getByRole("heading", { name: "Writing the course modules." }),
+    ).toBeVisible()
+    await expect(confirmedProgress).toHaveAttribute("aria-valuenow", "4")
+    await expect(liveProgress.getByTestId("estimated-time-left")).toHaveText(
+      "~1m 50s",
+    )
+
+    const elapsedTime = liveProgress.getByTestId("elapsed-time")
+    const firstElapsedTime = await elapsedTime.textContent()
+    await page.waitForTimeout(1_100)
+    await expect(elapsedTime).not.toHaveText(firstElapsedTime ?? "")
+
+    await page.setViewportSize({ width: 375, height: 812 })
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(0)
+
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const progressFillTransitionDuration = await confirmedProgress
+      .locator("div")
+      .evaluate((progressFill) => ({
+        reducedMotionMatches: window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches,
+        transitionDuration: getComputedStyle(progressFill).transitionDuration,
+      }))
+    expect(progressFillTransitionDuration.reducedMotionMatches).toBe(true)
+    expect(
+      Number.parseFloat(progressFillTransitionDuration.transitionDuration),
+    ).toBeLessThanOrEqual(0.001)
+  })
+
   test("renders a generated cancellation without inventing completed stages", async ({
     page,
   }) => {

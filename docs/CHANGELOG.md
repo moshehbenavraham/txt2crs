@@ -22,6 +22,31 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.0.5] - 2026-07-21
+
+### Added
+
+- Added a read-only monitoring record for the observed course-building job,
+  including its durable checkpoint timeline, terminal outcome, and suggested
+  validation follow-up.
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Kept the reviewed Codex device-auth URL visible and clickable in the
+  Dedicated identity setup card across signed-out, waiting, authenticated,
+  and failed authentication states.
+- Added live backend checkpoint visibility to active course jobs, including a
+  confirmed-progress meter, one-second elapsed time, latest checkpoint and
+  polling freshness, and a clearly labeled pace-based completion estimate.
+
+### Security
+
 ## [1.0.4] - 2026-07-21
 
 ### Added

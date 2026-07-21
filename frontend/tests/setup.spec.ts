@@ -6,6 +6,8 @@ import type {
   UserPublic,
 } from "../src/client/types.gen"
 
+const CODEX_DEVICE_AUTH_URL = "https://auth.openai.com/codex/device"
+
 const readySystem: SystemReadinessPublic = {
   schema_version: "1.0",
   status: "ready",
@@ -48,7 +50,7 @@ const signedOut: SystemAuthenticationPublic = {
 
 const waiting: SystemAuthenticationPublic = {
   state: "waiting_for_user",
-  verification_url: "https://auth.openai.com/codex/device",
+  verification_url: CODEX_DEVICE_AUTH_URL,
   user_code: "ABCD-1234",
   message: "Open the verification page and enter the short code.",
 }
@@ -105,6 +107,15 @@ test("superuser navigation opens the complete safe setup workspace", async ({
   await expect(
     page.getByRole("button", { name: "Connect ChatGPT" }),
   ).toBeVisible()
+  const deviceAuthenticationLink = page.getByRole("link", {
+    name: "Open Codex device authentication",
+  })
+  await expect(deviceAuthenticationLink).toBeVisible()
+  await expect(deviceAuthenticationLink).toHaveAttribute(
+    "href",
+    CODEX_DEVICE_AUTH_URL,
+  )
+  await expect(deviceAuthenticationLink).toContainText(CODEX_DEVICE_AUTH_URL)
   await expect(
     page.getByText(/oauth|access token|refresh token|codex_home/i),
   ).toHaveCount(0)
@@ -173,12 +184,9 @@ test("device ceremony starts, copies safe code, polls, and removes terminal chal
   await page.getByRole("button", { name: "Connect ChatGPT" }).click()
   await expect(page.getByText("ABCD-1234", { exact: true })).toBeVisible()
   const verificationLink = page.getByRole("link", {
-    name: "Open OpenAI verification page",
+    name: "Open Codex device authentication",
   })
-  await expect(verificationLink).toHaveAttribute(
-    "href",
-    "https://auth.openai.com/codex/device",
-  )
+  await expect(verificationLink).toHaveAttribute("href", CODEX_DEVICE_AUTH_URL)
   await page.getByRole("button", { name: "Copy authentication code" }).click()
   await expect(page.getByRole("status")).toContainText("Code copied")
 
@@ -187,7 +195,8 @@ test("device ceremony starts, copies safe code, polls, and removes terminal chal
   ).toBeVisible({ timeout: 5000 })
   await expect(page.getByRole("status")).not.toContainText("Code copied")
   await expect(page.getByText("ABCD-1234", { exact: true })).toHaveCount(0)
-  await expect(verificationLink).toHaveCount(0)
+  await expect(verificationLink).toBeVisible()
+  await expect(verificationLink).toHaveAttribute("href", CODEX_DEVICE_AUTH_URL)
   expect(statusReads).toBeGreaterThanOrEqual(3)
   expect(readinessReads).toBeGreaterThanOrEqual(2)
 })
@@ -208,6 +217,9 @@ test("an already-authenticated page does not refetch readiness on mount", async 
   await expect(
     page.getByRole("heading", { name: "ChatGPT connected" }),
   ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Open Codex device authentication" }),
+  ).toHaveAttribute("href", CODEX_DEVICE_AUTH_URL)
   // Give effects and query notifications time to settle so a duplicate
   // invalidation cannot pass by briefly reporting only the first request.
   await page.waitForTimeout(300)
@@ -318,6 +330,9 @@ test("unavailable and failed states stay actionable, responsive, dark, and still
   await expect(
     page.getByRole("button", { name: "Try connection again" }),
   ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Open Codex device authentication" }),
+  ).toHaveAttribute("href", CODEX_DEVICE_AUTH_URL)
   const safeAuthenticationMessage = page.getByText(
     "System authentication failed. Start a new attempt.",
     { exact: true },
