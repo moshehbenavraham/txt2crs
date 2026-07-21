@@ -22,6 +22,24 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.1.3] - 2026-07-21
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Kept idle worker queue scans from appearing as unavailable runtime ownership
+  on the System setup page while preserving busy admission during claimed and
+  active course execution.
+
+### Security
+
 ## [1.1.2] - 2026-07-21
 
 ### Added

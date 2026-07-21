@@ -116,15 +116,18 @@ class RecordingApplication:
         runnables: tuple[RecordingRunnable, ...] = (),
         *,
         discovery_failures: int = 0,
+        allow_executor_creation: Event | None = None,
     ) -> None:
         self._lock = Lock()
         self._runnables = deque(runnables)
         self._executors_by_job_id: dict[str, RecordingExecutor] = {}
         self._creation_failures_by_job_id: dict[str, Exception] = {}
         self._discovery_failures = discovery_failures
+        self._allow_executor_creation = allow_executor_creation
         self.discovery_calls = 0
         self.discovery_called = Event()
         self.last_discovery_call = Event()
+        self.executor_creation_started = Event()
 
     def add_runnable(
         self,
@@ -167,6 +170,9 @@ class RecordingApplication:
     ) -> RecordingExecutor:
         """Return the exact owner/job-bound handle selected by the facade."""
 
+        self.executor_creation_started.set()
+        if self._allow_executor_creation is not None:
+            assert self._allow_executor_creation.wait(timeout=2)
         with self._lock:
             creation_error = self._creation_failures_by_job_id.pop(job_id, None)
             if creation_error is not None:
@@ -341,6 +347,73 @@ def test_startup_scans_immediately_and_nudge_wakes_idle_poll() -> None:
     worker.close()
     assert first_executor.close_calls == 1
     assert second_executor.close_calls == 1
+
+
+def test_claimed_job_is_active_before_executor_creation_finishes() -> None:
+    """Readiness sees a claimed durable job as busy during graph construction."""
+
+    allow_executor_creation = Event()
+    concurrency_counter = ConcurrencyCounter()
+    concurrency_lock = Lock()
+    executor = RecordingExecutor(
+        name="claimed",
+        concurrency_counter=concurrency_counter,
+        concurrency_lock=concurrency_lock,
+    )
+    application = RecordingApplication(
+        allow_executor_creation=allow_executor_creation,
+    )
+    application.add_runnable(_runnable(1), executor)
+    worker = _worker(application)
+
+    worker.start()
+    try:
+        assert application.executor_creation_started.wait(timeout=2)
+        claimed_snapshot = worker.snapshot()
+
+        assert claimed_snapshot.status is WorkerStatus.active
+        assert claimed_snapshot.has_active_job is False
+        assert claimed_snapshot.has_capacity is False
+    finally:
+        allow_executor_creation.set()
+        assert executor.execution_finished.wait(timeout=2)
+        worker.close()
+
+
+def test_executor_creation_failure_restores_idle_capacity() -> None:
+    """A failed graph construction cannot leave the worker falsely active."""
+
+    runnable = _runnable(1)
+    application = RecordingApplication()
+    application.add_runnable(
+        runnable,
+        RecordingExecutor(
+            name="unused",
+            concurrency_counter=ConcurrencyCounter(),
+            concurrency_lock=Lock(),
+        ),
+    )
+    application.fail_creation(
+        job_id=runnable.job.job_id,
+        error=RuntimeError("private factory error"),
+    )
+    worker = _worker(application, poll_interval_seconds=60)
+
+    worker.start()
+    try:
+        _wait_until(
+            lambda: (
+                worker.snapshot().last_failure_code
+                is WorkerFailureCode.executor_creation_failed
+            )
+        )
+        failed_snapshot = worker.snapshot()
+
+        assert failed_snapshot.status is WorkerStatus.idle
+        assert failed_snapshot.has_active_job is False
+        assert failed_snapshot.has_capacity is True
+    finally:
+        worker.close()
 
 
 @pytest.mark.parametrize(

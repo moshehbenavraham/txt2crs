@@ -65,19 +65,28 @@ class RecordingApplication:
 class RecordingWorker:
     """Expose only safe worker state and count snapshot reads."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        status: WorkerStatus = WorkerStatus.idle,
+        has_active_job: bool = False,
+        has_capacity: bool = True,
+    ) -> None:
         self.snapshot_calls = 0
+        self._status = status
+        self._has_active_job = has_active_job
+        self._has_capacity = has_capacity
 
     def snapshot(self) -> WorkerSnapshot:
-        """Return one idle healthy worker."""
+        """Return the configured healthy worker lifecycle projection."""
 
         self.snapshot_calls += 1
         return WorkerSnapshot(
             schema_version="1.0",
-            status=WorkerStatus.idle,
+            status=self._status,
             is_alive=True,
-            has_active_job=False,
-            has_capacity=True,
+            has_active_job=self._has_active_job,
+            has_capacity=self._has_capacity,
             is_shutting_down=False,
             last_failure_code=None,
         )
@@ -131,11 +140,42 @@ def test_maintenance_refresh_runs_on_finite_interval() -> None:
     coordinator.close()
 
 
+def test_idle_worker_queue_scan_keeps_runtime_ownership_available() -> None:
+    """An empty-queue scan is internal bookkeeping, not an active operation."""
+
+    application = RecordingApplication()
+    worker = RecordingWorker()
+    ownership = RuntimeOwnershipCoordinator()
+    coordinator = CachedReadinessCoordinator(
+        application=application,
+        worker=worker,
+        runtime_ownership=ownership,
+        refresh_interval_seconds=60,
+        stale_after_seconds=120,
+        shutdown_timeout_seconds=1,
+    )
+    coordinator.start()
+
+    with ownership.acquire(RuntimeOwner.execution):
+        snapshot = coordinator.snapshot()
+        assert snapshot.accepting_jobs is True
+        assert snapshot.status is ReadinessStatus.ready
+        assert snapshot.checks.runtime_ownership is ReadinessCheckState.ready
+        assert "provider runtime is currently busy" not in " ".join(snapshot.warnings)
+        assert application.inspect_calls == 1
+
+    coordinator.close()
+
+
 def test_active_runtime_owner_blocks_acceptance_without_refresh_work() -> None:
     """A running job keeps the cache readable and prevents a second runtime."""
 
     application = RecordingApplication()
-    worker = RecordingWorker()
+    worker = RecordingWorker(
+        status=WorkerStatus.active,
+        has_active_job=True,
+        has_capacity=False,
+    )
     ownership = RuntimeOwnershipCoordinator()
     coordinator = CachedReadinessCoordinator(
         application=application,

@@ -336,8 +336,15 @@ class SerialTxt2CrsWorker:
                     if runnable_state is None:
                         did_attempt_fail = False
                     else:
+                        # A durable item has been claimed. Publish the busy
+                        # state before building its provider graph so readiness
+                        # cannot mistake this construction window for the
+                        # empty-queue scan that also holds execution ownership.
+                        if not self._publish_claimed_job():
+                            break
                         executor = self._create_executor(runnable_state)
                         if executor is None:
+                            self._restore_capacity_after_failed_creation()
                             did_attempt_fail = True
                         elif self._stop_requested.is_set():
                             self._close_unstarted_executor(executor)
@@ -393,6 +400,25 @@ class SerialTxt2CrsWorker:
         except Exception:
             self._record_failure(WorkerFailureCode.executor_creation_failed)
             return None
+
+    def _publish_claimed_job(self) -> bool:
+        """Mark a durable claim busy before constructing its provider graph."""
+
+        with self._lock:
+            if self._stop_requested.is_set():
+                return False
+            self._status = WorkerStatus.active
+            return True
+
+    def _restore_capacity_after_failed_creation(self) -> None:
+        """Return a failed executor claim to an accurate retryable state."""
+
+        with self._lock:
+            self._status = (
+                WorkerStatus.shutting_down
+                if self._stop_requested.is_set()
+                else WorkerStatus.idle
+            )
 
     def _execute_one(self, executor: WorkerExecutor) -> bool:
         """Run and close one graph, returning whether a retry delay is needed."""

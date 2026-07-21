@@ -24,7 +24,7 @@ from app.services.txt2crs_runtime import (
     RuntimeOwner,
     RuntimeOwnershipCoordinator,
 )
-from app.services.txt2crs_worker import WorkerSnapshot
+from app.services.txt2crs_worker import WorkerSnapshot, WorkerStatus
 
 READINESS_SCHEMA_VERSION = "1.0"
 READINESS_THREAD_NAME = "txt2crs-readiness-maintenance"
@@ -238,8 +238,12 @@ class CachedReadinessCoordinator:
         is_fresh = current_time <= checked_at + timedelta(
             seconds=self._stale_after_seconds
         )
-        worker_snapshot = self._worker.snapshot() if self._worker is not None else None
+        # Read ownership before worker state so the two snapshots have a useful
+        # ordering. If execution ownership is observed first and discovery then
+        # claims a durable job, the worker's later ``active`` state wins. This
+        # avoids misclassifying the executor-construction window as an idle scan.
         ownership_snapshot = self._runtime_ownership.snapshot()
+        worker_snapshot = self._worker.snapshot() if self._worker is not None else None
 
         package_checks = package_readiness.checks
         storage_ready = (
@@ -252,7 +256,24 @@ class CachedReadinessCoordinator:
             and worker_snapshot.has_capacity
             and not worker_snapshot.is_shutting_down
         )
-        owner_ready = ownership_snapshot.is_available
+        # The serial worker holds execution ownership while it checks the
+        # durable queue, even when there is no job. That very short idle scan is
+        # internal synchronization, not user-visible provider work. Once a job
+        # is found, the worker publishes ``active`` before constructing its
+        # executor, so only the exact idle/capable state is safe to treat as
+        # available here.
+        execution_owner_is_only_scanning_idle_queue = (
+            ownership_snapshot.owner is RuntimeOwner.execution
+            and worker_snapshot is not None
+            and worker_snapshot.status is WorkerStatus.idle
+            and worker_snapshot.has_capacity
+            and not worker_snapshot.has_active_job
+            and not worker_snapshot.is_shutting_down
+        )
+        owner_ready = (
+            ownership_snapshot.is_available
+            or execution_owner_is_only_scanning_idle_queue
+        )
         checks = ReadinessChecks(
             authentication=_shell_check(package_checks.authentication),
             model=_shell_check(package_checks.model),
@@ -274,9 +295,14 @@ class CachedReadinessCoordinator:
             and worker_snapshot.is_alive
             and not worker_snapshot.is_shutting_down
         )
-        is_temporarily_busy = ownership_snapshot.owner is not None or (
-            worker_snapshot is not None and worker_snapshot.has_active_job
+        worker_is_processing = worker_snapshot is not None and (
+            worker_snapshot.status is WorkerStatus.active
+            or worker_snapshot.has_active_job
         )
+        is_temporarily_busy = (
+            ownership_snapshot.owner is not None
+            and not execution_owner_is_only_scanning_idle_queue
+        ) or worker_is_processing
         is_degraded = (
             is_fresh
             and package_readiness.status is ApplicationReadinessStatus.ready
@@ -289,7 +315,7 @@ class CachedReadinessCoordinator:
             warnings.append("System readiness is stale.")
             recovery_actions.append("Wait for readiness to refresh.")
         if not worker_ready and worker_snapshot is not None:
-            if worker_snapshot.has_active_job:
+            if worker_is_processing:
                 warnings.append("The course worker is processing a job.")
                 recovery_actions.append("Wait for the active job to finish.")
             else:
