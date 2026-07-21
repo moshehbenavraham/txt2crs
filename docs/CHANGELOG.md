@@ -22,5 +22,27 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.2.4] - 2026-07-21
+
+### Added
+
+### Changed
+
+- Published the judge-facing repository, synchronized the immutable release
+  identity and links, and completed the GitHub, YouTube, and Devpost field
+  handoff from the repository's reviewed submission evidence.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+- Audited the complete Git history before publication and enabled GitHub secret
+  scanning, push protection, vulnerability alerts, and automated security
+  updates for the public repository.
+
 The complete dated release history through `1.2.3` is preserved in
 [`archive/CHANGELOG_20260721.md`](archive/CHANGELOG_20260721.md).

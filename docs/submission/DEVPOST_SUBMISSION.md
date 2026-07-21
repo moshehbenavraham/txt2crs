@@ -1,9 +1,15 @@
 # txt2crs - Devpost Submission
 
-**Status**: Ready for human entry
+**Status**: Ready for entry after the public YouTube URL is available
 **Category**: Education
 **Project name**: txt2crs
 **Tagline**: Turn one bounded source into a complete, source-grounded learning package.
+
+## Built With
+
+Codex, GPT-5.6, Python, FastAPI, Pydantic, SQLModel, PostgreSQL, SQLite,
+React, TypeScript, TanStack Router, TanStack Query, Tailwind CSS, shadcn/ui,
+Tavily, MCP, Docker, Playwright, and uv.
 
 ## Elevator Pitch
 
@@ -181,7 +187,7 @@ and final source identity are explicit instead of blended together.
 
 ## What Is Next
 
-The current `1.2.1` release is deliberately a local Docker product for
+The current `1.2.4` release is deliberately a local Docker product for
 synthetic demonstrations. The next responsible steps are:
 
 - define formal retention, deletion, provider-transfer, and public
@@ -198,8 +204,11 @@ synthetic demonstrations. The next responsible steps are:
 ## Links And Media
 
 - Source repository: <https://github.com/moshehbenavraham/txt2crs>
-- Intended immutable release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1>
+- Immutable release:
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>
+- Recommended project thumbnail:
+  [`06-answer-key.png`](screenshots/06-answer-key.png), the reviewed frame that
+  shows all four publications and their four available formats.
 - Public evidence map:
   [screenshots and release evidence](PUBLIC_EVIDENCE_INDEX.md)
 - Deterministic judge sample:

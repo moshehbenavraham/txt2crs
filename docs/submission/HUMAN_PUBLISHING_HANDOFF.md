@@ -1,8 +1,8 @@
 # Human Publishing Handoff
 
-The product and submission assets are prepared locally. Publishing is
-human-only: the human operator owns all GitHub access changes, uploads,
-platform forms, release tags, and pushes.
+The product and submission assets are prepared. The public GitHub repository,
+security settings, branch, and immutable release tag are complete. YouTube
+upload and the authenticated Devpost form remain human-owned actions.
 
 ## Ready Assets
 
@@ -21,44 +21,21 @@ Video identity:
 - SHA-256:
   `cc78d540f41eb6bbb634540fbf70df0d98c9975a308a8ae984135fb492d5542f`;
 - format: 1920x1080 H.264 video with AAC audio; and
-- intended repository release: `v1.2.1`.
+- immutable repository release: `v1.2.4`.
 
-## 1. Keep GitHub Private And Add Reviewers
+## 1. Verify The Public GitHub Release
 
-Keep <https://github.com/moshehbenavraham/txt2crs> Private.
+Open these links while signed out:
 
-In repository settings, grant read access to the accounts associated with:
+- repository: <https://github.com/moshehbenavraham/txt2crs>; and
+- immutable release:
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>.
 
-- `testing@devpost.com`
-- `build-week-event@openai.com`
+Confirm both load publicly and that the release tag resolves to the reviewed
+`1.2.4` source. GitHub secret scanning, push protection, vulnerability alerts,
+and automated security updates are enabled.
 
-If GitHub cannot resolve an address, contact the event organizer. Do not make
-the repository Public as a workaround.
-
-## 2. Review, Commit, Tag, And Push
-
-Review the final local release commit and run the release checks supplied in
-[`docs/release/README_release.md`](../release/README_release.md).
-
-After the exact release commit is clean and approved, the human operator may
-publish it:
-
-```bash
-final_commit="$(git rev-parse HEAD)"
-test -z "$(git status --short)"
-
-git tag --annotate v1.2.1 \
-  --message "txt2crs 1.2.1 - OpenAI Build Week Education release" \
-  "${final_commit}"
-
-git push origin main
-git push origin v1.2.1
-```
-
-Verify that remote `main` and peeled `v1.2.1` resolve to `final_commit`. Make
-no tracked edit after tagging; use a new SemVer version for any later change.
-
-## 3. Publish The Demo Video
+## 2. Publish The Demo Video
 
 Upload `.release-private/video/txt2crs-demo-1.0.0.mp4` in YouTube Studio.
 
@@ -74,7 +51,7 @@ Copy the exact title and description from the `Upload Metadata` section of
 
 Keep the resulting stable YouTube URL for the Devpost form.
 
-## 4. Submit On Devpost
+## 3. Submit On Devpost
 
 Open:
 <https://devpost.com/submit-to/30223-openai-build-week/manage/submissions>
@@ -82,11 +59,17 @@ Open:
 Use:
 
 - project name: `txt2crs`;
+- tagline: `Turn one bounded source into a complete, source-grounded learning package.`;
 - category: Education;
 - repository: <https://github.com/moshehbenavraham/txt2crs>;
 - release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1>;
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>;
+- built with: Codex, GPT-5.6, Python, FastAPI, Pydantic, SQLModel,
+  PostgreSQL, SQLite, React, TypeScript, TanStack Router, TanStack Query,
+  Tailwind CSS, shadcn/ui, Tavily, MCP, Docker, Playwright, and uv;
 - project story: [`DEVPOST_SUBMISSION.md`](DEVPOST_SUBMISSION.md);
+- project thumbnail: `docs/submission/screenshots/06-answer-key.png`, whose
+  reviewed frame shows all four publications and all four formats;
 - screenshots: the six reviewed files in `docs/submission/screenshots/`;
 - video: the stable YouTube URL from the previous step; and
 - Codex feedback Session ID:
@@ -97,12 +80,12 @@ answers do not belong in the repository.
 
 Submit before `2026-07-22T00:00:00Z`.
 
-## 5. Final Human Check
+## 4. Final Human Check
 
 Before considering the entry finished, confirm:
 
-- the repository is still Private and both reviewers have access;
-- remote `main` and `v1.2.1` match the reviewed release commit;
+- the repository and `v1.2.4` release load publicly while signed out;
+- remote `main` and `v1.2.4` match the reviewed release commit;
 - the YouTube video works while signed out and is under three minutes;
 - the Devpost entry is in Education and shows all six screenshots;
 - the repository, release, video, and Session ID values are exact; and

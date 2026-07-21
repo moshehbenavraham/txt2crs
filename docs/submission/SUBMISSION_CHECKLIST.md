@@ -1,8 +1,7 @@
 # Submission Asset Checklist
 
-This checklist covers only assets prepared in the repository. GitHub access,
-YouTube publication, release tagging/pushing, and Devpost submission are
-human-only actions documented in
+This checklist covers the repository and prepared submission assets. YouTube
+publication and final Devpost submission remain human-only actions documented in
 [`HUMAN_PUBLISHING_HANDOFF.md`](HUMAN_PUBLISHING_HANDOFF.md).
 
 ## Product And Release Evidence
@@ -25,17 +24,17 @@ human-only actions documented in
 - [x] The video title and description are ready.
 - [x] The complete Education-category Devpost story is ready.
 - [x] Submitter type and country remain account-only.
-- [x] The concise human publishing handoff contains the private-reviewer,
-  release, YouTube, Devpost, deadline, and final-verification steps.
+- [x] The repository is public with reviewed metadata, security scanning, push
+  protection, and the immutable `v1.2.4` release tag.
+- [x] The concise human publishing handoff contains the release, YouTube,
+  Devpost, deadline, and final-verification steps.
 
 ## Remaining Human Actions
 
-The human operator must:
+The human operator must still:
 
-1. keep the repository Private and grant the two required reviewers access;
-2. review the final local commit, then create and push `v1.2.1`;
-3. upload and verify the public YouTube video;
-4. complete the account-only Devpost fields and submit the Education entry;
-5. verify all final links and platform confirmation before the deadline.
+1. upload and verify the public YouTube video;
+2. complete the account-only Devpost fields and submit the Education entry; and
+3. verify all final links and platform confirmation before the deadline.
 
 These are deliberately not marked as completed repository work.

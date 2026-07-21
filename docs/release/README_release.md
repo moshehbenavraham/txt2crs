@@ -13,10 +13,9 @@ historical live proof is tied to exact source revision
 job completed with exactly sixteen verified artifacts. Every inspection row
 passes and the canonical public ledger passes the strict evidence validator.
 
-All tracked judge assets are complete. The final annotated `v1.2.1` tag is
-intentionally left to the human release operator after one final review of the
-exact current commit. Tag creation and pushing are human-only actions. A
-tracked change after the tag requires a new SemVer release.
+All tracked judge assets are complete. The final annotated `v1.2.4` tag
+preserves the exact public judge-facing commit. A tracked change after the tag
+requires a new SemVer release.
 
 ## Evidence Index
 
@@ -35,7 +34,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.2.1 \
+  --expected-version 1.2.4 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```
@@ -64,7 +63,7 @@ The validator requires:
 Unknown fields fail closed. Email-shaped strings, URLs, absolute paths, and
 unsafe evidence fields are rejected even inside an otherwise allowed object.
 
-## Private Working Boundary
+## Private Local Working Boundary
 
 Raw live work belongs only in ignored local paths:
 
@@ -89,19 +88,13 @@ passing.
 
 ## Final Human Release Handoff
 
-All tracked judge assets and local release checks are complete. The human
-operator then:
+All tracked judge assets, local release checks, public repository settings, and
+the immutable release tag are complete. The remaining human publishing steps
+are:
 
-1. reviews the exact local commit and confirms the tree is clean;
-2. rerun release/evidence tests and the repository version validator;
-3. rebuild and inspect the wheel and source distribution;
-4. rebuild and inspect both production images;
-5. run production health and replacement smoke checks;
-6. grants both required reviewers private repository access;
-7. creates annotated tag `v1.2.1` on that exact commit;
-8. pushes the commit and tag and verifies the remote refs;
-9. publishes the verified demo video; and
-10. completes and submits the Education entry on Devpost.
+1. verify anonymous access to the public repository and `v1.2.4` tag;
+2. publish and verify the prepared demo video on YouTube; and
+3. complete and submit the Education entry on Devpost.
 
 Exact platform instructions are in
 [`docs/submission/HUMAN_PUBLISHING_HANDOFF.md`](../submission/HUMAN_PUBLISHING_HANDOFF.md).

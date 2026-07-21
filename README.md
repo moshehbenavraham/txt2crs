@@ -334,12 +334,12 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.2.1`. The human release
-operator creates the final annotated `v1.2.1` tag only after all tracked judge
-assets are final and the exact commit passes the existing distribution,
-production-image, health, replacement, and privacy checks.
+The current synchronized release version is `1.2.4`. The exact public
+judge-facing source is preserved by the annotated `v1.2.4` tag after the
+release passed the existing distribution, production-image, health,
+replacement, and privacy checks.
 
 The complete public-safe judge package is indexed in
-[submission evidence](docs/submission/README_submission.md). External GitHub,
-YouTube, and Devpost actions follow the
+[submission evidence](docs/submission/README_submission.md). The remaining
+YouTube and Devpost actions follow the
 [human publishing handoff](docs/submission/HUMAN_PUBLISHING_HANDOFF.md).

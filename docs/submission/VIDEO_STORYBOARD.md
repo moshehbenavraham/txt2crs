@@ -133,25 +133,45 @@ This is the tested local Docker `1.0.0` release."
 
 ## Upload Metadata
 
-**Title**: txt2crs - One Source To A Complete Learning Package
+**Title**: txt2crs - Turn Any Source into a Complete Learning Package | OpenAI Build Week
 
 **Description**:
 
 ```text
-txt2crs turns one bounded topic or source into a source-grounded course,
-review pack, student assessment, and separate instructor answer key.
+txt2crs turns a topic or bounded source into a complete, source-grounded
+learning package: a course, review pack, student assessment, and separate
+instructor answer key.
 
-Built with Codex for OpenAI Build Week in the Education category. The product
-runtime uses exact gpt-5.6-sol generation grounded by bounded Tavily research.
+Built with Codex for OpenAI Build Week in the Education category. Codex helped
+specify, test, review, secure, and validate the reusable Python engine, FastAPI
+application, React learner experience, and Docker release path. Inside the
+product, exact gpt-5.6-sol generation is grounded by bounded Tavily research.
+
+In this demo:
+00:00 What txt2crs creates
+00:12 Submit a topic or source
+00:29 Research and GPT-5.6 generation
+00:48 Durable, refresh-safe progress
+01:02 Four learning publications
+01:22 Safe preview and source disclosures
+01:37 Student assessment vs. instructor answer key
+01:50 How Codex helped build txt2crs
+02:11 Final result
+
 This walkthrough uses synthetic nonpersonal content from the tested local
-Docker 1.0.0 proof; the current judge-ready repository release is 1.2.1.
+Docker 1.0.0 proof; the current judge-ready repository release is 1.2.4.
 
 Repository: https://github.com/moshehbenavraham/txt2crs
-Release v1.2.1: https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1
+Release v1.2.4: https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4
+
+#OpenAIBuildWeek #Codex #AIEducation #GPT56 #EdTech
 ```
 
 **Audience**: No, it is not made for kids
 **Visibility**: Public
+**Category**: Education
+**Language**: English
+**Captions**: English captions reviewed before publication
 
 ## Publication Verification
 
@@ -162,7 +182,7 @@ The human operator performs these checks after upload:
 3. Play the full public video while signed out.
 4. Confirm narration is audible and names both Codex and GPT-5.6.
 5. Confirm text is legible at 1080p playback.
-6. Confirm the description links the repository and intended `v1.2.1`
+6. Confirm the description links the repository and immutable `v1.2.4`
    release.
 7. Use the stable public URL in the Devpost entry.
 8. Keep platform confirmation details outside the tracked repository.

@@ -1,7 +1,8 @@
 # txt2crs Submission Evidence
 
 This directory contains the prepared txt2crs OpenAI Build Week Education
-submission assets. External publication and submission remain human-only.
+submission assets. YouTube publication and final Devpost submission remain
+human-only.
 
 The repository-root [README](../../README.md) is the judge starting point.
 This directory contains submission evidence, while the existing
@@ -29,7 +30,7 @@ Tracked submission evidence may include:
 
 - synthetic product input and deterministic public result shapes;
 - bounded build, test, model-family, research, timing, and artifact counts;
-- the private repository URL and intended release identity;
+- the public repository URL and immutable release identity;
 - one bounded Codex feedback Session ID required by the event; and
 - the human publishing instructions required to finish the entry.
 
@@ -53,9 +54,9 @@ operator uploads it.
 
 The paid synthetic `gpt-5.6-sol` plus Tavily proof remains tied to historical
 source revision `a80700863e99cdd34bed757873d969236cdf36fa`. Later repairs and
-these tracked judge assets form a different final commit. The human operator
-tags the reviewed final commit as `v1.2.1`; the historical provider run is
-never relabeled as if it executed from the later commit.
+these tracked judge assets form a different final commit. The reviewed final
+commit is preserved by `v1.2.4`; the historical provider run is never relabeled
+as if it executed from the later commit.
 
 No tracked edit may follow the final tag without selecting a new SemVer
 release.

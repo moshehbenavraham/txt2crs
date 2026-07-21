@@ -8,10 +8,10 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.2.3`. It is a
-backward-compatible planning and documentation release that defines the next
-logging-quality and rendered-artifact storage work after the stable public API
-boundary established by `1.0.0`. Future compatibility decisions follow
+The current repository and Python package release is `1.2.4`. It is a
+backward-compatible submission release that reconciles the public GitHub
+repository, immutable judge tag, and publishing handoff after the stable public
+API boundary established by `1.0.0`. Future compatibility decisions follow
 Semantic Versioning from that public boundary.
 
 ## Choosing the next version
