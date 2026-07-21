@@ -263,11 +263,20 @@ def test_job_read_routes_generate_owner_scoped_bounded_contracts() -> None:
         "revision",
         "created_at",
         "updated_at",
+        "runtime_activity_at",
         "progress",
         "input",
         "failure",
         "result",
         "artifacts",
+    }
+    research_properties = openapi["components"]["schemas"]["JobResearchPublic"][
+        "properties"
+    ]
+    assert set(research_properties) == {
+        "fetched_source_count",
+        "charged_source_units",
+        "accepted_source_count",
     }
     assert "etag" not in json.dumps(status_operation).casefold()
 

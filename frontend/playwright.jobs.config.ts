@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
@@ -5,7 +6,13 @@ import { defineConfig, devices } from "@playwright/test"
 import "dotenv/config"
 
 const backendBaseUrl = "http://127.0.0.1:8017"
+const useProductionFrontend = process.env.PLAYWRIGHT_PRODUCTION_FRONTEND === "1"
+// Vite and production Nginx are mutually exclusive modes of the same
+// deterministic frontend, so both deliberately reuse the registered port.
+const frontendPort = 5197
 const frontendBaseUrl = "http://127.0.0.1:5197"
+const frontendRootDirectory = path.resolve(import.meta.dirname)
+const productionFrontendContainerName = `txt2crs-playwright-frontend-${process.pid}`
 const inheritedBrowserTestRootDirectory =
   process.env.TXT2CRS_BROWSER_TEST_ROOT_DIRECTORY
 const browserTestRootDirectory =
@@ -41,9 +48,28 @@ process.env.TXT2CRS_BROWSER_TEST_ROOT_DIRECTORY = browserTestRootDirectory
 // root and must not delete it when their individual project exits.
 if (inheritedBrowserTestRootDirectory === undefined) {
   process.once("exit", () => {
+    if (useProductionFrontend) {
+      // Playwright normally terminates the foreground ``docker run`` process.
+      // This exact-name cleanup also covers interrupted local runs without
+      // touching any developer or Compose container.
+      spawnSync("docker", ["rm", "--force", productionFrontendContainerName], {
+        stdio: "ignore",
+      })
+    }
     rmSync(browserTestRootDirectory, { recursive: true, force: true })
   })
 }
+
+const frontendServerCommand = useProductionFrontend
+  ? `env VITE_API_URL=${backendBaseUrl} npm run build && ${[
+      `docker run --rm --name ${productionFrontendContainerName}`,
+      `--publish 127.0.0.1:${frontendPort}:80`,
+      `--volume ${frontendRootDirectory}/dist:/usr/share/nginx/html:ro`,
+      `--volume ${frontendRootDirectory}/nginx.conf:/etc/nginx/conf.d/default.conf:ro`,
+      `--volume ${frontendRootDirectory}/nginx-backend-not-found.conf:/etc/nginx/extra-conf.d/backend-not-found.conf:ro`,
+      "nginx:1.31.3",
+    ].join(" ")}`
+  : "npm run dev -- --host 127.0.0.1 --port 5197 --strictPort"
 
 export default defineConfig({
   testDir: "./tests",
@@ -52,6 +78,7 @@ export default defineConfig({
     "auth.teardown.ts",
     "course-journey.spec.ts",
     "course-library.spec.ts",
+    "login.spec.ts",
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
@@ -106,7 +133,7 @@ export default defineConfig({
       },
     },
     {
-      command: "npm run dev -- --host 127.0.0.1 --port 5197 --strictPort",
+      command: frontendServerCommand,
       url: frontendBaseUrl,
       reuseExistingServer: false,
       timeout: 30_000,

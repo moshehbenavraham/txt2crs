@@ -267,6 +267,11 @@ class JobService:
 
         return self._store.next_runnable_job()
 
+    def record_runtime_activity(self, *, job_id: str, user_id: str) -> JobRecord:
+        """Record a content-free worker heartbeat for one owner/job."""
+
+        return self._store.record_runtime_activity(job_id=job_id, user_id=user_id)
+
     def get_public_snapshot(
         self,
         *,

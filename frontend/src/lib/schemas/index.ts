@@ -82,6 +82,7 @@ export {
 export {
   type LoginFormData,
   loginSchema,
+  loginSearchSchema,
   type RecoverPasswordFormData,
   type ResetPasswordFormData,
   type ResetPasswordSearchParams,

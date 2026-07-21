@@ -141,6 +141,24 @@ class PublicSourceSummary(_PublicQueryContract):
     retrieved_at: datetime
 
 
+class PublicResearchMetrics(_PublicQueryContract):
+    """Explicit source-accounting stages without provider-private details."""
+
+    fetched_source_count: int = Field(ge=0, le=100)
+    charged_source_units: int = Field(ge=0, le=100)
+    accepted_source_count: int = Field(ge=0, le=100)
+
+    @model_validator(mode="after")
+    def accepted_sources_cannot_exceed_fetched_candidates(
+        self,
+    ) -> "PublicResearchMetrics":
+        """Filtering can reduce candidates, never create unfetched sources."""
+
+        if self.accepted_source_count > self.fetched_source_count:
+            raise ValueError("Accepted sources cannot exceed fetched candidates.")
+        return self
+
+
 class PublicJobFailure(_PublicQueryContract):
     """Stable public failure code and reviewed learner-facing message."""
 
@@ -172,6 +190,7 @@ class PublicJobSnapshot(_PublicQueryContract):
     status: JobStatus
     created_at: datetime
     updated_at: datetime
+    runtime_activity_at: datetime | None = None
     last_accepted_stage: Identifier | None
     progress: PublicJobProgress
     input: PublicInputSummary
@@ -182,6 +201,7 @@ class PublicJobSnapshot(_PublicQueryContract):
     resolved_language: Annotated[str, Field(min_length=2, max_length=35)] | None
     objective_count: int | None = Field(default=None, ge=1, le=100)
     module_count: int | None = Field(default=None, ge=1, le=100)
+    research: PublicResearchMetrics | None = None
     sources: tuple[PublicSourceSummary, ...] = Field(max_length=_PUBLIC_SOURCE_LIMIT)
     sources_truncated: bool
     conflicts: tuple[PublicDisplayText, ...] = Field(max_length=_PUBLIC_CONFLICT_LIMIT)
@@ -194,6 +214,11 @@ class PublicJobSnapshot(_PublicQueryContract):
 
         if self.updated_at < self.created_at:
             raise ValueError("Job update time cannot precede creation time.")
+        if (
+            self.runtime_activity_at is not None
+            and self.runtime_activity_at < self.created_at
+        ):
+            raise ValueError("Runtime activity cannot precede job creation time.")
         has_public_failure = self.failure is not None
         needs_public_failure = self.status in {
             JobStatus.failed,
@@ -217,6 +242,14 @@ class PublicJobSnapshot(_PublicQueryContract):
             raise ValueError("A completed job must have finite total progress.")
         if self.sources_truncated and len(self.sources) != _PUBLIC_SOURCE_LIMIT:
             raise ValueError("Truncated sources must fill the public source page.")
+        if self.research is not None:
+            if self.research.accepted_source_count < len(self.sources):
+                raise ValueError("Accepted source count cannot omit listed sources.")
+            if (
+                not self.sources_truncated
+                and self.research.accepted_source_count != len(self.sources)
+            ):
+                raise ValueError("Accepted source count must match the source list.")
         if self.conflicts_truncated and len(self.conflicts) != _PUBLIC_CONFLICT_LIMIT:
             raise ValueError("Truncated conflicts must fill the public conflict page.")
         return self
@@ -456,6 +489,7 @@ def _build_public_job_snapshot(
         status=job.status,
         created_at=job.created_at,
         updated_at=job.updated_at,
+        runtime_activity_at=job.runtime_activity_at,
         last_accepted_stage=(
             validated_checkpoint.stage if validated_checkpoint is not None else None
         ),
@@ -471,6 +505,7 @@ def _build_public_job_snapshot(
         resolved_language=resolved_language,
         objective_count=objective_count,
         module_count=module_count,
+        research=_public_research_metrics(pipeline_checkpoint),
         sources=sources,
         sources_truncated=sources_truncated,
         conflicts=conflicts,
@@ -696,6 +731,28 @@ def _public_source_summaries(
     return public_sources, len(source_records) > _PUBLIC_SOURCE_LIMIT
 
 
+def _public_research_metrics(
+    checkpoint: PipelineCheckpoint | None,
+) -> PublicResearchMetrics | None:
+    """Name candidate, charged, and accepted counts from durable accounting.
+
+    Search results reserve one source-ledger unit before they enter the
+    coordinator, so the current fetched and charged values are intentionally
+    equal. Keeping both names in the contract prevents either from being
+    mistaken for the smaller post-filtering evidence set.
+    """
+
+    if checkpoint is None or checkpoint.evidence_set is None:
+        return None
+    fetched_source_count = checkpoint.budget_snapshot.sources
+    accepted_source_count = len(checkpoint.evidence_set.sources)
+    return PublicResearchMetrics(
+        fetched_source_count=fetched_source_count,
+        charged_source_units=fetched_source_count,
+        accepted_source_count=accepted_source_count,
+    )
+
+
 def _safe_public_source_url(url: str) -> str | None:
     """Drop credentials, queries, and fragments from a displayable HTTP URL."""
 
@@ -805,6 +862,7 @@ __all__ = [
     "PublicJobProjectionError",
     "PublicJobSnapshot",
     "PublicJobSummary",
+    "PublicResearchMetrics",
     "PublicSourceSummary",
     "decode_public_job_cursor",
     "encode_public_job_cursor",

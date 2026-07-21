@@ -4,6 +4,7 @@
 
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from importlib.resources import files
 from pathlib import Path
 
@@ -66,6 +67,12 @@ def test_initial_schema_is_a_packaged_reviewable_migration() -> None:
     assert "notification_schema_version" in delivery_notification_migration_sql
     assert "notification_mode" in delivery_notification_migration_sql
     assert "notification_status" in delivery_notification_migration_sql
+    runtime_activity_migration_sql = (
+        files("txt2crs.jobs")
+        .joinpath("migrations", "005_runtime_activity.sql")
+        .read_text(encoding="utf-8")
+    )
+    assert "runtime_activity_at" in runtime_activity_migration_sql
 
 
 def test_submission_is_idempotent_but_detects_key_reuse_for_other_input(
@@ -192,7 +199,50 @@ def test_checkpoint_and_job_survive_process_restart(tmp_path: Path) -> None:
 
     assert resumed_job.status is JobStatus.drafting
     assert resumed_checkpoint == checkpoint
-    assert reopened_store.migration_version == 4
+    assert reopened_store.migration_version == 5
+
+
+def test_runtime_activity_is_durable_without_advancing_checkpoint_state(
+    tmp_path: Path,
+) -> None:
+    """A worker heartbeat has its own timestamp and never fabricates progress."""
+
+    current_time = datetime(2026, 7, 21, 9, 0, tzinfo=UTC)
+    database_path = tmp_path / "jobs.sqlite3"
+    store = SqliteJobStore(
+        database_path,
+        admission_limits=generous_admission_limits(),
+        clock=lambda: current_time,
+    )
+    job = store.create_or_get_job(
+        user_id="user-1",
+        idempotency_key="heartbeat-1",
+        generation_request=valid_generation_request(),
+        admission_reservation=standard_admission_reservation(),
+    )
+    original_updated_at = job.updated_at
+
+    current_time = datetime(2026, 7, 21, 9, 0, 5, tzinfo=UTC)
+    heartbeat_job = store.record_runtime_activity(
+        job_id=job.job_id,
+        user_id="user-1",
+    )
+
+    assert heartbeat_job.revision == job.revision
+    assert heartbeat_job.updated_at == original_updated_at
+    assert heartbeat_job.runtime_activity_at == current_time
+    store.close()
+
+    reopened_store = job_store(database_path)
+    assert (
+        reopened_store.get_job(job_id=job.job_id, user_id="user-1").runtime_activity_at
+        == current_time
+    )
+    with pytest.raises(JobNotFoundError):
+        reopened_store.record_runtime_activity(
+            job_id=job.job_id,
+            user_id="another-owner",
+        )
 
 
 def test_version_three_delivery_upgrades_and_reopens_without_nullable_decision(
@@ -255,7 +305,7 @@ def test_version_three_delivery_upgrades_and_reopens_without_nullable_decision(
 
     upgraded_store = job_store(database_path)
 
-    assert upgraded_store.migration_version == 4
+    assert upgraded_store.migration_version == 5
     assert (
         upgraded_store.get_delivery_notification(
             job_id="job-legacy-delivery",
@@ -268,7 +318,7 @@ def test_version_three_delivery_upgrades_and_reopens_without_nullable_decision(
     # Reopening must skip the non-idempotent ALTER statements in migration
     # 004 instead of attempting to add the same columns again.
     reopened_store = job_store(database_path)
-    assert reopened_store.migration_version == 4
+    assert reopened_store.migration_version == 5
     assert (
         reopened_store.get_delivery_notification(
             job_id="job-legacy-delivery",
@@ -366,7 +416,7 @@ def test_failed_version_four_migration_rolls_back_columns_and_version(
     assert "notification_status" not in delivery_columns
 
     repaired_store = job_store(database_path)
-    assert repaired_store.migration_version == 4
+    assert repaired_store.migration_version == 5
 
 
 def test_invalid_status_transition_is_rejected(tmp_path: Path) -> None:

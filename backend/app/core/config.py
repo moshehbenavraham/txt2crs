@@ -342,6 +342,9 @@ class Settings(BaseSettings):
     TXT2CRS_WORKER_POLL_SECONDS: float = Field(default=2, gt=0, le=60)
     """Durable queue scan interval; in-process nudges only reduce latency."""
 
+    TXT2CRS_WORKER_HEARTBEAT_SECONDS: float = Field(default=5, gt=0, le=60)
+    """Content-free activity pulse while one course executor is running."""
+
     TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
         default=30,
         gt=0,

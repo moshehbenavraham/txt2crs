@@ -54,6 +54,7 @@ _PUBLIC_QUERY_EXPORTS = frozenset(
         "PublicJobProjectionError",
         "PublicJobSnapshot",
         "PublicJobSummary",
+        "PublicResearchMetrics",
         "PublicSourceSummary",
     }
 )
@@ -124,6 +125,7 @@ __all__ = [
     "PublicJobProjectionError",
     "PublicJobSnapshot",
     "PublicJobSummary",
+    "PublicResearchMetrics",
     "PublicSourceSummary",
     "RequestRetryPolicy",
     "RunExecutionLimits",

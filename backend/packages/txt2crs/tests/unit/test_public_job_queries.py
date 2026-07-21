@@ -12,6 +12,7 @@ from tests.factories import (
     valid_pipeline_checkpoint,
     valid_source_data,
 )
+from txt2crs.ai.budgets import RunBudgetSnapshot
 from txt2crs.generation.pipeline import PipelineCheckpoint
 from txt2crs.ingestion.models import IngestionLimits, InputPayload
 from txt2crs.ingestion.service import IngestionService
@@ -49,6 +50,7 @@ def _job(
         failure_code=failure_code,
         created_at=datetime(2026, 7, 19, 10, 0, tzinfo=UTC),
         updated_at=datetime(2026, 7, 19, 10, 15, tzinfo=UTC),
+        runtime_activity_at=datetime(2026, 7, 19, 10, 14, 55, tzinfo=UTC),
     )
 
 
@@ -185,6 +187,7 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
     assert snapshot.job_id == "job-public-query"
     assert snapshot.revision == 7
     assert snapshot.status is JobStatus.validating
+    assert snapshot.runtime_activity_at == datetime(2026, 7, 19, 10, 14, 55, tzinfo=UTC)
     assert snapshot.last_accepted_stage == "cross_validate_artifacts"
     assert snapshot.progress.completed_units == 9
     assert snapshot.progress.total_units == 9
@@ -228,6 +231,7 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
         "status",
         "created_at",
         "updated_at",
+        "runtime_activity_at",
         "last_accepted_stage",
         "progress",
         "input",
@@ -238,12 +242,31 @@ def test_public_snapshot_allowlists_useful_state_without_private_payloads() -> N
         "resolved_language",
         "objective_count",
         "module_count",
+        "research",
         "sources",
         "sources_truncated",
         "conflicts",
         "conflicts_truncated",
         "artifacts",
     }
+
+
+def test_public_snapshot_names_source_accounting_stages_explicitly() -> None:
+    """Fetched/charged candidates cannot be confused with accepted evidence."""
+
+    checkpoint = _complete_pipeline_checkpoint().model_copy(
+        update={"budget_snapshot": RunBudgetSnapshot(sources=12)}
+    )
+
+    snapshot = project_public_job_snapshot(
+        resume_state=_resume_state(checkpoint=checkpoint),
+        artifact_manifest=None,
+    )
+
+    assert snapshot.research is not None
+    assert snapshot.research.fetched_source_count == 12
+    assert snapshot.research.charged_source_units == 12
+    assert snapshot.research.accepted_source_count == 1
 
 
 def test_public_snapshot_bounds_messages_lists_and_progress() -> None:
@@ -312,6 +335,9 @@ def test_public_snapshot_caps_sources_and_reports_omitted_valid_items() -> None:
         source_records.append(source_record)
     checkpoint_data["evidence_set"]["sources"] = source_records
     checkpoint_data["evidence_set"]["excerpts"][0]["source_id"] = "src-public-00"
+    # This fixture represents thirteen candidates that all passed filtering.
+    # Keep the durable budget accounting coherent with that evidence set.
+    checkpoint_data["budget_snapshot"]["sources"] = len(source_records)
     checkpoint = PipelineCheckpoint.model_validate(checkpoint_data)
 
     snapshot = project_public_job_snapshot(

@@ -304,6 +304,16 @@ class Txt2CrsApplication:
             self._require_open()
             return self._job_service.next_runnable()
 
+    def record_runtime_activity(self, *, job_id: str, user_id: str) -> None:
+        """Persist content-free worker liveness through the package boundary."""
+
+        with self._lock:
+            self._require_open()
+            self._job_service.record_runtime_activity(
+                job_id=job_id,
+                user_id=user_id,
+            )
+
     def get_public_job(self, *, job_id: str, user_id: str) -> PublicJobSnapshot:
         """Return one path-free public job projection."""
 

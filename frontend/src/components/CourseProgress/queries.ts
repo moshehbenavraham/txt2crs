@@ -5,8 +5,8 @@ import { type JobStatusPublic, JobsService } from "@/client"
 import { ApiError } from "@/lib/api-error"
 import type { JobId } from "@/lib/types"
 
-const VISIBLE_POLLING_INTERVAL_MILLISECONDS = 1_500
-const HIDDEN_POLLING_INTERVAL_MILLISECONDS = 10_000
+const VISIBLE_POLLING_INTERVAL_MILLISECONDS = 5_000
+const HIDDEN_POLLING_INTERVAL_MILLISECONDS = 30_000
 const MAXIMUM_TRANSIENT_RETRY_DELAY_MILLISECONDS = 30_000
 const MAXIMUM_AUTOMATIC_TRANSIENT_RETRIES = 5
 
@@ -84,11 +84,26 @@ export function chooseLatestJobSnapshot(
   if (!previousSnapshot) {
     return incomingSnapshot
   }
-  if (
-    incomingSnapshot.job_id !== previousSnapshot.job_id ||
-    incomingSnapshot.revision <= previousSnapshot.revision
-  ) {
+  if (incomingSnapshot.job_id !== previousSnapshot.job_id) {
     return previousSnapshot
+  }
+  if (incomingSnapshot.revision < previousSnapshot.revision) {
+    return previousSnapshot
+  }
+  if (incomingSnapshot.revision === previousSnapshot.revision) {
+    const previousActivityTime = Date.parse(
+      previousSnapshot.runtime_activity_at ?? "",
+    )
+    const incomingActivityTime = Date.parse(
+      incomingSnapshot.runtime_activity_at ?? "",
+    )
+    if (
+      !Number.isFinite(incomingActivityTime) ||
+      (Number.isFinite(previousActivityTime) &&
+        incomingActivityTime <= previousActivityTime)
+    ) {
+      return previousSnapshot
+    }
   }
   return incomingSnapshot
 }

@@ -29,6 +29,7 @@ from txt2crs.jobs import (
     PublicJobPage,
     PublicJobSnapshot,
     PublicJobSummary,
+    PublicResearchMetrics,
     PublicSourceSummary,
 )
 
@@ -379,6 +380,24 @@ class JobSourcePublic(_StrictFrozenModel):
         )
 
 
+class JobResearchPublic(_StrictFrozenModel):
+    """Named source-accounting stages for learner-facing diagnostics."""
+
+    fetched_source_count: int = Field(ge=0, le=100)
+    charged_source_units: int = Field(ge=0, le=100)
+    accepted_source_count: int = Field(ge=0, le=100)
+
+    @classmethod
+    def from_package(cls, metrics: PublicResearchMetrics) -> Self:
+        """Copy the already reviewed package counters field by field."""
+
+        return cls(
+            fetched_source_count=metrics.fetched_source_count,
+            charged_source_units=metrics.charged_source_units,
+            accepted_source_count=metrics.accepted_source_count,
+        )
+
+
 class JobResultPublic(_StrictFrozenModel):
     """Coherent bounded result summary once an accepted course plan exists."""
 
@@ -388,6 +407,7 @@ class JobResultPublic(_StrictFrozenModel):
     language: Annotated[StrictStr, Field(min_length=2, max_length=35)]
     objective_count: int = Field(ge=1, le=100)
     module_count: int = Field(ge=1, le=100)
+    research: JobResearchPublic
     sources: tuple[JobSourcePublic, ...] = Field(max_length=12)
     sources_truncated: bool
     conflicts: tuple[PublicText, ...] = Field(max_length=20)
@@ -433,6 +453,7 @@ class JobStatusPublic(_StrictFrozenModel):
     revision: int = Field(ge=0, le=9_223_372_036_854_775_807)
     created_at: datetime
     updated_at: datetime
+    runtime_activity_at: datetime | None
     progress: JobProgressPublic
     input: JobInputPublic
     failure: JobFailurePublic | None
@@ -457,6 +478,7 @@ class JobStatusPublic(_StrictFrozenModel):
             revision=snapshot.revision,
             created_at=snapshot.created_at,
             updated_at=snapshot.updated_at,
+            runtime_activity_at=snapshot.runtime_activity_at,
             progress=JobProgressPublic(
                 stage=progress_stage,
                 message=progress_message,
@@ -574,6 +596,7 @@ def _result_from_package(snapshot: PublicJobSnapshot) -> JobResultPublic | None:
         or snapshot.resolved_language is None
         or snapshot.objective_count is None
         or snapshot.module_count is None
+        or snapshot.research is None
     ):
         # The package model normally makes this unreachable. Keeping a
         # context-free guard here prevents a future contract drift from
@@ -586,6 +609,7 @@ def _result_from_package(snapshot: PublicJobSnapshot) -> JobResultPublic | None:
         language=snapshot.resolved_language,
         objective_count=snapshot.objective_count,
         module_count=snapshot.module_count,
+        research=JobResearchPublic.from_package(snapshot.research),
         sources=tuple(
             JobSourcePublic.from_package(source) for source in snapshot.sources
         ),

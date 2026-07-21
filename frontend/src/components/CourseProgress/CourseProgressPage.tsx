@@ -348,7 +348,7 @@ function LiveProgressTelemetry({
         </div>
       </div>
 
-      <dl className="mt-6 grid gap-px border border-border bg-border sm:grid-cols-3">
+      <dl className="mt-6 grid gap-px border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
         <div className="bg-background p-4">
           <dt className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock3 aria-hidden="true" className="size-4" />
@@ -379,16 +379,28 @@ function LiveProgressTelemetry({
             Latest checkpoint
           </dt>
           <dd className="mt-2 font-mono text-lg font-medium text-foreground">
-            {timing.latestActivityLabel}
+            {timing.latestCheckpointLabel}
+          </dd>
+        </div>
+        <div className="bg-background p-4">
+          <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Activity aria-hidden="true" className="size-4" />
+            Worker activity
+          </dt>
+          <dd
+            data-testid="runtime-activity"
+            className="mt-2 font-mono text-lg font-medium text-foreground"
+          >
+            {timing.latestRuntimeActivityLabel}
           </dd>
         </div>
       </dl>
 
       <p className="mt-4 text-xs leading-5 text-muted-foreground">
-        Only durable backend checkpoints move the meter; an active stage may
-        work for several minutes between confirmed updates. The estimate
-        recalculates as those checkpoints arrive and may change because
-        research, drafting, and rendering take different amounts of time.
+        Only durable backend checkpoints move the meter. Worker activity pulses
+        separately while a long model turn is still running. The estimate
+        recalculates as checkpoints arrive and may change because research,
+        drafting, and rendering take different amounts of time.
       </p>
       <p className="mt-2 text-body-sm text-muted-foreground">
         You can close this page and return to the same private job.

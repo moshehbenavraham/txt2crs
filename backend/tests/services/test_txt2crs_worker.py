@@ -128,6 +128,7 @@ class RecordingApplication:
         self.discovery_called = Event()
         self.last_discovery_call = Event()
         self.executor_creation_started = Event()
+        self.runtime_activity_calls: list[tuple[str, str]] = []
 
     def add_runnable(
         self,
@@ -181,6 +182,12 @@ class RecordingApplication:
         assert user_id == f"owner-{job_id}"
         return executor
 
+    def record_runtime_activity(self, *, job_id: str, user_id: str) -> None:
+        """Record one content-free heartbeat through the public facade shape."""
+
+        with self._lock:
+            self.runtime_activity_calls.append((job_id, user_id))
+
 
 def _runnable(job_number: int) -> RecordingRunnable:
     """Return one stable owner/job identity without learner content."""
@@ -206,6 +213,7 @@ def _worker(
     *,
     poll_interval_seconds: float = 0.01,
     shutdown_timeout_seconds: float = 0.2,
+    heartbeat_interval_seconds: float = 0.01,
     runtime_ownership: RuntimeOwnershipCoordinator | None = None,
 ) -> SerialTxt2CrsWorker:
     """Build one focused supervisor without provider or database access."""
@@ -214,6 +222,7 @@ def _worker(
         application=cast(WorkerApplication, application),
         poll_interval_seconds=poll_interval_seconds,
         shutdown_timeout_seconds=shutdown_timeout_seconds,
+        heartbeat_interval_seconds=heartbeat_interval_seconds,
         runtime_ownership=runtime_ownership,
     )
 
@@ -505,6 +514,34 @@ def test_worker_never_overlaps_two_executor_graphs() -> None:
     assert second_executor.execution_finished.wait(timeout=2)
     worker.close()
     assert concurrency_counter.maximum_active_count == 1
+
+
+def test_active_execution_records_periodic_runtime_activity() -> None:
+    """A long model turn remains visibly active between durable checkpoints."""
+
+    release_execution = Event()
+    executor = RecordingExecutor(
+        name="heartbeat",
+        concurrency_counter=ConcurrencyCounter(),
+        concurrency_lock=Lock(),
+        release_execution=release_execution,
+    )
+    runnable = _runnable(1)
+    application = RecordingApplication()
+    application.add_runnable(runnable, executor)
+    worker = _worker(application, heartbeat_interval_seconds=0.01)
+
+    worker.start()
+    try:
+        assert executor.execution_entered.wait(timeout=2)
+        _wait_until(lambda: len(application.runtime_activity_calls) >= 2)
+        assert set(application.runtime_activity_calls) == {
+            (runnable.job.job_id, runnable.job.user_id)
+        }
+    finally:
+        release_execution.set()
+        assert executor.execution_finished.wait(timeout=2)
+        worker.close()
 
 
 def test_discovery_failure_retries_without_logging_private_detail(

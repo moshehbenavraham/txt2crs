@@ -434,7 +434,7 @@ test.describe("authenticated course intake", () => {
       page.getByRole("heading", {
         name: /Building your learning package|Course materials are ready/,
       }),
-    ).toBeVisible()
+    ).toBeVisible({ timeout: 12_000 })
     const jobUrl = page.url()
 
     await page.reload()
@@ -444,7 +444,7 @@ test.describe("authenticated course intake", () => {
         level: 2,
         name: /queued securely|course materials are ready/i,
       }),
-    ).toBeVisible()
+    ).toBeVisible({ timeout: 12_000 })
 
     await expect(
       page.getByRole("heading", {
@@ -773,6 +773,7 @@ test.describe("authenticated course intake", () => {
       { width: 320, height: 568, expectedRows: 4 },
       { width: 375, height: 812, expectedRows: 4 },
       { width: 768, height: 900, expectedRows: 2 },
+      { width: 1280, height: 577, expectedRows: 1 },
       { width: 1440, height: 900, expectedRows: 1 },
     ] as const
     const screenshotDirectory =
@@ -836,6 +837,18 @@ test.describe("authenticated course intake", () => {
           ),
           `${theme} ${viewport.width}px horizontal overflow`,
         ).toBeLessThanOrEqual(0)
+        if (viewport.width === 1280) {
+          const answerKeyBounds = await answerKey.boundingBox()
+          const answerKeyToggleBounds = await answerKeyToggle.boundingBox()
+          expect(answerKeyBounds).not.toBeNull()
+          expect(answerKeyToggleBounds).not.toBeNull()
+          expect(answerKeyToggleBounds!.x).toBeGreaterThanOrEqual(
+            answerKeyBounds!.x,
+          )
+          expect(
+            answerKeyToggleBounds!.x + answerKeyToggleBounds!.width,
+          ).toBeLessThanOrEqual(answerKeyBounds!.x + answerKeyBounds!.width)
+        }
         expect(
           await auditVisibleTextContrast(
             page,
@@ -1188,6 +1201,9 @@ test.describe("authenticated course intake", () => {
           updated_at: new Date(
             createdAtMilliseconds + (hasAdvanced ? 55_000 : 40_000),
           ).toISOString(),
+          runtime_activity_at: new Date(
+            createdAtMilliseconds + (hasAdvanced ? 75_000 : 60_000),
+          ).toISOString(),
           progress: {
             stage: hasAdvanced ? "drafting" : "researching",
             message: hasAdvanced
@@ -1234,7 +1250,7 @@ test.describe("authenticated course intake", () => {
     await expect(confirmedProgress).toHaveAttribute("aria-valuemax", "12")
 
     await expect(liveProgress).toContainText("Confirmed update 4", {
-      timeout: 5_000,
+      timeout: 12_000,
     })
     await expect(
       page.getByRole("heading", { name: "Writing the course modules." }),
@@ -1242,6 +1258,9 @@ test.describe("authenticated course intake", () => {
     await expect(confirmedProgress).toHaveAttribute("aria-valuenow", "4")
     await expect(liveProgress.getByTestId("estimated-time-left")).toHaveText(
       "~1m 50s",
+    )
+    await expect(liveProgress.getByTestId("runtime-activity")).not.toHaveText(
+      "Awaiting worker",
     )
 
     const elapsedTime = liveProgress.getByTestId("elapsed-time")

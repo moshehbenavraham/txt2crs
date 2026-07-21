@@ -33,13 +33,14 @@ export interface InputWarningsPresentation {
 export interface ActiveJobTimingPresentation {
   elapsedTimeLabel: string
   estimatedTimeLeftLabel: string
-  latestActivityLabel: string
+  latestCheckpointLabel: string
+  latestRuntimeActivityLabel: string
   progressPercentage: number | null
 }
 
 type ActiveJobTimingSnapshot = Pick<
   JobStatusPublic,
-  "created_at" | "updated_at"
+  "created_at" | "updated_at" | "runtime_activity_at"
 > & {
   progress: Pick<JobProgressPublic, "completed_units" | "total_units">
 }
@@ -248,9 +249,12 @@ export function getActiveJobTimingPresentation(
   const elapsedTimeLabel = hasValidCreatedAt
     ? formatCompactDuration(currentTimeMilliseconds - createdAtMilliseconds)
     : "Not available"
-  const latestActivityLabel = hasValidUpdatedAt
+  const latestCheckpointLabel = hasValidUpdatedAt
     ? getTimeSinceLabel(updatedAtMilliseconds, currentTimeMilliseconds)
     : "Awaiting update"
+  const latestRuntimeActivityLabel = snapshot.runtime_activity_at
+    ? getTimeSinceLabel(snapshot.runtime_activity_at, currentTimeMilliseconds)
+    : "Awaiting worker"
 
   const { completed_units: completedUnits, total_units: totalUnits } =
     snapshot.progress
@@ -281,7 +285,8 @@ export function getActiveJobTimingPresentation(
   return {
     elapsedTimeLabel,
     estimatedTimeLeftLabel,
-    latestActivityLabel,
+    latestCheckpointLabel,
+    latestRuntimeActivityLabel,
     progressPercentage,
   }
 }

@@ -421,6 +421,26 @@ export type JobProgressStage =
   | "cancelled"
 
 /**
+ * JobResearchPublic
+ *
+ * Named source-accounting stages for learner-facing diagnostics.
+ */
+export type JobResearchPublic = {
+  /**
+   * Fetched Source Count
+   */
+  fetched_source_count: number
+  /**
+   * Charged Source Units
+   */
+  charged_source_units: number
+  /**
+   * Accepted Source Count
+   */
+  accepted_source_count: number
+}
+
+/**
  * JobResultPublic
  *
  * Coherent bounded result summary once an accepted course plan exists.
@@ -450,6 +470,7 @@ export type JobResultPublic = {
    * Module Count
    */
   module_count: number
+  research: JobResearchPublic
   /**
    * Sources
    */
@@ -535,6 +556,10 @@ export type JobStatusPublic = {
    * Updated At
    */
   updated_at: string
+  /**
+   * Runtime Activity At
+   */
+  runtime_activity_at: string | null
   progress: JobProgressPublic
   input: JobInputPublic
   failure: JobFailurePublic | null

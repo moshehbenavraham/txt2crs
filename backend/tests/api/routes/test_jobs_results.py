@@ -24,6 +24,7 @@ from txt2crs.jobs import (
     PublicJobProgress,
     PublicJobSnapshot,
     PublicJobSummary,
+    PublicResearchMetrics,
     PublicSourceSummary,
 )
 
@@ -45,6 +46,7 @@ def _snapshot() -> PublicJobSnapshot:
         status=JobStatus.completed,
         created_at=datetime(2026, 7, 20, 9, 0, tzinfo=UTC),
         updated_at=datetime(2026, 7, 20, 9, 15, tzinfo=UTC),
+        runtime_activity_at=datetime(2026, 7, 20, 9, 14, 58, tzinfo=UTC),
         last_accepted_stage="cross_validate_artifacts",
         progress=PublicJobProgress(completed_units=9, total_units=9),
         input=PublicInputSummary(
@@ -61,6 +63,11 @@ def _snapshot() -> PublicJobSnapshot:
         resolved_language="en",
         objective_count=2,
         module_count=1,
+        research=PublicResearchMetrics(
+            fetched_source_count=12,
+            charged_source_units=12,
+            accepted_source_count=1,
+        ),
         sources=(
             PublicSourceSummary(
                 title="PostgreSQL documentation",
@@ -285,6 +292,7 @@ def test_status_route_returns_current_revisioned_result_with_private_headers(
     assert response.json()["job_id"] == "job-results-route"
     assert response.json()["revision"] == 11
     assert response.json()["status"] == "completed"
+    assert response.json()["runtime_activity_at"] == "2026-07-20T09:14:58Z"
     assert response.json()["progress"] == {
         "stage": "ready",
         "message": "Your course materials are ready.",
@@ -292,6 +300,11 @@ def test_status_route_returns_current_revisioned_result_with_private_headers(
         "total_units": 9,
     }
     assert response.json()["result"]["title"] == "Database Indexes"
+    assert response.json()["result"]["research"] == {
+        "fetched_source_count": 12,
+        "charged_source_units": 12,
+        "accepted_source_count": 1,
+    }
     assert response.json()["artifacts"]["manifest_url"] == (
         f"{settings.API_V1_STR}/jobs/job-results-route/artifacts"
     )

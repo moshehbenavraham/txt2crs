@@ -12,6 +12,7 @@ import { ThemeProvider } from "./components/theme-provider"
 import { Toaster } from "./components/ui/sonner"
 import "./index.css"
 import { ApiError, createApiError } from "./lib/api-error"
+import { buildLoginHref } from "./lib/auth-return"
 import {
   clearAuthSession,
   getAccessToken,
@@ -33,7 +34,9 @@ const handleApiError = (error: Error) => {
     shouldInvalidateSession(error)
   ) {
     clearAuthSession(queryClient)
-    window.location.href = "/login"
+    window.location.href = buildLoginHref(
+      `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    )
   }
 }
 const queryClient = new QueryClient({

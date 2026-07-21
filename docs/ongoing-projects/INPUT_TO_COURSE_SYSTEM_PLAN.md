@@ -739,12 +739,13 @@ and must not reveal provider streaming text.
 
 P0 uses TanStack Query polling, not SSE or WebSockets:
 
-- poll every 1.5 seconds while the tab is visible and the job is non-terminal;
-- poll every 10 seconds while hidden;
-- back off network failures from 3 to at most 30 seconds with jitter;
+- poll every 5 seconds while the tab is visible and the job is non-terminal;
+- poll every 30 seconds while hidden;
+- back off network failures from 5 to at most 30 seconds with jitter;
 - stop on terminal state;
 - resume automatically after refresh; and
-- use `revision` to suppress duplicate UI announcements/animation.
+- use `revision` plus the separate runtime-activity timestamp to suppress stale
+  UI updates without hiding a fresh worker heartbeat.
 
 Polling is the lowest-risk refresh-safe fit for one long-running worker. A
 streaming transport may be added later without changing the job contract.

@@ -17,6 +17,7 @@ const jobSnapshot = (status: JobStatusPublic["status"]): JobStatusPublic =>
     job_id: "job-progress",
     status,
     revision: 2,
+    runtime_activity_at: "2026-07-21T10:01:00Z",
   }) as JobStatusPublic
 
 describe("course job query policy", () => {
@@ -41,7 +42,7 @@ describe("course job query policy", () => {
     "rendering",
     "delivering",
   ] as const)(
-    "polls visible non-terminal %s jobs every 1.5 seconds",
+    "polls visible non-terminal %s jobs every 5 seconds",
     (status) => {
       expect(
         getJobPollingInterval({
@@ -49,7 +50,7 @@ describe("course job query policy", () => {
           isDocumentVisible: true,
           transientFailureCount: 0,
         }),
-      ).toBe(1500)
+      ).toBe(5000)
     },
   )
 
@@ -60,9 +61,9 @@ describe("course job query policy", () => {
         isDocumentVisible: false,
         transientFailureCount: 0,
       }),
-    ).toBe(10_000)
-    expect(getTransientRetryDelay(1)).toBe(1500)
-    expect(getTransientRetryDelay(2)).toBe(3000)
+    ).toBe(30_000)
+    expect(getTransientRetryDelay(1)).toBe(5000)
+    expect(getTransientRetryDelay(2)).toBe(10_000)
     expect(getTransientRetryDelay(20)).toBe(30_000)
   })
 
@@ -86,14 +87,14 @@ describe("course job query policy", () => {
         isDocumentVisible: true,
         transientFailureCount: 3,
       }),
-    ).toBe(6000)
+    ).toBe(20_000)
     expect(
       getJobPollingInterval({
         snapshot: undefined,
         isDocumentVisible: true,
         transientFailureCount: 1,
       }),
-    ).toBe(1500)
+    ).toBe(5000)
   })
 
   it("keeps the newest revision and rejects cross-job snapshots", () => {
@@ -117,6 +118,25 @@ describe("course job query policy", () => {
         job_id: "another-job",
       }),
     ).toBe(revisionTwo)
+  })
+
+  it("accepts a newer runtime heartbeat without inventing a checkpoint revision", () => {
+    const previousSnapshot = jobSnapshot("drafting")
+    const heartbeatSnapshot = {
+      ...previousSnapshot,
+      runtime_activity_at: "2026-07-21T10:01:05Z",
+    }
+    const staleHeartbeatSnapshot = {
+      ...previousSnapshot,
+      runtime_activity_at: "2026-07-21T10:00:55Z",
+    }
+
+    expect(chooseLatestJobSnapshot(previousSnapshot, heartbeatSnapshot)).toBe(
+      heartbeatSnapshot,
+    )
+    expect(
+      chooseLatestJobSnapshot(previousSnapshot, staleHeartbeatSnapshot),
+    ).toBe(previousSnapshot)
   })
 
   it("retries only transient reads and revalidates on direct re-entry", () => {

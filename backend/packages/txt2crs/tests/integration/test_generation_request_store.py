@@ -98,7 +98,7 @@ def test_request_job_and_admission_commit_atomically(tmp_path: Path) -> None:
         == request
     )
     assert durable_row_counts(database_path) == (1, 1, 1)
-    assert store.migration_version == 4
+    assert store.migration_version == 5
 
 
 @pytest.mark.parametrize(
@@ -333,7 +333,7 @@ def test_version_two_database_upgrades_without_rewriting_existing_rows(
 
     store = job_store(database_path)
 
-    assert store.migration_version == 4
+    assert store.migration_version == 5
     assert store.get_job(job_id="job-legacy", user_id="user-1").job_id == "job-legacy"
     with pytest.raises(JobRequestCompatibilityError, match="cannot be recovered"):
         store.get_generation_request(job_id="job-legacy", user_id="user-1")

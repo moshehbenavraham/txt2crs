@@ -126,7 +126,7 @@ provider internals or filesystem paths.
 
 ## Non-Functional Requirements
 
-- **Performance**: Public job polling uses 1.5-second visible and 10-second
+- **Performance**: Public job polling uses 5-second visible and 30-second
   hidden intervals, backs transient network failures off to at most 30
   seconds, and stops on terminal state.
 - **Input bounds**: One upload is at most 20 MiB, normalized input is at most

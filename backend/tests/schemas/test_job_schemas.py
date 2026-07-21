@@ -17,6 +17,7 @@ from txt2crs.jobs import (
     PublicJobFailure,
     PublicJobProgress,
     PublicJobSnapshot,
+    PublicResearchMetrics,
     PublicSourceSummary,
 )
 
@@ -24,6 +25,7 @@ from app.schemas.jobs import (
     ArtifactManifestPublic,
     IdempotencyKey,
     JobAcceptedPublic,
+    JobResearchPublic,
     JobResultPublic,
     JobSourcePublic,
     JobStatusPublic,
@@ -321,6 +323,7 @@ def _public_snapshot(
         status=status,
         created_at=datetime(2026, 7, 20, 8, 0, tzinfo=UTC),
         updated_at=datetime(2026, 7, 20, 8, 15, tzinfo=UTC),
+        runtime_activity_at=datetime(2026, 7, 20, 8, 14, tzinfo=UTC),
         last_accepted_stage=last_accepted_stage,
         progress=PublicJobProgress(
             completed_units=9,
@@ -351,6 +354,11 @@ def _public_snapshot(
         resolved_language="en",
         objective_count=3,
         module_count=2,
+        research=PublicResearchMetrics(
+            fetched_source_count=2,
+            charged_source_units=2,
+            accepted_source_count=1,
+        ),
         sources=(
             PublicSourceSummary(
                 title="Python documentation",
@@ -379,6 +387,7 @@ def test_status_response_maps_only_reviewed_package_projection_fields() -> None:
         "revision",
         "created_at",
         "updated_at",
+        "runtime_activity_at",
         "progress",
         "input",
         "failure",
@@ -394,6 +403,8 @@ def test_status_response_maps_only_reviewed_package_projection_fields() -> None:
     assert response.result.title == "Python Foundations"
     assert response.result.audience == "First-year students"
     assert response.result.objective_count == 3
+    assert response.result.research.fetched_source_count == 2
+    assert response.result.research.accepted_source_count == 1
     assert response.result.sources[0].url == "https://docs.python.org/3/"
     assert response.artifacts.manifest_url == ("/api/v1/jobs/job-results-1/artifacts")
     assert "last_accepted_stage" not in serialized_response
@@ -450,6 +461,11 @@ def test_status_and_result_contracts_reject_unknown_or_unbounded_fields() -> Non
             language="en",
             objective_count=1,
             module_count=1,
+            research=JobResearchPublic(
+                fetched_source_count=13,
+                charged_source_units=13,
+                accepted_source_count=13,
+            ),
             sources=cast(tuple[JobSourcePublic, ...], (source,) * 13),
             sources_truncated=True,
             conflicts=(),

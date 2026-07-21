@@ -57,6 +57,18 @@ test("Log in with valid email and password ", async ({ page }) => {
   ).toBeVisible()
 })
 
+test("restores the originally requested protected deep link after login", async ({
+  page,
+}) => {
+  await page.goto("/jobs/job-deep-link")
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fjobs%2Fjob-deep-link$/)
+
+  await fillForm(page, loginEmail, loginPassword)
+  await page.getByRole("button", { name: "Sign In" }).click()
+
+  await expect(page).toHaveURL(/\/jobs\/job-deep-link$/)
+})
+
 test("Log in with invalid email", async ({ page }) => {
   await page.goto("/login")
 
@@ -112,7 +124,7 @@ test("Logged-out user cannot access protected routes", async ({ page }) => {
   await page.waitForURL("/login")
 
   await page.goto("/create")
-  await page.waitForURL("/login")
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fcreate$/)
 })
 
 test("Redirects to /login when token is wrong", async ({ page }) => {
@@ -121,6 +133,5 @@ test("Redirects to /login when token is wrong", async ({ page }) => {
     sessionStorage.setItem("access_token", "invalid_token")
   })
   await page.goto("/settings")
-  await page.waitForURL("/login")
-  await expect(page).toHaveURL("/login")
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings$/)
 })

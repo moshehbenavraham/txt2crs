@@ -41,6 +41,7 @@ _MIGRATION_RESOURCES = {
     2: "002_job_admissions.sql",
     3: "003_generation_requests.sql",
     4: "004_delivery_notifications.sql",
+    5: "005_runtime_activity.sql",
 }
 _MIGRATION_VERSION = max(_MIGRATION_RESOURCES)
 
@@ -618,6 +619,42 @@ class SqliteJobStore:
                 )
             return self.get_job(job_id=job_id, user_id=user_id)
 
+    def record_runtime_activity(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+    ) -> JobRecord:
+        """Persist worker liveness without claiming a checkpoint revision.
+
+        A final heartbeat can race the terminal status write. The status
+        predicate makes that race harmless, while the owner-scoped read first
+        preserves the same missing/foreign behavior as every other job write.
+        """
+
+        terminal_statuses = (
+            JobStatus.completed.value,
+            JobStatus.failed.value,
+            JobStatus.cancelled.value,
+        )
+        with self._lock:
+            self.get_job(job_id=job_id, user_id=user_id)
+            self._connection.execute(
+                """
+                UPDATE jobs
+                SET runtime_activity_at = ?
+                WHERE job_id = ? AND user_id = ?
+                  AND status NOT IN (?, ?, ?)
+                """,
+                (
+                    self._now_text(),
+                    job_id,
+                    user_id,
+                    *terminal_statuses,
+                ),
+            )
+            return self.get_job(job_id=job_id, user_id=user_id)
+
     def save_checkpoint(
         self,
         *,
@@ -854,6 +891,11 @@ def _job_from_row(row: sqlite3.Row) -> JobRecord:
         ),
         created_at=datetime.fromisoformat(str(row["created_at"])),
         updated_at=datetime.fromisoformat(str(row["updated_at"])),
+        runtime_activity_at=(
+            datetime.fromisoformat(str(row["runtime_activity_at"]))
+            if row["runtime_activity_at"] is not None
+            else None
+        ),
     )
 
 

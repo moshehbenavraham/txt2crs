@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 
 WORKER_SNAPSHOT_SCHEMA_VERSION = "1.0"
 WORKER_THREAD_NAME = "txt2crs-serial-worker"
+WORKER_HEARTBEAT_THREAD_NAME = "txt2crs-runtime-heartbeat"
 
 
 class WorkerStatus(StrEnum):
@@ -118,6 +119,9 @@ class WorkerApplication(Protocol):
     ) -> WorkerExecutor:
         """Create one fresh public executor graph."""
 
+    def record_runtime_activity(self, *, job_id: str, user_id: str) -> None:
+        """Persist one content-free activity timestamp for the active job."""
+
 
 def _log_worker_event_safely(
     event_name: str,
@@ -154,16 +158,20 @@ class SerialTxt2CrsWorker:
         application: WorkerApplication,
         poll_interval_seconds: float,
         shutdown_timeout_seconds: float,
+        heartbeat_interval_seconds: float = 5,
         runtime_ownership: RuntimeOwnershipCoordinator | None = None,
     ) -> None:
         if poll_interval_seconds <= 0 or poll_interval_seconds > 60:
             raise ValueError("Worker polling must be between 0 and 60 seconds.")
         if shutdown_timeout_seconds <= 0 or shutdown_timeout_seconds > 300:
             raise ValueError("Worker shutdown must be between 0 and 300 seconds.")
+        if heartbeat_interval_seconds <= 0 or heartbeat_interval_seconds > 60:
+            raise ValueError("Worker heartbeat must be between 0 and 60 seconds.")
 
         self._application = application
         self._poll_interval_seconds = poll_interval_seconds
         self._shutdown_timeout_seconds = shutdown_timeout_seconds
+        self._heartbeat_interval_seconds = heartbeat_interval_seconds
         self._runtime_ownership = runtime_ownership or RuntimeOwnershipCoordinator()
         self._lock = RLock()
         self._stop_requested = Event()
@@ -350,7 +358,10 @@ class SerialTxt2CrsWorker:
                             self._close_unstarted_executor(executor)
                             break
                         else:
-                            did_attempt_fail = self._execute_one(executor)
+                            did_attempt_fail = self._execute_one(
+                                runnable_state,
+                                executor,
+                            )
 
                 if runnable_state is None:
                     self._wait_for_retry()
@@ -420,7 +431,11 @@ class SerialTxt2CrsWorker:
                 else WorkerStatus.idle
             )
 
-    def _execute_one(self, executor: WorkerExecutor) -> bool:
+    def _execute_one(
+        self,
+        runnable_state: RunnableState,
+        executor: WorkerExecutor,
+    ) -> bool:
         """Run and close one graph, returning whether a retry delay is needed."""
 
         with self._lock:
@@ -432,6 +447,25 @@ class SerialTxt2CrsWorker:
 
         execution_failed = False
         cleanup_failed = False
+        heartbeat_stop = Event()
+        heartbeat_thread: Thread | None = None
+        self._record_runtime_activity_safely(runnable_state)
+        try:
+            heartbeat_thread = Thread(
+                target=self._heartbeat_loop,
+                args=(runnable_state, heartbeat_stop),
+                name=WORKER_HEARTBEAT_THREAD_NAME,
+                daemon=True,
+            )
+            heartbeat_thread.start()
+        except BaseException:
+            # Generation remains authoritative if this diagnostic helper
+            # cannot start. The initial synchronous pulse above still ran.
+            heartbeat_thread = None
+            _log_worker_event_safely(
+                "txt2crs.runtime_activity_update_failed",
+                level="error",
+            )
         _log_worker_event_safely("txt2crs.execution_started")
         try:
             executor.execute()
@@ -456,6 +490,9 @@ class SerialTxt2CrsWorker:
         else:
             _log_worker_event_safely("txt2crs.execution_completed")
         finally:
+            heartbeat_stop.set()
+            if heartbeat_thread is not None:
+                heartbeat_thread.join()
             try:
                 executor.close()
             except Exception:
@@ -475,6 +512,33 @@ class SerialTxt2CrsWorker:
                     else WorkerStatus.idle
                 )
         return execution_failed or cleanup_failed
+
+    def _heartbeat_loop(
+        self,
+        runnable_state: RunnableState,
+        stop_requested: Event,
+    ) -> None:
+        """Pulse only while one executor is active, with immediate cleanup."""
+
+        while not stop_requested.wait(timeout=self._heartbeat_interval_seconds):
+            self._record_runtime_activity_safely(runnable_state)
+
+    def _record_runtime_activity_safely(
+        self,
+        runnable_state: RunnableState,
+    ) -> None:
+        """Keep activity diagnostics best-effort and free of job identity logs."""
+
+        try:
+            self._application.record_runtime_activity(
+                job_id=runnable_state.job.job_id,
+                user_id=runnable_state.job.user_id,
+            )
+        except Exception:
+            _log_worker_event_safely(
+                "txt2crs.runtime_activity_update_failed",
+                level="error",
+            )
 
     def _close_unstarted_executor(self, executor: WorkerExecutor) -> None:
         """Release a graph acquired just as shutdown stopped new claims."""

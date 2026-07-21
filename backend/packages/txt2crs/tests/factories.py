@@ -774,6 +774,8 @@ def valid_pipeline_checkpoint(
             "assessment": valid_assessment_data(),
             "answer_key": valid_answer_key_data(),
             "usage_records": usage_records or [],
-            "budget_snapshot": RunBudgetSnapshot(),
+            # One accepted evidence source must have consumed one fetched
+            # source-ledger unit in a coherent cumulative checkpoint.
+            "budget_snapshot": RunBudgetSnapshot(sources=1),
         }
     )

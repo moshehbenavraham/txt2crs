@@ -142,7 +142,7 @@ export function PublicationCard({
             <Button
               type="button"
               variant="outline"
-              className="mt-4 min-h-11 w-full"
+              className="mt-4 h-auto min-h-11 min-w-0 w-full whitespace-normal py-2 text-center"
             >
               {isAnswerKeyOpen ? "Hide" : "Show"} answer key downloads
               <ChevronDown data-icon="inline-end" aria-hidden="true" />

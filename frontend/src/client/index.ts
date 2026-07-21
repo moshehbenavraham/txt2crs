@@ -81,6 +81,7 @@ export type {
   JobPreferences,
   JobProgressPublic,
   JobProgressStage,
+  JobResearchPublic,
   JobResultPublic,
   JobSourcePublic,
   JobStatus,

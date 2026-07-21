@@ -8,6 +8,7 @@ import {
   type UserRegister,
   UsersService,
 } from "@/client"
+import { normalizeAuthReturnTo } from "@/lib/auth-return"
 import {
   CURRENT_USER_QUERY_KEY,
   clearAuthSession,
@@ -22,7 +23,11 @@ const isLoggedIn = () => {
   return hasAccessToken()
 }
 
-const useAuth = () => {
+interface UseAuthOptions {
+  loginReturnTo?: string
+}
+
+const useAuth = ({ loginReturnTo }: UseAuthOptions = {}) => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showErrorToast } = useCustomToast()
@@ -59,7 +64,7 @@ const useAuth = () => {
     mutationFn: login,
     onSuccess: () => {
       resetAuthQueryCache(queryClient)
-      navigate({ to: "/create" })
+      navigate({ href: normalizeAuthReturnTo(loginReturnTo), replace: true })
     },
     onError: handleError.bind(showErrorToast),
   })

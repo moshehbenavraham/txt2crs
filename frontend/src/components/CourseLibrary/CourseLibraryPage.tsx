@@ -9,6 +9,7 @@ import {
 
 import type { JobLibrarySummaryPublic } from "@/client"
 import { PageHeader } from "@/components/Common/PageHeader"
+import { getProgressUnitsLabel } from "@/components/CourseProgress/presentation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -144,7 +145,7 @@ function LibraryCourseRow({ job }: { job: JobLibrarySummaryPublic }) {
   const progressDetail =
     job.progress.total_units === null
       ? null
-      : `${job.progress.completed_units} of ${job.progress.total_units} accepted stages`
+      : getProgressUnitsLabel(job.progress)
 
   return (
     <li className="[content-visibility:auto] [contain-intrinsic-size:auto_220px]">
@@ -175,7 +176,7 @@ function LibraryCourseRow({ job }: { job: JobLibrarySummaryPublic }) {
         </CardContent>
         <CardFooter className="flex-col items-stretch gap-4 border-t sm:flex-row sm:items-center sm:justify-between">
           <p className="text-body-sm text-muted-foreground">
-            Last activity <time dateTime={job.updated_at}>{updatedAt}</time>
+            Last checkpoint <time dateTime={job.updated_at}>{updatedAt}</time>
           </p>
           <Button
             asChild

@@ -13,6 +13,7 @@ from typing import Protocol, runtime_checkable
 
 import httpx
 
+from txt2crs.ai.budgets import RunBudget
 from txt2crs.ai.codex_runtime import (
     OfficialCodexSdkAdapter,
     ResearchMcpConnection,
@@ -160,8 +161,14 @@ class _DeterministicReadinessInspector:
 class _DeterministicResearchCoordinator:
     """Return a fresh immutable evidence copy without network access."""
 
-    def __init__(self, evidence_set: FrozenEvidenceSet) -> None:
+    def __init__(
+        self,
+        evidence_set: FrozenEvidenceSet,
+        *,
+        budget: RunBudget,
+    ) -> None:
         self._evidence_set_json = evidence_set.model_dump_json()
+        self._budget = budget
 
     def collect(
         self,
@@ -179,7 +186,12 @@ class _DeterministicResearchCoordinator:
         # still exercising the production cancellation token supplied by the
         # pipeline.
         cancellation.raise_if_cancelled()
-        return FrozenEvidenceSet.model_validate_json(self._evidence_set_json)
+        evidence_set = FrozenEvidenceSet.model_validate_json(self._evidence_set_json)
+        # The real research tool boundary reserves one unit per fetched search
+        # hit. Mirror that accounting here so deterministic public snapshots
+        # cannot claim accepted evidence that was never charged to the run.
+        self._budget.reserve_sources(len(evidence_set.sources))
+        return evidence_set
 
 
 class _BoundPipelineFactory(DurablePipelineFactory):
@@ -256,7 +268,8 @@ class _DeterministicExecutorFactory:
         pipeline = CourseGenerationPipeline(
             runtime=fake_runtime,
             research_coordinator=_DeterministicResearchCoordinator(
-                self._scenario.load_evidence_set()
+                self._scenario.load_evidence_set(),
+                budget=resources.budget,
             ),
             renderer=self._artifact_renderer,
             model_id=self._scenario.model_id,

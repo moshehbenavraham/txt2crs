@@ -19,17 +19,23 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import { normalizeAuthReturnTo } from "@/lib/auth-return"
 import { buildPageTitle } from "@/lib/branding"
 import { readCoursePromptDraft } from "@/lib/course-draft"
 import { publicSignupVisible } from "@/lib/public-config"
-import { type LoginFormData, loginSchema } from "@/lib/schemas"
+import {
+  type LoginFormData,
+  loginSchema,
+  loginSearchSchema,
+} from "@/lib/schemas"
 
 export const Route = createFileRoute("/login")({
   component: Login,
-  beforeLoad: async () => {
+  validateSearch: loginSearchSchema,
+  beforeLoad: async ({ search }) => {
     if (isLoggedIn()) {
       throw redirect({
-        to: "/create",
+        href: normalizeAuthReturnTo(search.returnTo),
       })
     }
   },
@@ -43,7 +49,8 @@ export const Route = createFileRoute("/login")({
 })
 
 function Login() {
-  const { loginMutation } = useAuth()
+  const { returnTo } = Route.useSearch()
+  const { loginMutation } = useAuth({ loginReturnTo: returnTo })
   const hasSavedPrompt = readCoursePromptDraft() !== null
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),

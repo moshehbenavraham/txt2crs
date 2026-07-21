@@ -170,13 +170,17 @@ the maximum public title length:
 docker compose up -d --wait db
 cd frontend
 npx playwright test --config playwright.jobs.config.ts
+PLAYWRIGHT_PRODUCTION_FRONTEND=1 \
+  npx playwright test --config playwright.jobs.config.ts
 TXT2CRS_BROWSER_SCENARIO=failed \
   npx playwright test --config playwright.jobs.config.ts
 ```
 
 Each dedicated run creates private engine state and a fresh normal user,
-starts and stops its own backend and Vite processes, and cleans package
-resources at application shutdown. It is test composition only; the
+starts and stops its own backend and frontend processes, and cleans package
+resources at application shutdown. The production option builds the frontend
+and serves it through the real Nginx security headers so preview CSP behavior
+is exercised in Chromium. It is test composition only; the
 test-application factory fails closed unless its explicit test environment
 flag is present.
 

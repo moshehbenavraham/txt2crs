@@ -117,6 +117,7 @@ monitor:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TXT2CRS_WORKER_POLL_SECONDS` | `2` | Durable runnable-job scan interval |
+| `TXT2CRS_WORKER_HEARTBEAT_SECONDS` | `5` | Content-free active-job heartbeat interval |
 | `TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS` | `30` | Maximum graceful worker drain |
 | `TXT2CRS_READINESS_REFRESH_SECONDS` | `60` | Interval between real readiness probes |
 | `TXT2CRS_READINESS_STALE_AFTER_SECONDS` | `120` | Oldest complete readiness snapshot accepted as current |

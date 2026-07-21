@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
 import { ApiError } from "@/lib/api-error"
+import { buildLoginHref } from "@/lib/auth-return"
 import {
   CURRENT_USER_QUERY_KEY,
   clearAuthSession,
@@ -23,10 +24,10 @@ import {
 
 export const Route = createFileRoute("/_layout")({
   component: Layout,
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     if (!isLoggedIn()) {
       throw redirect({
-        to: "/login",
+        href: buildLoginHref(location.href),
       })
     }
 
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/_layout")({
         // Token is invalid/expired - clear it and redirect to login
         clearAuthSession(context.queryClient)
         throw redirect({
-          to: "/login",
+          href: buildLoginHref(location.href),
         })
       }
       throw error

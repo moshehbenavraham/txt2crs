@@ -85,6 +85,10 @@ class JobRecord(StrictContract):
     failure_code: Identifier | None = None
     created_at: datetime
     updated_at: datetime
+    # Runtime activity is intentionally separate from ``updated_at``. The
+    # latter advances only with durable job/checkpoint state, while this field
+    # lets an owner distinguish a live long-running turn from a stalled worker.
+    runtime_activity_at: datetime | None = None
 
 
 class JobSubmissionIdentity(StrictContract):

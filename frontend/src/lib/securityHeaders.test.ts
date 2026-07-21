@@ -23,6 +23,7 @@ const selfReferentialApiUrlArgument = [
 describe("frontend nginx security headers", () => {
   it("includes baseline browser hardening directives", () => {
     expect(nginxConf).toContain("add_header Content-Security-Policy")
+    expect(nginxConf).toContain("frame-src 'self' blob:")
     expect(nginxConf).toContain("add_header X-Content-Type-Options")
     expect(nginxConf).toContain("add_header X-Frame-Options")
     expect(nginxConf).toContain("add_header Referrer-Policy")

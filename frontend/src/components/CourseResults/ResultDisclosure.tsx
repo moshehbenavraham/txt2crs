@@ -65,6 +65,34 @@ export function ResultDisclosure({
           Review the display-safe references and any source disagreements
           reported with this completed package.
         </p>
+        {result ? (
+          <dl className="mt-5 grid gap-px border border-border bg-border sm:grid-cols-3">
+            <div className="bg-background p-4">
+              <dt className="text-xs text-muted-foreground">
+                Fetched candidates
+              </dt>
+              <dd className="mt-1 font-mono text-lg font-medium">
+                {result.research.fetched_source_count.toLocaleString()}
+              </dd>
+            </div>
+            <div className="bg-background p-4">
+              <dt className="text-xs text-muted-foreground">
+                Charged source units
+              </dt>
+              <dd className="mt-1 font-mono text-lg font-medium">
+                {result.research.charged_source_units.toLocaleString()}
+              </dd>
+            </div>
+            <div className="bg-background p-4">
+              <dt className="text-xs text-muted-foreground">
+                Accepted sources
+              </dt>
+              <dd className="mt-1 font-mono text-lg font-medium">
+                {result.research.accepted_source_count.toLocaleString()}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
       </div>
 
       {!result ? (

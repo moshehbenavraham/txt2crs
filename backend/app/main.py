@@ -89,6 +89,9 @@ def build_txt2crs_worker(
     return SerialTxt2CrsWorker(
         application=application,
         poll_interval_seconds=application_settings.TXT2CRS_WORKER_POLL_SECONDS,
+        heartbeat_interval_seconds=(
+            application_settings.TXT2CRS_WORKER_HEARTBEAT_SECONDS
+        ),
         shutdown_timeout_seconds=(
             application_settings.TXT2CRS_WORKER_SHUTDOWN_TIMEOUT_SECONDS
         ),

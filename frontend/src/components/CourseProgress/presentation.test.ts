@@ -95,6 +95,7 @@ describe("course progress presentation", () => {
         {
           created_at: "2026-07-21T10:00:00Z",
           updated_at: "2026-07-21T10:01:00Z",
+          runtime_activity_at: "2026-07-21T10:01:18Z",
           progress: {
             completed_units: 4,
             total_units: 12,
@@ -105,7 +106,8 @@ describe("course progress presentation", () => {
     ).toEqual({
       elapsedTimeLabel: "1m 20s",
       estimatedTimeLeftLabel: "~2m 0s",
-      latestActivityLabel: "20s ago",
+      latestCheckpointLabel: "20s ago",
+      latestRuntimeActivityLabel: "just now",
       progressPercentage: 33,
     })
   })
@@ -115,6 +117,7 @@ describe("course progress presentation", () => {
     const baseSnapshot = {
       created_at: "2026-07-21T10:00:00Z",
       updated_at: "2026-07-21T10:01:00Z",
+      runtime_activity_at: null,
     }
 
     expect(
@@ -153,6 +156,21 @@ describe("course progress presentation", () => {
         Date.parse("2026-07-21T10:03:00Z"),
       ).estimatedTimeLeftLabel,
     ).toBe("~1m 0s")
+  })
+
+  it("keeps checkpoint and runtime activity truthful when no worker heartbeat exists", () => {
+    const presentation = getActiveJobTimingPresentation(
+      {
+        created_at: "2026-07-21T10:00:00Z",
+        updated_at: "2026-07-21T10:01:00Z",
+        runtime_activity_at: null,
+        progress: { completed_units: 4, total_units: 12 },
+      },
+      Date.parse("2026-07-21T10:01:20Z"),
+    )
+
+    expect(presentation.latestCheckpointLabel).toBe("20s ago")
+    expect(presentation.latestRuntimeActivityLabel).toBe("Awaiting worker")
   })
 
   it("preserves bounded extraction warnings and names a truncated remainder", () => {

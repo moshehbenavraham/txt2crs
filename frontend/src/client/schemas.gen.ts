@@ -665,6 +665,38 @@ export const JobProgressStageSchema = {
     "Stable browser stages that never reflect a private checkpoint label.",
 } as const
 
+export const JobResearchPublicSchema = {
+  properties: {
+    fetched_source_count: {
+      type: "integer",
+      maximum: 100,
+      minimum: 0,
+      title: "Fetched Source Count",
+    },
+    charged_source_units: {
+      type: "integer",
+      maximum: 100,
+      minimum: 0,
+      title: "Charged Source Units",
+    },
+    accepted_source_count: {
+      type: "integer",
+      maximum: 100,
+      minimum: 0,
+      title: "Accepted Source Count",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: [
+    "fetched_source_count",
+    "charged_source_units",
+    "accepted_source_count",
+  ],
+  title: "JobResearchPublic",
+  description: "Named source-accounting stages for learner-facing diagnostics.",
+} as const
+
 export const JobResultPublicSchema = {
   properties: {
     title: {
@@ -702,6 +734,9 @@ export const JobResultPublicSchema = {
       minimum: 1,
       title: "Module Count",
     },
+    research: {
+      $ref: "#/components/schemas/JobResearchPublic",
+    },
     sources: {
       items: {
         $ref: "#/components/schemas/JobSourcePublic",
@@ -738,6 +773,7 @@ export const JobResultPublicSchema = {
     "language",
     "objective_count",
     "module_count",
+    "research",
     "sources",
     "sources_truncated",
     "conflicts",
@@ -838,6 +874,18 @@ export const JobStatusPublicSchema = {
       format: "date-time",
       title: "Updated At",
     },
+    runtime_activity_at: {
+      anyOf: [
+        {
+          type: "string",
+          format: "date-time",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Runtime Activity At",
+    },
     progress: {
       $ref: "#/components/schemas/JobProgressPublic",
     },
@@ -877,6 +925,7 @@ export const JobStatusPublicSchema = {
     "revision",
     "created_at",
     "updated_at",
+    "runtime_activity_at",
     "progress",
     "input",
     "failure",

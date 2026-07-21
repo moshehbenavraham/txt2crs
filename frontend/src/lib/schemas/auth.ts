@@ -28,6 +28,11 @@ export const loginSchema = z.object({
   password: passwordField,
 })
 
+/** Browser-controlled login handoff; the route applies the URL allowlist. */
+export const loginSearchSchema = z.object({
+  returnTo: z.string().max(2_048).optional().catch(undefined),
+})
+
 export type LoginFormData = z.infer<typeof loginSchema>
 
 // =============================================================================
