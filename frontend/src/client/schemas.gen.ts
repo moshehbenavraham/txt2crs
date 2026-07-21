@@ -293,6 +293,78 @@ export const JobAcceptedPublicSchema = {
     "Allowlisted response returned only after a durable package commit.",
 } as const
 
+export const JobAdmissionCapacityPublicSchema = {
+  properties: {
+    schema_version: {
+      type: "string",
+      const: "1.0",
+      title: "Schema Version",
+    },
+    window_seconds: {
+      type: "integer",
+      maximum: 2592000,
+      exclusiveMinimum: 0,
+      title: "Window Seconds",
+    },
+    owner_job_limit: {
+      type: "integer",
+      maximum: 100000,
+      exclusiveMinimum: 0,
+      title: "Owner Job Limit",
+    },
+    owner_jobs_used: {
+      type: "integer",
+      maximum: 100000,
+      minimum: 0,
+      title: "Owner Jobs Used",
+    },
+    owner_jobs_remaining: {
+      type: "integer",
+      maximum: 100000,
+      minimum: 0,
+      title: "Owner Jobs Remaining",
+    },
+    shared_jobs_remaining: {
+      type: "integer",
+      maximum: 100000,
+      minimum: 0,
+      title: "Shared Jobs Remaining",
+    },
+    available_jobs: {
+      type: "integer",
+      maximum: 100000,
+      minimum: 0,
+      title: "Available Jobs",
+    },
+    next_reservation_expires_at: {
+      anyOf: [
+        {
+          type: "string",
+          format: "date-time",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Next Reservation Expires At",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: [
+    "schema_version",
+    "window_seconds",
+    "owner_job_limit",
+    "owner_jobs_used",
+    "owner_jobs_remaining",
+    "shared_jobs_remaining",
+    "available_jobs",
+    "next_reservation_expires_at",
+  ],
+  title: "JobAdmissionCapacityPublic",
+  description: "Owner-scoped complete-job capacity inside the rolling window.",
+} as const
+
 export const JobArtifactAvailabilityPublicSchema = {
   properties: {
     available: {

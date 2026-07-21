@@ -471,32 +471,32 @@ class Settings(BaseSettings):
         le=2_592_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER: int = Field(
-        default=2,
+        default=4,
         gt=0,
         le=10_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL: int = Field(
-        default=5,
+        default=10,
         gt=0,
         le=100_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER: int = Field(
-        default=1_500_000,
+        default=3_000_000,
         gt=0,
         le=1_000_000_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL: int = Field(
-        default=3_750_000,
+        default=7_500_000,
         gt=0,
         le=10_000_000_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER: int = Field(
-        default=2_000_000,
+        default=4_000_000,
         ge=0,
         le=1_000_000_000_000,
     )
     TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL: int = Field(
-        default=5_000_000,
+        default=10_000_000,
         ge=0,
         le=10_000_000_000_000,
     )

@@ -77,8 +77,8 @@ export function ReadinessOverview({ readiness }: ReadinessOverviewProps) {
               </dt>
               <dd className="text-body-sm text-foreground">
                 {readiness.accepting_jobs
-                  ? "Accepting course work"
-                  : "New work paused"}
+                  ? "Shared capacity available"
+                  : "Shared capacity paused"}
               </dd>
             </div>
           </div>

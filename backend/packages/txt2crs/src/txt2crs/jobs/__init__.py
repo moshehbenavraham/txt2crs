@@ -19,7 +19,7 @@ from txt2crs.jobs.notifications import (
     DeliveryNotificationState,
     DeliveryNotificationStatus,
 )
-from txt2crs.jobs.quota import AdmissionReservation
+from txt2crs.jobs.quota import AdmissionCapacity, AdmissionReservation
 from txt2crs.jobs.requests import (
     CurriculumShapeLimits,
     ExecutionProfile,
@@ -83,6 +83,7 @@ def __getattr__(name: str) -> Any:
 
 
 __all__ = [
+    "AdmissionCapacity",
     "ArtifactDeliverable",
     "ArtifactFormat",
     "ArtifactIntegrityError",

@@ -158,12 +158,12 @@ def test_build_real_application_config_translates_public_boundaries(
     assert application_config.storage.artifact_retention_days == 36_500
     assert application_config.admission.model_dump() == {
         "window_seconds": 86_400,
-        "maximum_jobs_per_user": 2,
-        "maximum_jobs_global": 5,
-        "maximum_reserved_tokens_per_user": 1_500_000,
-        "maximum_reserved_tokens_global": 3_750_000,
-        "maximum_research_cost_microusd_per_user": 2_000_000,
-        "maximum_research_cost_microusd_global": 5_000_000,
+        "maximum_jobs_per_user": 4,
+        "maximum_jobs_global": 10,
+        "maximum_reserved_tokens_per_user": 3_000_000,
+        "maximum_reserved_tokens_global": 7_500_000,
+        "maximum_research_cost_microusd_per_user": 4_000_000,
+        "maximum_research_cost_microusd_global": 10_000_000,
     }
     assert application_config.codex_home == settings.TXT2CRS_CODEX_HOME
     assert application_config.worker_directory == settings.TXT2CRS_WORKER_ROOT

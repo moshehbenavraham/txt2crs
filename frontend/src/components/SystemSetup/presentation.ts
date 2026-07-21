@@ -141,9 +141,9 @@ export function getReadinessDisplay(
   if (readiness.status === "ready" && readiness.accepting_jobs) {
     return {
       label: "Operational",
-      title: "Ready for course work",
+      title: "Platform ready",
       description:
-        "Every required dependency is ready and the worker can accept another course.",
+        "Core services and shared admission capacity are operational. Learner-specific availability appears in Create course.",
       badgeVariant: "success",
       alertVariant: "success",
     }

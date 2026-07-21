@@ -38,7 +38,7 @@ describe("system setup presentation", () => {
   it("uses one explicit verdict for ready, degraded, unavailable, and stale state", () => {
     expect(getReadinessDisplay(readiness())).toMatchObject({
       label: "Operational",
-      title: "Ready for course work",
+      title: "Platform ready",
       badgeVariant: "success",
     })
     expect(

@@ -606,14 +606,19 @@ animated connectors.
 **User job:** provide one source plus enforced learning intent and submit one
 durable request. **Primary action:** `Create my learning package`.
 
-The workbench reads top to bottom: page identity; source-mode control; active
-source editor and bounded metadata preview; optional learning intent; age and
-literal AI/research consent; one submit action. At wide viewports, the source
-editor and a quiet outcome sidecar may form an 8/4 relationship. Below `lg`
-they become a single logical column. Inactive source controls unregister, file
-content is never parsed for preview, and no model/provider selector appears.
-Validation stays next to its field, and submission moves focus to the first
-invalid control.
+The workbench reads top to bottom: page identity; an owner-scoped generation
+capacity strip; source-mode control; active source editor and bounded metadata
+preview; optional learning intent; age and literal AI/research consent; one
+submit action. The capacity strip is one continuous editorial surface, not a
+dashboard card cluster: availability is the dominant figure, owner usage is a
+semantic progress rail, and the rolling window plus exact next reservation
+expiry explain the policy. Exhausted capacity disables only submission so a
+learner can keep preparing a draft. At wide viewports, the source editor and a
+quiet outcome sidecar may form an 8/4 relationship. Below `lg` they become a
+single logical column. Inactive source controls unregister, file content is
+never parsed for preview, and no model/provider selector appears. Validation
+stays next to its field, and submission moves focus to the first invalid
+control.
 
 ### Course library (`/library`)
 

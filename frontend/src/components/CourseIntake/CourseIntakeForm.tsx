@@ -81,6 +81,7 @@ interface CourseIntakeFormProps {
   isSubmitting?: boolean
   onSubmit?: (values: CourseIntakeValues) => Promise<void> | void
   submissionErrorMessage?: string | null
+  submissionDisabledReason?: string | null
 }
 
 /**
@@ -94,6 +95,7 @@ export function CourseIntakeForm({
   isSubmitting = false,
   onSubmit,
   submissionErrorMessage = null,
+  submissionDisabledReason = null,
 }: CourseIntakeFormProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const form = useForm<CourseIntakeFormValues, unknown, CourseIntakeValues>({
@@ -205,10 +207,17 @@ export function CourseIntakeForm({
 
         <div className="flex flex-col gap-5 border-t border-border-strong pt-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-xl">
-            <p className="text-body-sm leading-6 text-muted-foreground">
-              The request is validated in this browser and again by the server.
-              Generation begins only after the server accepts one source.
-            </p>
+            {submissionDisabledReason ? (
+              <p role="status" className="text-body-sm leading-6 text-warning">
+                {submissionDisabledReason}
+              </p>
+            ) : (
+              <p className="text-body-sm leading-6 text-muted-foreground">
+                The request is validated in this browser and again by the
+                server. Generation begins only after the server accepts one
+                source.
+              </p>
+            )}
             {submissionErrorMessage ? (
               <p
                 role="alert"
@@ -222,10 +231,14 @@ export function CourseIntakeForm({
             type="submit"
             size="lg"
             loading={controlsDisabled}
-            disabled={onSubmit === undefined}
+            disabled={
+              onSubmit === undefined || submissionDisabledReason !== null
+            }
             className="min-h-12 w-full shrink-0 sm:w-auto"
           >
-            Create my learning package
+            {submissionDisabledReason
+              ? "Waiting for capacity"
+              : "Create my learning package"}
             <ArrowRight aria-hidden="true" />
           </LoadingButton>
         </div>

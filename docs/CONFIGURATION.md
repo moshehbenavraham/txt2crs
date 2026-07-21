@@ -181,12 +181,17 @@ job. Research currency is represented as integer micro-US-dollars.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TXT2CRS_ADMISSION_WINDOW_SECONDS` | `86400` | Rolling reservation window |
-| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER` | `2` | Maximum accepted jobs per owner in the window |
-| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL` | `5` | Maximum accepted jobs globally in the window |
-| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER` | `1500000` | Per-owner reserved token ceiling |
-| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL` | `3750000` | Global reserved token ceiling |
-| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER` | `2000000` | Per-owner research-cost ceiling |
-| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL` | `5000000` | Global research-cost ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_PER_USER` | `4` | Maximum accepted jobs per owner in the window |
+| `TXT2CRS_ADMISSION_MAXIMUM_JOBS_GLOBAL` | `10` | Maximum accepted jobs globally in the window |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_PER_USER` | `3000000` | Per-owner reserved token ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESERVED_TOKENS_GLOBAL` | `7500000` | Global reserved token ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER` | `4000000` | Per-owner research-cost ceiling |
+| `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL` | `10000000` | Global research-cost ceiling |
+
+These are conservative production fallbacks and are exactly twice the original
+P0 limits. The canonical local `.env.example` deliberately overrides them with
+10 jobs per owner and 20 globally, with token and research ceilings scaled to
+the same complete-job reservation count for judge and E2E work.
 
 #### Email Configuration
 

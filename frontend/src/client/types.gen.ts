@@ -201,6 +201,46 @@ export type JobAcceptedPublic = {
 }
 
 /**
+ * JobAdmissionCapacityPublic
+ *
+ * Owner-scoped complete-job capacity inside the rolling window.
+ */
+export type JobAdmissionCapacityPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Window Seconds
+   */
+  window_seconds: number
+  /**
+   * Owner Job Limit
+   */
+  owner_job_limit: number
+  /**
+   * Owner Jobs Used
+   */
+  owner_jobs_used: number
+  /**
+   * Owner Jobs Remaining
+   */
+  owner_jobs_remaining: number
+  /**
+   * Shared Jobs Remaining
+   */
+  shared_jobs_remaining: number
+  /**
+   * Available Jobs
+   */
+  available_jobs: number
+  /**
+   * Next Reservation Expires At
+   */
+  next_reservation_expires_at: string | null
+}
+
+/**
  * JobArtifactAvailabilityPublic
  *
  * Link to the verified manifest only after package publication.
@@ -1796,6 +1836,42 @@ export type PostApiV1JobsUploadResponses = {
 
 export type PostApiV1JobsUploadResponse =
   PostApiV1JobsUploadResponses[keyof PostApiV1JobsUploadResponses]
+
+export type GetApiV1JobsAdmissionCapacityData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/api/v1/jobs/admission-capacity"
+}
+
+export type GetApiV1JobsAdmissionCapacityErrors = {
+  /**
+   * Authentication is required.
+   */
+  401: unknown
+  /**
+   * The owner-scoped course job was not found.
+   */
+  404: unknown
+  /**
+   * A path identifier is invalid.
+   */
+  422: unknown
+  /**
+   * The course result could not be read safely.
+   */
+  500: unknown
+}
+
+export type GetApiV1JobsAdmissionCapacityResponses = {
+  /**
+   * Successful Response
+   */
+  200: JobAdmissionCapacityPublic
+}
+
+export type GetApiV1JobsAdmissionCapacityResponse =
+  GetApiV1JobsAdmissionCapacityResponses[keyof GetApiV1JobsAdmissionCapacityResponses]
 
 export type GetApiV1JobsByJobIdData = {
   body?: never

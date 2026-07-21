@@ -34,7 +34,7 @@ from txt2crs.jobs.public_queries import (
     project_public_job_snapshot,
     project_public_job_summary,
 )
-from txt2crs.jobs.quota import AdmissionReservation
+from txt2crs.jobs.quota import AdmissionCapacity, AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import (
@@ -239,6 +239,19 @@ class JobService:
             idempotency_key=idempotency_key,
             generation_request=generation_request,
             admission_reservation=admission_reservation,
+        )
+
+    def inspect_admission_capacity(
+        self,
+        *,
+        user_id: str,
+        reservation: AdmissionReservation,
+    ) -> AdmissionCapacity:
+        """Return owner capacity from the authoritative durable ledger."""
+
+        return self._store.inspect_admission_capacity(
+            user_id=user_id,
+            reservation=reservation,
         )
 
     def start(

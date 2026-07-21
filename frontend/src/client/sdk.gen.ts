@@ -17,6 +17,9 @@ import type {
   DeleteApiV1UsersMeData,
   DeleteApiV1UsersMeErrors,
   DeleteApiV1UsersMeResponses,
+  GetApiV1JobsAdmissionCapacityData,
+  GetApiV1JobsAdmissionCapacityErrors,
+  GetApiV1JobsAdmissionCapacityResponses,
   GetApiV1JobsByJobIdArtifactsByArtifactIdData,
   GetApiV1JobsByJobIdArtifactsByArtifactIdErrors,
   GetApiV1JobsByJobIdArtifactsByArtifactIdResponses,
@@ -839,6 +842,32 @@ export class JobsService {
         "Content-Type": null,
         ...options.headers,
       },
+    })
+  }
+
+  /**
+   * Read owner course-generation capacity
+   *
+   * Returns the authenticated owner's remaining complete-job reservations inside the authoritative rolling admission window.
+   */
+  public static readAdmissionCapacity<ThrowOnError extends boolean = true>(
+    options?: Options<GetApiV1JobsAdmissionCapacityData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1JobsAdmissionCapacityResponses,
+    GetApiV1JobsAdmissionCapacityErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options?.client ?? client).get<
+      GetApiV1JobsAdmissionCapacityResponses,
+      GetApiV1JobsAdmissionCapacityErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs/admission-capacity",
+      ...options,
     })
   }
 

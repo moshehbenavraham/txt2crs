@@ -17,7 +17,7 @@ from txt2crs.jobs.artifact_queries import ArtifactManifest
 from txt2crs.jobs.models import JobRecord, ResumeState
 from txt2crs.jobs.preparation import PreparationPolicyError
 from txt2crs.jobs.public_queries import PublicJobPage, PublicJobSnapshot
-from txt2crs.jobs.quota import AdmissionReservation
+from txt2crs.jobs.quota import AdmissionCapacity, AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
 from txt2crs.security.policy import PolicyDecision, PolicyOutcome
@@ -289,6 +289,16 @@ class Txt2CrsApplication:
         with self._lock:
             self._require_open()
             return self._admission_reservation
+
+    def get_admission_capacity(self, *, user_id: str) -> AdmissionCapacity:
+        """Return one owner-scoped view of remaining generation capacity."""
+
+        with self._lock:
+            self._require_open()
+            return self._job_service.inspect_admission_capacity(
+                user_id=user_id,
+                reservation=self._admission_reservation,
+            )
 
     def recover(self, *, job_id: str, user_id: str) -> ResumeState:
         """Return one owner-authorized exact recovery snapshot."""

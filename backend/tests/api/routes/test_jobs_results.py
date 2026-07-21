@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from txt2crs.application import Txt2CrsApplication
 from txt2crs.jobs import (
+    AdmissionCapacity,
     ArtifactDeliverable,
     ArtifactFormat,
     ArtifactIntegrityError,
@@ -179,6 +180,22 @@ class RecordingResultsApplication:
         self.error: Exception | None = None
         self.stream_context = _CountingStreamContext(_ARTIFACT_BYTES)
         self.calls: list[tuple[str, str, str, str | None]] = []
+
+    def get_admission_capacity(self, *, user_id: str) -> AdmissionCapacity:
+        """Return the signed-in learner's rolling generation capacity."""
+
+        self.calls.append(("capacity", user_id, "", None))
+        self._raise_configured_error()
+        return AdmissionCapacity(
+            schema_version="1.0",
+            window_seconds=86_400,
+            owner_job_limit=10,
+            owner_jobs_used=2,
+            owner_jobs_remaining=8,
+            shared_jobs_remaining=18,
+            available_jobs=8,
+            next_reservation_expires_at=datetime(2026, 7, 22, 9, 0, tzinfo=UTC),
+        )
 
     def list_public_jobs(
         self,
@@ -381,6 +398,34 @@ def test_library_route_authenticates_and_validates_before_facade_read(
     assert unauthenticated_response.status_code == 401
     assert invalid_limit_response.status_code == 422
     assert results_application.calls == []
+
+
+def test_admission_capacity_route_returns_owner_window_with_private_headers(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    results_application: RecordingResultsApplication,
+) -> None:
+    """GET /jobs/admission-capacity is owner-scoped and browser-safe."""
+
+    response = client.get(
+        f"{settings.API_V1_STR}/jobs/admission-capacity",
+        headers=normal_user_token_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "schema_version": "1.0",
+        "window_seconds": 86_400,
+        "owner_job_limit": 10,
+        "owner_jobs_used": 2,
+        "owner_jobs_remaining": 8,
+        "shared_jobs_remaining": 18,
+        "available_jobs": 8,
+        "next_reservation_expires_at": "2026-07-22T09:00:00Z",
+    }
+    _assert_private_response_headers(response.headers)
+    assert results_application.calls[0][0] == "capacity"
+    assert results_application.calls[0][1]
 
 
 @pytest.mark.parametrize("resource_kind", ["status", "manifest", "artifact"])

@@ -233,3 +233,97 @@ def test_admission_window_expires_without_deleting_job_history(
 
     assert first_job.job_id != second_job.job_id
     assert store.get_job(job_id=first_job.job_id, user_id="user-1") == first_job
+
+
+def test_admission_capacity_reports_owner_usage_and_next_rolling_expiry(
+    tmp_path: Path,
+) -> None:
+    """Learner-facing capacity uses the same durable rows as submission."""
+
+    current_time = datetime(2026, 7, 21, 12, 0, tzinfo=UTC)
+    store = SqliteJobStore(
+        tmp_path / "capacity.sqlite3",
+        admission_limits=AdmissionLimits(
+            window_seconds=86_400,
+            maximum_jobs_per_user=10,
+            maximum_jobs_global=20,
+            maximum_reserved_tokens_per_user=1_000,
+            maximum_reserved_tokens_global=2_000,
+            maximum_research_cost_microusd_per_user=100,
+            maximum_research_cost_microusd_global=200,
+        ),
+        clock=lambda: current_time,
+    )
+    requested_reservation = reservation()
+    for job_number in range(2):
+        store.create_or_get_job(
+            user_id="owner-capacity",
+            idempotency_key=f"capacity-{job_number}",
+            generation_request=request_for_reservation(
+                requested_reservation,
+                value=f"source-{job_number}",
+            ),
+            admission_reservation=requested_reservation,
+        )
+
+    capacity = store.inspect_admission_capacity(
+        user_id="owner-capacity",
+        reservation=requested_reservation,
+    )
+
+    assert capacity.model_dump() == {
+        "schema_version": "1.0",
+        "window_seconds": 86_400,
+        "owner_job_limit": 10,
+        "owner_jobs_used": 2,
+        "owner_jobs_remaining": 8,
+        "shared_jobs_remaining": 18,
+        "available_jobs": 8,
+        "next_reservation_expires_at": datetime(
+            2026,
+            7,
+            22,
+            12,
+            0,
+            tzinfo=UTC,
+        ),
+    }
+
+
+def test_admission_capacity_never_promises_more_than_shared_capacity(
+    tmp_path: Path,
+) -> None:
+    """The owner display remains truthful when another owner fills the pool."""
+
+    store = SqliteJobStore(
+        tmp_path / "shared-capacity.sqlite3",
+        admission_limits=AdmissionLimits(
+            window_seconds=3_600,
+            maximum_jobs_per_user=10,
+            maximum_jobs_global=2,
+            maximum_reserved_tokens_per_user=1_000,
+            maximum_reserved_tokens_global=200,
+            maximum_research_cost_microusd_per_user=100,
+            maximum_research_cost_microusd_global=20,
+        ),
+    )
+    requested_reservation = reservation()
+    store.create_or_get_job(
+        user_id="another-owner",
+        idempotency_key="shared-1",
+        generation_request=request_for_reservation(
+            requested_reservation,
+            value="shared-source",
+        ),
+        admission_reservation=requested_reservation,
+    )
+
+    capacity = store.inspect_admission_capacity(
+        user_id="owner-capacity",
+        reservation=requested_reservation,
+    )
+
+    assert capacity.owner_jobs_used == 0
+    assert capacity.owner_jobs_remaining == 10
+    assert capacity.shared_jobs_remaining == 1
+    assert capacity.available_jobs == 1

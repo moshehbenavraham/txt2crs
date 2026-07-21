@@ -36,6 +36,7 @@ from app.schemas.jobs import (
     ArtifactManifestPublic,
     IdempotencyKey,
     JobAcceptedPublic,
+    JobAdmissionCapacityPublic,
     JobIdentifier,
     JobLibraryPublic,
     JobStatusPublic,
@@ -357,6 +358,36 @@ def list_jobs(
 
     _set_private_response_headers(response)
     return public_page
+
+
+@router.get(
+    "/admission-capacity",
+    response_model=JobAdmissionCapacityPublic,
+    status_code=HTTPStatusCode.OK,
+    summary="Read owner course-generation capacity",
+    description=(
+        "Returns the authenticated owner's remaining complete-job reservations "
+        "inside the authoritative rolling admission window."
+    ),
+    responses=_PRIVATE_READ_ERROR_RESPONSES,
+)
+def read_admission_capacity(
+    response: Response,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+) -> JobAdmissionCapacityPublic:
+    """Read owner capacity through the package facade without estimating."""
+
+    try:
+        package_capacity = application.get_admission_capacity(
+            user_id=str(current_user.id),
+        )
+        public_capacity = JobAdmissionCapacityPublic.from_package(package_capacity)
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    _set_private_response_headers(response)
+    return public_capacity
 
 
 @router.get(

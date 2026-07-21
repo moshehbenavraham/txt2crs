@@ -20,6 +20,7 @@ from pydantic import (
     model_validator,
 )
 from txt2crs.jobs import (
+    AdmissionCapacity,
     ArtifactDeliverable,
     ArtifactFormat,
     ArtifactManifest,
@@ -585,6 +586,25 @@ class JobLibraryPublic(_StrictFrozenModel):
         )
 
 
+class JobAdmissionCapacityPublic(_StrictFrozenModel):
+    """Owner-scoped complete-job capacity inside the rolling window."""
+
+    schema_version: Literal["1.0"]
+    window_seconds: int = Field(gt=0, le=2_592_000)
+    owner_job_limit: int = Field(gt=0, le=100_000)
+    owner_jobs_used: int = Field(ge=0, le=100_000)
+    owner_jobs_remaining: int = Field(ge=0, le=100_000)
+    shared_jobs_remaining: int = Field(ge=0, le=100_000)
+    available_jobs: int = Field(ge=0, le=100_000)
+    next_reservation_expires_at: datetime | None
+
+    @classmethod
+    def from_package(cls, capacity: AdmissionCapacity) -> Self:
+        """Copy the package allowlist without exposing resource budgets."""
+
+        return cls.model_validate(capacity.model_dump())
+
+
 def _result_from_package(snapshot: PublicJobSnapshot) -> JobResultPublic | None:
     """Build one all-or-none result without importing a private checkpoint."""
 
@@ -814,6 +834,7 @@ __all__ = [
     "ArtifactMetadataPublic",
     "IdempotencyKey",
     "JobAcceptedPublic",
+    "JobAdmissionCapacityPublic",
     "JobArtifactAvailabilityPublic",
     "JobFailurePublic",
     "JobInput",

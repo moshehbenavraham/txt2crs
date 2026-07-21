@@ -22,6 +22,29 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.1.5] - 2026-07-21
+
+### Added
+
+- Added an owner-scoped admission-capacity API and course-workbench strip that
+  show truthful rolling-window availability from the durable reservation
+  ledger, disable submission when no complete reservation is available, and
+  preserve a safe retry path when capacity cannot be displayed.
+
+### Changed
+
+- Increased conservative production admission fallbacks to four jobs per
+  owner and ten globally, and documented larger local judge and E2E overrides
+  that preserve the same complete-job token and research-cost ratios.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [1.1.4] - 2026-07-21
 
 ### Added

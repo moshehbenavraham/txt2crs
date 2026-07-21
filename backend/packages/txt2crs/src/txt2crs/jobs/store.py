@@ -21,9 +21,11 @@ from txt2crs.jobs.models import (
 )
 from txt2crs.jobs.notifications import DeliveryNotificationState
 from txt2crs.jobs.quota import (
+    AdmissionCapacity,
     AdmissionLimits,
     AdmissionReservation,
     find_admission_limit_violation,
+    inspect_admission_capacity,
 )
 from txt2crs.jobs.request_store import (
     PersistedRequestError,
@@ -176,6 +178,23 @@ class SqliteJobStore:
                 timestamp=self._now_text(),
             )
         return violation is None
+
+    def inspect_admission_capacity(
+        self,
+        *,
+        user_id: str,
+        reservation: AdmissionReservation,
+    ) -> AdmissionCapacity:
+        """Return the owner's truthful rolling capacity without writing."""
+
+        with self._lock:
+            return inspect_admission_capacity(
+                connection=self._connection,
+                user_id=user_id,
+                reservation=reservation,
+                limits=self._admission_limits,
+                timestamp=self._now_text(),
+            )
 
     def _apply_migrations(self) -> None:
         """Apply each not-yet-recorded migration exactly once."""
