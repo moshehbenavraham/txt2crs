@@ -2,6 +2,7 @@
 
 """Immutable pre-plan preferences and deterministic course-plan resolution."""
 
+import re
 from typing import Literal, NoReturn, Self
 
 from pydantic import ConfigDict, Field, model_validator
@@ -19,6 +20,59 @@ from txt2crs.jobs.requests import (
 )
 
 NO_PREREQUISITE_KNOWLEDGE = "No prerequisite knowledge."
+
+# These noun phrases describe a broad aspiration but do not identify an
+# observable learner performance. They are accepted when the same objective
+# also contains a concrete action such as "build" or "compare".
+_VAGUE_OBJECTIVE_TERMS = frozenset(
+    {"familiarity", "knowledge", "mastery", "proficiency", "understanding"}
+)
+_MEASURABLE_OBJECTIVE_VERBS = frozenset(
+    {
+        "analyze",
+        "apply",
+        "build",
+        "calculate",
+        "classify",
+        "compare",
+        "construct",
+        "create",
+        "debug",
+        "define",
+        "demonstrate",
+        "describe",
+        "design",
+        "differentiate",
+        "evaluate",
+        "explain",
+        "identify",
+        "implement",
+        "interpret",
+        "predict",
+        "solve",
+        "trace",
+        "use",
+        "validate",
+        "write",
+    }
+)
+_GOAL_ALIGNMENT_STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "be",
+        "coding",
+        "complete",
+        "in",
+        "intermediate",
+        "of",
+        "proficiency",
+        "the",
+        "to",
+        "with",
+    }
+)
 
 
 class PreferenceResolutionError(ValueError):
@@ -199,6 +253,22 @@ def _validate_course_plan_shape(
     ):
         _reject("objective_count_out_of_bounds")
 
+    normalized_objective_descriptions = [
+        _normalize_alignment_text(objective.description)
+        for objective in course_plan.learning_objectives
+    ]
+    if len(normalized_objective_descriptions) != len(
+        set(normalized_objective_descriptions)
+    ):
+        _reject("objective_description_duplicate")
+    for normalized_description in normalized_objective_descriptions:
+        description_terms = set(re.findall(r"[a-z]+", normalized_description))
+        if (
+            description_terms & _VAGUE_OBJECTIVE_TERMS
+            and not description_terms & _MEASURABLE_OBJECTIVE_VERBS
+        ):
+            _reject("objective_description_not_measurable")
+
     module_count = len(course_plan.modules)
     if not (
         shape_limits.minimum_modules <= module_count <= shape_limits.maximum_modules
@@ -257,15 +327,28 @@ def _resolve_learning_goals(
     )
     if not explicit_learning_goals:
         return objective_descriptions
-    normalized_objectives = {
-        _normalize_alignment_text(description) for description in objective_descriptions
-    }
+    objective_term_sets = [
+        _alignment_terms(description) for description in objective_descriptions
+    ]
     if any(
-        _normalize_alignment_text(learning_goal) not in normalized_objectives
+        not any(
+            _alignment_terms(learning_goal) & objective_terms
+            for objective_terms in objective_term_sets
+        )
         for learning_goal in explicit_learning_goals
     ):
         _reject("learning_goal_unmapped")
     return explicit_learning_goals
+
+
+def _alignment_terms(value: str) -> set[str]:
+    """Return stable topic words for a conservative goal-to-plan check."""
+
+    return {
+        term
+        for term in re.findall(r"[a-z0-9]+", value.casefold())
+        if len(term) >= 3 and term not in _GOAL_ALIGNMENT_STOP_WORDS
+    }
 
 
 def _require_aligned_text(

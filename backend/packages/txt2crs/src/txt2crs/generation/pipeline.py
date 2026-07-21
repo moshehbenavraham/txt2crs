@@ -45,7 +45,13 @@ from txt2crs.generation.quality import (
 )
 from txt2crs.jobs.preparation import GenerationPreparation
 from txt2crs.rendering.artifacts import ArtifactRenderer, RenderedArtifact
-from txt2crs.research.evidence import FrozenEvidenceSet
+from txt2crs.research.coordinator import validate_frozen_evidence_requirements
+from txt2crs.research.evidence import (
+    CitationValidationError,
+    FrozenEvidenceSet,
+    hash_text,
+    validate_claim_citations,
+)
 
 if TYPE_CHECKING:
     from txt2crs.jobs.requests import CurriculumShapeLimits
@@ -60,6 +66,14 @@ class _ModuleDraftValidationError(ValueError):
 
     def __init__(self, message: str, *, code: str) -> None:
         super().__init__(message)
+        self.code = code
+
+
+class _ResearchPlanValidationError(ValueError):
+    """One safe, repairable rejection from the local research-plan gate."""
+
+    def __init__(self, *, code: str) -> None:
+        super().__init__("The research plan did not satisfy local quality limits.")
         self.code = code
 
 
@@ -421,14 +435,60 @@ class CourseGenerationPipeline:
                     raise ValueError(
                         "Research plan question count exceeds the stored call budget."
                     )
+                required_authoritative_sources = max(
+                    1,
+                    candidate_research_plan.maximum_sources // 4,
+                )
+                required_education_sources = (
+                    candidate_research_plan.maximum_sources // 6
+                )
+                if (
+                    candidate_research_plan.minimum_authoritative_sources
+                    < required_authoritative_sources
+                ):
+                    raise _ResearchPlanValidationError(
+                        code="research_authority_requirement_too_low"
+                    )
+                if (
+                    candidate_research_plan.minimum_education_sources
+                    < required_education_sources
+                ):
+                    raise _ResearchPlanValidationError(
+                        code="research_education_requirement_too_low"
+                    )
+                research_question_text = " ".join(
+                    research_text
+                    for question in candidate_research_plan.questions
+                    for research_text in (
+                        question.question,
+                        *question.preferred_source_types,
+                    )
+                )
+                if (
+                    candidate_research_plan.minimum_education_sources > 0
+                    and re.search(
+                        r"(?i)\b(?:assessment|cognitive|education|instructional|"
+                        r"learning|pedagog\w*|teaching)\b",
+                        research_question_text,
+                    )
+                    is None
+                ):
+                    raise _ResearchPlanValidationError(
+                        code="research_education_question_missing"
+                    )
 
             research_plan = self._run_stage(
                 stage="plan_research",
                 artifact_model=ResearchPlan,
                 trusted_instructions=(
                     "Create focused research questions and finite stop criteria "
-                    "within the supplied research limits. Return only the "
-                    "requested schema."
+                    "within the supplied research limits. Copy the calculated "
+                    "minimum source requirements into their schema fields. When "
+                    "minimum_education_sources is positive, include a focused "
+                    "pedagogy, learning-science, or assessment-design question. "
+                    "Use preferred_source_types to request primary, official, "
+                    "standards, academic, or government sources for the authority "
+                    "floor. Return only the requested schema."
                 ),
                 untrusted_payload={
                     "input_document": preparation.input_document.model_dump(
@@ -440,6 +500,10 @@ class CourseGenerationPipeline:
                     "research_limits": {
                         "maximum_questions": maximum_research_questions,
                         "maximum_sources": self._budget.limits.maximum_sources,
+                        "minimum_authoritative_sources_formula": (
+                            "max(1, maximum_sources // 4)"
+                        ),
+                        "minimum_education_sources_formula": ("maximum_sources // 6"),
                     },
                 },
                 cancellation=cancellation,
@@ -466,12 +530,20 @@ class CourseGenerationPipeline:
                     "research evidence."
                 )
             evidence_set.verify_integrity()
+            validate_frozen_evidence_requirements(
+                research_plan=research_plan,
+                evidence_set=evidence_set,
+            )
             emit_checkpoint("collect_evidence")
         if not evidence_set.sources or not evidence_set.excerpts:
             raise PipelineGenerationError(
                 "Deep-researched generation cannot continue without research evidence."
             )
         evidence_set.verify_integrity()
+        validate_frozen_evidence_requirements(
+            research_plan=research_plan,
+            evidence_set=evidence_set,
+        )
         cancellation.raise_if_cancelled()
 
         # Stage 6: approve a curriculum design independently from lesson prose.
@@ -500,10 +572,11 @@ class CourseGenerationPipeline:
                     "and research plan. Copy the explicit learning-contract text "
                     "verbatim into matching plan fields: language, audience, "
                     "level, duration, accessibility requirements, prerequisites, "
-                    "and learning-objective descriptions. Do not paraphrase "
-                    "those contract values. Keep objective, module, and section "
-                    "counts within every supplied curriculum shape range. Return "
-                    "only the requested schema."
+                    "and other direct contract values. Transform broad learning "
+                    "goals into distinct, observable, measurable learning-objective "
+                    "descriptions instead of repeating the same goal. Keep objective, "
+                    "module, and section counts within every supplied curriculum "
+                    "shape range. Return only the requested schema."
                 ),
                 untrusted_payload={
                     "input_document": preparation.input_document.model_dump(
@@ -551,6 +624,7 @@ class CourseGenerationPipeline:
                         module_plan=accepted_module_plan,
                         course_plan=course_plan,
                         evidence_set=evidence_set,
+                        high_risk_course=resolved_preferences.high_risk_course,
                         shape_limits=preparation.curriculum_shape_limits,
                     )
 
@@ -569,8 +643,12 @@ class CourseGenerationPipeline:
                         "block_id; every non-model-generated content block must "
                         "name frozen evidence and have a citation at that block_id; "
                         "and every evidence_id must come from the frozen evidence. "
-                        "Keep all generated IDs unique. Return only the requested "
-                        "module-draft schema."
+                        "Each module must include at least one applied example and "
+                        "one explicit misconception with corrective guidance. Keep "
+                        "all generated IDs unique. The host computes claim hashes; "
+                        "citation claim text must still have independent support in "
+                        "its named evidence. Return only the requested module-draft "
+                        "schema."
                     ),
                     untrusted_payload={
                         "course_id": course_plan.course_id,
@@ -959,6 +1037,7 @@ def _validate_module_draft(
     module_plan: CoursePlanModule,
     course_plan: CoursePlan,
     evidence_set: FrozenEvidenceSet,
+    high_risk_course: bool,
     shape_limits: CurriculumShapeLimits | None = None,
 ) -> None:
     """Reject one module that drifts from its plan or frozen evidence."""
@@ -969,6 +1048,22 @@ def _validate_module_draft(
             code="module_course_mismatch",
         )
     module = module_draft.module
+    has_applied_example = bool(module.examples) or any(
+        content_block.kind in {"code", "example"}
+        or content_block.is_model_generated_example
+        for section in module.sections
+        for content_block in section.content_blocks
+    )
+    if not has_applied_example:
+        raise _ModuleDraftValidationError(
+            f"Module {module_plan.module_id} has no applied example.",
+            code="module_applied_example_missing",
+        )
+    if not module.misconceptions:
+        raise _ModuleDraftValidationError(
+            f"Module {module_plan.module_id} has no misconception guidance.",
+            code="module_misconception_missing",
+        )
     if shape_limits is not None:
         # Import lazily because the jobs package publicly imports pipeline
         # checkpoint contracts. A module-level jobs import would create a
@@ -1065,6 +1160,28 @@ def _validate_module_draft(
                 f"Citation {citation.citation_id} does not match its block evidence.",
                 code="module_citation_evidence_mismatch",
             )
+
+    # SHA-256 is deterministic host work, not a language-model capability. The
+    # accepted checkpoint therefore stores a canonical hash derived from the
+    # exact stripped claim text that Pydantic accepted.
+    module_draft.citations = [
+        citation.model_copy(update={"claim_hash": hash_text(citation.claim_text)})
+        for citation in module_draft.citations
+    ]
+    try:
+        validate_claim_citations(
+            citations=module_draft.citations,
+            evidence_set=evidence_set,
+            unresolved_claims=module_draft.unresolved_or_conflicting_claims,
+            high_risk_course=high_risk_course,
+        )
+    except CitationValidationError:
+        # Do not place model/evidence text in the repair prompt or routine logs.
+        # A stable code tells the bounded repair turn which invariant failed.
+        raise _ModuleDraftValidationError(
+            f"Module {module_plan.module_id} has an unacceptable citation.",
+            code="module_citation_quality_rejected",
+        ) from None
 
 
 def _assemble_course(

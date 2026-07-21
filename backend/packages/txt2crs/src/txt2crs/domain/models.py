@@ -77,6 +77,8 @@ class ResearchPlan(StrictContract):
     plan_id: Identifier
     questions: list[ResearchQuestion] = Field(min_length=1, max_length=50)
     maximum_sources: Annotated[int, Field(gt=0, le=100)]
+    minimum_authoritative_sources: Annotated[int, Field(ge=0, le=100)] = 1
+    minimum_education_sources: Annotated[int, Field(ge=0, le=100)] = 0
     stop_criteria: list[ShortText] = Field(min_length=1, max_length=20)
 
     @model_validator(mode="after")
@@ -92,6 +94,14 @@ class ResearchPlan(StrictContract):
             raise ValueError("duplicate research question_id")
         if len(normalized_questions) != len(set(normalized_questions)):
             raise ValueError("duplicate research question")
+        if self.minimum_authoritative_sources > self.maximum_sources:
+            raise ValueError(
+                "minimum authoritative sources exceed the research source limit"
+            )
+        if self.minimum_education_sources > self.maximum_sources:
+            raise ValueError(
+                "minimum education sources exceed the research source limit"
+            )
         return self
 
 

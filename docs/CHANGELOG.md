@@ -22,6 +22,35 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.1.1] - 2026-07-21
+
+### Added
+
+### Changed
+
+- Enforced structured authoritative and education-research source floors before
+  freezing evidence, balanced source capacity across every research question,
+  classified community and authoritative domains explicitly, and rejected
+  canonical or near-mirror duplicates.
+- Kept Codex model metadata intact by placing trusted stage policy in developer
+  instructions, selected file-backed MCP OAuth state for headless workers, and
+  installed system `bubblewrap` in the backend image.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Canonicalized citation hashes in host code and ran independent citation
+  support validation inside each module boundary so invalid drafts are repaired
+  before later modules consume time or a checkpoint is committed.
+- Rejected duplicated or non-observable learning objectives and required every
+  generated module to include an applied example plus explicit misconception
+  guidance before course assembly.
+
+### Security
+
 ## [1.1.0] - 2026-07-21
 
 ### Added

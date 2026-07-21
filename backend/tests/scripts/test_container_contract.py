@@ -74,6 +74,15 @@ def test_workspace_packages_are_copied_before_first_uv_sync() -> None:
     assert package_copy_position < first_sync_position
 
 
+def test_backend_image_installs_the_codex_system_sandbox_helper() -> None:
+    """Codex should not emit error-level fallback noise on every image start."""
+
+    dockerfile_text = _read_repository_file(BACKEND_DOCKERFILE)
+
+    assert "apt-get install" in dockerfile_text
+    assert "bubblewrap" in dockerfile_text
+
+
 def test_backend_build_context_recursively_excludes_generated_directories() -> None:
     """Ignored nested caches must not change an otherwise identical image.
 

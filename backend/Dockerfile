@@ -7,6 +7,14 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app/
 
+# Codex can fall back to its bundled sandbox helper, but it logs the missing
+# system binary at error severity first. Install the small reviewed Debian
+# package so healthy startup is quiet and operators are not sent after a false
+# incident signal.
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y bubblewrap && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install uv
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
 COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/

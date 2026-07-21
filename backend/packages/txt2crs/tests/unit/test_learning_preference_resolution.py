@@ -237,6 +237,64 @@ def test_explicit_learning_goal_without_matching_objective_is_rejected() -> None
     assert captured_error.value.code == "learning_goal_unmapped"
 
 
+def test_duplicate_learning_objective_descriptions_are_rejected() -> None:
+    """Different objective IDs cannot disguise the same learning outcome."""
+
+    course_plan_data = _valid_course_plan_data()
+    course_plan_data["learning_objectives"][1]["description"] = "  APPLY   SKILL 1.  "
+
+    with pytest.raises(PreferenceResolutionError) as captured_error:
+        resolve_learning_preferences(
+            planning_preferences=PreparedLearningPreferences.from_request(
+                generation_request=valid_generation_request(
+                    preferences=LearningPreferenceIntent(
+                        audience=None,
+                        prior_knowledge=None,
+                        learning_goals=(),
+                        level="auto",
+                        language="auto",
+                    )
+                ),
+                detected_input_language="he",
+                high_risk_course=False,
+            ),
+            course_plan=CoursePlan.model_validate(course_plan_data),
+            shape_limits=CurriculumShapeLimits(),
+        )
+
+    assert captured_error.value.code == "objective_description_duplicate"
+
+
+def test_non_measurable_learning_objectives_are_rejected() -> None:
+    """Broad proficiency labels must become observable learner outcomes."""
+
+    course_plan_data = _valid_course_plan_data()
+    course_plan_data["learning_objectives"][0]["description"] = (
+        "Intermediate proficiency in Python coding."
+    )
+
+    with pytest.raises(PreferenceResolutionError) as captured_error:
+        resolve_learning_preferences(
+            planning_preferences=PreparedLearningPreferences.from_request(
+                generation_request=valid_generation_request(
+                    preferences=LearningPreferenceIntent(
+                        audience=None,
+                        prior_knowledge=None,
+                        learning_goals=(),
+                        level="auto",
+                        language="auto",
+                    )
+                ),
+                detected_input_language="he",
+                high_risk_course=False,
+            ),
+            course_plan=CoursePlan.model_validate(course_plan_data),
+            shape_limits=CurriculumShapeLimits(),
+        )
+
+    assert captured_error.value.code == "objective_description_not_measurable"
+
+
 @pytest.mark.parametrize(
     ("mutate_plan", "error_code"),
     [

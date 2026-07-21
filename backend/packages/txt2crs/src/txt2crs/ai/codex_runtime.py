@@ -21,6 +21,7 @@ from typing import Any, TypeVar, cast
 from urllib.parse import urlsplit
 
 from openai_codex import ApprovalMode, Codex, CodexConfig, Sandbox
+from openai_codex.types import Personality
 from pydantic import BaseModel, ValidationError
 
 from txt2crs.ai.errors import (
@@ -431,6 +432,10 @@ class OfficialCodexSdkAdapter:
             # Newer Codex releases may persist values that this pinned runtime
             # cannot parse. Use a supported value at the version boundary.
             'model_reasoning_effort="high"',
+            # Headless workers do not have an OS secrets service. Selecting the
+            # documented file store avoids a noisy keyring attempt before the
+            # same file-backed fallback that the worker would use anyway.
+            'mcp_oauth_credentials_store="file"',
         )
         return baseline_overrides + (
             research_mcp.codex_config_overrides() if research_mcp is not None else ()
@@ -518,7 +523,12 @@ class OfficialCodexSdkAdapter:
             approval_mode=ApprovalMode.deny_all,
             sandbox=Sandbox.read_only,
             ephemeral=True,
-            base_instructions=request.trusted_instructions,
+            # Keep the selected model's base metadata intact. Codex clears its
+            # personality metadata whenever callers replace base instructions,
+            # which made the explicit ``none`` value produce a false fallback
+            # warning. Developer instructions are the intended trusted layer.
+            personality=Personality.none,
+            developer_instructions=request.trusted_instructions,
         )
         turn_handle = thread.turn(
             request.prompt,

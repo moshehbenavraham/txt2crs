@@ -234,6 +234,15 @@ def test_adapter_projects_account_models_schema_output_and_usage() -> None:
     assert sdk_client.thread.received_schema == {"type": "object"}
     assert "untrusted data" in (sdk_client.thread.received_prompt or "")
     assert sdk_client.thread_start_arguments["ephemeral"] is True
+    assert sdk_client.thread_start_arguments["personality"].value == "none"
+    assert (
+        sdk_client.thread_start_arguments["developer_instructions"]
+        == turn_request().trusted_instructions
+    )
+    # A base-instruction override makes Codex intentionally discard the
+    # selected model's personality metadata. Keep the model base intact and
+    # place stage policy in the supported developer-instruction channel.
+    assert "base_instructions" not in sdk_client.thread_start_arguments
     adapter.close()
     assert sdk_client.closed is True
 
@@ -314,9 +323,11 @@ def test_adapter_config_clears_inherited_tools_and_uses_pinned_safe_defaults() -
 
     assert overrides[0] == "mcp_servers={}"
     assert 'model_reasoning_effort="high"' in overrides
+    assert 'mcp_oauth_credentials_store="file"' in overrides
     assert no_research_overrides == (
         "mcp_servers={}",
         'model_reasoning_effort="high"',
+        'mcp_oauth_credentials_store="file"',
     )
     assert sum(override == "mcp_servers={}" for override in overrides) == 1
 

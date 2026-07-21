@@ -39,7 +39,7 @@ from txt2crs.jobs.requests import (
     LearningPreferenceIntent,
 )
 from txt2crs.rendering.artifacts import ArtifactRenderer
-from txt2crs.research.evidence import EvidenceLedger, FrozenEvidenceSet
+from txt2crs.research.evidence import EvidenceLedger, FrozenEvidenceSet, hash_text
 from txt2crs.security.policy import ContentPolicy
 
 
@@ -126,6 +126,19 @@ def frozen_evidence() -> FrozenEvidenceSet:
     course_data = valid_course_data()
     ledger = EvidenceLedger()
     ledger.add_source(SourceRecord.model_validate(course_data["sources"][0]))
+    ledger.add_excerpt(EvidenceExcerpt.model_validate(course_data["evidence"][0]))
+    return ledger.freeze()
+
+
+def frozen_education_evidence() -> FrozenEvidenceSet:
+    """Freeze primary evidence whose title identifies assessment research."""
+
+    course_data = valid_course_data()
+    source = SourceRecord.model_validate(course_data["sources"][0]).model_copy(
+        update={"title": "Assessment design and Python reference"}
+    )
+    ledger = EvidenceLedger()
+    ledger.add_source(source)
     ledger.add_excerpt(EvidenceExcerpt.model_validate(course_data["evidence"][0]))
     return ledger.freeze()
 
@@ -406,6 +419,58 @@ def test_pipeline_repairs_research_plan_that_exceeds_stored_budget() -> None:
     accepted_research_plan = checkpoints[0].research_plan
     assert accepted_research_plan is not None
     assert accepted_research_plan.maximum_sources <= budget.limits.maximum_sources
+
+
+def test_pipeline_repairs_plan_without_required_education_question() -> None:
+    """A pedagogy source floor must have a planned query that can satisfy it."""
+
+    plan_without_education_question = research_plan_data()
+    plan_without_education_question.update(
+        {
+            "maximum_sources": 6,
+            "minimum_authoritative_sources": 1,
+            "minimum_education_sources": 1,
+        }
+    )
+    repaired_plan = copy_data(plan_without_education_question)
+    repaired_plan["questions"].append(
+        {
+            "question_id": "q-assessment-design",
+            "question": "Which assessment design supports learning retention?",
+            "preferred_source_types": ["education research"],
+            "freshness_days": None,
+        }
+    )
+    budget = pipeline_budget(maximum_turns=7)
+    runtime_requests: list[TurnRequest] = []
+    pipeline = pipeline_with_evidence(
+        frozen_education_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(plan_without_education_question, 1),
+            scripted_turn(repaired_plan, 2),
+            scripted_turn(course_plan_data(), 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+        request_sink=runtime_requests,
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+    )
+
+    plan_requests = [
+        request for request in runtime_requests if request.stage == "plan_research"
+    ]
+    assert len(plan_requests) == 2
+    assert "research_education_question_missing" in (
+        plan_requests[1].trusted_instructions
+    )
+    assert budget.snapshot().repairs == 1
 
 
 def test_pipeline_retries_one_transient_model_transport_failure() -> None:
@@ -754,6 +819,141 @@ def test_module_missing_factual_citation_gets_one_local_repair() -> None:
     assert [checkpoint.stage for checkpoint in checkpoints].count(
         "write_module:mod-foundations"
     ) == 1
+
+
+def test_module_claim_hash_is_computed_by_host_before_checkpoint() -> None:
+    """Cryptographic integrity must not depend on a model hashing its own prose."""
+
+    module_draft = copy_data(valid_course_module_draft_data())
+    module_draft["citations"][0]["claim_hash"] = f"sha256:{'0' * 64}"
+    budget = pipeline_budget()
+    checkpoints: list[PipelineCheckpoint] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(course_plan_data(), 2),
+            scripted_turn(module_draft, 3),
+            scripted_turn(valid_review_pack_data(), 4),
+            scripted_turn(valid_assessment_blueprint_data(), 5),
+            scripted_turn(assessment_package_data(), 6),
+        ),
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    module_checkpoint = next(
+        checkpoint
+        for checkpoint in checkpoints
+        if checkpoint.stage == "write_module:mod-foundations"
+    )
+    citation = module_checkpoint.course_module_drafts[0].citations[0]
+    assert citation.claim_hash == hash_text(citation.claim_text)
+    assert budget.snapshot().repairs == 0
+
+
+def test_module_without_independent_text_support_is_repaired_before_checkpoint() -> (
+    None
+):
+    """Unrelated evidence cannot survive until the aggregate course gate."""
+
+    unsupported_module_draft = copy_data(valid_course_module_draft_data())
+    unrelated_claim = "Photosynthesis converts light into chemical energy."
+    unsupported_module_draft["citations"][0].update(
+        {
+            "claim_text": unrelated_claim,
+            "claim_hash": hash_text(unrelated_claim),
+        }
+    )
+    budget = pipeline_budget(maximum_turns=7)
+    checkpoints: list[PipelineCheckpoint] = []
+    runtime_requests: list[TurnRequest] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(course_plan_data(), 2),
+            scripted_turn(unsupported_module_draft, 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+        request_sink=runtime_requests,
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+        checkpoint_sink=checkpoints.append,
+    )
+
+    module_requests = [
+        request
+        for request in runtime_requests
+        if request.stage.startswith("write_module_")
+    ]
+    assert len(module_requests) == 2
+    assert "module_citation_quality_rejected" in (
+        module_requests[1].trusted_instructions
+    )
+    assert budget.snapshot().repairs == 1
+    assert [checkpoint.stage for checkpoint in checkpoints].count(
+        "write_module:mod-foundations"
+    ) == 1
+
+
+@pytest.mark.parametrize(
+    ("module_field", "rejection_code"),
+    [
+        ("examples", "module_applied_example_missing"),
+        ("misconceptions", "module_misconception_missing"),
+    ],
+)
+def test_module_pedagogy_gaps_are_repaired_before_checkpoint(
+    module_field: str,
+    rejection_code: str,
+) -> None:
+    """Every accepted module includes applied practice and misconception help."""
+
+    incomplete_module_draft = copy_data(valid_course_module_draft_data())
+    incomplete_module_draft["module"][module_field] = []
+    budget = pipeline_budget(maximum_turns=7)
+    runtime_requests: list[TurnRequest] = []
+    pipeline = pipeline_with_evidence(
+        frozen_evidence(),
+        budget=budget,
+        scripted_turns=(
+            scripted_turn(research_plan_data(), 1),
+            scripted_turn(course_plan_data(), 2),
+            scripted_turn(incomplete_module_draft, 3),
+            scripted_turn(valid_course_module_draft_data(), 4),
+            scripted_turn(valid_review_pack_data(), 5),
+            scripted_turn(valid_assessment_blueprint_data(), 6),
+            scripted_turn(assessment_package_data(), 7),
+        ),
+        request_sink=runtime_requests,
+    )
+
+    pipeline.generate(
+        preparation=prepared_generation_for_pipeline(),
+        cancellation=CancellationToken(),
+    )
+
+    module_requests = [
+        request
+        for request in runtime_requests
+        if request.stage.startswith("write_module_")
+    ]
+    assert len(module_requests) == 2
+    assert rejection_code in module_requests[1].trusted_instructions
+    assert budget.snapshot().repairs == 1
 
 
 def test_duplicate_module_block_identifier_gets_one_local_repair() -> None:
