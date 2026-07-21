@@ -8,11 +8,11 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.2.4`. It is a
-backward-compatible submission release that reconciles the public GitHub
-repository, immutable judge tag, and publishing handoff after the stable public
-API boundary established by `1.0.0`. Future compatibility decisions follow
-Semantic Versioning from that public boundary.
+The current repository and Python package release is `1.2.5`. It is a
+backward-compatible security release that patches the public repository's
+development-only YAML parser advisory while preserving the submission handoff
+after the stable public API boundary established by `1.0.0`. Future
+compatibility decisions follow Semantic Versioning from that public boundary.
 
 ## Choosing the next version
 

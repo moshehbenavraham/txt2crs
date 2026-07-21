@@ -55,7 +55,7 @@ operator uploads it.
 The paid synthetic `gpt-5.6-sol` plus Tavily proof remains tied to historical
 source revision `a80700863e99cdd34bed757873d969236cdf36fa`. Later repairs and
 these tracked judge assets form a different final commit. The reviewed final
-commit is preserved by `v1.2.4`; the historical provider run is never relabeled
+commit is preserved by `v1.2.5`; the historical provider run is never relabeled
 as if it executed from the later commit.
 
 No tracked edit may follow the final tag without selecting a new SemVer

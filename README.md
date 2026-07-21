@@ -334,8 +334,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.2.4`. The exact public
-judge-facing source is preserved by the annotated `v1.2.4` tag after the
+The current synchronized release version is `1.2.5`. The exact public
+judge-facing source is preserved by the annotated `v1.2.5` tag after the
 release passed the existing distribution, production-image, health,
 replacement, and privacy checks.
 

@@ -187,7 +187,7 @@ and final source identity are explicit instead of blended together.
 
 ## What Is Next
 
-The current `1.2.4` release is deliberately a local Docker product for
+The current `1.2.5` release is deliberately a local Docker product for
 synthetic demonstrations. The next responsible steps are:
 
 - define formal retention, deletion, provider-transfer, and public
@@ -205,7 +205,7 @@ synthetic demonstrations. The next responsible steps are:
 
 - Source repository: <https://github.com/moshehbenavraham/txt2crs>
 - Immutable release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.5>
 - Recommended project thumbnail:
   [`06-answer-key.png`](screenshots/06-answer-key.png), the reviewed frame that
   shows all four publications and their four available formats.

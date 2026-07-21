@@ -25,7 +25,7 @@ publication and final Devpost submission remain human-only actions documented in
 - [x] The complete Education-category Devpost story is ready.
 - [x] Submitter type and country remain account-only.
 - [x] The repository is public with reviewed metadata, security scanning, push
-  protection, and the immutable `v1.2.4` release tag.
+  protection, and the immutable `v1.2.5` release tag.
 - [x] The concise human publishing handoff contains the release, YouTube,
   Devpost, deadline, and final-verification steps.
 

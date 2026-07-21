@@ -159,10 +159,10 @@ In this demo:
 02:11 Final result
 
 This walkthrough uses synthetic nonpersonal content from the tested local
-Docker 1.0.0 proof; the current judge-ready repository release is 1.2.4.
+Docker 1.0.0 proof; the current judge-ready repository release is 1.2.5.
 
 Repository: https://github.com/moshehbenavraham/txt2crs
-Release v1.2.4: https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4
+Release v1.2.5: https://github.com/moshehbenavraham/txt2crs/tree/v1.2.5
 
 #OpenAIBuildWeek #Codex #AIEducation #GPT56 #EdTech
 ```
@@ -182,7 +182,7 @@ The human operator performs these checks after upload:
 3. Play the full public video while signed out.
 4. Confirm narration is audible and names both Codex and GPT-5.6.
 5. Confirm text is legible at 1080p playback.
-6. Confirm the description links the repository and immutable `v1.2.4`
+6. Confirm the description links the repository and immutable `v1.2.5`
    release.
 7. Use the stable public URL in the Devpost entry.
 8. Keep platform confirmation details outside the tracked repository.

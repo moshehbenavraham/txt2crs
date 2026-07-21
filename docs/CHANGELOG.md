@@ -22,6 +22,24 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.2.5] - 2026-07-21
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+- Overrode the OpenAPI generator's development-only `js-yaml` dependency to
+  patched version `4.3.0`, resolving the public repository's high-severity
+  quadratic-CPU advisory without changing the shipped application runtime.
+
 ## [1.2.4] - 2026-07-21
 
 ### Added

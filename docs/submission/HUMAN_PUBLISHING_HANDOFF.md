@@ -21,7 +21,7 @@ Video identity:
 - SHA-256:
   `cc78d540f41eb6bbb634540fbf70df0d98c9975a308a8ae984135fb492d5542f`;
 - format: 1920x1080 H.264 video with AAC audio; and
-- immutable repository release: `v1.2.4`.
+- immutable repository release: `v1.2.5`.
 
 ## 1. Verify The Public GitHub Release
 
@@ -29,10 +29,10 @@ Open these links while signed out:
 
 - repository: <https://github.com/moshehbenavraham/txt2crs>; and
 - immutable release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>.
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.5>.
 
 Confirm both load publicly and that the release tag resolves to the reviewed
-`1.2.4` source. GitHub secret scanning, push protection, vulnerability alerts,
+`1.2.5` source. GitHub secret scanning, push protection, vulnerability alerts,
 and automated security updates are enabled.
 
 ## 2. Publish The Demo Video
@@ -63,7 +63,7 @@ Use:
 - category: Education;
 - repository: <https://github.com/moshehbenavraham/txt2crs>;
 - release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.4>;
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.5>;
 - built with: Codex, GPT-5.6, Python, FastAPI, Pydantic, SQLModel,
   PostgreSQL, SQLite, React, TypeScript, TanStack Router, TanStack Query,
   Tailwind CSS, shadcn/ui, Tavily, MCP, Docker, Playwright, and uv;
@@ -84,8 +84,8 @@ Submit before `2026-07-22T00:00:00Z`.
 
 Before considering the entry finished, confirm:
 
-- the repository and `v1.2.4` release load publicly while signed out;
-- remote `main` and `v1.2.4` match the reviewed release commit;
+- the repository and `v1.2.5` release load publicly while signed out;
+- remote `main` and `v1.2.5` match the reviewed release commit;
 - the YouTube video works while signed out and is under three minutes;
 - the Devpost entry is in Education and shows all six screenshots;
 - the repository, release, video, and Session ID values are exact; and

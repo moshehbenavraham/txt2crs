@@ -13,7 +13,7 @@ historical live proof is tied to exact source revision
 job completed with exactly sixteen verified artifacts. Every inspection row
 passes and the canonical public ledger passes the strict evidence validator.
 
-All tracked judge assets are complete. The final annotated `v1.2.4` tag
+All tracked judge assets are complete. The final annotated `v1.2.5` tag
 preserves the exact public judge-facing commit. A tracked change after the tag
 requires a new SemVer release.
 
@@ -34,7 +34,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.2.4 \
+  --expected-version 1.2.5 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```
@@ -92,7 +92,7 @@ All tracked judge assets, local release checks, public repository settings, and
 the immutable release tag are complete. The remaining human publishing steps
 are:
 
-1. verify anonymous access to the public repository and `v1.2.4` tag;
+1. verify anonymous access to the public repository and `v1.2.5` tag;
 2. publish and verify the prepared demo video on YouTube; and
 3. complete and submit the Education entry on Devpost.
 

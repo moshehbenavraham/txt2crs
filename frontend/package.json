@@ -68,5 +68,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "js-yaml": "4.3.0"
   }
 }
