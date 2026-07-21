@@ -90,10 +90,10 @@ generated authenticated client.
 
 HTML previews are limited by the non-secret
 `VITE_HTML_PREVIEW_MAX_BYTES` build setting (default `5242880`, or 5 MiB).
-Eligible HTML is verified and displayed from a revocable Blob URL in an
-empty-capability sandboxed iframe with a restrictive preview-only CSP. The
-frontend value controls presentation only; backend authorization, integrity,
-and delivery limits remain authoritative.
+Eligible HTML is verified, sanitized, and supplied as iframe `srcdoc` in an
+empty-capability sandbox with a restrictive preview-only CSP. No object URL is
+created. The frontend value controls presentation only; backend authorization,
+integrity, and delivery limits remain authoritative.
 
 Public account creation is disabled by default. Set
 `ENABLE_PUBLIC_SIGNUP=true` only for a local installation that should accept
@@ -142,8 +142,11 @@ For the PostgreSQL-backed shell suite:
 
 ```bash
 cd backend
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v
 ```
+
+Provision and migrate `app_test` separately first. The suite deletes
+application-owned fixture rows and refuses the normal local `app` database.
 
 For browser tests against the running stack:
 
@@ -152,11 +155,11 @@ cd frontend
 npx playwright test
 ```
 
-For the isolated provider-free course journey, keep PostgreSQL running and use
-the dedicated configuration:
+For the isolated provider-free course journey, use the dedicated
+configuration. It creates run-owned SQLite stores and does not use the local
+PostgreSQL database:
 
 ```bash
-docker compose up -d --wait db
 cd frontend
 npx playwright test --config playwright.jobs.config.ts
 TXT2CRS_BROWSER_SCENARIO=failed \

@@ -8,7 +8,8 @@ that accepts any input and will deliver: 1) A full deep-researched course
 based on the input, 2) Create comprehensive review materials on that generated
 course, and 3) Generate a full test with answer sheet.
 
-The build plan is [`docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md`](docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md).
+The current product requirements and completed phase plan are
+[`.spec_system/PRD/PRD.md`](.spec_system/PRD/PRD.md).
 The reusable AI engine lives in `backend/packages/txt2crs/`; the
 FastAPI/React application shell (adapted from the AIwithApex
 `python-react-boilerplate`) composes it and must not duplicate its logic.
@@ -27,7 +28,7 @@ In no particular order.
 - Avoid over-engineering while still following best practices and industry
   standards.
 - Create the tests before the code.
-- After completing an item from `docs/ongoing-projects/TODO.md`, move it to
+- Record completed tracked work under the appropriate release section in
   `docs/CHANGELOG.md`.
 - Once `docs/CHANGELOG.md` gets roughly 20+ entries, archive it to
   `docs/archive/CHANGELOG_YYYYMMDD.md` and create a new empty
@@ -85,7 +86,7 @@ Detailed per-side guidance: [`backend/AGENTS.md`](backend/AGENTS.md) and
 ```bash
 # Backend shell (from backend/)
 uv sync --all-packages                         # Install shell + engine
-uv run pytest tests/ -v                        # Application tests
+POSTGRES_DB=app_test uv run pytest tests/ -v   # Pre-provisioned test DB only
 uv run mypy app                                # Type check
 uv run ruff check app                          # Lint
 uv run ruff format app                         # Format
@@ -107,8 +108,12 @@ npx playwright test                            # E2E tests
 
 # Docker (preferred for the full stack)
 docker compose up -d                           # Start all services
-docker compose exec backend bash scripts/test.sh  # Backend tests
+./scripts/validate-changes.sh                  # Credential-free fast gate
 ```
+
+The full backend suite deletes application-owned rows during fixture cleanup.
+It refuses ordinary database names; provision and migrate a database whose
+name starts with `test_` or ends with `_test` before running it.
 
 ## Coding Conventions
 

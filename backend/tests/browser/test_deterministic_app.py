@@ -14,8 +14,8 @@ from time import monotonic, sleep
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlmodel import Session
 
+from app.api.deps import get_db
 from app.core.config import settings
 from app.main import app as production_app
 from tests.browser.deterministic_app import create_deterministic_browser_app
@@ -74,17 +74,24 @@ def deterministic_browser_client(
 
 def _normal_user_headers(
     client: TestClient,
-    db: Session,
+    browser_app: FastAPI,
 ) -> dict[str, str]:
-    """Create a real normal user and return its normal bearer token."""
+    """Create a normal user inside the browser app's private account store."""
 
-    # The shared helper is intentionally called against this application so
-    # authentication does not depend on another TestClient lifespan.
-    return authentication_token_from_email(
-        client=client,
-        email=settings.EMAIL_TEST_USER,
-        db=db,
-    )
+    # Browser composition deliberately overrides ``get_db`` with run-owned
+    # SQLite. Seed through that same provider so this test cannot touch the
+    # application-suite PostgreSQL fixture or a developer's live database.
+    browser_database_provider = browser_app.dependency_overrides[get_db]
+    browser_database_generator = browser_database_provider()
+    browser_database_session = next(browser_database_generator)
+    try:
+        return authentication_token_from_email(
+            client=client,
+            email=settings.EMAIL_TEST_USER,
+            db=browser_database_session,
+        )
+    finally:
+        browser_database_generator.close()
 
 
 def test_browser_app_requires_explicit_test_only_enablement(
@@ -130,13 +137,33 @@ def test_production_route_graph_has_no_browser_fixture_controls() -> None:
     assert all(not path.startswith("/__test__") for path in production_paths)
 
 
+def test_browser_app_uses_a_state_scoped_sqlite_account_database(
+    deterministic_browser_app: FastAPI,
+) -> None:
+    """The deterministic journey must never inherit a developer PostgreSQL URL."""
+
+    database_override = deterministic_browser_app.dependency_overrides[get_db]
+    session_generator = database_override()
+    isolated_session = next(session_generator)
+    try:
+        database_url = str(isolated_session.get_bind().url)
+    finally:
+        session_generator.close()
+
+    assert database_url.startswith("sqlite:///")
+    assert database_url.endswith("/browser-state/accounts.sqlite3")
+
+
 def test_real_http_submission_executes_and_reopens_from_durable_state(
     deterministic_browser_client: TestClient,
-    db: Session,
+    deterministic_browser_app: FastAPI,
 ) -> None:
     """The browser fixture proves real durable execution, not route stubs."""
 
-    headers = _normal_user_headers(deterministic_browser_client, db)
+    headers = _normal_user_headers(
+        deterministic_browser_client,
+        deterministic_browser_app,
+    )
     accepted = deterministic_browser_client.post(
         f"{settings.API_V1_STR}/jobs",
         headers={**headers, "Idempotency-Key": "browser-course-request"},
@@ -181,11 +208,14 @@ def test_real_http_submission_executes_and_reopens_from_durable_state(
 
 def test_browser_app_keeps_wrong_owner_indistinguishable_from_missing(
     deterministic_browser_client: TestClient,
-    db: Session,
+    deterministic_browser_app: FastAPI,
 ) -> None:
     """The fixture must retain the package's owner-hidden read boundary."""
 
-    headers = _normal_user_headers(deterministic_browser_client, db)
+    headers = _normal_user_headers(
+        deterministic_browser_client,
+        deterministic_browser_app,
+    )
 
     response = deterministic_browser_client.get(
         f"{settings.API_V1_STR}/jobs/job-that-does-not-exist",

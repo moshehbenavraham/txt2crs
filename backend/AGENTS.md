@@ -23,7 +23,8 @@
 3. **Create schemas** in `app/schemas/` for request/response
 4. **Create route** in `app/api/routes/`
 5. **Register router** in `app/api/main.py`
-6. **Run tests**: `uv run pytest tests/ -v`
+6. **Run tests**: `POSTGRES_DB=app_test uv run pytest tests/ -v` against a
+   separately provisioned and migrated test database
 7. **Type check**: `uv run mypy app`
 
 ## Database Migrations
@@ -119,18 +120,22 @@ def read_profile(current_user: CurrentUser) -> UserPublic:
 
 ## Testing
 
+The shell suite deletes application-owned rows during fixture cleanup. It
+fails before connecting unless the configured database name starts with
+`test_` or ends with `_test`; never use the normal local `app` database.
+
 ```bash
 # Run all tests
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v
 
 # Run specific test file
-uv run pytest tests/api/test_users.py -v
+POSTGRES_DB=app_test uv run pytest tests/api/test_users.py -v
 
 # Run with coverage
-uv run pytest tests/ --cov=app --cov-report=term-missing
+POSTGRES_DB=app_test uv run pytest tests/ --cov=app --cov-report=term-missing
 
 # Run only fast tests (skip slow/integration)
-uv run pytest tests/ -v -m "not slow"
+POSTGRES_DB=app_test uv run pytest tests/ -v -m "not slow"
 ```
 
 ## Constants Usage

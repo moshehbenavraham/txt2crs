@@ -196,7 +196,10 @@ class Token(SQLModel):
 
 # Contents of JWT token
 class TokenPayload(SQLModel):
-    sub: str
+    # JWT stores the subject as text, but every database lookup uses the UUID
+    # primary-key type. Pydantic performs the boundary conversion once so the
+    # SQLAlchemy binder behaves consistently across PostgreSQL and SQLite.
+    sub: uuid.UUID
 
 
 class PasswordRecoveryRequest(SQLModel):

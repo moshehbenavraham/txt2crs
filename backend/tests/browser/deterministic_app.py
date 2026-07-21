@@ -7,17 +7,21 @@ factory. No browser-only control route is added to the API graph.
 """
 
 import os
+from collections.abc import Generator
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import RLock
 from typing import Literal, cast
 
 from fastapi import FastAPI
+from sqlalchemy.pool import NullPool
+from sqlmodel import Session, SQLModel, create_engine
 from txt2crs.application import (
     DeterministicGenerationScenario,
     Txt2CrsApplication,
 )
 
+from app.api.deps import get_db
 from app.core.config import Settings, settings
 from app.main import create_app
 from app.services.txt2crs_application import Txt2CrsApplicationLifecycle
@@ -274,6 +278,22 @@ def create_deterministic_browser_app(
 
     scenario = _select_scenario(scenario_name)
     browser_settings = _build_browser_settings(resolved_state_directory)
+    account_database_path = resolved_state_directory / "accounts.sqlite3"
+    account_database_engine = create_engine(
+        f"sqlite:///{account_database_path}",
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
+    # The deterministic browser server owns a brand-new private database, so
+    # creating the current SQLModel schema is safer and faster than pointing
+    # Alembic or auth routes at a developer's PostgreSQL instance.
+    SQLModel.metadata.create_all(account_database_engine)
+
+    def get_browser_database_session() -> Generator[Session]:
+        """Yield one request-scoped session from the run-owned SQLite file."""
+
+        with Session(account_database_engine) as session:
+            yield session
 
     def build_deterministic_lifecycle(
         _application_settings: Settings,
@@ -300,7 +320,7 @@ def create_deterministic_browser_app(
             runtime_ownership=runtime_ownership,
         )
 
-    return create_app(
+    browser_app = create_app(
         application_settings=browser_settings,
         txt2crs_lifecycle_factory=build_deterministic_lifecycle,
         txt2crs_readiness_factory=build_deterministic_readiness,
@@ -308,6 +328,8 @@ def create_deterministic_browser_app(
             lambda _application_settings: build_deterministic_execution_profile()
         ),
     )
+    browser_app.dependency_overrides[get_db] = get_browser_database_session
+    return browser_app
 
 
 def create_deterministic_browser_app_from_environment() -> FastAPI:

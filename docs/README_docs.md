@@ -8,6 +8,10 @@ live under `backend/packages/txt2crs/docs/`.
 
 - [Architecture](ARCHITECTURE.md) explains the FastAPI shell, reusable engine,
   React client, databases, and deployment boundaries.
+- [Deliverable system](DELIVERABLE_SYSTEM.md) traces the complete publication
+  lifecycle from validated education models through rendering, private storage,
+  integrity verification, preview, and download. It also defines the current
+  format-specific quality baseline for HTML, Markdown, PDF, and DOCX.
 - [Onboarding](onboarding.md) provides the shortest verified local setup.
 - [Development](development.md) lists local endpoints, commands, and validation.
 - [Configuration](CONFIGURATION.md) catalogs environment variables and
@@ -23,15 +27,16 @@ live under `backend/packages/txt2crs/docs/`.
 
 ## Planning and Project History
 
-- [Input-to-course system plan](ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)
-  is the phased end-to-end build plan.
-- [TODO](ongoing-projects/TODO.md) contains prioritized current work.
+- [Product requirements](../.spec_system/PRD/PRD.md) contain the completed
+  phased build plan and current durable requirements.
+- [Apex considerations](../.spec_system/CONSIDERATIONS.md) retain active
+  architecture constraints and institutional memory.
 - [Changelog](CHANGELOG.md) records completed user-visible and engineering
   changes.
 - [Versioning](VERSIONING.md) defines release and version synchronization
+  rules.
 - [Port allocations](PORTS.md) lists every host-bound and container-internal
   listener used by local, test, and optional proxy workflows.
-  rules.
 - [ADR index](adr/README_adr.md) records accepted architectural decisions.
 - [File organization](FILE_ORGANIZATION.md) maps repository ownership.
 - [Folder architecture](TXT2CRS_FOLDER_ARCHITECTURE.md) explains the

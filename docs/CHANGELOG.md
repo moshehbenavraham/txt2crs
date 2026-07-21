@@ -22,6 +22,46 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.1.6] - 2026-07-21
+
+### Added
+
+- Added a permanent deliverable-system reference covering canonical output,
+  deterministic rendering, format baselines, private storage, integrity,
+  preview isolation, delivery, quality evidence, and future change control.
+- Added a fail-closed backend test-database preflight, CI test-database
+  selection, a run-owned SQLite account store for deterministic browser tests,
+  and regression coverage for database isolation, UUID token subjects, admin
+  loading identity, permanent-error polling, artifact downloads, and visible
+  previews.
+
+### Changed
+
+- Made the project-root environment canonical for default Playwright runs,
+  removed local backend reload from the judge-facing Compose stack, compacted
+  the landing hero to retain its action at laptop height, and added an
+  immediate accessible loading shell to the admin route.
+- Consolidated enduring architecture, API, engine-quality, security,
+  operations, testing, and product requirements from the completed
+  planning and validation records into primary documentation, without deleting
+  those source records pending manual review.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Replaced temporary object-URL HTML preview navigation with sandboxed
+  sanitized `srcdoc`, stopped missing jobs from polling after permanent read
+  errors, and normalized JWT subjects to UUID values for cross-dialect account
+  queries.
+
+### Security
+
+- Prevented application tests and deterministic browser authentication from
+  reusing or destructively cleaning a normal local PostgreSQL database.
+
 ## [1.1.5] - 2026-07-21
 
 ### Added

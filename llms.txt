@@ -7,8 +7,8 @@
 
 - [Agent instructions](./AGENTS.md): Repository rules and build commands
 - [Project overview](./README.md): Product status and quick start
-- [System plan](./docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md):
-  Phased end-to-end delivery plan
+- [Product requirements](./.spec_system/PRD/PRD.md): Completed phased plan and
+  current durable requirements
 - [Documentation index](./docs/README_docs.md): Engineering and product docs
 - [Architecture](./docs/ARCHITECTURE.md): Shell, engine, state, and deployment
   boundaries

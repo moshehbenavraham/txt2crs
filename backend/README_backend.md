@@ -25,12 +25,20 @@ Run from `backend/` unless noted:
 
 ```bash
 uv sync --all-packages
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v
 uv run mypy app
 uv run ty check app
 uv run ruff check app tests
 uv run ruff format --check app tests
 ```
+
+The full shell suite deletes application-owned rows during cleanup and
+therefore fails closed unless `POSTGRES_DB` starts with `test_` or ends with
+`_test`. Provision an isolated database such as `app_test`, migrate it, and
+point the test process at it before running `pytest`; the normal local `app`
+database is intentionally refused. CI provisions `app_test`. The
+database-free baseline checks remain available through
+`./scripts/validate-changes.sh backend` from the repository root.
 
 Run engine checks from `packages/txt2crs/` so its own project configuration
 applies:
@@ -52,7 +60,7 @@ The application OpenAPI document is authoritative:
 |------|-------------------|
 | Authentication | `/api/v1/login/access-token`, `/api/v1/login/test-token`, `/api/v1/password-recovery`, `/api/v1/reset-password/` |
 | Users | `/api/v1/users/`, `/api/v1/users/me`, `/api/v1/users/me/password`, `/api/v1/users/signup`, `/api/v1/users/{user_id}` |
-| Course jobs | `/api/v1/jobs`, `/api/v1/jobs/upload`, `/api/v1/jobs/{job_id}`, `/api/v1/jobs/{job_id}/artifacts`, `/api/v1/jobs/{job_id}/artifacts/{artifact_id}` |
+| Course jobs | `/api/v1/jobs`, `/api/v1/jobs/upload`, `/api/v1/jobs/admission-capacity`, `/api/v1/jobs/{job_id}`, `/api/v1/jobs/{job_id}/artifacts`, `/api/v1/jobs/{job_id}/artifacts/{artifact_id}` |
 | System | `/api/v1/system/readiness`, `/api/v1/system/auth/start`, `/api/v1/system/auth/status` |
 | Operations | `/api/v1/utils/health/`, `/api/v1/utils/health-check/`, `/api/v1/utils/test-email/` |
 

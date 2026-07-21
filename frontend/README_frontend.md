@@ -64,9 +64,12 @@ desktop and mobile.
 
 `/jobs/$jobId` reads only the authenticated owner's generated status
 projection. Active jobs use a visibility-aware polling policy; terminal jobs
-stop polling. Refreshing or directly reopening the private URL revalidates the
-server state. Missing and foreign-owned jobs deliberately share one recovery
-surface.
+and permanent owner/validation read errors stop interval polling. Transient
+failures receive bounded backoff. Refreshing or directly reopening the private
+URL revalidates the server state. Missing and foreign-owned jobs deliberately
+share one recovery surface. A content-free runtime heartbeat is evidence of
+current worker activity only and remains distinct from checkpoint revision and
+progress.
 
 When a job completes, the same route reads its generated owner-scoped manifest
 once and presents course, review pack, assessment, and instructor answer key
@@ -76,10 +79,10 @@ owner explicitly opens them.
 
 All file bodies use the generated authenticated artifact client. HTML preview
 is lazy-loaded, byte/media verified, parsed into a preview-only document, and
-shown through a revocable Blob URL in an empty-capability sandboxed iframe
-with a restrictive CSP and no-referrer policy. No artifact HTML is injected
-into the React document. Source and conflict disclosures use only the bounded
-completed-job projection.
+provided as sanitized iframe `srcdoc` in an empty-capability sandbox with a
+restrictive CSP and no-referrer policy. No object URL is created and no
+artifact HTML is injected into the React document. Source and conflict
+disclosures use only the bounded completed-job projection.
 
 The browser keeps only a bounded prompt handoff in `sessionStorage`; source
 content is not placed in URLs or `localStorage`. These implementation choices
@@ -103,6 +106,14 @@ npm run lint
 npm run build
 npx playwright test
 ```
+
+The default Playwright configuration reads the repository-root `.env` as the
+judge-stack source of truth; host-only `frontend/.env` values do not redirect
+its API client. The credential-free learner journey uses
+`playwright.jobs.config.ts`, one fresh run-owned state directory, and a
+run-owned SQLite account database. It exercises production routes, auth,
+worker, package facade, persistence, and delivery without connecting to local
+PostgreSQL or exposing test-only HTTP controls.
 
 ## Generated API Client
 

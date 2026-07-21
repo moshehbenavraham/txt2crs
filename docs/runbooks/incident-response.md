@@ -112,15 +112,18 @@ both health endpoints and inspect correlated logs after recovery.
    discovers durable accepted jobs at startup and resumes active jobs from
    their last accepted checkpoint; it does not require the original in-memory
    wake event.
-5. Poll `GET /api/v1/jobs/{job_id}` as the authenticated owner. Verify that
-   `revision` advances or that a terminal `completed`, `failed`, or
-   `cancelled` status is returned. Do not infer progress from elapsed time.
+5. Poll `GET /api/v1/jobs/{job_id}` as the authenticated owner. Accepted work
+   advances `revision` and checkpoint `updated_at`; long provider turns may be
+   quiet between checkpoints. A newer `runtime_activity_at` is a content-free
+   worker heartbeat and proves liveness only, not stage completion. Verify a
+   newer revision, a continuing heartbeat, or a terminal `completed`,
+   `failed`, or `cancelled` status. Do not infer progress from elapsed time.
 6. A job already at final validation may replay rendering, and one interrupted
    during delivery may republish artifacts. Neither boundary should start new
    provider turns.
-7. If the same revision remains stalled after the backend is healthy, stop
-   new admission, capture a consistent backup, and escalate with redacted
-   correlated logs. Do not edit the engine SQLite database manually.
+7. If both revision and runtime heartbeat remain stagnant after the backend is
+   healthy, stop new admission, capture a consistent backup, and escalate with
+   redacted correlated logs. Do not edit the engine SQLite database manually.
 
 ## Artifact Integrity Or Delivery Failure
 

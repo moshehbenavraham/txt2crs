@@ -1,9 +1,8 @@
 # Dashboard Design System
 
 > Single source of truth for the frontend's visual and interaction design.
-> Consolidates the former `frontend-ui-design.md` and
-> `ongoing-projects/dashboard-frontend-design-upgrade-plan.md` (both removed;
-> see git history).
+> Consolidates two superseded frontend design plans; see git history for their
+> original records.
 >
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* -- expressive page identity joined to compact, honest operational
@@ -647,11 +646,13 @@ drafting, validating, rendering, delivering, then ready. Its rows carry stable
 text labels, while the adjacent update panel renders the server's safe progress
 message. Unknown totals use activity copy rather than a guessed percentage.
 Warnings are a separate reading region. Reconnecting keeps the last safe
-snapshot visible. Failed and cancelled states replace the active-stage
-treatment with stable recovery actions. Completed continues into the Session
-02 result composition without changing the durable URL. On mobile the rail
-remains vertical and labels wrap; no horizontal timeline or document scroll is
-permitted.
+snapshot visible. The content-free runtime heartbeat is labeled as worker
+activity and never presented as accepted checkpoint progress. Permanent
+owner/validation read errors stop interval polling. Failed and cancelled
+states replace the active-stage treatment with stable recovery actions.
+Completed continues into the Session 02 result composition without changing
+the durable URL. On mobile the rail remains vertical and labels wrap; no
+horizontal timeline or document scroll is permitted.
 
 ### Course results (`/jobs/$jobId`, completed state)
 
@@ -840,6 +841,10 @@ identity, status/role as text plus semantic treatment, actions immediately
 reachable, current-user marker adjacent to the name. Finding a person's role
 or actions must never require horizontal scrolling.
 
+The route-level pending state preserves the `Users` heading and a recognizable
+table/list skeleton so an authenticated navigation never flashes a blank main
+region while the first query resolves.
+
 ### Settings
 
 Profile, password, and danger-zone grouping under the shared page header.
@@ -873,7 +878,7 @@ Every displayed value must have a truthful definition backed by the API.
 | Job status/result | Owner-scoped `JobStatusPublic` projection | Render only the returned revisioned state and fixed progress copy |
 | Artifact availability | Owner-scoped verified manifest | Show only path-free entries returned by the API |
 | Total user count | Exact `UsersPublic.count` | Superuser Administration section only |
-| Recent activity, trends, last update | No timestamps or ordered feed | Do not design or ship until the backend contract changes |
+| Library recency | Owner-scoped `created_at` / `updated_at`, stable newest-first pages | Use only for row timestamps and ordering; do not infer total counts or aggregate trends |
 
 If richer dashboard data is approved, add a read-only aggregate endpoint
 (exact count and explicitly ordered preview) rather than fetching every

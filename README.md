@@ -33,6 +33,11 @@ source summaries and conflict disclosures, while the learner-facing API never
 returns prompts, evidence excerpts, provider payloads, token data, checkpoint
 JSON, artifact paths, or unrestricted file links.
 
+The persistent owner-scoped course library lists retained work newest first,
+uses opaque pagination, and reopens every active or completed request on its
+existing durable job URL. The intake page also reads authoritative rolling
+admission capacity before enabling another paid generation.
+
 ## Why It Exists
 
 Two days after I joined OpenAI Build Week, my Zimbabwean wife asked me:
@@ -239,7 +244,7 @@ Package-specific commands:
 ```bash
 # Backend shell
 cd backend
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v  # pre-provisioned test DB only
 uv run ruff check app
 uv run mypy app
 
@@ -329,8 +334,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.1.5`. The human release
-operator creates the final annotated `v1.1.5` tag only after all tracked judge
+The current synchronized release version is `1.1.6`. The human release
+operator creates the final annotated `v1.1.6` tag only after all tracked judge
 assets are final and the exact commit passes the existing distribution,
 production-image, health, replacement, and privacy checks.
 

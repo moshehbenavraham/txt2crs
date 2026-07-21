@@ -21,7 +21,6 @@ txt2crs/
 |-- docs/
 |   |-- adr/                       Architecture Decision Records
 |   |-- api/                       HTTP API documentation
-|   |-- ongoing-projects/          Active plans and TODO
 |   |-- runbooks/                  Operational response procedures
 |   `-- README_docs.md             Documentation index
 |-- examples/                      Curated few-shot examples
@@ -81,9 +80,9 @@ The repository root alone uses the filename `README.md`. Directory indexes use
 - `backend/packages/txt2crs/README_txt2crs.md`
 
 Architecture decisions are immutable records in `docs/adr/`. Create a new ADR
-to supersede an accepted decision. Active delivery work belongs in
-`docs/ongoing-projects/` and `.spec_system/`; completed TODO entries move to
-`docs/CHANGELOG.md`.
+to supersede an accepted decision. Product requirements, phase/session state,
+and active delivery work belong in `.spec_system/`; completed user-visible and
+engineering work is recorded in `docs/CHANGELOG.md`.
 
 ## Naming Conventions
 

@@ -77,7 +77,6 @@ services:
     command:
       - fastapi
       - run
-      - --reload
       - "app/main.py"
     develop:
       watch:

@@ -1,15 +1,32 @@
-import { defineConfig, devices } from '@playwright/test';
-import 'dotenv/config'
+import path from "node:path"
+import { defineConfig, devices } from "@playwright/test"
+import dotenv from "dotenv"
+
+// Browser journeys target the judge-facing stack, whose single source of
+// truth is the repository-root .env. Host-only frontend/.env values belong to
+// direct Vite development and must never redirect the E2E API client.
+const repositoryEnvironmentPath = path.resolve(import.meta.dirname, "../.env")
+dotenv.config({ path: repositoryEnvironmentPath })
 
 const frontendBaseURL =
-  process.env.PLAYWRIGHT_BASE_URL ?? process.env.FRONTEND_HOST ?? 'http://localhost:5195'
+  process.env.PLAYWRIGHT_BASE_URL ??
+  process.env.FRONTEND_HOST ??
+  "http://localhost:5195"
+const backendPort = process.env.BACKEND_PORT ?? "8016"
+const apiBaseURL =
+  process.env.PLAYWRIGHT_API_URL ??
+  process.env.VITE_API_URL ??
+  `http://localhost:${backendPort}`
+
+// Worker processes and existing test helpers consume this explicit value.
+process.env.VITE_API_URL = apiBaseURL
 
 const frontendPort = (() => {
   try {
     const port = new URL(frontendBaseURL).port
-    return port || '5195'
+    return port || "5195"
   } catch {
-    return '5195'
+    return "5195"
   }
 })()
 
@@ -32,27 +49,27 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI ? 'blob' : 'html',
+  reporter: process.env.CI ? "blob" : "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: frontendBaseURL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
   },
 
   /* Configure projects for major browsers */
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    { name: "setup", testMatch: /.*\.setup\.ts/ },
 
     {
-      name: 'chromium',
+      name: "chromium",
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
+        storageState: "playwright/.auth/user.json",
       },
-      dependencies: ['setup'],
+      dependencies: ["setup"],
     },
 
     // {
@@ -100,4 +117,4 @@ export default defineConfig({
     url: frontendBaseURL,
     reuseExistingServer: !process.env.CI,
   },
-});
+})

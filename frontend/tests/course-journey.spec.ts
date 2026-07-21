@@ -320,6 +320,23 @@ test.describe("public learner landing", () => {
     ).toBeLessThanOrEqual(0)
   })
 
+  test("keeps the topic handoff action visible at a common laptop fold", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1265, height: 708 })
+    await signOutForPublicRoute(page)
+
+    const handoffAction = page.getByRole("button", {
+      name: "Save topic and continue to sign in",
+    })
+    const actionBox = await handoffAction.boundingBox()
+
+    expect(actionBox).not.toBeNull()
+    expect(
+      (actionBox?.y ?? 708) + (actionBox?.height ?? 0),
+    ).toBeLessThanOrEqual(708)
+  })
+
   test("meets WCAG AA text contrast in light and dark themes", async ({
     page,
   }) => {
@@ -612,6 +629,11 @@ test.describe("authenticated course intake", () => {
     await pdfDownload.click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe("python-basics-course.pdf")
+    const downloadedFilePath = await download.path()
+    expect(downloadedFilePath).not.toBeNull()
+    expect(
+      (await import("node:fs")).statSync(downloadedFilePath as string).size,
+    ).toBeGreaterThan(0)
 
     const previewTrigger = coursePublication.getByRole("button", {
       name: "Preview Course HTML",
@@ -630,17 +652,6 @@ test.describe("authenticated course intake", () => {
     page.on("request", (request) => {
       if (request.url().startsWith("https://preview-escape.invalid/")) {
         previewNetworkEscapes.push(request.url())
-      }
-    })
-    await page.evaluate(() => {
-      const auditedWindow = window as Window & {
-        __revokedPreviewUrls?: string[]
-      }
-      auditedWindow.__revokedPreviewUrls = []
-      const nativeRevokeObjectUrl = URL.revokeObjectURL.bind(URL)
-      URL.revokeObjectURL = (objectUrl: string) => {
-        auditedWindow.__revokedPreviewUrls?.push(objectUrl)
-        nativeRevokeObjectUrl(objectUrl)
       }
     })
     await previewTrigger.click()
@@ -664,10 +675,14 @@ test.describe("authenticated course intake", () => {
     await expect(previewFrame).toHaveAttribute("sandbox", "")
     await expect(previewFrame).toHaveAttribute("referrerpolicy", "no-referrer")
     await expect(previewFrame).toHaveAttribute("title", "Course HTML preview")
-    await expect(previewFrame).toHaveAttribute("src", /^blob:/)
+    await expect(previewFrame).not.toHaveAttribute("src", /.+/)
+    await expect(previewFrame).toHaveAttribute("srcdoc", /Python Basics/)
     const securedPreviewDocument = page.frameLocator(
       'iframe[title="Course HTML preview"]',
     )
+    await expect(
+      securedPreviewDocument.getByRole("heading", { name: "Python Basics" }),
+    ).toBeVisible()
     await expect(
       securedPreviewDocument.locator("script, iframe, form, object, embed"),
     ).toHaveCount(0)
@@ -676,20 +691,8 @@ test.describe("authenticated course intake", () => {
         'meta[http-equiv="Content-Security-Policy"]',
       ),
     ).toHaveAttribute("content", /default-src 'none'/)
-    const firstPreviewUrl = await previewFrame.getAttribute("src")
-    expect(firstPreviewUrl).not.toBeNull()
     await page.keyboard.press("Escape")
     await expect(previewTrigger).toBeFocused()
-    await expect
-      .poll(() =>
-        page.evaluate((releasedUrl) => {
-          const auditedWindow = window as Window & {
-            __revokedPreviewUrls?: string[]
-          }
-          return auditedWindow.__revokedPreviewUrls?.includes(releasedUrl)
-        }, firstPreviewUrl as string),
-      )
-      .toBe(true)
 
     const courseHtmlArtifact = manifest.deliverables
       .find(({ deliverable }) => deliverable === "course")
@@ -747,20 +750,7 @@ test.describe("authenticated course intake", () => {
     expect(previewNetworkEscapes).toEqual([])
     expect(previewPageErrors).toEqual([])
     expect(previewConsoleIssues).toEqual([])
-    const hostilePreviewUrl = await previewDialog
-      .locator("iframe")
-      .getAttribute("src")
     await page.keyboard.press("Escape")
-    await expect
-      .poll(() =>
-        page.evaluate((releasedUrl) => {
-          const auditedWindow = window as Window & {
-            __revokedPreviewUrls?: string[]
-          }
-          return auditedWindow.__revokedPreviewUrls?.includes(releasedUrl)
-        }, hostilePreviewUrl as string),
-      )
-      .toBe(true)
 
     await expect(
       page.getByRole("heading", { name: "Sources and research notes" }),

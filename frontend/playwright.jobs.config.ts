@@ -3,7 +3,6 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { defineConfig, devices } from "@playwright/test"
-import "dotenv/config"
 
 const backendBaseUrl = "http://127.0.0.1:8017"
 const useProductionFrontend = process.env.PLAYWRIGHT_PRODUCTION_FRONTEND === "1"

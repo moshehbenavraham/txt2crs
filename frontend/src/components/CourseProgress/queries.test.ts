@@ -97,6 +97,21 @@ describe("course job query policy", () => {
     ).toBe(5000)
   })
 
+  it("stops interval polling after a permanent owner-scoped read error", () => {
+    expect(
+      getJobPollingInterval({
+        snapshot: undefined,
+        isDocumentVisible: true,
+        transientFailureCount: 1,
+        lastError: new ApiError({
+          body: { code: "JOB_7001" },
+          status: 404,
+          url: "/api/v1/jobs/missing-job",
+        }),
+      }),
+    ).toBe(false)
+  })
+
   it("keeps the newest revision and rejects cross-job snapshots", () => {
     const revisionTwo = jobSnapshot("researching")
     const staleRevision = { ...revisionTwo, revision: 1 }

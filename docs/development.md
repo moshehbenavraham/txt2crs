@@ -123,7 +123,7 @@ Selectors can narrow feedback:
 
 ```bash
 cd backend
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v
 uv run mypy app
 uv run ty check app
 uv run ruff check app tests
@@ -131,7 +131,12 @@ uv run ruff format --check app tests
 ```
 
 The full suite needs PostgreSQL. Start `db` first or run it inside the
-full-stack Compose environment.
+full-stack Compose environment. It also performs destructive fixture cleanup,
+so it refuses a database whose name does not start with `test_` or end with
+`_test`. Provision and migrate an isolated database such as `app_test`, then
+set `POSTGRES_DB=app_test` for the test process. Never aim the suite at the
+normal local `app` database. CI uses `app_test`; the repository validation
+script's focused backend baseline remains database-free.
 
 ### Reusable engine
 

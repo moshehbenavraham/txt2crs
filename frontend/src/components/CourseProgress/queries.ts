@@ -46,6 +46,7 @@ interface JobPollingIntervalInput {
   snapshot: JobStatusPublic | undefined
   isDocumentVisible: boolean
   transientFailureCount: number
+  lastError?: unknown
 }
 
 /**
@@ -59,8 +60,19 @@ export function getJobPollingInterval({
   snapshot,
   isDocumentVisible,
   transientFailureCount,
+  lastError,
 }: JobPollingIntervalInput): number | false {
   if (snapshot && isTerminalJobStatus(snapshot.status)) {
+    return false
+  }
+  if (
+    lastError !== undefined &&
+    lastError !== null &&
+    !isTransientJobReadError(lastError)
+  ) {
+    // Ownership, absence, and validation failures cannot become successful by
+    // polling the same request forever. A later navigation or explicit mount
+    // still performs the route's normal fresh read.
     return false
   }
 
@@ -152,6 +164,7 @@ export function getJobQueryOptions(jobId: string) {
         snapshot: query.state.data,
         isDocumentVisible: isCurrentDocumentVisible(),
         transientFailureCount: query.state.fetchFailureCount,
+        lastError: query.state.error,
       }),
     // TanStack intentionally exposes structural-sharing values as unknown.
     // This query's generated queryFn fixes both values to JobStatusPublic.

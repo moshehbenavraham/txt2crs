@@ -68,6 +68,8 @@ provider internals or filesystem paths.
    execution profile, resolved preferences, and latest accepted checkpoint.
 6. A user account deletion removes engine requests, checkpoints, delivery
    rows, and artifacts before deleting the PostgreSQL identity.
+7. A returning learner browses retained work newest first and reopens the
+   existing durable job URL without resubmitting provider work.
 
 ## Requirements
 
@@ -82,6 +84,11 @@ provider internals or filesystem paths.
 - An authenticated learner can inspect a bounded, monotonic, public-safe job
   projection without seeing prompts, source text, evidence excerpts, provider
   identifiers, token data, paths, or checkpoint JSON.
+- An authenticated learner can browse stable newest-first pages of retained
+  owner-scoped job summaries through opaque cursors and reopen any row on its
+  existing job route.
+- An authenticated learner can inspect authoritative rolling-window job
+  capacity before submission without deriving it from readiness or history.
 - An authenticated learner can retrieve an owner-scoped artifact manifest and
   one integrity-checked artifact by stable identifiers without receiving a
   filesystem path.
@@ -112,7 +119,6 @@ provider internals or filesystem paths.
 
 ### Deferred Requirements
 
-- A learner can browse a paginated job library and reopen retained jobs.
 - A learner can cancel an accepted or active job through an owner-scoped API.
 - A learner can delete one job through coordinated request, checkpoint,
   delivery, and artifact retention.
@@ -126,15 +132,18 @@ provider internals or filesystem paths.
 
 ## Non-Functional Requirements
 
-- **Performance**: Public job polling uses 5-second visible and 30-second
+- **Performance**: Single-job polling uses 5-second visible and 30-second
   hidden intervals, backs transient network failures off to at most 30
-  seconds, and stops on terminal state.
+  seconds, and stops on terminal state or a permanent read error. Library
+  polling runs every 5 seconds only while the document is visible and a loaded
+  row remains active.
 - **Input bounds**: One upload is at most 20 MiB, normalized input is at most
   200,000 characters, PDF input is at most 200 pages, and the complete
   artifact bundle is at most 100 MiB.
 - **Reliability**: Every accepted request is durable before `202`; startup
   scans and two-second polling recover non-terminal jobs without requiring an
-  in-memory event.
+  in-memory event. A content-free runtime heartbeat reports worker liveness
+  separately from accepted checkpoint revision and progress.
 - **Topology**: P0 runs exactly one non-root Uvicorn process, one serial
   generation worker, one active job at most, and one persistent private state
   volume.
@@ -319,6 +328,8 @@ This system delivers the product via phases. Each phase is implemented through
 - [x] Binary content passes post-ingestion policy before research or Codex.
 - [x] One completed job exposes four deliverables and exactly 16 private,
   owner-scoped, integrity-checked artifacts.
+- [x] Returning learners can page through retained owner-scoped work, reopen
+  its durable route, and see truthful admission capacity before submitting.
 - [x] The donor `items` domain and table are removed through a verified
   Alembic migration after job acceptance coverage passes.
 - [x] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.

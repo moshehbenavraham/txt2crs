@@ -8,12 +8,17 @@ from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
 from app.models import User
+from tests.database_safety import require_isolated_test_database
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
 
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session]:
+    # This check runs before Session can open a connection. The fixture's
+    # cleanup deletes every shell user, so a normal local database must never
+    # reach the destructive section by accident.
+    require_isolated_test_database(settings.SQLALCHEMY_DATABASE_URI)
     with Session(engine) as session:
         init_db(session)
         yield session

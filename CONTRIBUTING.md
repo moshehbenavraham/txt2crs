@@ -30,7 +30,7 @@ duplicate engine behavior.
    [`docs/development.md`](docs/development.md).
 5. Regenerate the OpenAPI client through `./scripts/generate-client.sh` after
    backend API changes. Never edit `frontend/src/client/` manually.
-6. Update the applicable documentation and changelog/TODO records.
+6. Update the applicable documentation and changelog records.
 7. Open a focused pull request explaining what changed, why, and how it was
    validated.
 
@@ -40,7 +40,7 @@ duplicate engine behavior.
 # Backend shell
 cd backend
 uv sync --all-packages
-uv run pytest tests/ -v
+POSTGRES_DB=app_test uv run pytest tests/ -v
 uv run mypy app
 uv run ruff check app tests
 
@@ -57,6 +57,10 @@ npm run test:unit
 npm run lint
 npm run typecheck
 ```
+
+The backend command assumes `app_test` has been separately provisioned and
+migrated. Destructive shell fixtures refuse a database name that does not
+start with `test_` or end with `_test`.
 
 ## Dependency Changes
 

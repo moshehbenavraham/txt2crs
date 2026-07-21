@@ -144,6 +144,17 @@ def test_direct_host_listeners_use_the_registered_ports_strictly() -> None:
         assert str(expected_development_port) in development_script_text
 
 
+def test_default_playwright_uses_the_canonical_root_environment() -> None:
+    """Stale host-only frontend settings must not redirect the stack journey."""
+
+    playwright_text = _read_repository_file(PLAYWRIGHT_CONFIG_FILE)
+
+    assert 'path.resolve(import.meta.dirname, "../.env")' in playwright_text
+    assert 'import "dotenv/config"' not in playwright_text
+    assert "BACKEND_PORT" in playwright_text
+    assert "process.env.VITE_API_URL =" in playwright_text
+
+
 def test_repository_port_document_lists_every_host_allocation() -> None:
     """A fresh clone must explain the complete host and container port model."""
 

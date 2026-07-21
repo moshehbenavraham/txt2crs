@@ -70,6 +70,25 @@ authorized request
 The canonical `Course` is the only source for downstream review and assessment
 generation. Rendering never asks a model to rewrite an artifact.
 
+## Quality acceptance boundaries
+
+Model output is a candidate, never the acceptance authority. Before the
+evidence set is frozen, the host validates structured authoritative-source and
+education/assessment-source floors, gives remaining research questions a fair
+share of the source budget, and counts only successfully extracted documents
+toward accepted capacity. Canonical URL and high-overlap text deduplication run
+before ranking. Community platforms are classified explicitly, capped at one
+selected source, and cannot satisfy high-risk authority requirements alone.
+
+Before each module checkpoint, deterministic host validation requires an
+applied example, explicit misconception guidance, complete factual-block
+citations, known evidence identifiers, and independent text support for every
+citation claim. The host recomputes each `claim_hash` from accepted claim text
+instead of trusting a model-supplied digest. Duplicate or non-measurable
+learning objectives are rejected during plan alignment. A rejected stage gets
+at most one bounded repair turn; an invalid repair fails the job instead of
+committing degraded content.
+
 ## Installation
 
 From the backend workspace:
@@ -245,6 +264,12 @@ The package pins `openai-codex==0.144.4` and
 `openai-codex-cli-bin==0.144.4`. Matching generated app-server JSON Schemas
 are committed under `docs/fixtures/`; upgrades must regenerate and review the
 fixture before changing either pin.
+
+Trusted stage guidance is passed as Codex `developer_instructions`, not as a
+replacement base instruction set. This preserves the selected model's
+app-server metadata while keeping untrusted learner/provider content in the
+turn prompt. Protocol fixture review must cover that distinction during SDK
+upgrades.
 
 The pinned public Python SDK does not expose the app-server rate-limit read
 operation. Runtime readiness therefore reports subscription quota as

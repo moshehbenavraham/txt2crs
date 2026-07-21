@@ -73,4 +73,4 @@ workflows, the removed Coolify script, and Coolify variables in
 
 - [Deployment policy](../deployment-policy.md)
 - [Local deployment](../deployment.md)
-- [System plan](../ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md)
+- [Product requirements](../../.spec_system/PRD/PRD.md)

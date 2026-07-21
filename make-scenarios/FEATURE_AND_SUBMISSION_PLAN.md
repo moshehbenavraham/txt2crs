@@ -12,8 +12,8 @@ txt2crs hackathon submission. It deliberately distinguishes:
 The authoritative current-engine summaries are the
 [package overview](../backend/packages/txt2crs/README_txt2crs.md) and
 [implementation compliance matrix](../backend/packages/txt2crs/docs/IMPLEMENTATION_COMPLIANCE.md).
-The submission requirements and deadline live in
-[OPENAI_BUILD_WEEK_REQUIREMENTS.md](../docs/ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md).
+The current submission package and human publishing handoff live in the
+[submission index](../docs/submission/README_submission.md).
 
 ## Product north star
 

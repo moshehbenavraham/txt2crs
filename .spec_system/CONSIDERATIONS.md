@@ -1,7 +1,7 @@
 # Considerations
 
 > Institutional memory for AI assistants. Updated between phases via carryforward.
-> **Line budget**: 600 max | **Last updated**: Phase 05 (2026-07-20)
+> **Line budget**: 600 max | **Last updated**: Phase 05 (2026-07-21)
 
 ---
 
@@ -81,9 +81,11 @@ Proven patterns and anti-patterns. Reference during implementation.
   bounded leaves into public contracts instead of filtering serialized private
   models after the fact; owner-scoped HTTP reads then preserve the same
   complete-or-null and owner-hidden semantics.
-- [P01-backend/packages/txt2crs] **Checkpoint before provider construction**:
-  Provider-free ingestion, policy, and preference acceptance makes denial and
-  restart behavior deterministic and testable.
+- [P01/P05-backend/packages/txt2crs] **Checkpoint only host-accepted state**:
+  Provider-free ingestion, policy, and preferences are accepted before runtime
+  construction. Research authority/education floors, source diversity and
+  deduplication, module pedagogy, independent citation support, and
+  host-computed claim hashes are then enforced before their checkpoints.
 - [P01-backend/packages/txt2crs] **One context owns provider resources**:
   Enter temporary, HTTP, MCP, and Codex resources in dependency order and
   unwind them in reverse without masking the primary generation error.
@@ -95,7 +97,9 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P04-backend+backend/packages/txt2crs+frontend] **Facade browser tests protect
   boundaries**: A fresh test-owned state root and account can exercise real
   auth, admission, execution, recovery, delivery, and purge without provider
-  credentials, private imports, or production-only fixture routes.
+  credentials, private imports, production-only fixture routes, or a
+  developer PostgreSQL database. Destructive shell suites also preflight an
+  explicit `test_*` or `*_test` database name before connecting.
 - [P02-backend] **Operational logs need field allowlists**: Static route names,
   methods, status, duration, finite codes, and attempt counts provide useful
   telemetry without retaining raw request, provider, exception, recipient, or
@@ -106,10 +110,13 @@ Proven patterns and anti-patterns. Reference during implementation.
 - [P04-backend+frontend] **Authorization and polling follow server state**:
   Route guards run before feature queries mount; generated caches own server
   state, revisions cannot regress, polling exists only in waiting states, and
-  the UI never invents a private provider or checkpoint state.
+  the UI never invents a private provider or checkpoint state. Content-free
+  runtime activity can prove liveness without fabricating progress, and
+  permanent read errors stop interval polling.
 - [P04-frontend] **Artifact preview needs independent barriers**: Verify job,
   MIME, byte count, and filename before parsing bounded HTML; then strip active
-  content, apply supported CSP, use an empty iframe sandbox, and revoke URLs.
+  content, apply supported CSP, use an empty iframe sandbox, and provide the
+  sanitized document directly as `srcdoc` without an object URL.
 
 ### What to Avoid
 
@@ -152,9 +159,9 @@ Proven patterns and anti-patterns. Reference during implementation.
   workspace root.
 - [P00] **Pre-commit does not inspect untracked files with `--all-files`**:
   Stage new reports before the final hook pass or check them explicitly first.
-- [P00-frontend] **Nginx includes curl in the pinned image**: The frontend
-  image can use a direct internal `/health` probe without adding a package
-  layer.
+- [P05-backend/packages/txt2crs] **Preserve Codex base metadata**: Pass trusted
+  stage guidance through `developer_instructions`; replacing base instructions
+  can discard model metadata and produce misleading runtime fallback warnings.
 - [P00] **Client generation is formatter-owning**: The generation script must
   format both the OpenAPI document and generated client before later hooks.
 - [P01-backend/packages/txt2crs] **Use stdlib SQLite when the CLI is absent**:

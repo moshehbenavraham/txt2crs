@@ -15,7 +15,7 @@ project-root `.env` values for `FIRST_SUPERUSER` and
 - User role: configured first superuser
 - Frontend URL: `http://localhost:5195`
 - Backend URL: `http://localhost:8016`
-- Status: complete with one policy-blocked live-creation case
+- Status: original check complete; all eight findings resolved in follow-up
 
 ## Check log
 
@@ -257,3 +257,56 @@ the signed-in learner is left on `/create`, and the visible quota is now both
 more permissive and understandable before submission. The remaining new issue
 is F-008: a high-severity test-isolation guardrail gap, documented here for a
 separate fix.
+
+## Follow-up - remediation completion
+
+This follow-up resolves F-001 and F-003 through F-008. Together with the
+earlier F-002 capacity work, all findings from this check are now addressed.
+The original check log above is retained as historical evidence of the
+failures that prompted these changes.
+
+### Resolution matrix
+
+| Finding | Result | Resolution |
+| --- | --- | --- |
+| F-001 | Resolved | Authenticated HTML is sanitized and supplied directly to a capability-free sandboxed iframe through `srcDoc`; preview no longer depends on a temporary `blob:` navigation. A live retained course rendered its heading, metadata, prerequisites, and objectives in the rebuilt Compose frontend. |
+| F-002 | Resolved | The earlier owner-capacity follow-up added learner-scoped availability, safe expiry information, and clearer shared-capacity wording. |
+| F-003 | Resolved | The judge-facing backend no longer starts FastAPI with `--reload`. Container process inspection found one `fastapi run app/main.py` process and the production-mode log now matches runtime behavior. |
+| F-004 | Resolved | The landing hero, diagram, prompt, and spacing were compacted. At 1265 by 708, the primary `Build my course` action ended at 683 pixels and remained visible in the first viewport. |
+| F-005 | Resolved | The protected admin route now supplies an immediate page-identity loading shell with a user-table skeleton and `aria-busy` state. A route contract test prevents regression to a blank pending DOM. |
+| F-006 | Resolved | Default Playwright loads the project-root `.env` explicitly and derives both app ports from that canonical source. Deterministic Playwright no longer imports either side's dotenv file and its browser server owns a run-scoped SQLite account database, so it cannot inherit local PostgreSQL credentials. |
+| F-007 | Resolved | Progress interval polling stops when the last job-read error is permanent. A live missing-job route produced one `JOB_7001` response total while left open beyond the old five-second interval. |
+| F-008 | Resolved | Backend tests now fail closed unless the configured PostgreSQL database name visibly identifies test isolation (`test_*` or `*_test`). The shell test entrypoint performs the same preflight, deterministic browser auth uses SQLite, and CI integration jobs select `app_test`. |
+
+The SQLite authentication path also exposed a cross-dialect type mismatch that
+PostgreSQL had tolerated. JWT subjects are now parsed into `UUID` values before
+SQLModel filtering, with valid and malformed-subject regression coverage.
+
+### Post-fix E2E evidence
+
+| ID | Area | Check | Result | Evidence / notes |
+| --- | --- | --- | --- | --- |
+| E2E-025 | Rebuild | Rebuild and start the complete Compose stack | Pass | `scripts/start-local.sh --no-color` exited 0; database, backend, and frontend were healthy, and `prestart` exited 0. |
+| E2E-026 | Live preview | Open a retained Course publication in the rebuilt frontend | Pass | The sandboxed frame contained 38,543 bytes of sanitized `srcdoc` and visibly rendered the retained intermediate-Python course. Browser console and page-error logs remained empty. |
+| E2E-027 | Preview and download automation | Exercise publication preview and a real browser download | Pass | Deterministic Chromium asserted visible iframe content, no frame `src`, expected `srcdoc`, suggested filename, an on-disk download path, and a non-zero downloaded file size. Hostile-content sandbox assertions also passed. |
+| E2E-028 | Landing fold | Inspect the public landing page at 1265 by 708 | Pass | The primary action was fully inside the viewport; browser console and page-error logs were empty. |
+| E2E-029 | Admin pending state | Verify the protected route pending component | Pass | The route wires `AdminPending` at zero pending delay; rendered markup retains the Users heading, skeleton rows, and busy semantics. |
+| E2E-030 | Default Playwright environment | Run the default course journey without an API override | Pass | 6 tests passed and 12 live-inapplicable tests skipped. Authentication used the root-configured API rather than stale `frontend/.env` data. |
+| E2E-031 | Deterministic Playwright | Run the complete isolated Chromium configuration | Pass | 31 tests passed and 1 cleanup-project prerequisite was intentionally skipped. The focused course journey contributed 18 passes and 1 intentional skip. |
+| E2E-032 | Permanent-error polling | Leave a valid-looking missing job route open beyond one old poll interval | Pass | Only the initial backend read occurred; no repeated five-second request or warning was emitted. |
+| E2E-033 | Database isolation | Attempt test preflight against the live `app` database, then run the suite against a disposable `*_test` database | Pass | Both host and live-container preflights refused `app` before opening a session. Alembic upgraded the disposable database, 554 application tests passed, and the database was dropped afterward. |
+| E2E-034 | Frontend and backend quality gates | Run unit, type, lint, and contract checks | Pass | Frontend: 27 Vitest files and 162 tests passed; TypeScript and Biome passed. Backend: mypy passed for 47 app source files; Ruff and the new container, port, database-safety, deterministic-database, and token-subject tests passed. |
+
+The Codex in-app Browser integration used for the original reproduction was
+not installed in this remediation session. The failing object-URL boundary was
+removed entirely, and the replacement was verified in both the rebuilt live
+Compose app and the fully isolated Chromium journey. This is the only
+tool-surface limitation in the follow-up evidence, not an open implementation
+issue.
+
+### Final remediation state
+
+All eight findings and all seven listed improvement opportunities are
+addressed. The local Compose stack remains running and healthy for inspection.
+No live course-generation request or account mutation was needed during the
+remediation pass.

@@ -64,6 +64,8 @@ retention remains a separate release-policy concern.
 |--------|------|---------------|---------|
 | POST | `/api/v1/jobs` | Authenticated | Durably accept one prompt, pasted-text, URL, or YouTube course request |
 | POST | `/api/v1/jobs/upload` | Authenticated | Durably accept one PDF, DOCX, or PPTX course request |
+| GET | `/api/v1/jobs` | Authenticated | List one stable newest-first page of the owner's retained jobs |
+| GET | `/api/v1/jobs/admission-capacity` | Authenticated | Read the owner's truthful rolling-window job capacity |
 | GET | `/api/v1/jobs/{job_id}` | Authenticated owner | Read one bounded, revisioned status/result projection |
 | GET | `/api/v1/jobs/{job_id}/artifacts` | Authenticated owner | Read the verified, path-free artifact manifest |
 | GET | `/api/v1/jobs/{job_id}/artifacts/{artifact_id}` | Authenticated owner | Download one reauthorized and integrity-verified artifact |
@@ -151,6 +153,25 @@ Referrer-Policy: no-referrer
 The response never includes the owner, retry key, input, provider, model,
 budgets, policy reasoning, or filesystem details.
 
+#### Library and admission capacity
+
+`GET /api/v1/jobs` returns only the authenticated owner's retained jobs in
+stable `created_at DESC, job_id DESC` order. `limit` defaults to 20 and accepts
+1-50; `cursor` is an opaque continuation of at most 512 characters and must be
+replayed without inspection. The response contains a bounded `data` page and
+nullable `next_cursor`. Each summary is an allowlist of `schema_version`, job
+identity and revision, status, title, input type, timestamps, safe progress,
+safe failure, and artifact availability. It never expands the submitted input,
+research evidence, execution profile, or checkpoint.
+
+`GET /api/v1/jobs/admission-capacity` returns the authoritative complete-job
+availability for the current owner and rolling window. Its allowlist contains
+`window_seconds`, owner limit/used/remaining counts, shared remaining count,
+the effective `available_jobs`, and the next reservation expiry when one
+exists. Clients must not infer capacity from library length or readiness.
+Both collection endpoints use the same private/no-store response headers as
+single-job reads.
+
 #### Status and result polling
 
 `GET /api/v1/jobs/{job_id}` returns the current durable revision and a strict
@@ -163,6 +184,9 @@ uses `Cache-Control: private, no-store`, `Pragma: no-cache`,
 The response contains:
 
 - one of the nine durable statuses and fixed browser-safe progress copy;
+- `created_at`, checkpoint `updated_at`, and a nullable content-free
+  `runtime_activity_at`. Runtime activity proves only that the current worker
+  is alive; it does not create a revision or claim that a stage completed;
 - `completed_units` and a nullable `total_units`, each bounded to 0-108. The
   total remains `null` until the accepted course plan establishes it;
 - input type, a safe display name, exact UTF-8/source byte count, at most 20
@@ -171,7 +195,9 @@ The response contains:
 - either a complete result summary or `null`. A summary has a bounded title,
   resolved audience/level/language, 1-100 objectives, 1-100 modules, at most
   12 bibliographic sources, at most 20 conflicts, and explicit truncation
-  flags;
+  flags. Its `research` object distinguishes fetched source documents,
+  charged provider source units, and sources accepted into the frozen
+  evidence set;
 - a safe failure code/message or `null`; and
 - artifact availability, a 0-16 count, and the manifest URL only after
   private publication succeeds.

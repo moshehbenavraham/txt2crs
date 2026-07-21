@@ -61,6 +61,20 @@ surface; the two boundaries must never be merged.
 - The generated OpenAPI client is the frontend contract and is changed only by
   `scripts/generate-client.sh`.
 
+## Resource Lifetimes
+
+Application-lifetime resources are created once by FastAPI lifespan and close
+once during shutdown: the public engine facade, serial worker, readiness
+cache, runtime-ownership coordinator, and dedicated system-authentication
+coordinator. They must not be reconstructed by route handlers.
+
+Job-lifetime resources begin only after provider-free ingestion, policy, and
+preference preparation is accepted. Temporary storage, provider HTTP clients,
+the loopback research MCP server, and the Codex runtime are entered in
+dependency order and unwind in reverse on success, failure, cancellation, or
+shutdown. A recovered job receives fresh runtime resources but resumes from
+its immutable request and latest accepted checkpoint.
+
 ## Deployment Topology
 
 Repository-root Docker Compose is the only deployment target in the current
@@ -133,15 +147,20 @@ and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
    generated JSON or multipart job operations.
 3. One canonical idempotency key survives an exact failed transport retry and
    rotates after the draft changes or the server durably accepts it.
-4. `/jobs/$jobId` reads the owner-safe revisioned projection, polls only
-   non-terminal states, and preserves the latest monotonic snapshot through a
-   transient reconnect.
-5. A completed job enables one manifest read. The UI exposes only verified
+4. `/library` reads stable newest-first owner pages through opaque cursors and
+   links every retained row to the existing job-detail route. It polls only
+   while visible rows include active work.
+5. `/jobs/$jobId` reads the owner-safe revisioned projection, polls only
+   non-terminal states, stops on permanent read failures, and preserves the
+   latest monotonic snapshot through a transient reconnect. Its content-free
+   runtime heartbeat is displayed separately from accepted checkpoint work.
+6. A completed job enables one manifest read. The UI exposes only verified
    entries for the four publications and never constructs artifact URLs or
    filesystem paths.
-6. HTML transfer is bounded and metadata-verified before separate parsing,
+7. HTML transfer is bounded and metadata-verified before separate parsing,
    active-content removal, restrictive preview CSP, an empty iframe sandbox,
-   and revocable temporary URL ownership.
+   and direct use of the sanitized document as iframe `srcdoc`. No object URL
+   or artifact HTML enters the application document.
 
 ### Health
 
@@ -172,6 +191,23 @@ equivalents are recorded in the cumulative security report.
 See
 [`../.spec_system/SECURITY-COMPLIANCE.md`](../.spec_system/SECURITY-COMPLIANCE.md)
 for current findings.
+
+## Architecture Evolution Triggers
+
+These boundaries remain deliberately simple until an observed need justifies
+replacement:
+
+| Current boundary | Revisit only when | Required preservation |
+|------------------|-------------------|-----------------------|
+| Tenant-scoped SQLite job store | Multiple writers, replicas, or measured query load require another store | Public facade, ownership, checkpoints, ordering, and replay semantics |
+| One serial worker | Approved concurrent execution or horizontal scale is required | Durable admission, exact recovery, cancellation, and finite budgets |
+| HTTP polling | Measured latency or bandwidth shows push delivery is valuable | Monotonic revisions, private reads, bounded retries, and terminal/permanent-error stop rules |
+| Exact discovered GPT-5.6 variant | A reviewed protocol change and comparative evaluation approve another model | Fail-closed discovery and no silent fallback |
+| Local private artifact filesystem | Hosted or multi-replica scope requires shared object storage | Owner authorization, atomic publication, integrity, deletion, and retention |
+| Local Docker Compose deployment | The owner explicitly approves hosted scope in a new ADR | Non-root runtime, private state, health, backup, and rollback contracts |
+
+The research MCP and disabled-by-default admin MCP are different security
+boundaries regardless of future topology and must never be cross-wired.
 
 ## Decision References
 

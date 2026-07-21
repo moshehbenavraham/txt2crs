@@ -196,11 +196,11 @@ def test_research_mcp_port_is_not_published() -> None:
     assert "8765:" not in compose_override_text
 
 
-def test_development_override_keeps_a_single_reload_process() -> None:
+def test_judge_local_override_runs_one_non_reloading_backend_process() -> None:
     compose_override_text = _read_repository_file(COMPOSE_OVERRIDE_FILE)
     backend_service = _compose_service(compose_override_text, "backend")
 
-    assert "--reload" in backend_service
+    assert "--reload" not in backend_service
     assert "--workers" not in backend_service
 
 

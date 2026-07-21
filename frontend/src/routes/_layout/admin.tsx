@@ -22,6 +22,8 @@ function getUsersQueryOptions() {
 
 export const Route = createFileRoute("/_layout/admin")({
   component: Admin,
+  pendingComponent: AdminPending,
+  pendingMs: 0,
   beforeLoad: async ({ context }) => {
     const currentUser = await context.queryClient.ensureQueryData({
       queryKey: CURRENT_USER_QUERY_KEY,
@@ -64,6 +66,20 @@ function UsersTable() {
     <Suspense fallback={<PendingUsers />}>
       <UsersTableContent />
     </Suspense>
+  )
+}
+
+/** Keep route identity stable while the superuser check or table is pending. */
+export function AdminPending() {
+  return (
+    <div className="flex flex-col gap-6" aria-busy="true">
+      <PageHeader
+        eyebrow="Administration"
+        title="Users"
+        description="Manage user accounts and permissions."
+      />
+      <PendingUsers />
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import type { ArtifactMetadataPublic } from "@/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -14,10 +14,6 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { JobId } from "@/lib/types"
-import {
-  createTemporaryArtifactUrl,
-  type TemporaryArtifactUrl,
-} from "./artifact-transfer"
 import { createSecuredPreviewDocument } from "./preview-document"
 import type { ArtifactTransferControls } from "./useArtifactTransfer"
 
@@ -32,7 +28,9 @@ interface HtmlArtifactPreviewProps {
  * Private HTML preview in a separate, empty-capability browser context.
  *
  * The artifact is never assigned to the parent DOM. A parsed preview-only copy
- * receives its CSP before a Blob URL is passed to the sandboxed iframe.
+ * receives its CSP before it is assigned to the sandboxed iframe's ``srcDoc``.
+ * Keeping the verified document inline avoids an object-URL navigation path
+ * that is not rendered consistently by every supported embedded browser.
  */
 export default function HtmlArtifactPreview({
   jobId,
@@ -42,23 +40,14 @@ export default function HtmlArtifactPreview({
 }: HtmlArtifactPreviewProps) {
   const { loadArtifact } = transferControls
   const [isOpen, setIsOpen] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewDocument, setPreviewDocument] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [retryRevision, setRetryRevision] = useState(0)
-  const previewUrlOwnerRef = useRef<TemporaryArtifactUrl | null>(null)
   const requestRevisionRef = useRef(0)
-
-  const releasePreviewUrl = useCallback(() => {
-    previewUrlOwnerRef.current?.release()
-    previewUrlOwnerRef.current = null
-    setPreviewUrl(null)
-  }, [])
 
   useEffect(
     () => () => {
       requestRevisionRef.current += 1
-      previewUrlOwnerRef.current?.release()
-      previewUrlOwnerRef.current = null
     },
     [],
   )
@@ -71,7 +60,7 @@ export default function HtmlArtifactPreview({
     const requestRevision = requestRevisionRef.current + retryRevision + 1
     requestRevisionRef.current = requestRevision
     setPreviewError(null)
-    releasePreviewUrl()
+    setPreviewDocument(null)
 
     void loadArtifact(jobId, artifact)
       .then(async (verifiedArtifact) => {
@@ -83,17 +72,7 @@ export default function HtmlArtifactPreview({
         if (requestRevisionRef.current !== requestRevision || !isOpen) {
           return
         }
-        const nextPreviewUrl = createTemporaryArtifactUrl(
-          new Blob([securedDocument], {
-            type: "text/html;charset=utf-8",
-          }),
-        )
-        if (requestRevisionRef.current !== requestRevision) {
-          nextPreviewUrl.release()
-          return
-        }
-        previewUrlOwnerRef.current = nextPreviewUrl
-        setPreviewUrl(nextPreviewUrl.url)
+        setPreviewDocument(securedDocument)
       })
       .catch(() => {
         if (requestRevisionRef.current === requestRevision) {
@@ -104,13 +83,13 @@ export default function HtmlArtifactPreview({
     return () => {
       requestRevisionRef.current += 1
     }
-  }, [artifact, isOpen, jobId, retryRevision, loadArtifact, releasePreviewUrl])
+  }, [artifact, isOpen, jobId, retryRevision, loadArtifact])
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen)
     if (!nextIsOpen) {
       requestRevisionRef.current += 1
-      releasePreviewUrl()
+      setPreviewDocument(null)
       setPreviewError(null)
     }
   }
@@ -154,10 +133,10 @@ export default function HtmlArtifactPreview({
               </Button>
             </AlertDescription>
           </Alert>
-        ) : previewUrl ? (
+        ) : previewDocument ? (
           <iframe
             className="result-preview-frame"
-            src={previewUrl}
+            srcDoc={previewDocument}
             sandbox=""
             referrerPolicy="no-referrer"
             title={dialogTitle}

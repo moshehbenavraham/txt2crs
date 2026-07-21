@@ -106,18 +106,18 @@ export function LandingPage() {
           aria-labelledby="landing-title"
           className="border-b border-border/70"
         >
-          <div className="mx-auto grid max-w-[var(--width-workspace)] gap-14 px-(--space-page-inline) py-[var(--space-journey-section)] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-20">
+          <div className="mx-auto grid max-w-[var(--width-workspace)] gap-10 px-(--space-page-inline) py-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-14 lg:py-12">
             <div className="flex max-w-2xl flex-col items-start">
               <p className="text-caption text-primary">
                 A research atelier for learning
               </p>
               <h1
                 id="landing-title"
-                className="mt-5 max-w-[13ch] text-[clamp(2.65rem,6vw,4.9rem)] font-medium leading-[0.98] tracking-[-0.035em]"
+                className="mt-3 max-w-[16ch] text-[clamp(2.5rem,4.9vw,4rem)] font-medium leading-[0.98] tracking-[-0.035em]"
               >
                 Turn one source into a complete learning package
               </h1>
-              <p className="mt-7 max-w-xl text-[1.0625rem] leading-8 text-muted-foreground sm:text-lg">
+              <p className="mt-4 max-w-xl text-[1.0625rem] leading-7 text-muted-foreground sm:text-lg">
                 Shape any supported topic or source into a cited course, a
                 focused review pack, a student test, and a separate instructor
                 answer key.
@@ -350,7 +350,7 @@ function CourseTopicHandoff() {
   return (
     <form
       onSubmit={saveTopicAndContinue}
-      className="mt-9 w-full border-y border-border-strong bg-workbench p-4 sm:p-5"
+      className="mt-5 w-full border-y border-border-strong bg-workbench p-4"
     >
       <label htmlFor="public-course-topic" className="text-sm font-medium">
         Draft a course topic
@@ -372,7 +372,7 @@ function CourseTopicHandoff() {
           }
         }}
         maxLength={10_000}
-        rows={3}
+        rows={2}
         aria-describedby={
           errorMessage
             ? "public-course-topic-help public-course-topic-error"
@@ -380,7 +380,7 @@ function CourseTopicHandoff() {
         }
         aria-invalid={errorMessage !== null}
         placeholder="For example, teach tidal ecology from first principles"
-        className="mt-3 min-h-24 bg-background"
+        className="mt-2 min-h-20 bg-background"
       />
       {errorMessage ? (
         <p
@@ -394,7 +394,7 @@ function CourseTopicHandoff() {
       <Button
         type="submit"
         size="lg"
-        className="mt-4 h-auto min-h-12 w-full whitespace-normal py-3 text-center"
+        className="mt-3 h-auto min-h-12 w-full whitespace-normal py-3 text-center"
       >
         Save topic and continue to sign in
         <ArrowRight aria-hidden="true" />
