@@ -8,6 +8,9 @@ serialized and filtered after the fact. This module instead defines small
 public contracts that projection code fills one reviewed field at a time.
 """
 
+import base64
+import binascii
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,8 +29,9 @@ from txt2crs.domain.models import (
 from txt2crs.generation.pipeline import PipelineCheckpoint
 from txt2crs.ingestion.models import InputType
 from txt2crs.jobs.artifact_queries import ArtifactManifest
-from txt2crs.jobs.models import JobStatus, ResumeState
+from txt2crs.jobs.models import JobRecord, JobStatus, ResumeState
 from txt2crs.jobs.preparation import GenerationPreparation
+from txt2crs.jobs.store import InvalidJobListRequestError
 from txt2crs.security.redaction import sanitize_public_text
 
 PublicDisplayText = Annotated[str, Field(min_length=1, max_length=500)]
@@ -35,6 +39,8 @@ _PUBLIC_PROGRESS_UNIT_LIMIT = 108
 _PUBLIC_SOURCE_LIMIT = 12
 _PUBLIC_WARNING_LIMIT = 20
 _PUBLIC_CONFLICT_LIMIT = 20
+_PUBLIC_JOB_PAGE_LIMIT = 50
+_PUBLIC_JOB_CURSOR_MAXIMUM_LENGTH = 512
 _PATH_SEPARATOR_PATTERN = re.compile(r"[/\\]+")
 
 
@@ -214,6 +220,127 @@ class PublicJobSnapshot(_PublicQueryContract):
         if self.conflicts_truncated and len(self.conflicts) != _PUBLIC_CONFLICT_LIMIT:
             raise ValueError("Truncated conflicts must fill the public conflict page.")
         return self
+
+
+class PublicJobSummary(_PublicQueryContract):
+    """Small allowlisted library row derived from one full public snapshot."""
+
+    schema_version: SchemaVersion
+    job_id: Identifier
+    revision: int = Field(ge=0, le=9_223_372_036_854_775_807)
+    status: JobStatus
+    title: PublicDisplayText
+    input_type: InputType
+    created_at: datetime
+    updated_at: datetime
+    progress: PublicJobProgress
+    failure: PublicJobFailure | None
+    artifacts: PublicArtifactAvailability
+
+    @model_validator(mode="after")
+    def validate_summary_coherence(self) -> "PublicJobSummary":
+        """Keep timestamps and terminal failure presentation exhaustive."""
+
+        if self.updated_at < self.created_at:
+            raise ValueError("Job update time cannot precede creation time.")
+        needs_failure = self.status in {JobStatus.failed, JobStatus.cancelled}
+        if (self.failure is not None) != needs_failure:
+            raise ValueError("Terminal job summaries must include a failure.")
+        return self
+
+
+class PublicJobPage(_PublicQueryContract):
+    """One bounded owner library page with an opaque forward continuation."""
+
+    schema_version: SchemaVersion
+    items: tuple[PublicJobSummary, ...] = Field(max_length=_PUBLIC_JOB_PAGE_LIMIT)
+    next_cursor: (
+        Annotated[
+            str,
+            Field(min_length=1, max_length=_PUBLIC_JOB_CURSOR_MAXIMUM_LENGTH),
+        ]
+        | None
+    ) = None
+
+
+class _PublicJobCursor(_PublicQueryContract):
+    """Validated private cursor payload; callers see only its opaque encoding."""
+
+    version: Literal["1"]
+    created_at: datetime
+    job_id: Identifier
+
+    @model_validator(mode="after")
+    def require_aware_timestamp(self) -> "_PublicJobCursor":
+        """Cursor comparisons must never mix local and UTC-naive timestamps."""
+
+        if self.created_at.tzinfo is None:
+            raise ValueError("The cursor timestamp must include a timezone.")
+        return self
+
+
+def project_public_job_summary(snapshot: PublicJobSnapshot) -> PublicJobSummary:
+    """Reduce one reviewed snapshot to the finite course-library contract."""
+
+    return PublicJobSummary(
+        schema_version="1.0",
+        job_id=snapshot.job_id,
+        revision=snapshot.revision,
+        status=snapshot.status,
+        title=snapshot.course_title or snapshot.input.display_name,
+        input_type=snapshot.input.input_type,
+        created_at=snapshot.created_at,
+        updated_at=snapshot.updated_at,
+        progress=snapshot.progress,
+        failure=snapshot.failure,
+        artifacts=snapshot.artifacts,
+    )
+
+
+def encode_public_job_cursor(job: JobRecord) -> str:
+    """Encode stable sort leaves without exposing a client-interpreted shape."""
+
+    payload = (
+        _PublicJobCursor(
+            version="1",
+            created_at=job.created_at,
+            job_id=job.job_id,
+        )
+        .model_dump_json()
+        .encode("ascii")
+    )
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def decode_public_job_cursor(cursor: str | None) -> tuple[datetime, str] | None:
+    """Validate one opaque continuation without retaining malformed content."""
+
+    if cursor is None:
+        return None
+    decoded_cursor: _PublicJobCursor | None = None
+    if 1 <= len(cursor) <= _PUBLIC_JOB_CURSOR_MAXIMUM_LENGTH:
+        try:
+            padded_cursor = cursor + ("=" * (-len(cursor) % 4))
+            payload = base64.b64decode(
+                padded_cursor,
+                altchars=b"-_",
+                validate=True,
+            )
+            decoded_cursor = _PublicJobCursor.model_validate(
+                json.loads(payload.decode("ascii"))
+            )
+        except (
+            UnicodeDecodeError,
+            binascii.Error,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+            ValidationError,
+        ):
+            pass
+    if decoded_cursor is None:
+        raise InvalidJobListRequestError("The job-list cursor is invalid.")
+    return decoded_cursor.created_at, decoded_cursor.job_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -673,9 +800,14 @@ __all__ = [
     "PublicFailureCode",
     "PublicInputSummary",
     "PublicJobFailure",
+    "PublicJobPage",
     "PublicJobProgress",
     "PublicJobProjectionError",
     "PublicJobSnapshot",
+    "PublicJobSummary",
     "PublicSourceSummary",
+    "decode_public_job_cursor",
+    "encode_public_job_cursor",
+    "project_public_job_summary",
     "project_public_job_snapshot",
 ]

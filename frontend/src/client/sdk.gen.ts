@@ -26,6 +26,9 @@ import type {
   GetApiV1JobsByJobIdData,
   GetApiV1JobsByJobIdErrors,
   GetApiV1JobsByJobIdResponses,
+  GetApiV1JobsData,
+  GetApiV1JobsErrors,
+  GetApiV1JobsResponses,
   GetApiV1SystemAuthStatusData,
   GetApiV1SystemAuthStatusResponses,
   GetApiV1SystemReadinessData,
@@ -752,6 +755,32 @@ export class UtilsService {
 }
 
 export class JobsService {
+  /**
+   * List retained course jobs
+   *
+   * Returns one stable newest-first owner page. The opaque continuation can be replayed to recover older retained jobs without exposing engine persistence details.
+   */
+  public static listJobs<ThrowOnError extends boolean = true>(
+    options?: Options<GetApiV1JobsData, ThrowOnError>,
+  ): RequestResult<
+    GetApiV1JobsResponses,
+    GetApiV1JobsErrors,
+    ThrowOnError,
+    "data"
+  > {
+    return (options?.client ?? client).get<
+      GetApiV1JobsResponses,
+      GetApiV1JobsErrors,
+      ThrowOnError,
+      "data"
+    >({
+      responseStyle: "data",
+      security: [{ scheme: "bearer", type: "http" }],
+      url: "/api/v1/jobs",
+      ...options,
+    })
+  }
+
   /**
    * Submit a text or URL course job
    *

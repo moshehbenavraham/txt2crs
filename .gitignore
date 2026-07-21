@@ -27,6 +27,7 @@ dist/
 
 # Node dependencies and frontend test output
 node_modules/
+frontend/.tanstack/
 test-results/
 playwright-report/
 blob-report/

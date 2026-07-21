@@ -20,8 +20,10 @@ from txt2crs.jobs import (
     JobStatus,
     PublicArtifactAvailability,
     PublicInputSummary,
+    PublicJobPage,
     PublicJobProgress,
     PublicJobSnapshot,
+    PublicJobSummary,
     PublicSourceSummary,
 )
 
@@ -171,6 +173,38 @@ class RecordingResultsApplication:
         self.stream_context = _CountingStreamContext(_ARTIFACT_BYTES)
         self.calls: list[tuple[str, str, str, str | None]] = []
 
+    def list_public_jobs(
+        self,
+        *,
+        user_id: str,
+        page_size: int,
+        cursor: str | None = None,
+    ) -> PublicJobPage:
+        """Return one bounded collection while recording exact pagination."""
+
+        self.calls.append(("library", user_id, str(page_size), cursor))
+        self._raise_configured_error()
+        snapshot = self.snapshot
+        return PublicJobPage(
+            schema_version="1.0",
+            items=(
+                PublicJobSummary(
+                    schema_version="1.0",
+                    job_id=snapshot.job_id,
+                    revision=snapshot.revision,
+                    status=snapshot.status,
+                    title=snapshot.course_title or snapshot.input.display_name,
+                    input_type=snapshot.input.input_type,
+                    created_at=snapshot.created_at,
+                    updated_at=snapshot.updated_at,
+                    progress=snapshot.progress,
+                    failure=snapshot.failure,
+                    artifacts=snapshot.artifacts,
+                ),
+            ),
+            next_cursor="next-private-page",
+        )
+
     def get_public_job(self, *, job_id: str, user_id: str) -> PublicJobSnapshot:
         self.calls.append(("status", user_id, job_id, None))
         self._raise_configured_error()
@@ -264,6 +298,76 @@ def test_status_route_returns_current_revisioned_result_with_private_headers(
     _assert_private_response_headers(response.headers)
     assert len(results_application.calls) == 1
     assert results_application.calls[0][0] == "status"
+
+
+def test_library_route_returns_owner_page_with_private_headers(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    results_application: RecordingResultsApplication,
+) -> None:
+    """GET /jobs delegates pagination and exposes only the reviewed summary."""
+
+    response = client.get(
+        f"{settings.API_V1_STR}/jobs",
+        params={"limit": 1, "cursor": "current-private-page"},
+        headers=normal_user_token_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "schema_version": "1.0",
+        "data": [
+            {
+                "schema_version": "1.0",
+                "job_id": "job-results-route",
+                "revision": 11,
+                "status": "completed",
+                "title": "Database Indexes",
+                "input_type": "pdf",
+                "created_at": "2026-07-20T09:00:00Z",
+                "updated_at": "2026-07-20T09:15:00Z",
+                "progress": {
+                    "stage": "ready",
+                    "message": "Your course materials are ready.",
+                    "completed_units": 9,
+                    "total_units": 9,
+                },
+                "failure": None,
+                "artifacts": {
+                    "available": True,
+                    "count": 4,
+                    "manifest_url": "/api/v1/jobs/job-results-route/artifacts",
+                },
+            }
+        ],
+        "next_cursor": "next-private-page",
+    }
+    _assert_private_response_headers(response.headers)
+    assert results_application.calls[0][0] == "library"
+    assert results_application.calls[0][1]
+    assert results_application.calls[0][2:] == (
+        "1",
+        "current-private-page",
+    )
+
+
+def test_library_route_authenticates_and_validates_before_facade_read(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    results_application: RecordingResultsApplication,
+) -> None:
+    """Unauthenticated and malformed requests never reach the engine facade."""
+
+    unauthenticated_response = client.get(f"{settings.API_V1_STR}/jobs")
+    invalid_limit_response = client.get(
+        f"{settings.API_V1_STR}/jobs",
+        params={"limit": 51},
+        headers=normal_user_token_headers,
+    )
+
+    assert unauthenticated_response.status_code == 401
+    assert invalid_limit_response.status_code == 422
+    assert results_application.calls == []
 
 
 @pytest.mark.parametrize("resource_kind", ["status", "manifest", "artifact"])

@@ -3,6 +3,7 @@
 """Integration tests for owner-safe job and artifact read operations."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -23,7 +24,11 @@ from txt2crs.jobs.models import JobStatus
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
 from txt2crs.jobs.stage_result import StageResult
-from txt2crs.jobs.store import JobNotFoundError, SqliteJobStore
+from txt2crs.jobs.store import (
+    InvalidJobListRequestError,
+    JobNotFoundError,
+    SqliteJobStore,
+)
 from txt2crs.rendering.artifacts import RenderedArtifact
 
 _HASH = "sha256:" + ("c" * 64)
@@ -280,5 +285,107 @@ def test_service_preserves_artifact_integrity_failures(tmp_path: Path) -> None:
                 artifact_id="course_markdown",
             ):
                 pytest.fail("Corrupt bytes must fail before a stream is returned.")
+    finally:
+        job_store.close()
+
+
+def test_service_lists_only_owner_jobs_with_stable_newest_first_cursor(
+    tmp_path: Path,
+) -> None:
+    """Library pages remain owner-scoped while new jobs arrive above a cursor."""
+
+    current_time = datetime(2026, 7, 21, 9, 0, tzinfo=UTC)
+
+    def advancing_clock() -> datetime:
+        """Give every durable write a later timestamp for deterministic ordering."""
+
+        nonlocal current_time
+        returned_time = current_time
+        current_time += timedelta(seconds=1)
+        return returned_time
+
+    job_store = SqliteJobStore(
+        tmp_path / "jobs.sqlite3",
+        admission_limits=generous_admission_limits(),
+        clock=advancing_clock,
+    )
+    service = JobService(
+        store=job_store,
+        artifact_store=FilesystemPrivateArtifactStore(
+            root_directory=tmp_path / "artifacts",
+            maximum_job_bytes=100_000,
+            retention_days=30,
+        ),
+        notification_policy=disabled_delivery_notification_policy(),
+    )
+    owner_jobs = [
+        service.submit(
+            user_id="owner-1",
+            idempotency_key=f"library-owner-key-{index}",
+            generation_request=valid_generation_request(
+                value=f"PRIVATE OWNER COURSE {index}"
+            ),
+            admission_reservation=standard_admission_reservation(),
+        )
+        for index in range(3)
+    ]
+    foreign_job = service.submit(
+        user_id="owner-2",
+        idempotency_key="library-foreign-key",
+        generation_request=valid_generation_request(value="PRIVATE FOREIGN COURSE"),
+        admission_reservation=standard_admission_reservation(),
+    )
+
+    try:
+        first_page = service.list_public_jobs(user_id="owner-1", page_size=2)
+        # A new job created after page one must not shift the cursor window.
+        newest_job = service.submit(
+            user_id="owner-1",
+            idempotency_key="library-newest-key",
+            generation_request=valid_generation_request(value="PRIVATE NEW COURSE"),
+            admission_reservation=standard_admission_reservation(),
+        )
+        second_page = service.list_public_jobs(
+            user_id="owner-1",
+            page_size=2,
+            cursor=first_page.next_cursor,
+        )
+    finally:
+        job_store.close()
+
+    assert [item.job_id for item in first_page.items] == [
+        owner_jobs[2].job_id,
+        owner_jobs[1].job_id,
+    ]
+    assert [item.job_id for item in second_page.items] == [owner_jobs[0].job_id]
+    assert second_page.next_cursor is None
+    assert newest_job.job_id not in {item.job_id for item in second_page.items}
+    assert foreign_job.job_id not in first_page.model_dump_json()
+    assert "PRIVATE OWNER COURSE" not in first_page.model_dump_json()
+    assert all(item.title == "Pasted text" for item in first_page.items)
+
+
+@pytest.mark.parametrize(
+    ("page_size", "cursor"),
+    [(0, None), (51, None), (20, "not-a-valid-library-cursor")],
+)
+def test_service_rejects_unbounded_or_malformed_library_requests(
+    tmp_path: Path,
+    page_size: int,
+    cursor: str | None,
+) -> None:
+    """The package boundary rejects invalid pagination even without FastAPI."""
+
+    service, job_store, _artifact_store = _job_service(
+        database_path=tmp_path / "jobs.sqlite3",
+        artifact_root=tmp_path / "artifacts",
+    )
+    try:
+        with pytest.raises(InvalidJobListRequestError):
+            service.list_public_jobs(
+                user_id="owner-1",
+                page_size=page_size,
+                cursor=cursor,
+            )
     finally:
         job_store.close()

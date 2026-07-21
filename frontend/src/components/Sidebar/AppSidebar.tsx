@@ -1,4 +1,4 @@
-import { FilePlus2, SlidersHorizontal, Users } from "lucide-react"
+import { FilePlus2, LibraryBig, SlidersHorizontal, Users } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -17,6 +17,11 @@ const baseItems: Item[] = [
     icon: FilePlus2,
     title: "Create course",
     path: "/create",
+  },
+  {
+    icon: LibraryBig,
+    title: "My courses",
+    path: "/library",
     activePrefixes: ["/jobs/"],
   },
 ]

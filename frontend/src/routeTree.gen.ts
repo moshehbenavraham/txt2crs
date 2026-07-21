@@ -17,6 +17,7 @@ import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LayoutSetupRouteImport } from './routes/_layout/setup'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutLibraryRouteImport } from './routes/_layout/library'
 import { Route as LayoutForbiddenRouteImport } from './routes/_layout/forbidden'
 import { Route as LayoutCreateRouteImport } from './routes/_layout/create'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
@@ -61,6 +62,11 @@ const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutLibraryRoute = LayoutLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutForbiddenRoute = LayoutForbiddenRouteImport.update({
   id: '/forbidden',
   path: '/forbidden',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRoute
   '/create': typeof LayoutCreateRoute
   '/forbidden': typeof LayoutForbiddenRoute
+  '/library': typeof LayoutLibraryRoute
   '/settings': typeof LayoutSettingsRoute
   '/setup': typeof LayoutSetupRoute
   '/jobs/$jobId': typeof LayoutJobsJobIdRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/admin': typeof LayoutAdminRoute
   '/create': typeof LayoutCreateRoute
   '/forbidden': typeof LayoutForbiddenRoute
+  '/library': typeof LayoutLibraryRoute
   '/settings': typeof LayoutSettingsRoute
   '/setup': typeof LayoutSetupRoute
   '/jobs/$jobId': typeof LayoutJobsJobIdRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/create': typeof LayoutCreateRoute
   '/_layout/forbidden': typeof LayoutForbiddenRoute
+  '/_layout/library': typeof LayoutLibraryRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/setup': typeof LayoutSetupRoute
   '/_layout/jobs/$jobId': typeof LayoutJobsJobIdRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/create'
     | '/forbidden'
+    | '/library'
     | '/settings'
     | '/setup'
     | '/jobs/$jobId'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/create'
     | '/forbidden'
+    | '/library'
     | '/settings'
     | '/setup'
     | '/jobs/$jobId'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/_layout/create'
     | '/_layout/forbidden'
+    | '/_layout/library'
     | '/_layout/settings'
     | '/_layout/setup'
     | '/_layout/jobs/$jobId'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/library': {
+      id: '/_layout/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LayoutLibraryRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/forbidden': {
       id: '/_layout/forbidden'
       path: '/forbidden'
@@ -268,6 +287,7 @@ interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutCreateRoute: typeof LayoutCreateRoute
   LayoutForbiddenRoute: typeof LayoutForbiddenRoute
+  LayoutLibraryRoute: typeof LayoutLibraryRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutSetupRoute: typeof LayoutSetupRoute
   LayoutJobsJobIdRoute: typeof LayoutJobsJobIdRoute
@@ -277,6 +297,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutCreateRoute: LayoutCreateRoute,
   LayoutForbiddenRoute: LayoutForbiddenRoute,
+  LayoutLibraryRoute: LayoutLibraryRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutSetupRoute: LayoutSetupRoute,
   LayoutJobsJobIdRoute: LayoutJobsJobIdRoute,

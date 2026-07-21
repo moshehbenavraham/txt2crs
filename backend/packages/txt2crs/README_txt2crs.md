@@ -175,6 +175,12 @@ finally:
     application.close()
 ```
 
+Application shells may also call `application.list_public_jobs(...)` for one
+owner-scoped, newest-first page of bounded public summaries. The facade owns
+opaque cursor validation, stable ordering, safe projection, and artifact
+availability; shells must not query the package SQLite store or reconstruct
+private resume state.
+
 `application.inspect_application_readiness()` is the complete safe integration
 probe. It returns coarse authentication, exact-model, reviewed research,
 SQLite, private-artifact, input-capability, and admission states without

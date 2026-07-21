@@ -16,6 +16,7 @@ course intake, owner-scoped live progress, and private completed publications.
 | `/recover-password` | Password recovery |
 | `/reset-password` | Password reset |
 | `/create` | Authenticated prompt, text, URL, YouTube, or file intake |
+| `/library` | Authenticated owner-scoped retained course library |
 | `/jobs/$jobId` | Authenticated owner-scoped progress and completed publications |
 | `/settings` | User settings |
 | `/setup` | Superuser course-system readiness, device login, and CLI recovery |
@@ -41,7 +42,7 @@ for every signup request and can reject disabled or revoked access even when a
 previously built page still shows the action. Do not put secrets in any
 `VITE_*` value because Vite embeds those values in browser assets.
 
-## Course Intake and Progress
+## Course Intake, Library, and Progress
 
 The `/create` workbench accepts exactly one source mode and optional learning
 intent. Its centralized Zod schema mirrors the generated backend contract,
@@ -52,6 +53,14 @@ and never parses an uploaded document in the browser.
 submission prevention, generated-client JSON/multipart calls, safe error copy,
 and navigation from the accepted opaque job ID. Components must compose that
 hook rather than rebuilding its logic.
+
+`/library` reads the generated owner-scoped job collection with stable
+newest-first cursor pagination. It provides accessible loading, empty, error,
+and pagination states and maps every active, completed, failed, and cancelled
+status to an existing `/jobs/$jobId` route. Collection polling runs only while
+the page is visible and at least one loaded job is non-terminal. The persistent
+`My courses` navigation item covers the library and job-detail routes on
+desktop and mobile.
 
 `/jobs/$jobId` reads only the authenticated owner's generated status
 projection. Active jobs use a visibility-aware polling policy; terminal jobs
@@ -152,7 +161,10 @@ frontend client, and owner checks while replacing external generation with a
 finite deterministic scenario. The completed story verifies all 16 manifest
 entries, exact displayed sizes, format-menu keyboard behavior, real PDF and
 HTML transfers, sandbox/CSP isolation, hostile preview stripping, URL cleanup,
-direct refresh, and minimum-width reflow:
+direct refresh, and minimum-width reflow. The same configuration also verifies
+course-library loading, empty and error recovery, exhaustive statuses, opaque
+pagination, keyboard/touch navigation, light/dark responsive rendering, and
+the maximum public title length:
 
 ```bash
 docker compose up -d --wait db

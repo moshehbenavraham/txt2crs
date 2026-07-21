@@ -290,6 +290,75 @@ export type JobLearningLevel =
   | "mixed"
 
 /**
+ * JobLibraryPublic
+ *
+ * One private owner page and its opaque forward continuation.
+ */
+export type JobLibraryPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Data
+   */
+  data: Array<JobLibrarySummaryPublic>
+  /**
+   * Next Cursor
+   */
+  next_cursor: string | null
+}
+
+/**
+ * JobLibrarySummaryPublic
+ *
+ * Bounded course-library row translated from the package allowlist.
+ */
+export type JobLibrarySummaryPublic = {
+  /**
+   * Schema Version
+   */
+  schema_version: "1.0"
+  /**
+   * Job Id
+   */
+  job_id: string
+  /**
+   * Revision
+   */
+  revision: number
+  status: JobStatus
+  /**
+   * Title
+   */
+  title: string
+  /**
+   * Input Type
+   */
+  input_type:
+    | "prompt"
+    | "text"
+    | "url"
+    | "pdf"
+    | "document"
+    | "slides"
+    | "image"
+    | "audio"
+    | "video"
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  progress: JobProgressPublic
+  failure: JobFailurePublic | null
+  artifacts: JobArtifactAvailabilityPublic
+}
+
+/**
  * JobPreferences
  *
  * Finite learning intent; all other generation defaults are server-owned.
@@ -1588,6 +1657,51 @@ export type GetApiV1UtilsHealthResponses = {
 
 export type GetApiV1UtilsHealthResponse =
   GetApiV1UtilsHealthResponses[keyof GetApiV1UtilsHealthResponses]
+
+export type GetApiV1JobsData = {
+  body?: never
+  path?: never
+  query?: {
+    /**
+     * Limit
+     *
+     * Maximum owner-scoped course jobs returned in this page.
+     */
+    limit?: number
+    /**
+     * Cursor
+     *
+     * Opaque newest-first continuation returned by this endpoint.
+     */
+    cursor?: string | null
+  }
+  url: "/api/v1/jobs"
+}
+
+export type GetApiV1JobsErrors = {
+  /**
+   * Authentication is required.
+   */
+  401: unknown
+  /**
+   * A path identifier is invalid.
+   */
+  422: unknown
+  /**
+   * The course result could not be read safely.
+   */
+  500: unknown
+}
+
+export type GetApiV1JobsResponses = {
+  /**
+   * Successful Response
+   */
+  200: JobLibraryPublic
+}
+
+export type GetApiV1JobsResponse =
+  GetApiV1JobsResponses[keyof GetApiV1JobsResponses]
 
 export type PostApiV1JobsData = {
   body: JobSubmissionRequest

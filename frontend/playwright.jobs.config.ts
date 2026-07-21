@@ -47,7 +47,12 @@ if (inheritedBrowserTestRootDirectory === undefined) {
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: ["auth.setup.ts", "auth.teardown.ts", "course-journey.spec.ts"],
+  testMatch: [
+    "auth.setup.ts",
+    "auth.teardown.ts",
+    "course-journey.spec.ts",
+    "course-library.spec.ts",
+  ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,

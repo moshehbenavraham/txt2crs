@@ -16,7 +16,7 @@ from txt2crs.application.readiness import ApplicationReadiness
 from txt2crs.jobs.artifact_queries import ArtifactManifest
 from txt2crs.jobs.models import JobRecord, ResumeState
 from txt2crs.jobs.preparation import PreparationPolicyError
-from txt2crs.jobs.public_queries import PublicJobSnapshot
+from txt2crs.jobs.public_queries import PublicJobPage, PublicJobSnapshot
 from txt2crs.jobs.quota import AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.service import JobService
@@ -312,6 +312,23 @@ class Txt2CrsApplication:
             return self._job_service.get_public_snapshot(
                 job_id=job_id,
                 user_id=user_id,
+            )
+
+    def list_public_jobs(
+        self,
+        *,
+        user_id: str,
+        page_size: int,
+        cursor: str | None = None,
+    ) -> PublicJobPage:
+        """Return one bounded owner-scoped course-library page."""
+
+        with self._lock:
+            self._require_open()
+            return self._job_service.list_public_jobs(
+                user_id=user_id,
+                page_size=page_size,
+                cursor=cursor,
             )
 
     def get_artifact_manifest(

@@ -26,7 +26,9 @@ from txt2crs.jobs import (
     ArtifactMetadata,
     JobStatus,
     PublicFailureCode,
+    PublicJobPage,
     PublicJobSnapshot,
+    PublicJobSummary,
     PublicSourceSummary,
 )
 
@@ -482,6 +484,82 @@ class JobStatusPublic(_StrictFrozenModel):
                 count=snapshot.artifacts.count,
                 manifest_url=manifest_url,
             ),
+        )
+
+
+class JobLibrarySummaryPublic(_StrictFrozenModel):
+    """Bounded course-library row translated from the package allowlist."""
+
+    schema_version: Literal["1.0"]
+    job_id: JobIdentifier
+    revision: int = Field(ge=0, le=9_223_372_036_854_775_807)
+    status: JobStatus
+    title: PublicText
+    input_type: PublicInputType
+    created_at: datetime
+    updated_at: datetime
+    progress: JobProgressPublic
+    failure: JobFailurePublic | None
+    artifacts: JobArtifactAvailabilityPublic
+
+    @classmethod
+    def from_package(cls, summary: PublicJobSummary) -> Self:
+        """Copy only reviewed package leaves and shell-owned route URLs."""
+
+        progress_stage, progress_message = _PROGRESS_COPY_BY_STATUS[summary.status]
+        manifest_url = (
+            f"/api/v1/jobs/{summary.job_id}/artifacts"
+            if summary.artifacts.available
+            else None
+        )
+        return cls(
+            schema_version="1.0",
+            job_id=summary.job_id,
+            revision=summary.revision,
+            status=summary.status,
+            title=summary.title,
+            input_type=summary.input_type,
+            created_at=summary.created_at,
+            updated_at=summary.updated_at,
+            progress=JobProgressPublic(
+                stage=progress_stage,
+                message=progress_message,
+                completed_units=summary.progress.completed_units,
+                total_units=summary.progress.total_units,
+            ),
+            failure=(
+                JobFailurePublic(
+                    code=summary.failure.code,
+                    message=summary.failure.message,
+                )
+                if summary.failure is not None
+                else None
+            ),
+            artifacts=JobArtifactAvailabilityPublic(
+                available=summary.artifacts.available,
+                count=summary.artifacts.count,
+                manifest_url=manifest_url,
+            ),
+        )
+
+
+class JobLibraryPublic(_StrictFrozenModel):
+    """One private owner page and its opaque forward continuation."""
+
+    schema_version: Literal["1.0"]
+    data: tuple[JobLibrarySummaryPublic, ...] = Field(max_length=50)
+    next_cursor: Annotated[StrictStr, Field(min_length=1, max_length=512)] | None
+
+    @classmethod
+    def from_package(cls, page: PublicJobPage) -> Self:
+        """Translate every bounded package summary without private expansion."""
+
+        return cls(
+            schema_version="1.0",
+            data=tuple(
+                JobLibrarySummaryPublic.from_package(summary) for summary in page.items
+            ),
+            next_cursor=page.next_cursor,
         )
 
 

@@ -51,6 +51,7 @@ export const Route = createFileRoute("/_layout")({
 
 const SECTION_LABELS: Record<string, string> = {
   "/create": "Create course",
+  "/library": "My courses",
   "/admin": "Admin",
   "/setup": "System setup",
   "/settings": "Settings",

@@ -8,12 +8,13 @@
 > **Direction**: Refined Editorial Luxury applied as an *editorial workspace
 > index* -- expressive page identity joined to compact, honest operational
 > surfaces.
-> **Status**: Phase 04 learner journey is implemented. The public landing,
-> authenticated `/create`, and owner `/jobs/$jobId` surfaces use the generated
-> course-job contract, including the private four-publication folio. The donor
-> library and `/items` route remain retired.
+> **Status**: The learner journey is implemented. The public landing,
+> authenticated `/create`, owner `/library`, and owner `/jobs/$jobId` surfaces
+> use the generated course-job contract, including the private
+> four-publication folio. The donor library and `/items` route remain retired;
+> the current course library is a separate owner-scoped product surface.
 > Legacy library blueprints below are history only and must not be implemented.
-> Last updated: 2026-07-20
+> Last updated: 2026-07-21
 
 ## Table of Contents
 
@@ -69,8 +70,9 @@ console* (discards brand equity; auth and product would feel unrelated).
    publications promise. Authenticated identity begins at `Create a course`;
    an email address is never a page title.
 2. **Truthful product structure.** The public root names the four generated
-   publications without inventing job counts, recency, or history. Intake and
-   progress add operational structure only where the job API supplies it.
+   publications without inventing job counts, recency, or history. The private
+   library, intake, and progress surfaces add operational structure only where
+   the owner-scoped job API supplies it.
 3. **Proximity groups default content.** Surface tone and keylines for
    structure; shadows reserved for overlays and true elevation.
 4. **Expressive vs. operational type are separate.** The local display serif
@@ -577,6 +579,7 @@ LinkedIn, YouTube). SVGs in `frontend/public/assets/images/`: `apex-logo.svg`
 | `/login`, `/signup`, `/recover-password`, `/reset-password` | `routes/*.tsx` | Public auth flow, consistent luxury styling |
 | `/` | `routes/index.tsx` | Public one-source-to-four-publications product story |
 | `/create` | `routes/_layout/create.tsx` | Authenticated multimode course intake |
+| `/library` | `routes/_layout/library.tsx` | Owner-scoped retained course collection and job reopening |
 | `/jobs/$jobId` | `routes/_layout/jobs.$jobId.tsx` | Owner-scoped revisioned progress and terminal handoff |
 | `/settings` | `_layout/settings.tsx` | User settings (tabbed) |
 | `/admin` | `_layout/admin.tsx` | Admin panel (superuser only) |
@@ -611,6 +614,22 @@ they become a single logical column. Inactive source controls unregister, file
 content is never parsed for preview, and no model/provider selector appears.
 Validation stays next to its field, and submission moves focus to the first
 invalid control.
+
+### Course library (`/library`)
+
+**User job:** rediscover every retained course request and reopen its existing
+private job page. **Primary action:** `Create a course`; each row has one
+status-specific reopen action.
+
+The library is a calm newest-first editorial shelf backed by the owner-scoped
+collection contract. Rows show only allowlisted title, source type, timestamps,
+accepted progress, terminal outcome, and artifact availability. Active jobs
+poll only while the document is visible; terminal-only collections stop
+polling. Loading, empty, initial error, stale-page warning, and opaque cursor
+pagination remain explicit. Mobile stacks actions into full-width 44px targets,
+wraps the 500-character title maximum, and never introduces document-level
+horizontal scroll. The persistent `My courses` sidebar item owns both the
+library and `/jobs/$jobId` active state on desktop and in the mobile sheet.
 
 ### Course progress (`/jobs/$jobId`)
 
@@ -956,7 +975,8 @@ Check each surface at 1440x900, the 768px boundary, 375x812, and 320px, in
 light and dark, with keyboard, and under reduced motion:
 
 - Protected shell (expanded/collapsed) and the mobile navigation sheet
-- Public landing, course intake, active progress, and every terminal state
+- Public landing, course intake, course-library states, active progress, and
+  every terminal state
 - System setup pending / ready / action required / waiting / authenticated /
   unavailable / failed / permission
 - Admin desktop table and mobile record list
@@ -972,8 +992,8 @@ permanent `will-change`.
 
 ### Acceptance criteria
 
-- The current page identity and four supported publication types are visible
-  without implying job history, counts, or recency.
+- Public product pages do not imply job history, counts, or recency; the
+  protected library displays only values supplied by its owner-scoped API.
 - The direction reads as a research atelier, not a KPI dashboard.
 - No displayed metric implies timestamps, trends, completeness, or recency
   the API does not provide.

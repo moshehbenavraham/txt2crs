@@ -9,6 +9,7 @@ from fastapi import (
     Form,
     Header,
     Path,
+    Query,
     Request,
     Response,
     UploadFile,
@@ -26,7 +27,7 @@ from app.api.deps import (
     Txt2CrsSubmissionDep,
 )
 from app.core.config import settings
-from app.core.constants import ContentTypes, ErrorCode, HTTPStatusCode
+from app.core.constants import ContentTypes, ErrorCode, HTTPStatusCode, Pagination
 from app.core.exceptions import AppException
 from app.core.logging import get_logger
 from app.core.rate_limit import JOB_SUBMISSION_RATE_LIMIT, limiter
@@ -36,6 +37,7 @@ from app.schemas.jobs import (
     IdempotencyKey,
     JobAcceptedPublic,
     JobIdentifier,
+    JobLibraryPublic,
     JobStatusPublic,
     JobSubmissionRequest,
     JobUploadMetadata,
@@ -78,6 +80,22 @@ ArtifactPathIdentifier = Annotated[
         description="Stable canonical artifact identifier.",
     ),
 ]
+JobListLimit = Annotated[
+    int,
+    Query(
+        ge=1,
+        le=50,
+        description="Maximum owner-scoped course jobs returned in this page.",
+    ),
+]
+JobListCursor = Annotated[
+    str | None,
+    Query(
+        min_length=1,
+        max_length=512,
+        description="Opaque newest-first continuation returned by this endpoint.",
+    ),
+]
 _PRIVATE_RESPONSE_HEADERS = {
     "Cache-Control": "private, no-store",
     "Pragma": "no-cache",
@@ -101,6 +119,11 @@ _PRIVATE_READ_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
         "description": "The course result could not be read safely.",
         "content": {ContentTypes.PROBLEM_JSON: {}},
     },
+}
+_PRIVATE_LIST_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    status: response
+    for status, response in _PRIVATE_READ_ERROR_RESPONSES.items()
+    if status != HTTPStatusCode.NOT_FOUND
 }
 _ARTIFACT_DOWNLOAD_RESPONSES: dict[int | str, dict[str, Any]] = {
     **_PRIVATE_READ_ERROR_RESPONSES,
@@ -299,6 +322,41 @@ def _accepted_response(
         revision=0,
         status_url=status_url,
     )
+
+
+@router.get(
+    "",
+    response_model=JobLibraryPublic,
+    status_code=HTTPStatusCode.OK,
+    summary="List retained course jobs",
+    description=(
+        "Returns one stable newest-first owner page. The opaque continuation "
+        "can be replayed to recover older retained jobs without exposing "
+        "engine persistence details."
+    ),
+    responses=_PRIVATE_LIST_ERROR_RESPONSES,
+)
+def list_jobs(
+    response: Response,
+    current_user: CurrentUser,
+    application: Txt2CrsApplicationDep,
+    limit: JobListLimit = Pagination.DEFAULT_LIMIT,
+    cursor: JobListCursor = None,
+) -> JobLibraryPublic:
+    """Delegate the owner collection to the package facade and map its page."""
+
+    try:
+        package_page = application.list_public_jobs(
+            user_id=str(current_user.id),
+            page_size=limit,
+            cursor=cursor,
+        )
+        public_page = JobLibraryPublic.from_package(package_page)
+    except Exception as package_error:
+        raise translate_txt2crs_exception(package_error) from None
+
+    _set_private_response_headers(response)
+    return public_page
 
 
 @router.get(

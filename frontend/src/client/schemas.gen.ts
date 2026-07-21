@@ -419,6 +419,133 @@ export const JobLearningLevelSchema = {
   description: "Reviewed P0 learner-selectable depth intent.",
 } as const
 
+export const JobLibraryPublicSchema = {
+  properties: {
+    schema_version: {
+      type: "string",
+      const: "1.0",
+      title: "Schema Version",
+    },
+    data: {
+      items: {
+        $ref: "#/components/schemas/JobLibrarySummaryPublic",
+      },
+      type: "array",
+      maxItems: 50,
+      title: "Data",
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: "string",
+          maxLength: 512,
+          minLength: 1,
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Next Cursor",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: ["schema_version", "data", "next_cursor"],
+  title: "JobLibraryPublic",
+  description: "One private owner page and its opaque forward continuation.",
+} as const
+
+export const JobLibrarySummaryPublicSchema = {
+  properties: {
+    schema_version: {
+      type: "string",
+      const: "1.0",
+      title: "Schema Version",
+    },
+    job_id: {
+      type: "string",
+      maxLength: 128,
+      minLength: 1,
+      pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      title: "Job Id",
+    },
+    revision: {
+      type: "integer",
+      maximum: 9223372036854776000,
+      minimum: 0,
+      title: "Revision",
+    },
+    status: {
+      $ref: "#/components/schemas/JobStatus",
+    },
+    title: {
+      type: "string",
+      maxLength: 500,
+      minLength: 1,
+      title: "Title",
+    },
+    input_type: {
+      type: "string",
+      enum: [
+        "prompt",
+        "text",
+        "url",
+        "pdf",
+        "document",
+        "slides",
+        "image",
+        "audio",
+        "video",
+      ],
+      title: "Input Type",
+    },
+    created_at: {
+      type: "string",
+      format: "date-time",
+      title: "Created At",
+    },
+    updated_at: {
+      type: "string",
+      format: "date-time",
+      title: "Updated At",
+    },
+    progress: {
+      $ref: "#/components/schemas/JobProgressPublic",
+    },
+    failure: {
+      anyOf: [
+        {
+          $ref: "#/components/schemas/JobFailurePublic",
+        },
+        {
+          type: "null",
+        },
+      ],
+    },
+    artifacts: {
+      $ref: "#/components/schemas/JobArtifactAvailabilityPublic",
+    },
+  },
+  additionalProperties: false,
+  type: "object",
+  required: [
+    "schema_version",
+    "job_id",
+    "revision",
+    "status",
+    "title",
+    "input_type",
+    "created_at",
+    "updated_at",
+    "progress",
+    "failure",
+    "artifacts",
+  ],
+  title: "JobLibrarySummaryPublic",
+  description:
+    "Bounded course-library row translated from the package allowlist.",
+} as const
+
 export const JobPreferencesSchema = {
   properties: {
     level: {

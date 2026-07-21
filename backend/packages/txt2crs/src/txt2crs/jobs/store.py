@@ -82,6 +82,10 @@ class JobRequestCompatibilityError(JobStoreError):
     """An accepted job lacks an exact request this engine can safely restore."""
 
 
+class InvalidJobListRequestError(JobStoreError):
+    """An owner library request has an invalid bound or continuation cursor."""
+
+
 class SqliteJobStore:
     """Own the SQLite connection and apply every packaged schema migration."""
 
@@ -447,6 +451,81 @@ class SqliteJobStore:
                 job=self.get_job(job_id=job_id, user_id=user_id),
                 request=self.get_generation_request(job_id=job_id, user_id=user_id),
                 checkpoint=self.latest_checkpoint(job_id=job_id, user_id=user_id),
+            )
+
+    def list_resume_states(
+        self,
+        *,
+        user_id: str,
+        limit: int,
+        before_created_at: datetime | None = None,
+        before_job_id: str | None = None,
+    ) -> tuple[ResumeState, ...]:
+        """Read one stable newest-first owner page as coherent resume states.
+
+        The service asks for one row beyond its public page size so it can
+        determine whether another opaque continuation cursor is necessary.
+        Both cursor leaves are required together; accepting half a cursor
+        would make ordering ambiguous and could accidentally restart at page
+        one.
+        """
+
+        normalized_user_id = _normalize_owner_id(user_id)
+        if limit < 1 or limit > 51:
+            raise InvalidJobListRequestError("The job-list bound is invalid.")
+        has_timestamp = before_created_at is not None
+        has_job_id = before_job_id is not None
+        if has_timestamp != has_job_id:
+            raise InvalidJobListRequestError("The job-list cursor is incomplete.")
+
+        with self._lock:
+            if before_created_at is None:
+                rows = self._connection.execute(
+                    """
+                    SELECT *
+                    FROM jobs
+                    WHERE user_id = ?
+                    ORDER BY created_at DESC, job_id DESC
+                    LIMIT ?
+                    """,
+                    (normalized_user_id, limit),
+                ).fetchall()
+            else:
+                if before_created_at.tzinfo is None:
+                    raise InvalidJobListRequestError(
+                        "The job-list cursor timestamp is invalid."
+                    )
+                cursor_timestamp = before_created_at.astimezone(UTC).isoformat()
+                rows = self._connection.execute(
+                    """
+                    SELECT *
+                    FROM jobs
+                    WHERE user_id = ?
+                      AND (
+                        created_at < ?
+                        OR (created_at = ? AND job_id < ?)
+                      )
+                    ORDER BY created_at DESC, job_id DESC
+                    LIMIT ?
+                    """,
+                    (
+                        normalized_user_id,
+                        cursor_timestamp,
+                        cursor_timestamp,
+                        before_job_id,
+                        limit,
+                    ),
+                ).fetchall()
+
+            # The process-local reentrant lock stays held while each request
+            # and checkpoint is loaded, preserving the same snapshot guarantee
+            # as the single-job read boundary.
+            return tuple(
+                self.get_resume_state(
+                    job_id=str(row["job_id"]),
+                    user_id=normalized_user_id,
+                )
+                for row in rows
             )
 
     def next_runnable_job(self) -> ResumeState | None:

@@ -27,14 +27,19 @@ from txt2crs.jobs.models import (
 )
 from txt2crs.jobs.notifications import DeliveryNotificationPolicy
 from txt2crs.jobs.public_queries import (
+    PublicJobPage,
     PublicJobSnapshot,
+    decode_public_job_cursor,
+    encode_public_job_cursor,
     project_public_job_snapshot,
+    project_public_job_summary,
 )
 from txt2crs.jobs.quota import AdmissionReservation
 from txt2crs.jobs.requests import GenerationRequest
 from txt2crs.jobs.stage_result import StageResult
 from txt2crs.jobs.store import (
     ConcurrencyConflictError,
+    InvalidJobListRequestError,
     JobNotFoundError,
     SqliteJobStore,
 )
@@ -270,12 +275,67 @@ class JobService:
     ) -> PublicJobSnapshot:
         """Return one owner-authorized allowlist without private resume state."""
 
-        # Authorize and snapshot the durable job first. Only an authorized
-        # caller may learn whether that job has a published artifact manifest.
         resume_state = self._store.get_resume_state(
             job_id=job_id,
             user_id=user_id,
         )
+        return self._project_public_resume_state(
+            resume_state=resume_state,
+            user_id=user_id,
+        )
+
+    def list_public_jobs(
+        self,
+        *,
+        user_id: str,
+        page_size: int,
+        cursor: str | None = None,
+    ) -> PublicJobPage:
+        """Return one owner-scoped newest-first page of public summaries."""
+
+        if page_size < 1 or page_size > 50:
+            raise InvalidJobListRequestError("The job-list page size is invalid.")
+        cursor_position = decode_public_job_cursor(cursor)
+        resume_states = self._store.list_resume_states(
+            user_id=user_id,
+            # Fetch one extra row to determine continuation without a separate
+            # owner count that could race concurrent submissions.
+            limit=page_size + 1,
+            before_created_at=(
+                cursor_position[0] if cursor_position is not None else None
+            ),
+            before_job_id=(cursor_position[1] if cursor_position is not None else None),
+        )
+        visible_states = resume_states[:page_size]
+        summaries = tuple(
+            project_public_job_summary(
+                self._project_public_resume_state(
+                    resume_state=resume_state,
+                    user_id=user_id,
+                )
+            )
+            for resume_state in visible_states
+        )
+        next_cursor = (
+            encode_public_job_cursor(visible_states[-1].job)
+            if len(resume_states) > page_size and visible_states
+            else None
+        )
+        return PublicJobPage(
+            schema_version="1.0",
+            items=summaries,
+            next_cursor=next_cursor,
+        )
+
+    def _project_public_resume_state(
+        self,
+        *,
+        resume_state: ResumeState,
+        user_id: str,
+    ) -> PublicJobSnapshot:
+        """Attach optional artifacts to an already owner-authorized snapshot."""
+
+        job_id = resume_state.job.job_id
         artifact_manifest: ArtifactManifest | None = None
         try:
             artifact_manifest = self._artifact_store.get_manifest(

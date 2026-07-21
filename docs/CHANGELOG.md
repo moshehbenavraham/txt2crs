@@ -22,6 +22,29 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.1.0] - 2026-07-21
+
+### Added
+
+- Added an authenticated `My courses` library with owner-scoped, stable cursor
+  pagination; exhaustive active, ready, failed, and cancelled states; direct
+  job reopening; persistent desktop/mobile navigation; visibility-aware
+  polling; and accessible loading, empty, error, and pagination recovery.
+- Added the package-owned bounded job-summary query and `GET /api/v1/jobs`
+  shell contract with owner isolation, opaque cursors, private/no-store
+  responses, generated frontend client support, and cross-stack regression
+  coverage.
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [1.0.5] - 2026-07-21
 
 ### Added

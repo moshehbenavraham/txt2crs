@@ -12,6 +12,7 @@ from txt2crs.jobs import (
     ArtifactIntegrityError,
     ConcurrencyConflictError,
     IdempotencyConflictError,
+    InvalidJobListRequestError,
     InvalidJobSubmissionError,
     JobNotFoundError,
     JobRequestCompatibilityError,
@@ -79,6 +80,11 @@ def translate_txt2crs_exception(error: Exception) -> AppException:
         translated = AppException(
             code=ErrorCode.INVALID_INPUT,
             detail="The course request is invalid.",
+        )
+    elif isinstance(error, InvalidJobListRequestError):
+        translated = AppException(
+            code=ErrorCode.VALIDATION_ERROR,
+            detail="The course library page request is invalid.",
         )
     elif isinstance(
         error,
