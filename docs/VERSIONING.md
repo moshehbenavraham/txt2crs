@@ -8,10 +8,11 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.1.6`. It is a
-backward-compatible remediation release after the stable public API boundary
-established by `1.0.0`. Future compatibility decisions follow Semantic
-Versioning from that public boundary.
+The current repository and Python package release is `1.2.1`. It is a
+backward-compatible feature release that adds the cross-format publication
+design system after the stable public API boundary established by `1.0.0`.
+Future compatibility decisions follow Semantic Versioning from that public
+boundary.
 
 ## Choosing the next version
 

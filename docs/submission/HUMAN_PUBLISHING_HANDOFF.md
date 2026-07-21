@@ -21,7 +21,7 @@ Video identity:
 - SHA-256:
   `cc78d540f41eb6bbb634540fbf70df0d98c9975a308a8ae984135fb492d5542f`;
 - format: 1920x1080 H.264 video with AAC audio; and
-- intended repository release: `v1.0.4`.
+- intended repository release: `v1.2.1`.
 
 ## 1. Keep GitHub Private And Add Reviewers
 
@@ -47,15 +47,15 @@ publish it:
 final_commit="$(git rev-parse HEAD)"
 test -z "$(git status --short)"
 
-git tag --annotate v1.0.4 \
-  --message "txt2crs 1.0.4 - OpenAI Build Week Education release" \
+git tag --annotate v1.2.1 \
+  --message "txt2crs 1.2.1 - OpenAI Build Week Education release" \
   "${final_commit}"
 
 git push origin main
-git push origin v1.0.4
+git push origin v1.2.1
 ```
 
-Verify that remote `main` and peeled `v1.0.4` resolve to `final_commit`. Make
+Verify that remote `main` and peeled `v1.2.1` resolve to `final_commit`. Make
 no tracked edit after tagging; use a new SemVer version for any later change.
 
 ## 3. Publish The Demo Video
@@ -85,7 +85,7 @@ Use:
 - category: Education;
 - repository: <https://github.com/moshehbenavraham/txt2crs>;
 - release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.0.4>;
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1>;
 - project story: [`DEVPOST_SUBMISSION.md`](DEVPOST_SUBMISSION.md);
 - screenshots: the six reviewed files in `docs/submission/screenshots/`;
 - video: the stable YouTube URL from the previous step; and
@@ -102,7 +102,7 @@ Submit before `2026-07-22T00:00:00Z`.
 Before considering the entry finished, confirm:
 
 - the repository is still Private and both reviewers have access;
-- remote `main` and `v1.0.4` match the reviewed release commit;
+- remote `main` and `v1.2.1` match the reviewed release commit;
 - the YouTube video works while signed out and is under three minutes;
 - the Devpost entry is in Education and shows all six screenshots;
 - the repository, release, video, and Session ID values are exact; and

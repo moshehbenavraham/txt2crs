@@ -7,6 +7,7 @@ from io import BytesIO
 import fitz  # type: ignore[import-untyped]
 import pytest
 from docx import Document
+from docx.shared import Inches, RGBColor
 
 from tests.factories import (
     valid_answer_key_data,
@@ -65,6 +66,68 @@ def test_course_html_escapes_untrusted_content_and_is_semantic() -> None:
         course_html,
         required_element_ids={"course-content", "bibliography"},
     )
+
+
+def test_html_publications_embed_the_responsive_print_design_system() -> None:
+    """Every standalone HTML file should feel intentionally publication-ready."""
+
+    rendered = ArtifactRenderer().render_bundle(valid_bundle())
+
+    expected_publication_classes = {
+        "course_html": "publication--course",
+        "review_pack_html": "publication--review",
+        "assessment_html": "publication--assessment",
+        "answer_key_html": "publication--answer-key",
+    }
+    for artifact_name, publication_class in expected_publication_classes.items():
+        html_content = rendered[artifact_name].content.decode("utf-8")
+
+        assert '<style id="txt2crs-publication-theme">' in html_content
+        assert f'class="publication-shell {publication_class}"' in html_content
+        assert 'class="publication-hero"' in html_content
+        assert 'class="publication-brand"' in html_content
+        assert 'class="publication-kicker"' in html_content
+        assert "@media print" in html_content
+        assert "@media (max-width: 42rem)" in html_content
+        assert "--publication-accent" in html_content
+        assert "prefers-reduced-motion" in html_content
+        assert "overflow-wrap: anywhere" in html_content
+
+
+def test_assessment_includes_printable_learner_fields_and_response_space() -> None:
+    """The assessment should function as a polished screen and print worksheet."""
+
+    rendered = ArtifactRenderer().render_bundle(valid_bundle())
+    assessment_html = rendered["assessment_html"].content.decode("utf-8")
+    assessment_pdf = fitz.open(
+        stream=rendered["assessment_pdf"].content,
+        filetype="pdf",
+    )
+    try:
+        assessment_pdf_text = "\n".join(
+            page.get_text("text") for page in assessment_pdf
+        )
+    finally:
+        assessment_pdf.close()
+    assessment_document = Document(BytesIO(rendered["assessment_docx"].content))
+    assessment_docx_text = "\n".join(
+        [paragraph.text for paragraph in assessment_document.paragraphs]
+        + [
+            paragraph.text
+            for table in assessment_document.tables
+            for row in table.rows
+            for cell in row.cells
+            for paragraph in cell.paragraphs
+        ]
+    )
+
+    assert 'class="learner-fields"' in assessment_html
+    assert 'class="response-space"' in assessment_html
+    assert "Student name" in assessment_html
+    assert "STUDENT NAME" in assessment_pdf_text
+    assert "RESPONSE NOTES" in assessment_pdf_text
+    assert "Student name" in assessment_docx_text
+    assert "Response notes" in assessment_docx_text
 
 
 def test_student_assessment_never_contains_instructor_answers() -> None:
@@ -145,6 +208,116 @@ def test_every_deliverable_has_html_markdown_searchable_pdf_and_docx() -> None:
         document = Document(BytesIO(rendered[artifact_name].content))
         extracted_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
         assert extracted_text.strip()
+
+
+def test_pdf_publications_have_cover_hierarchy_outlines_and_folios() -> None:
+    """PDFs should be designed publications, not fixed-width text dumps."""
+
+    rendered = ArtifactRenderer().render_bundle(valid_bundle())
+
+    for artifact_name in (
+        "course_pdf",
+        "review_pack_pdf",
+        "assessment_pdf",
+        "answer_key_pdf",
+    ):
+        pdf_document = fitz.open(
+            stream=rendered[artifact_name].content,
+            filetype="pdf",
+        )
+        try:
+            assert len(pdf_document) >= 2
+            assert "TXT2CRS" in pdf_document[0].get_text("text").upper()
+            assert any(
+                drawing.get("fill") is not None
+                for drawing in pdf_document[0].get_drawings()
+            )
+            assert pdf_document.get_toc()
+
+            content_spans = [
+                span
+                for page in list(pdf_document)[1:]
+                for block in page.get_text("dict")["blocks"]
+                if "lines" in block
+                for line in block["lines"]
+                for span in line["spans"]
+            ]
+            assert max(float(span["size"]) for span in content_spans) >= 16
+            assert min(float(span["size"]) for span in content_spans) <= 10.5
+
+            total_pages = len(pdf_document)
+            for page_number, page in enumerate(list(pdf_document)[1:], start=2):
+                page_text = page.get_text("text")
+                assert "txt2crs" in page_text.casefold()
+                assert f"{page_number} / {total_pages}" in page_text
+
+            if artifact_name in {
+                "course_pdf",
+                "review_pack_pdf",
+                "answer_key_pdf",
+            }:
+                link_targets = {
+                    link["uri"]
+                    for page in pdf_document
+                    for link in page.get_links()
+                    if link.get("uri") is not None
+                }
+                assert "https://docs.python.org/3/tutorial/" in link_targets
+        finally:
+            pdf_document.close()
+
+
+def test_docx_publications_use_a_branded_navigable_template() -> None:
+    """DOCX files should retain premium styling and useful Word semantics."""
+
+    rendered = ArtifactRenderer().render_bundle(valid_bundle())
+
+    for artifact_name in (
+        "course_docx",
+        "review_pack_docx",
+        "assessment_docx",
+        "answer_key_docx",
+    ):
+        document = Document(BytesIO(rendered[artifact_name].content))
+        document_xml = document._element.xml
+        relationship_targets = {
+            relationship.target_ref
+            for relationship in document.part.rels.values()
+            if relationship.is_external
+        }
+
+        assert document.styles["Title"].font.color.rgb == RGBColor(0x1A, 0x50, 0x38)
+        assert "Publication Meta" in document.styles
+        assert "Publication Callout" in document.styles
+        assert "Publication Code" in document.styles
+        assert document.sections[0].top_margin == Inches(0.7)
+        page_height = document.sections[0].page_height
+        assert page_height is not None
+        assert abs(page_height - Inches(11.69)) < Inches(0.01)
+        assert document.sections[0].different_first_page_header_footer
+        assert "txt2crs" in document.sections[0].header.paragraphs[0].text.casefold()
+        assert "PAGE" in document.sections[0].footer._element.xml
+        assert "NUMPAGES" in document.sections[0].footer._element.xml
+        document_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+        if artifact_name in {"course_docx", "review_pack_docx"}:
+            assert "Inside this publication" in document_text
+        else:
+            assert "Inside this publication" not in document_text
+        assert "1A5038" in document_xml
+        assert 'w:type="page"' in document_xml
+        assert document.tables[0].rows[0].height is not None
+        assert document.tables[0].rows[0].height > Inches(7.5)
+        assert any(
+            paragraph.style is not None
+            and paragraph.style.name.startswith("Heading")
+            and paragraph.paragraph_format.keep_with_next
+            for paragraph in document.paragraphs
+        )
+
+        # Only publications containing source links need external hyperlink
+        # relationships, but at least those files must preserve live targets.
+        if artifact_name in {"course_docx", "review_pack_docx", "answer_key_docx"}:
+            assert "https://docs.python.org/3/tutorial/" in relationship_targets
 
 
 def test_renderers_include_every_canonical_course_and_review_section() -> None:
@@ -318,6 +491,44 @@ def test_pdf_and_docx_convert_inline_markdown_to_readable_text() -> None:
     assert "https://docs.python.org/3/tutorial/" in course_docx_text
 
 
+def test_code_blocks_keep_format_native_visual_treatment() -> None:
+    """Code should remain recognizable in every publication format."""
+
+    bundle = valid_bundle()
+    content_block = bundle.course.modules[0].sections[0].content_blocks[0]
+    content_block.kind = "code"
+    content_block.text = "student_count = 24\nprint(student_count)"
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    course_html = rendered["course_html"].content.decode("utf-8")
+    course_markdown = rendered["course_markdown"].content.decode("utf-8")
+    course_pdf = fitz.open(stream=rendered["course_pdf"].content, filetype="pdf")
+    try:
+        pdf_fonts = {
+            span["font"]
+            for page in course_pdf
+            for block in page.get_text("dict")["blocks"]
+            if "lines" in block
+            for line in block["lines"]
+            for span in line["spans"]
+        }
+    finally:
+        course_pdf.close()
+    course_document = Document(BytesIO(rendered["course_docx"].content))
+
+    assert "<pre><code>student_count = 24\nprint(student_count)</code></pre>" in (
+        course_html
+    )
+    assert "```\nstudent_count = 24\nprint(student_count)\n```" in course_markdown
+    assert any("Courier" in font_name for font_name in pdf_fonts)
+    assert any(
+        paragraph.style is not None
+        and paragraph.style.name == "Publication Code"
+        and "student_count = 24" in paragraph.text
+        for paragraph in course_document.paragraphs
+    )
+
+
 def test_pdf_normalizes_common_typographic_punctuation() -> None:
     """English smart punctuation must remain readable with the built-in PDF font."""
 
@@ -339,6 +550,33 @@ def test_pdf_normalizes_common_typographic_punctuation() -> None:
     assert "client's resolver-when ready-answers" in course_pdf_text
     assert '"safely"' in course_pdf_text
     assert "client-s" not in course_pdf_text
+
+
+def test_long_pdf_content_paginates_without_truncating_the_tail() -> None:
+    """Long generated lessons must survive page breaks with accurate folios."""
+
+    bundle = valid_bundle()
+    bundle.course.title = (
+        "A Practical Field Guide to Reliable Variables, Clear Names, "
+        "Thoughtful State, and Maintainable Programs"
+    )
+    long_lesson = " ".join(f"concept-{concept_number}" for concept_number in range(700))
+    bundle.course.modules[0].sections[0].content_blocks[
+        0
+    ].text = f"{long_lesson} final-layout-marker"
+
+    rendered = ArtifactRenderer().render_bundle(bundle)
+    pdf_document = fitz.open(stream=rendered["course_pdf"].content, filetype="pdf")
+    try:
+        assert len(pdf_document) >= 4
+        cover_text = pdf_document[0].get_text("text")
+        extracted_text = "\n".join(page.get_text("text") for page in pdf_document)
+        assert "Maintainable Programs" in cover_text
+        assert "final-layout-marker" in extracted_text
+        for page_number, page in enumerate(list(pdf_document)[1:], start=2):
+            assert f"{page_number} / {len(pdf_document)}" in page.get_text("text")
+    finally:
+        pdf_document.close()
 
 
 def test_summary_label_removes_one_model_supplied_leading_colon() -> None:

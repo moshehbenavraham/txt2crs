@@ -32,9 +32,10 @@ the application shell.
 - Five fixed schema-constrained stages plus one bounded lesson-writing turn per
   module, with finite transient retries, prompt-token preflight, and no more
   than one schema-repair turn per invalid stage.
-- Deterministic cross-artifact quality gates and safe rendering to HTML,
-  Markdown, searchable PDF, and real DOCX for all four deliverables (16
-  private artifacts).
+- Deterministic cross-artifact quality gates and a shared publication design
+  system for responsive/print HTML, portable Markdown, searchable outlined A4
+  PDF, and styled native DOCX across all four deliverables (16 private
+  artifacts).
 - HMAC request verification, replay protection, consent/content policy,
   high-risk review gates, tenant-scoped SQLite state, cumulative per-stage and
   per-module checkpoints, restored budgets, and explicit durable

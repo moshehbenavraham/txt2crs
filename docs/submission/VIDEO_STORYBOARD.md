@@ -144,10 +144,10 @@ review pack, student assessment, and separate instructor answer key.
 Built with Codex for OpenAI Build Week in the Education category. The product
 runtime uses exact gpt-5.6-sol generation grounded by bounded Tavily research.
 This walkthrough uses synthetic nonpersonal content from the tested local
-Docker 1.0.0 proof; the judge-ready repository release is 1.0.4.
+Docker 1.0.0 proof; the current judge-ready repository release is 1.2.1.
 
 Repository: https://github.com/moshehbenavraham/txt2crs
-Release v1.0.4: https://github.com/moshehbenavraham/txt2crs/tree/v1.0.4
+Release v1.2.1: https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1
 ```
 
 **Audience**: No, it is not made for kids
@@ -162,7 +162,7 @@ The human operator performs these checks after upload:
 3. Play the full public video while signed out.
 4. Confirm narration is audible and names both Codex and GPT-5.6.
 5. Confirm text is legible at 1080p playback.
-6. Confirm the description links the repository and intended `v1.0.4`
+6. Confirm the description links the repository and intended `v1.2.1`
    release.
 7. Use the stable public URL in the Devpost entry.
 8. Keep platform confirmation details outside the tracked repository.

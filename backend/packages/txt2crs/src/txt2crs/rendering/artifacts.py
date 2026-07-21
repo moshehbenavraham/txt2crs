@@ -3,15 +3,10 @@
 """Safe deterministic rendering for all learner and instructor artifacts."""
 
 import re
-import textwrap
 import unicodedata
 from dataclasses import dataclass
 from html import escape
-from io import BytesIO
 from urllib.parse import urlsplit
-
-import fitz  # type: ignore[import-untyped]
-from docx import Document
 
 from txt2crs.domain.models import (
     AnswerKey,
@@ -20,6 +15,13 @@ from txt2crs.domain.models import (
     ReviewPack,
 )
 from txt2crs.domain.validation import ArtifactBundle
+from txt2crs.rendering.publication_design import (
+    PublicationKind,
+    publication_html_end,
+    publication_html_start,
+    render_publication_docx,
+    render_publication_pdf,
+)
 
 _ACTIVE_CONTENT_PATTERNS = (
     re.compile(r"<\s*script\b", re.IGNORECASE),
@@ -42,20 +44,7 @@ _PRIVATE_CONTENT_PATTERNS = (
         r"[A-Za-z0-9._~+/-]{6,}"
     ),
 )
-_INLINE_MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]\n]+)\]\((https?://[^)\s]+)\)")
 _IDENTIFIER_CHARACTER_CLASS = r"A-Za-z0-9._:-"
-_PDF_PUNCTUATION_TRANSLATION = str.maketrans(
-    {
-        "\u00a0": " ",
-        "\u2018": "'",
-        "\u2019": "'",
-        "\u201c": '"',
-        "\u201d": '"',
-        "\u2013": "-",
-        "\u2014": "-",
-        "\u2026": "...",
-    }
-)
 _REVIEW_SCHEMA_FIELD_PATTERN = re.compile(
     r"`?\b(section|objective|exercise|flashcard|source)_id\b`?",
     re.IGNORECASE,
@@ -126,21 +115,6 @@ def _point_label(points: int) -> str:
 
     unit = "point" if points == 1 else "points"
     return f"{points} {unit}"
-
-
-def _plain_text_from_inline_markdown(value: str) -> str:
-    """Convert the renderer's small inline Markdown subset to portable text.
-
-    HTML and Markdown retain their native link semantics. PDF and DOCX are
-    intentionally dependency-light, so those formats spell out a link target
-    and remove emphasis/code markers instead of exposing raw Markdown syntax.
-    """
-
-    text_with_readable_links = _INLINE_MARKDOWN_LINK_PATTERN.sub(
-        r"\1 (\2)",
-        value,
-    )
-    return text_with_readable_links.replace("**", "").replace("__", "").replace("`", "")
 
 
 def _summary_text(value: str) -> str:
@@ -330,6 +304,7 @@ class ArtifactRenderer:
                     title=bundle.course.title,
                     subject="txt2crs generated course",
                     markdown_content=course_markdown,
+                    publication_kind="course",
                 ),
             ),
             "review_pack_html": RenderedArtifact(
@@ -349,6 +324,7 @@ class ArtifactRenderer:
                     title=f"{bundle.course.title} Review Pack",
                     subject="txt2crs generated review pack",
                     lines=review_markdown.splitlines(),
+                    publication_kind="review",
                 ),
             ),
             "review_pack_docx": RenderedArtifact(
@@ -361,6 +337,7 @@ class ArtifactRenderer:
                     title=f"{bundle.course.title} Review Pack",
                     subject="txt2crs generated review pack",
                     markdown_content=review_markdown,
+                    publication_kind="review",
                 ),
             ),
             "assessment_html": RenderedArtifact(
@@ -380,6 +357,7 @@ class ArtifactRenderer:
                     title=bundle.assessment.title,
                     subject="txt2crs generated student assessment",
                     lines=assessment_markdown.splitlines(),
+                    publication_kind="assessment",
                 ),
             ),
             "assessment_docx": RenderedArtifact(
@@ -392,6 +370,7 @@ class ArtifactRenderer:
                     title=bundle.assessment.title,
                     subject="txt2crs generated student assessment",
                     markdown_content=assessment_markdown,
+                    publication_kind="assessment",
                 ),
             ),
             "answer_key_html": RenderedArtifact(
@@ -411,6 +390,7 @@ class ArtifactRenderer:
                     title=f"{bundle.assessment.title} Answer Key",
                     subject="txt2crs generated instructor answer key",
                     lines=answer_key_markdown.splitlines(),
+                    publication_kind="answer-key",
                 ),
             ),
             "answer_key_docx": RenderedArtifact(
@@ -423,6 +403,7 @@ class ArtifactRenderer:
                     title=f"{bundle.assessment.title} Answer Key",
                     subject="txt2crs generated instructor answer key",
                     markdown_content=answer_key_markdown,
+                    publication_kind="answer-key",
                 ),
             ),
         }
@@ -433,69 +414,34 @@ class ArtifactRenderer:
         title: str,
         subject: str,
         markdown_content: str,
+        publication_kind: PublicationKind,
     ) -> bytes:
-        """Create a real Word document from trusted deterministic Markdown.
+        """Create a native, styled Word file from trusted local Markdown."""
 
-        The DOCX renderer intentionally supports the small Markdown vocabulary
-        emitted by this module. Keeping the conversion local means no model or
-        remote document service can silently rewrite the accepted artifact.
-        """
+        return render_publication_docx(
+            title=title,
+            subject=subject,
+            markdown_content=markdown_content,
+            publication_kind=publication_kind,
+        )
 
-        document = Document()
-        document.core_properties.title = title
-        document.core_properties.subject = subject
-        document.core_properties.author = "txt2crs"
-
-        inside_code_block = False
-        for raw_line in markdown_content.splitlines():
-            stripped_line = raw_line.strip()
-            if stripped_line == "```":
-                inside_code_block = not inside_code_block
-                continue
-            if not stripped_line:
-                document.add_paragraph()
-                continue
-            if inside_code_block:
-                document.add_paragraph(raw_line, style="No Spacing")
-                continue
-
-            heading_match = re.match(r"^(#{1,6})\s+(.+)$", stripped_line)
-            if heading_match is not None:
-                heading_level = min(9, len(heading_match.group(1)))
-                document.add_heading(
-                    _plain_text_from_inline_markdown(heading_match.group(2)),
-                    level=heading_level,
-                )
-                continue
-            if stripped_line.startswith("- "):
-                document.add_paragraph(
-                    _plain_text_from_inline_markdown(stripped_line.removeprefix("- ")),
-                    style="List Bullet",
-                )
-                continue
-            numbered_match = re.match(r"^\d+\.\s+(.+)$", stripped_line)
-            if numbered_match is not None:
-                document.add_paragraph(
-                    _plain_text_from_inline_markdown(numbered_match.group(1)),
-                    style="List Number",
-                )
-                continue
-            document.add_paragraph(_plain_text_from_inline_markdown(stripped_line))
-
-        output_buffer = BytesIO()
-        document.save(output_buffer)
-        return output_buffer.getvalue()
-
-    def _document_start(self, *, title: str, language: str) -> str:
-        """Return shared accessible HTML document metadata."""
+    def _document_start(
+        self,
+        *,
+        title: str,
+        language: str,
+        publication_kind: PublicationKind,
+    ) -> str:
+        """Return metadata, local CSS, and the shared publication cover."""
 
         direction = "rtl" if language in {"ar", "fa", "he", "ur"} else "ltr"
-        return (
-            "<!doctype html>"
-            f'<html lang="{escape(language)}" dir="{direction}">'
-            '<head><meta charset="utf-8">'
-            '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f"<title>{escape(title)}</title></head><body>"
+        escaped_title = escape(title)
+        return publication_html_start(
+            title=escaped_title,
+            language=escape(language),
+            direction=direction,
+            publication_kind=publication_kind,
+            escaped_title=escaped_title,
         )
 
     def _render_course_html(self, course: Course) -> str:
@@ -512,11 +458,16 @@ class ArtifactRenderer:
             for index, source in enumerate(course.sources, start=1)
         }
         html_parts = [
-            self._document_start(title=course.title, language=course.language),
+            self._document_start(
+                title=course.title,
+                language=course.language,
+                publication_kind="course",
+            ),
             '<main id="course-content">',
-            f"<h1>{escape(course.title)}</h1>",
-            f"<p><strong>Audience:</strong> {escape(course.audience)}</p>",
-            f"<p><strong>Level:</strong> {escape(course.level)}</p>",
+            '<section class="publication-meta" aria-label="Course details">',
+            f"<p><strong>Audience</strong><br>{escape(course.audience)}</p>",
+            f"<p><strong>Level</strong><br>{escape(course.level)}</p>",
+            "</section>",
             "<section><h2>Prerequisites</h2><ul>",
         ]
         html_parts.extend(
@@ -543,6 +494,7 @@ class ArtifactRenderer:
             for section in course_module.sections:
                 html_parts.append(
                     f'<section id="{escape(section.section_id)}">'
+                    '<div class="lesson">'
                     f"<h3>{escape(section.title)}</h3>"
                 )
                 for block in section.content_blocks:
@@ -566,12 +518,14 @@ class ArtifactRenderer:
                         )
                     html_parts.append(rendered_block)
                 html_parts.append(
-                    f"<p><strong>Summary:</strong> "
+                    f'<p class="section-summary"><strong>Summary:</strong> '
                     f"{escape(_summary_text(section.summary))}</p>"
-                    "</section>"
+                    "</div></section>"
                 )
             if course_module.misconceptions:
-                html_parts.append("<h3>Common misconceptions</h3><ul>")
+                html_parts.append(
+                    '<h3>Common misconceptions</h3><ul class="caution-list">'
+                )
                 html_parts.extend(
                     f"<li>{escape(misconception)}</li>"
                     for misconception in course_module.misconceptions
@@ -584,11 +538,11 @@ class ArtifactRenderer:
                 )
                 html_parts.append("</ul>")
             html_parts.append("</section>")
-        html_parts.append("<section><h2>Glossary</h2><dl>")
+        html_parts.append('<section><h2>Glossary</h2><dl class="definition-grid">')
         for glossary_term in course.glossary:
             html_parts.append(
-                f"<dt>{escape(glossary_term.term)}</dt>"
-                f"<dd>{escape(glossary_term.definition)}</dd>"
+                f"<div><dt>{escape(glossary_term.term)}</dt>"
+                f"<dd>{escape(glossary_term.definition)}</dd></div>"
             )
         html_parts.append("</dl></section>")
         if course.unresolved_or_conflicting_claims:
@@ -613,7 +567,8 @@ class ArtifactRenderer:
                 f'<li id="source-{index}">{source_text} \u2014 '
                 f"{escape(source.publisher_or_author)}</li>"
             )
-        html_parts.append("</ol></section></body></html>")
+        html_parts.append("</ol></section>")
+        html_parts.append(publication_html_end())
         return "".join(html_parts)
 
     def _render_review_html(self, review: ReviewPack, course: Course) -> str:
@@ -629,9 +584,9 @@ class ArtifactRenderer:
             self._document_start(
                 title=f"{course.title} Review Pack",
                 language=course.language,
+                publication_kind="review",
             ),
             '<main id="review-content">',
-            f"<h1>{escape(course.title)} Review Pack</h1>",
             "<section><h2>Suggested review sequence</h2><ol>",
         ]
         parts.extend(
@@ -687,17 +642,19 @@ class ArtifactRenderer:
                     )
             parts.append(", ".join(source_links) or "Course content")
             parts.append("</p></article>")
-        parts.append("</section><section><h2>Glossary</h2><dl>")
+        parts.append('</section><section><h2>Glossary</h2><dl class="definition-grid">')
         for glossary_term in review.glossary:
             parts.append(
-                f"<dt>{escape(glossary_term.term)}</dt>"
-                f"<dd>{escape(glossary_term.definition)}</dd>"
+                f"<div><dt>{escape(glossary_term.term)}</dt>"
+                f"<dd>{escape(glossary_term.definition)}</dd></div>"
             )
-        parts.append("</section><section><h2>Flashcards</h2><dl>")
+        parts.append(
+            '</dl></section><section><h2>Flashcards</h2><dl class="flashcard-grid">'
+        )
         for flashcard in review.flashcards:
             parts.append(
-                f"<dt>{escape(flashcard.prompt)}</dt>"
-                f"<dd>{escape(flashcard.answer)}</dd>"
+                f"<div><dt>{escape(flashcard.prompt)}</dt>"
+                f"<dd>{escape(flashcard.answer)}</dd></div>"
             )
         parts.append("</dl></section><section><h2>Worked examples</h2>")
         for example_index, example in enumerate(review.worked_examples, start=1):
@@ -727,8 +684,9 @@ class ArtifactRenderer:
         parts.append(
             f"</dl></section><section><h2>Cumulative summary</h2>"
             f"<p>{escape(review.cumulative_summary)}</p></section>"
-            "</main></body></html>"
+            "</main>"
         )
+        parts.append(publication_html_end())
         return "".join(parts)
 
     @staticmethod
@@ -821,12 +779,16 @@ class ArtifactRenderer:
             self._document_start(
                 title=assessment.title,
                 language=course.language,
+                publication_kind="assessment",
             ),
             '<main id="assessment-content">',
-            f"<h1>{escape(assessment.title)}</h1>",
+            '<section class="learner-fields" aria-label="Learner details">'
+            "<p><strong>Student name</strong></p><p><strong>Date</strong></p>"
+            "</section>",
+            '<section class="assessment-overview"><h2>Assessment overview</h2>',
             f"<p>{escape(assessment.instructions)}</p>",
             f"<p><strong>Passing score:</strong> {assessment.passing_percentage}%</p>",
-            "<ol>",
+            "</section><section><h2>Questions</h2><ol>",
         ]
         for item in assessment.items:
             parts.append(
@@ -837,8 +799,13 @@ class ArtifactRenderer:
                 parts.append('<ol type="A">')
                 parts.extend(f"<li>{escape(option)}</li>" for option in item.options)
                 parts.append("</ol>")
+            parts.append(
+                '<div class="response-space" aria-label="Response space">'
+                "Response space</div>"
+            )
             parts.append("</li>")
-        parts.append("</ol></main></body></html>")
+        parts.append("</ol></section></main>")
+        parts.append(publication_html_end())
         return "".join(parts)
 
     def _render_answer_key_html(
@@ -858,9 +825,11 @@ class ArtifactRenderer:
             self._document_start(
                 title=f"{assessment.title} Answer Key",
                 language=course.language,
+                publication_kind="answer-key",
             ),
             '<main id="answer-key-content">',
-            f"<h1>{escape(assessment.title)} Answer Key</h1>",
+            '<section class="instructor-banner"><strong>Instructor edition.</strong> '
+            "Keep this publication separate from learner materials.</section>",
         ]
         for answer in answer_key.answers:
             item = item_by_id[answer.item_id]
@@ -901,7 +870,8 @@ class ArtifactRenderer:
                 for criterion in answer.rubric
             )
             parts.append("</ul></article>")
-        parts.append("</main></body></html>")
+        parts.append("</main>")
+        parts.append(publication_html_end())
         return "".join(parts)
 
     def _render_course_markdown(self, course: Course) -> str:
@@ -933,7 +903,15 @@ class ArtifactRenderer:
             )
             for section in course_module.sections:
                 lines.extend([f"### {section.title}", ""])
-                lines.extend(block.text for block in section.content_blocks)
+                for content_block in section.content_blocks:
+                    if content_block.kind == "code":
+                        # The renderer owns a deliberately small Markdown
+                        # vocabulary. Explicit fences let PDF and DOCX retain a
+                        # format-native code treatment instead of flattening a
+                        # canonical code example into body prose.
+                        lines.extend(["```", content_block.text, "```", ""])
+                    else:
+                        lines.append(content_block.text)
                 lines.extend(["", f"**Summary:** {_summary_text(section.summary)}", ""])
             if course_module.misconceptions:
                 lines.extend(["### Common misconceptions", ""])
@@ -1162,12 +1140,13 @@ class ArtifactRenderer:
         return "\n".join(lines).strip() + "\n"
 
     def _render_course_pdf(self, course: Course) -> bytes:
-        """Create a searchable text PDF without remote assets or AI formatting."""
+        """Create the searchable, publication-designed course PDF."""
 
         return self._render_text_pdf(
             title=course.title,
             subject="txt2crs generated course",
             lines=self._render_course_markdown(course).splitlines(),
+            publication_kind="course",
         )
 
     def _render_text_pdf(
@@ -1176,47 +1155,16 @@ class ArtifactRenderer:
         title: str,
         subject: str,
         lines: list[str],
+        publication_kind: PublicationKind,
     ) -> bytes:
-        """Create a searchable PDF from already validated local text lines."""
+        """Create a styled searchable PDF from validated local text lines."""
 
-        document = fitz.open()
-        try:
-            page = document.new_page()
-            vertical_position = 72.0
-            for original_line in lines:
-                # Markdown markers add no value in PDF output. Removing the
-                # small safe subset keeps the text readable without parsing or
-                # rendering arbitrary HTML.
-                plain_line = re.sub(
-                    r"^(?:#{1,6}\s+|[-*]\s+|\d+\.\s+)", "", original_line
-                )
-                plain_line = _plain_text_from_inline_markdown(plain_line)
-                plain_line = plain_line.translate(_PDF_PUNCTUATION_TRANSLATION)
-                wrapped_lines = textwrap.wrap(plain_line, width=85) or [""]
-                for wrapped_line in wrapped_lines:
-                    if vertical_position > 770:
-                        page = document.new_page()
-                        vertical_position = 72.0
-                    # Helvetica creates searchable text. Unsupported glyphs are
-                    # replaced by the PDF engine, while the HTML remains the
-                    # fully accessible multilingual source of truth.
-                    page.insert_text(
-                        (72, vertical_position),
-                        wrapped_line,
-                        fontname="helv",
-                        fontsize=11,
-                    )
-                    vertical_position += 16
-            document.set_metadata(
-                {
-                    "title": title,
-                    "subject": subject,
-                    "author": "txt2crs",
-                }
-            )
-            return bytes(document.tobytes(garbage=4, deflate=True))
-        finally:
-            document.close()
+        return render_publication_pdf(
+            title=title,
+            subject=subject,
+            markdown_lines=lines,
+            publication_kind=publication_kind,
+        )
 
 
 def _safe_http_href(url: str) -> str | None:

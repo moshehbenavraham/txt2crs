@@ -20,7 +20,7 @@ This document owns the end-to-end deliverable lifecycle:
 - private artifact storage and integrity verification;
 - manifest and download delivery;
 - HTML preview isolation; and
-- the current formatting baseline and its known limitations.
+- the current publication design contract and its known limitations.
 
 Related sources of truth remain authoritative for their narrower concerns:
 
@@ -73,7 +73,8 @@ control system.
 |----------------|-------|------------------------|
 | Canonical education models and cross-artifact invariants | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/domain/` |
 | Educational and assessment quality validation | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/generation/quality.py` |
-| Format rendering and rendered HTML QA | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py` |
+| Content-to-format rendering and rendered HTML QA | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py` |
+| Cross-format publication design system | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/rendering/publication_design.py` |
 | Private persistence, manifest construction, and integrity checks | txt2crs engine | `backend/packages/txt2crs/src/txt2crs/jobs/artifact_store.py`, `backend/packages/txt2crs/src/txt2crs/jobs/artifact_reader.py`, and `backend/packages/txt2crs/src/txt2crs/jobs/artifact_queries.py` |
 | Owner authorization and public package queries | txt2crs application facade | `backend/packages/txt2crs/src/txt2crs/application/` and `backend/packages/txt2crs/src/txt2crs/jobs/service.py` |
 | HTTP projection, headers, and ASGI streaming | FastAPI shell | `backend/app/api/routes/jobs.py` and `backend/app/api/artifact_response.py` |
@@ -95,11 +96,11 @@ final cross-validated canonical bundle checkpoint
 bundle and assessment quality revalidation
     |
     v
-deterministic HTML and Markdown rendering
+deterministic semantic HTML and Markdown rendering
     |
-    +--> searchable text PDF rendering from Markdown
+    +--> publication-designed searchable PDF rendering from Markdown
     |
-    `--> DOCX rendering from Markdown
+    `--> styled native DOCX rendering from Markdown
     |
     v
 rendered HTML safety and structure QA
@@ -147,8 +148,9 @@ this step.
 
 The renderer derives an ASCII, path-safe filename slug from the course title.
 It renders HTML and Markdown directly from the canonical models, then uses the
-corresponding Markdown as the input for PDF and DOCX conversion. Filenames use
-the following shapes:
+corresponding Markdown as the content input for independent PDF and DOCX layout
+engines. `publication_design.py` owns the shared brand vocabulary and each
+format's native presentation rules. Filenames use the following shapes:
 
 ```text
 <course-slug>-course.<format>
@@ -173,10 +175,17 @@ Before any artifacts leave the renderer, every HTML document is checked for:
 HTML validation rejects the complete render operation if any issue is found.
 The HTML renderer also escapes canonical text before inserting it into markup.
 
-PDF and DOCX generation can fail the render operation when their libraries
-cannot create valid bytes, but the live runtime does not currently reopen and
-visually analyze those binary files before storage. Binary parsing,
-text-extraction, and layout inspection are test-time and release-time checks.
+The renderer suite then reopens representative PDF and DOCX bytes to verify
+searchable text, cover and heading hierarchy, PDF outlines and folios, Word
+styles and page fields, native link relationships, code treatment, worksheet
+space, and instructor-answer separation. PDF page images and LibreOffice DOCX
+conversions remain release-time visual checks because aesthetic judgment cannot
+be reduced to a byte-level runtime gate.
+
+PDF and DOCX generation still fails the complete render operation when their
+local libraries cannot create valid bytes. The live runtime does not launch a
+browser or office suite before storage; that would make job completion depend
+on heavyweight, platform-specific applications.
 
 ### 4. Durable Delivery And Atomic Publication
 
@@ -310,94 +319,117 @@ For isolation, preview processing removes hyperlink navigation attributes.
 The downloaded original HTML retains the renderer's safe HTTP(S) bibliography
 links; the inert preview presents their text without making them navigable.
 
-## Format-Specific Rendering Baseline
+## Publication Design System
 
-This section defines the current formatting implementation. It is intentionally
-specific so future work can distinguish an existing guarantee from a desired
-improvement.
+The four publications share one restrained editorial identity derived from the
+application experience: warm paper, deep forest green, champagne gold, a serif
+display face, and a compact sans-serif reading face. Presentation never changes
+the canonical educational content or the student/instructor answer boundary.
+
+| Role | Value | Purpose |
+|------|-------|---------|
+| Foundation | Forest `#1A5038` | Covers, headings, running furniture, and trusted callouts |
+| Highlight | Gold `#B8832A` | Kicker text, rules, numbered contents, and small emphasis |
+| Paper | Warm cream `#FBF8F0` | Low-glare screen reading surface |
+| Course accent | Green `#2D6B4A` | Curriculum and lesson identity |
+| Review accent | Blue `#3E6485` | Recall and practice identity |
+| Assessment accent | Ochre `#A06D18` | Learner worksheet identity |
+| Answer-key accent | Brick `#8A4738` | Instructor-only identity and separation cue |
+
+The design system follows five rules:
+
+1. The document title and publication type must be unmistakable before content.
+2. Heading hierarchy, code, callouts, lists, and sources must remain recognizable
+   in every format.
+3. Screen HTML and paper formats must each use their native layout capabilities.
+4. Assessment files must be usable as worksheets, not merely readable question
+   lists.
+5. No visual treatment may introduce a remote runtime dependency or active
+   content surface.
+
+## Format-Specific Rendering Contract
 
 ### HTML
 
-Current behavior:
+Each HTML artifact is a UTF-8 standalone publication with:
 
-- UTF-8 standalone HTML document;
 - language and left-to-right or right-to-left document metadata;
+- one self-contained screen and print stylesheet;
+- a branded cover, publication-specific accent, balanced title hierarchy, and
+  responsive reading width;
+- styled metadata, chapters, lesson cards, summaries, code, misconceptions,
+  glossaries, flashcards, practice solutions, and bibliography regions;
+- printable learner-name, date, and response areas in the assessment;
 - semantic `main`, `section`, `article`, heading, paragraph, list, definition
   list, `details`, and bibliography structures where applicable;
-- escaped canonical content;
-- local fragment citations and safe HTTP(S) source links; and
-- no script, iframe, remote media, or remote stylesheet dependency.
+- escaped canonical content, local fragment citations, and safe HTTP(S) links;
+  and
+- no script, iframe, remote font, remote media, or remote stylesheet dependency.
 
-Current visual baseline:
-
-- the generated file contains no publication stylesheet;
-- layout and typography therefore use browser defaults;
-- the frontend styles the preview frame and dialog, not the document content
-  inside the isolated iframe; and
-- semantic accessibility is stronger than visual art direction.
+The mobile layout collapses two-column metadata and card grids below `42rem`.
+The print stylesheet uses A4 geometry, forces the cover onto its own page,
+preserves color where supported, and avoids breaking short semantic blocks.
+Reduced-motion preferences disable smooth scrolling.
 
 ### Markdown
 
-Current behavior:
+Markdown remains the most direct portable text representation. It provides:
 
-- UTF-8 portable text;
-- conventional headings, lists, emphasis, fenced code, and links;
-- stable learner-facing section ordering; and
+- UTF-8 headings, lists, emphasis, fenced code, and links;
+- stable learner-facing section order;
+- reader-facing labels instead of canonical internal identifiers;
+- explicit student/instructor content separation; and
 - a final newline.
 
-Current visual baseline depends on the Markdown viewer. The artifact does not
-bundle a renderer or theme. It is the most direct portable text representation
-and is also the source used by the PDF and DOCX renderers.
+Its exact typography still depends on the selected Markdown viewer. The engine
+does not bundle an executable renderer or a viewer-specific theme into a text
+file. The same reviewed Markdown vocabulary is the content input for PDF and
+DOCX layout.
 
 ### PDF
 
-Current behavior:
+Each PDF is a locally generated, searchable A4 publication with:
 
-- searchable text PDF produced locally with PyMuPDF;
-- text is derived from the corresponding Markdown;
-- common Markdown prefixes and inline markers are removed;
-- HTTP(S) links are spelled out as text;
-- common English smart punctuation is normalized for the built-in font;
-- lines wrap at a fixed character count; and
-- new pages are created at a fixed vertical boundary.
+- a full-page forest cover, publication accent rail, label, title, deck, and
+  provenance line;
+- a multilevel heading scale, retained list markers, dedicated monospaced code
+  treatment, and shaded semantic callouts;
+- consistent page furniture, including running document labels and accurate
+  current/total folios;
+- a PDF outline built from the rendered heading structure;
+- printed HTTP(S) targets plus native click annotations when a complete URL
+  fits on one rendered line;
+- learner-name, date, and ruled response areas in the assessment;
+- title, subject, author, creator, keyword, and publication metadata; and
+- deterministic local rendering through PyMuPDF only.
 
-Current visual baseline:
-
-- built-in Helvetica at 11 points;
-- fixed 72-point left and top positions and 16-point line advance;
-- no visual heading hierarchy after Markdown markers are removed;
-- no retained bullet or numbered-list marker styling;
-- no cover, table of contents, header, footer, page number, link annotation,
-  table layout, or dedicated code style; and
-- unsupported glyphs can be replaced by the PDF engine. HTML remains the
-  current multilingual source of truth.
-
-The current PDF is a valid searchable text export, not a publication-designed
-or accessibility-tagged PDF.
+Common English smart punctuation is normalized for reliable Base 14 font
+output. A URL too long to fit on one line remains visible text but may not have a
+single native annotation. The PDF is not currently tagged for PDF/UA, and HTML
+remains the authoritative multilingual and RTL presentation.
 
 ### DOCX
 
-Current behavior:
+Each DOCX is real, editable OOXML generated locally with `python-docx`. It has:
 
-- real OOXML produced locally with `python-docx`;
-- title, subject, and author document properties;
-- Word heading levels for Markdown headings;
-- default Word bullet and numbered-list styles;
-- `No Spacing` paragraphs for fenced code; and
-- plain text conversion of inline emphasis, code markers, and links.
+- explicit A4 geometry, reviewed margins, and a full-page branded cover panel;
+- document metadata for title, subject, author, category, and keywords;
+- versioned-in-code paragraph styles for title, four heading levels, metadata,
+  contents, code, callouts, and response space;
+- native Word heading levels for navigation, keep-with-next and keep-together
+  heading controls, widow control, and explicit cover/page breaks;
+- a static contents page only when the publication has enough sections to make
+  one useful;
+- running headers, current/total page fields, and an update-fields-on-open hint;
+- native external hyperlink relationships with visible targets for printed
+  copies;
+- shaded callouts and code blocks; and
+- student-name, date, and ruled response areas in assessment documents.
 
-Current visual baseline:
-
-- the default `python-docx` Word template and styles;
-- no custom fonts, colors, spacing scale, margins, page size, or theme;
-- no cover, table of contents, running header, footer, or page number;
-- no explicit page-break, keep-with-next, widow, or orphan rules;
-- no dedicated table, callout, rubric, worksheet-answer-space, or flashcard
-  layout; and
-- link targets are visible text rather than native clickable Word hyperlinks.
-
-The current DOCX is editable and structurally readable, but it is not yet a
-branded publishing template.
+Word, LibreOffice, and other editors can substitute locally available fonts,
+so pagination can vary slightly between applications. The semantic heading and
+field structure, content, colors, page geometry, and answer separation remain
+part of the generated OOXML contract.
 
 ## Deliverable Content Mapping
 
@@ -405,7 +437,7 @@ branded publishing template.
 |-------------|---------------------------|
 | Course | Title, audience, level, prerequisites, learning objectives, modules, sections, content blocks, summaries, optional misconceptions and examples, glossary, optional unresolved claims, and bibliography |
 | Review pack | Review sequence, objective study guide, key takeaways, misconceptions, sources, glossary, flashcards, worked examples, practice with solutions, section summaries, and cumulative summary |
-| Student assessment | Title, instructions, passing score, ordered questions, point values, and options where applicable; no answers, evidence, grading criteria, or rubrics |
+| Student assessment | Title, learner-name and date fields in designed formats, instructions, passing score, ordered questions, point values, options where applicable, and printable response space; no answers, evidence, grading criteria, or rubrics |
 | Instructor answer key | Corresponding question prompt, correct answers, explanation, evidence sources, grading criteria, and rubric for each assessment item |
 
 Canonical internal identifiers support validation and cross-artifact alignment.
@@ -420,8 +452,10 @@ not expose schema field names or stale internal references.
 |------|----------------|------------------------|
 | Canonical model validation | Required fields, schema versions, identifiers, bounds, and domain invariants are valid | Visual presentation |
 | Cross-artifact validation | Course, review, assessment, answer key, objective coverage, and answer separation agree | Page layout |
-| Assessment quality validation | Assessment and answer-key quality rules pass | Printable worksheet design |
-| Rendered HTML QA | Required HTML structure exists and active/private content patterns are absent | Typography or responsive document design |
+| Assessment quality validation | Assessment and answer-key quality rules pass | Final page geometry |
+| Rendered HTML QA | Required HTML structure exists and active/private content patterns are absent | Browser-specific layout fidelity |
+| PDF structure tests | Searchable content, cover artwork, hierarchy, outline, folios, code, worksheet space, and link annotations exist | Subjective visual balance for every possible content length |
+| DOCX structure tests | Native styles, A4 geometry, cover, page fields, navigation, links, code, and worksheet space exist | Identical pagination across office suites |
 | Artifact metadata validation | Names, media types, byte values, uniqueness, and configured total size are valid | Document aesthetics |
 | Manifest and descriptor verification | Stored topology, file identity, size, and SHA-256 hash match | Content pedagogy or layout |
 | HTTP and frontend transfer checks | The authorized verified artifact is represented with the expected type, size, and filename | Visual fidelity in external office applications |
@@ -432,11 +466,21 @@ The current renderer suite checks:
 
 - all sixteen deliverable-format pairs;
 - semantic and escaped HTML;
+- embedded responsive, print, and reduced-motion CSS in every HTML publication;
+- branded HTML covers and distinct course, review, assessment, and answer-key
+  identities;
 - required content presence;
 - student and instructor answer separation;
 - usable instructor evidence disclosure;
-- nonempty searchable PDF text;
-- parseable nonempty DOCX content;
+- searchable PDF text, cover artwork, heading-size hierarchy, outlines, running
+  furniture, exact folios, and native source links;
+- multi-page long-lesson pagination with preserved tail content and exact
+  folios;
+- PDF assessment learner fields and ruled response space;
+- parseable DOCX content, explicit A4 geometry, branded covers, custom styles,
+  page fields, heading pagination rules, native links, and useful contents-page
+  behavior;
+- format-native fenced-code treatment in HTML, Markdown, PDF, and DOCX;
 - reader-facing replacement of internal identifiers;
 - optional-section omission;
 - Markdown marker cleanup in PDF and DOCX;
@@ -471,14 +515,17 @@ npm run test:unit
 
 ### Human Release Inspection
 
-The `1.0.0` release evidence records one historical human inspection of all
-sixteen artifacts. PDFs were opened, text-extracted, and reviewed page by page;
-DOCX files were integrity-checked and converted with LibreOffice for layout
-inspection.
+The `1.2.1` publication inspection renders one deterministic bundle into all
+sixteen artifacts. HTML is inspected at desktop and mobile widths, each native
+PDF page is rasterized and reviewed, every DOCX is converted through
+LibreOffice and reviewed page by page, and text/metadata/link structure is read
+back programmatically. See
+[Publication design inspection](release/PUBLICATION_DESIGN_INSPECTION_1_2_1.md).
 
-That evidence proves the inspected release artifacts met a bounded readability
-bar. It is not a reusable visual specification and does not automatically
-prove the layout of artifacts rendered by later source revisions.
+The older `1.0.0` evidence remains historical proof for the original readable
+baseline. Neither inspection proves arbitrary future content lengths or
+renderer upgrades; the same release check must be repeated after layout logic
+or dependencies change.
 
 ## Current Formatting Guarantees
 
@@ -489,28 +536,33 @@ The current system guarantees that artifacts are:
 - separated correctly between student assessment and instructor answer key;
 - safe from model-produced active HTML;
 - portable in the four advertised file formats;
-- readable as structured HTML or Markdown and searchable text PDF;
-- valid real DOCX rather than a renamed text file;
+- governed by one publication identity across HTML, PDF, and DOCX;
+- responsive and print-aware as self-contained semantic HTML;
+- readable as portable Markdown with format-native fenced code;
+- searchable, outlined, publication-designed A4 PDFs with accurate folios;
+- valid, styled, editable DOCX with native headings, page fields, and links;
+- usable as printable assessment worksheets in HTML, PDF, and DOCX;
+- visually distinct between learner assessment and instructor answer key;
 - immutable and integrity-checked after private publication; and
 - available only through owner-authorized manifest and artifact reads.
 
 The current system does not guarantee:
 
-- branded or premium editorial design inside the downloaded documents;
-- a shared visual design system across HTML, PDF, and DOCX;
-- professional print pagination or page-break control;
-- native PDF or DOCX hyperlink behavior;
 - tagged PDF accessibility or PDF/UA conformance;
 - robust multilingual font coverage in PDF;
-- custom tables, diagrams, charts, images, or callout components;
+- interactive PDF form fields;
+- native PDF link annotations for URLs that wrap across lines;
+- pixel-identical pagination across browsers, Word, and LibreOffice;
+- custom diagrams, charts, or generated images;
 - automatic visual comparison against approved reference pages; or
 - unchanged rendering across upgrades to PyMuPDF, `python-docx`, browsers, Word,
   or LibreOffice without renewed inspection.
 
-In current release terminology, a formatting `PASS` means the file is readable,
-opens correctly, preserves the publication meaning, and presents its lists and
-links acceptably for that format. It does not mean the file meets a defined
-publication-brand or advanced typesetting standard.
+In current release terminology, a formatting `PASS` means the file opens,
+preserves publication meaning and answer separation, satisfies the structural
+design checks above, and passes rendered page inspection at the recorded
+reference sizes. It is a bounded release judgment, not a claim of PDF/UA or
+pixel identity in every external viewer.
 
 ## Improvement Planning Baseline
 
@@ -520,23 +572,20 @@ criteria before changing a renderer.
 
 ### Candidate Improvement Areas
 
-1. Define a cross-format publication design system: type scale, spacing,
-   colors, page geometry, content widths, code, citations, callouts, and print
-   rules.
-2. Add self-contained screen and print CSS to HTML while preserving the current
-   active-content and remote-resource restrictions.
-3. Choose whether PDF remains a direct structured renderer or is produced from
-   a reviewed self-contained HTML print template.
-4. Add versioned DOCX styles or a reviewed local `.docx` template with explicit
-   page, heading, list, code, table, rubric, and assessment styles.
-5. Define multilingual and RTL requirements, including local font selection,
+1. Define multilingual and RTL requirements, including local font selection,
    embedding rights, shaping, fallback, and test fixtures.
-6. Define document accessibility targets separately for HTML, DOCX, and PDF.
-7. Add rendered-layout regression checks using representative long, short,
+2. Define document accessibility targets separately for HTML, DOCX, and PDF,
+   including whether PDF/UA is required.
+3. Add image-based layout regression checks using representative long, short,
    code-heavy, citation-heavy, assessment, and RTL fixtures.
-8. Add a release checklist with measurable format-specific criteria instead of
-   one undifferentiated formatting judgment.
-9. Decide whether already-published artifacts remain immutable forever or can
+4. Add robust native PDF link regions for URLs that wrap across rendered lines.
+5. Decide whether interactive PDF form fields improve assessment usability
+   without weakening portability or accessibility.
+6. Add reviewed diagram, table, chart, and image components when canonical
+   models can represent them without inventing content during rendering.
+7. Record an explicit publication-template version in artifact metadata and
+   manifests if re-rendering becomes a supported product operation.
+8. Decide whether already-published artifacts remain immutable forever or can
    be explicitly re-rendered under a versioned template without repeating
    model work.
 
@@ -588,7 +637,8 @@ its stable constraints belong here.
 | Canonical models | `backend/packages/txt2crs/src/txt2crs/domain/models.py` |
 | Cross-artifact validation | `backend/packages/txt2crs/src/txt2crs/domain/validation.py` |
 | Assessment quality | `backend/packages/txt2crs/src/txt2crs/generation/quality.py` |
-| Rendering | `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py` |
+| Content-to-format rendering | `backend/packages/txt2crs/src/txt2crs/rendering/artifacts.py` |
+| Publication design and layout | `backend/packages/txt2crs/src/txt2crs/rendering/publication_design.py` |
 | Completion orchestration | `backend/packages/txt2crs/src/txt2crs/jobs/executor.py` and `backend/packages/txt2crs/src/txt2crs/jobs/service.py` |
 | Artifact storage | `backend/packages/txt2crs/src/txt2crs/jobs/artifact_store.py` |
 | Artifact reads | `backend/packages/txt2crs/src/txt2crs/jobs/artifact_reader.py` |

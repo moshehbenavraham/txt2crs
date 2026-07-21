@@ -22,6 +22,40 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.2.1] - 2026-07-21
+
+### Added
+
+- Added a cross-format publication design system with branded covers,
+  publication-specific accents, responsive and print-aware HTML, searchable A4
+  PDFs with outlines and folios, styled native DOCX templates, format-native
+  code treatment, and printable assessment fields and response space.
+- Added structural design regression coverage and a public-safe `1.2.1`
+  inspection record covering browser, PDF page-image, and LibreOffice DOCX
+  rendering.
+
+### Changed
+
+- Replaced browser-default HTML, fixed-width text PDF output, and default Word
+  templates with offline, deterministic, format-native editorial layouts while
+  preserving canonical content, private delivery, and student/instructor
+  answer separation.
+- Upgraded the deliverable-system reference from a low-fidelity baseline into
+  the implemented publication design contract, quality matrix, verification
+  evidence, and bounded improvement roadmap.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Preserved canonical code blocks as fenced Markdown, monospaced PDF blocks,
+  and styled Word code paragraphs, and preserved source links as visible print
+  targets plus native PDF and DOCX link relationships where supported.
+
+### Security
+
 ## [1.1.6] - 2026-07-21
 
 ### Added

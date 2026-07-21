@@ -10,8 +10,9 @@ live under `backend/packages/txt2crs/docs/`.
   React client, databases, and deployment boundaries.
 - [Deliverable system](DELIVERABLE_SYSTEM.md) traces the complete publication
   lifecycle from validated education models through rendering, private storage,
-  integrity verification, preview, and download. It also defines the current
-  format-specific quality baseline for HTML, Markdown, PDF, and DOCX.
+  integrity verification, preview, and download. It also defines the shared
+  publication design system and format-specific quality contract for HTML,
+  Markdown, PDF, and DOCX.
 - [Onboarding](onboarding.md) provides the shortest verified local setup.
 - [Development](development.md) lists local endpoints, commands, and validation.
 - [Configuration](CONFIGURATION.md) catalogs environment variables and

@@ -55,6 +55,11 @@ Prepared locally:
 - [x] Record and verify the narrated 02:22.600 YouTube upload candidate.
 - [x] Capture the primary Codex `/feedback` Session ID.
 - [x] Prepare the six reviewed screenshots and complete Devpost project story.
+- [x] Upgrade all generated publications with a cohesive cross-format design
+  system and inspect responsive HTML, native PDF pages, and LibreOffice-rendered
+  DOCX output; see
+  [`DELIVERABLE_SYSTEM.md`](../DELIVERABLE_SYSTEM.md) and the
+  [`1.2.1` publication inspection](../release/PUBLICATION_DESIGN_INSPECTION_1_2_1.md).
 - [x] Provide a concise human publishing handoff.
 
 Human-only external actions:

@@ -1,9 +1,9 @@
 # txt2crs Release Evidence
 
-This directory indexes the bounded, public-safe evidence for the `1.0.0`
-hackathon release. It does not contain raw learner input, artifact bodies,
-credentials, provider payloads, prompts, account identifiers, local paths, or
-unrestricted private links.
+This directory indexes bounded, public-safe release evidence for the initial
+hackathon release and later inspected improvements. It does not contain raw
+learner input, artifact bodies, credentials, provider payloads, prompts,
+account identifiers, local paths, or unrestricted private links.
 
 ## Current State
 
@@ -13,7 +13,7 @@ historical live proof is tied to exact source revision
 job completed with exactly sixteen verified artifacts. Every inspection row
 passes and the canonical public ledger passes the strict evidence validator.
 
-All tracked judge assets are complete. The final annotated `v1.0.4` tag is
+All tracked judge assets are complete. The final annotated `v1.2.1` tag is
 intentionally left to the human release operator after one final review of the
 exact current commit. Tag creation and pushing are human-only actions. A
 tracked change after the tag requires a new SemVer release.
@@ -24,6 +24,7 @@ tracked change after the tag requires a new SemVer release.
 |----------|---------|------------------------|
 | [`DETERMINISTIC_SAMPLE_1_0_0.md`](DETERMINISTIC_SAMPLE_1_0_0.md) | Reproducible credential-free input and expected public result shape | Synthetic input and aggregate output facts only |
 | [`ARTIFACT_INSPECTION_1_0_0.md`](ARTIFACT_INSPECTION_1_0_0.md) | One review row for every deliverable/format pair | Judgments, sizes, and hashes; never artifact bodies |
+| [`PUBLICATION_DESIGN_INSPECTION_1_2_1.md`](PUBLICATION_DESIGN_INSPECTION_1_2_1.md) | Cross-format visual, structural, responsive, print, and office-rendering inspection for the publication design system | Synthetic fixture, dimensions, page counts, and judgments only |
 | [`RELEASE_CANDIDATE_1_0_0.json`](RELEASE_CANDIDATE_1_0_0.json) | Canonical revision, version, build, evaluation, live, and artifact ledger | Strictly allowlisted hashes, counts, durations, and judgments only |
 | [Session implementation notes](../../.spec_system/specs/phase05-session01-release-hardening-and-live-proof/implementation-notes.md) | Exact local commands, counts, known exceptions, and cleanup | Operational summaries without secrets or private payloads |
 
@@ -34,7 +35,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.0.4 \
+  --expected-version 1.2.1 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```
@@ -97,7 +98,7 @@ operator then:
 4. rebuild and inspect both production images;
 5. run production health and replacement smoke checks;
 6. grants both required reviewers private repository access;
-7. creates annotated tag `v1.0.4` on that exact commit;
+7. creates annotated tag `v1.2.1` on that exact commit;
 8. pushes the commit and tag and verifies the remote refs;
 9. publishes the verified demo video; and
 10. completes and submits the Education entry on Devpost.

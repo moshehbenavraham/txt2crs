@@ -12,7 +12,9 @@ document into four coordinated publications: a deep-researched course, a
 review pack, a student assessment, and a separate instructor answer key.
 Every publication is available in HTML, Markdown, PDF, and DOCX, giving a
 learner or instructor sixteen private, integrity-checked artifacts from one
-durable request.
+durable request. The downloads share one polished editorial system: responsive
+and print-ready HTML, portable Markdown, searchable A4 PDFs, editable Word
+documents, and assessment layouts that are ready to use on paper.
 
 ## Inspiration
 
@@ -48,7 +50,8 @@ assessment size, and accessibility preferences. txt2crs then:
 4. generates the learning structure with exact `gpt-5.6-sol`;
 5. validates and checkpoints accepted work;
 6. renders a course, review pack, student assessment, and instructor answer
-   key in HTML, Markdown, PDF, and DOCX; and
+   key through a shared, format-native publication design system in HTML,
+   Markdown, PDF, and DOCX; and
 7. delivers exactly sixteen owner-private artifacts.
 
 Progress is real server-owned state, not a browser timer. The learner can
@@ -178,7 +181,7 @@ and final source identity are explicit instead of blended together.
 
 ## What Is Next
 
-The current `1.0.4` release is deliberately a local Docker product for
+The current `1.2.1` release is deliberately a local Docker product for
 synthetic demonstrations. The next responsible steps are:
 
 - define formal retention, deletion, provider-transfer, and public
@@ -196,7 +199,7 @@ synthetic demonstrations. The next responsible steps are:
 
 - Source repository: <https://github.com/moshehbenavraham/txt2crs>
 - Intended immutable release:
-  <https://github.com/moshehbenavraham/txt2crs/tree/v1.0.4>
+  <https://github.com/moshehbenavraham/txt2crs/tree/v1.2.1>
 - Public evidence map:
   [screenshots and release evidence](PUBLIC_EVIDENCE_INDEX.md)
 - Deterministic judge sample:
