@@ -49,7 +49,7 @@ services:
       - "${POSTGRES_PORT?Variable not set}:5432"
 
   adminer:
-    image: adminer:5.4.2
+    image: adminer:5.5.0
     restart: "no"
     networks:
       - traefik-public
