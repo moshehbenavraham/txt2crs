@@ -6,7 +6,7 @@ services:
   # etc. To enable it, update .env, set:
   # DOMAIN=localhost.tiangolo.com
   proxy:
-    image: traefik:v3.7.8
+    image: traefik:v3.7.9
     # Note: Docker provider disabled for local dev due to API version incompatibility
     # Services are accessed directly through the registered txt2crs host ports.
     volumes:
@@ -128,7 +128,7 @@ services:
   # Jaeger for OpenTelemetry trace visualization
   # Host mappings come from the registered values in the root .env.
   jaeger:
-    image: jaegertracing/jaeger:2.19.0
+    image: jaegertracing/jaeger:2.20.0
     restart: "no"
     ports:
       - "${JAEGER_UI_PORT?Variable not set}:16686"

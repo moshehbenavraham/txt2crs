@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.7.8
+    image: traefik:v3.7.9
     ports:
       # Registered local defaults avoid every other project in PORT-MAP.md.
       # A public deployment may override these values when its host exclusively
