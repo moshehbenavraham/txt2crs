@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "httpx>=0.28,<1",
-    "mcp>=1.28,<2",
+    "mcp>=2.0.0,<3",
     "openai-codex==0.144.4",
     "openai-codex-cli-bin==0.144.4",
     "pillow>=11,<13",
