@@ -37,6 +37,14 @@ Archived entries are stored in [`archive/`](archive/).
   `ValidationError` for `ENVIRONMENT`, `PROJECT_NAME`, `POSTGRES_SERVER`,
   `POSTGRES_USER`, and `FIRST_SUPERUSER`, because neither `.env` file exists in
   a fresh checkout.
+- Fixed two `tests/setup.spec.ts` assertions that waited on setup copy renamed
+  by commit `6c8d5c2`. "Ready for course work" became "Platform ready" and the
+  readiness description was rewritten, but only the unit test was updated, so
+  the browser tests waited on text the application never rendered.
+- Skipped `tests/admin.spec.ts` "deletes a user" unless
+  `TXT2CRS_RUN_LIVE_CODEX=1`, matching the engine suite's existing gate.
+  Deleting a user purges owner engine state, which needs an authenticated
+  Codex subscription, so the route answers 503 on any runner without one.
 - Fixed a `tsc` failure in `frontend/tests/course-library.spec.ts`, where the
   throwing placeholder made TypeScript infer `() => never` for the library
   response gate and reject the later `resolve` assignment.
