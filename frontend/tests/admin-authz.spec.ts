@@ -1,17 +1,15 @@
 import { expect, test } from "@playwright/test"
 import { createUser } from "./utils/privateApi"
-import { randomEmail } from "./utils/random"
+import { randomEmail, randomPassword } from "./utils/random"
 import { logInUser, logOutUser } from "./utils/user"
 
 test.use({ storageState: { cookies: [], origins: [] } })
-
-const strongPassword = () => `Apex!${Math.random().toString(36).slice(2, 12)}`
 
 test("Non-superuser direct /admin navigation redirects to forbidden without logout", async ({
   page,
 }) => {
   const email = randomEmail()
-  const password = strongPassword()
+  const password = randomPassword()
 
   await createUser({
     email,
@@ -53,8 +51,8 @@ test("Account switch shows fresh current user after logout/login boundary", asyn
 }) => {
   const firstUserEmail = randomEmail()
   const secondUserEmail = randomEmail()
-  const firstUserPassword = strongPassword()
-  const secondUserPassword = strongPassword()
+  const firstUserPassword = randomPassword()
+  const secondUserPassword = randomPassword()
   const firstUserName = "Switch User One"
   const secondUserName = "Switch User Two"
 

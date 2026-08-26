@@ -3,6 +3,7 @@
 """Integration tests for search-to-frozen-evidence coordination."""
 
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 from txt2crs.ai.runtime import CancellationToken
 from txt2crs.domain.models import ResearchPlan
@@ -16,6 +17,25 @@ from txt2crs.research.models import (
     SearchRequest,
     SearchResult,
 )
+
+AUTHORITY_HINT_PREFIX = " Reviewed authoritative domains: "
+
+
+def _authority_hint_domains(query: str) -> list[str]:
+    """Return the domains the coordinator advertised in its authority hint.
+
+    The coordinator appends a sentence such as
+    ``" Reviewed authoritative domains: docs.python.org."`` to the search query.
+    Splitting that sentence back into a list lets the tests compare exact domain
+    values instead of asking whether some hostname happens to appear anywhere in
+    the query text.
+    """
+
+    _, separator, hint = query.partition(AUTHORITY_HINT_PREFIX)
+    if not separator:
+        return []
+    # The hint always closes the query and ends with a sentence period.
+    return hint.rstrip(".").split(", ")
 
 
 class StubResearchTools:
@@ -360,7 +380,12 @@ def test_coordinator_targets_unmet_authority_and_education_floors() -> None:
         def extract(self, request: ExtractRequest) -> ExtractResult:
             documents: list[ExtractedDocument] = []
             for document_number, url in enumerate(request.urls):
-                if "example.edu" in url:
+                # Compare the parsed hostname rather than searching the raw URL
+                # for a substring: "example.edu" can legitimately appear inside
+                # a path or query string of a completely unrelated host, so a
+                # substring test would classify the wrong documents.
+                hostname = (urlsplit(url).hostname or "").casefold()
+                if hostname == "example.edu" or hostname.endswith(".example.edu"):
                     content = (
                         "Names bind to values according to the language reference. "
                         f"Distinct authoritative detail {document_number}."
@@ -573,7 +598,10 @@ def test_search_query_requests_planned_source_types_and_primary_domains() -> Non
 
     assert len(tools.queries) == 1
     assert "official_documentation" in tools.queries[0]
-    assert "docs.python.org" in tools.queries[0]
+    # Pull the authority hint apart and compare the domain list exactly, so the
+    # assertion cannot pass on an accidental substring match elsewhere in the
+    # query text.
+    assert _authority_hint_domains(tools.queries[0]) == ["docs.python.org"]
 
 
 def test_search_query_omits_irrelevant_configured_primary_domain() -> None:
@@ -611,7 +639,7 @@ def test_search_query_omits_irrelevant_configured_primary_domain() -> None:
     ).collect(unrelated_plan, CancellationToken(), high_risk_course=False)
 
     assert len(tools.queries) == 1
-    assert "docs.python.org" not in tools.queries[0]
+    assert _authority_hint_domains(tools.queries[0]) == []
 
 
 def test_coordinator_reports_unmet_authority_requirement_without_failing() -> None:

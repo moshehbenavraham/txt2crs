@@ -54,6 +54,16 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+- Resolved all 34 open CodeQL code-scanning alerts. The 32
+  `js/insecure-randomness` alerts traced back to `frontend/tests/utils/random.ts`
+  and `frontend/tests/admin-authz.spec.ts`, which generated fixture emails, team
+  names and account passwords from `Math.random()`; they now draw from
+  `node:crypto` `randomBytes` through one shared `randomToken()` helper. The two
+  `py/incomplete-url-substring-sanitization` alerts came from
+  `tests/integration/test_research_coordinator.py`, which classified extract
+  results with `"example.edu" in url` and asserted the primary-domain hint with a
+  substring test; both now compare parsed values exactly (`urlsplit` hostname and
+  a parsed authority-hint domain list).
 - Restored `cryptography` to a patched release in `backend/uv.lock`. The
   python-packages group lock was resolved before the standalone `cryptography`
   security bump landed, so merging it reverted the pin to 49.0.0 and brought
