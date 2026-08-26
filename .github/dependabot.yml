@@ -57,6 +57,16 @@ updates:
     commit-message:
       prefix: deps
     labels: [dependencies, internal]
+    # The backend pins `requires-python = ">=3.14,<3.15"`, so a 3.15 base image
+    # cannot build. Without this rule Dependabot proposes the next minor line
+    # (including pre-releases such as 3.15.0b3), which fails review every week.
+    # Moving to 3.15 is a deliberate change: lift the constraint in both
+    # pyproject.toml files and .python-version first, then drop this ignore.
+    ignore:
+      - dependency-name: python
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
     groups:
       docker-images:
         patterns:
