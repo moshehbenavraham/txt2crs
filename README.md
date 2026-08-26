@@ -1,13 +1,51 @@
-# txt2crs
+<p align="center">
+  <img
+    src="docs/txt2crs-readme-banner.webp"
+    alt="One source passing through a research atelier and becoming four polished learning publications"
+    width="100%"
+  />
+</p>
 
-Turn one topic or bounded source into a complete, source-grounded learning
-package: a course, a review pack, a student assessment, and a separate
-instructor answer key.
+<h1 align="center">txt2crs</h1>
 
-txt2crs is an OpenAI Build Week Education project. It combines a reusable
-Python course-generation engine, a durable FastAPI application, and a polished
-React learner experience. The tested release runs locally through Docker
-Compose; it is not presented as a hosted public generation service.
+<p align="center">
+  <strong>One bounded source in. A complete learning package out.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-backend.yml"><img alt="Backend tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-backend.yml?branch=main&style=for-the-badge&label=backend"></a>
+  <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-docker-compose.yml"><img alt="Docker Compose tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-docker-compose.yml?branch=main&style=for-the-badge&label=compose"></a>
+  <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/security.yml"><img alt="Security checks" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/security.yml?branch=main&style=for-the-badge&label=security"></a>
+  <a href="https://github.com/moshehbenavraham/txt2crs/releases/tag/v1.2.5"><img alt="Release 1.2.5" src="https://img.shields.io/badge/release-v1.2.5-235a46?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.141%2B-009688?style=flat-square&logo=fastapi&logoColor=white">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-20232A?style=flat-square&logo=react&logoColor=61DAFB">
+  <img alt="TypeScript 7" src="https://img.shields.io/badge/TypeScript-7-3178C6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="PostgreSQL 18" src="https://img.shields.io/badge/PostgreSQL-18-4169E1?style=flat-square&logo=postgresql&logoColor=white">
+  <img alt="GPT-5.6" src="https://img.shields.io/badge/GPT--5.6-exact_model-412991?style=flat-square&logo=openai&logoColor=white">
+  <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white">
+  <img alt="MIT-0 and MIT licensed" src="https://img.shields.io/badge/license-MIT--0_%2B_MIT-c7922c?style=flat-square">
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#try-the-deterministic-sample">Deterministic sample</a> ·
+  <a href="#testing">Testing</a> ·
+  <a href="#privacy-and-current-limits">Privacy &amp; limits</a>
+</p>
+
+Give txt2crs a topic, pasted text, public URL, YouTube URL, PDF, DOCX, or
+PPTX. It turns that single bounded source into a source-grounded course, review
+pack, student assessment, and separate instructor answer key.
+
+Built for the OpenAI Build Week Education category, txt2crs combines a
+reusable Python generation engine, a durable FastAPI application, and a warm,
+focused React learner experience. The tested release runs locally through
+Docker Compose; it is not presented as a hosted public generation service.
 
 ## What It Does
 
@@ -27,6 +65,16 @@ The application then:
 5. validates and checkpoints the generated learning structure;
 6. renders four publications in HTML, Markdown, PDF, and DOCX; and
 7. exposes exactly sixteen owner-private, integrity-checked artifacts.
+
+| Publication | What the learner gets |
+|---|---|
+| **Course** | A structured curriculum with objectives, modules, lessons, and cited sources |
+| **Review pack** | Key ideas, examples, study guidance, and focused practice |
+| **Student assessment** | A complete test aligned to what the course actually teaches |
+| **Instructor answer key** | Correct responses, explanations, and grading guidance kept separate from the student copy |
+
+Every publication ships in **HTML, Markdown, PDF, and DOCX**: four useful
+documents in four portable formats, for sixteen private artifacts in total.
 
 Progress survives refreshes and process replacement. Results include bounded
 source summaries and conflict disclosures, while the learner-facing API never
@@ -175,21 +223,55 @@ the [local deployment policy](docs/deployment-policy.md).
 
 ## Architecture
 
-```text
-React 19 learner and operator experience
-                |
-                | generated OpenAPI client
-                v
-FastAPI shell: HTTP, identity, settings, lifecycle, safe errors
-                |
-                | public txt2crs facade only
-                v
-txt2crs engine: requests, ingestion, policy, research, generation,
-               checkpoints, validation, rendering, private artifacts
-        |                       |                         |
-        v                       v                         v
- tenant SQLite        Tavily loopback MCP       packaged Codex runtime
- private files                                 exact gpt-5.6-sol
+The shell is intentionally thin: it owns HTTP, identity, lifecycle, and safe
+errors, while every course-generation responsibility stays behind the public
+`txt2crs` package facade.
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"background":"#faf8f2","primaryColor":"#edf3ee","primaryTextColor":"#24231f","primaryBorderColor":"#235a46","lineColor":"#6f746e","secondaryColor":"#fbf4df","tertiaryColor":"#eef1f5","fontFamily":"system-ui, sans-serif"},"flowchart":{"curve":"basis","nodeSpacing":28,"rankSpacing":42}}}%%
+flowchart TB
+    SOURCE["Topic · text · URL<br/>YouTube · PDF · DOCX · PPTX"]
+
+    subgraph PRODUCT["LEARNER APPLICATION"]
+        direction LR
+        UI["React 19 workspace<br/>create · follow · revisit"]
+        API["FastAPI shell<br/>HTTP · identity · safe errors"]
+        USERS[("PostgreSQL<br/>application users")]
+        UI -->|generated OpenAPI client| API
+        API <--> USERS
+    end
+
+    subgraph PACKAGE["REUSABLE TXT2CRS ENGINE"]
+        direction LR
+        ENGINE["Public engine facade<br/>ingest · policy · checkpoints<br/>validate · render · deliver"]
+        JOBS[("Tenant SQLite<br/>durable job truth")]
+        FILES[("Private filesystem<br/>immutable artifacts")]
+        ENGINE <--> JOBS
+        ENGINE --> FILES
+    end
+
+    PROVIDERS["Bounded providers<br/>Tavily loopback MCP<br/>Codex · exact GPT-5.6"]
+    OUTPUTS["Course · review pack<br/>student test · answer key<br/>HTML · Markdown · PDF · DOCX"]
+
+    SOURCE --> UI
+    API -->|public facade only| ENGINE
+    ENGINE <--> PROVIDERS
+    FILES -->|owner-scoped, integrity-checked| OUTPUTS
+
+    classDef input fill:#fbf4df,stroke:#c7922c,color:#24231f,stroke-width:2px;
+    classDef shell fill:#f7f5ef,stroke:#5f6b63,color:#24231f;
+    classDef focal fill:#edf3ee,stroke:#235a46,color:#183d30,stroke-width:2px;
+    classDef store fill:#eef1f5,stroke:#65728a,color:#24231f;
+    classDef external fill:#f8efe9,stroke:#a45c42,color:#24231f,stroke-dasharray:5 3;
+    classDef output fill:#fbf4df,stroke:#c7922c,color:#24231f,stroke-width:2px;
+    class SOURCE input;
+    class UI,API shell;
+    class ENGINE focal;
+    class USERS,JOBS,FILES store;
+    class PROVIDERS external;
+    class OUTPUTS output;
+    style PRODUCT fill:#faf8f2,stroke:#d8d3c7,stroke-width:1px,color:#235a46
+    style PACKAGE fill:#f7faf7,stroke:#9ab4a4,stroke-width:1px,color:#235a46
 ```
 
 PostgreSQL owns application users. Tenant-scoped SQLite is the only

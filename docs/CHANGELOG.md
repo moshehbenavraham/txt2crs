@@ -18,6 +18,10 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Changed
 
+- Reworked the root project guide around an original, brand-aligned README
+  banner, live repository shields, a faster input-to-output tour, and a
+  Mermaid architecture diagram that makes the application, engine, provider,
+  storage, and publication boundaries easier to understand.
 - Migrated both MCP servers to MCP SDK 2.0, where `FastMCP` is renamed
   `MCPServer` and every transport setting moves off the constructor onto the
   call that starts a transport. `ResearchMcpApplication` now owns
