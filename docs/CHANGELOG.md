@@ -12,6 +12,10 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+- Added `scripts/ci-create-env-files.sh`, which recreates the git-ignored
+  `.env` and `backend/.env` from their committed templates so continuous
+  integration jobs have a complete, secret-free configuration.
+
 ### Changed
 
 ### Deprecated
@@ -20,7 +24,25 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Fixed
 
+- Fixed every pull-request workflow, which had been failing before running any
+  real check. Docker Compose could not interpolate `${POSTGRES_PASSWORD}` and
+  `${FRONTEND_HOST}`, and importing `app.main` raised a Pydantic
+  `ValidationError` for `ENVIRONMENT`, `PROJECT_NAME`, `POSTGRES_SERVER`,
+  `POSTGRES_USER`, and `FIRST_SUPERUSER`, because neither `.env` file exists in
+  a fresh checkout.
+- Fixed a `tsc` failure in `frontend/tests/course-library.spec.ts`, where the
+  throwing placeholder made TypeScript infer `() => never` for the library
+  response gate and reject the later `resolve` assignment.
+- Corrected the `actions/setup-python` pin comments across the workflows. The
+  pinned commit is `v6.3.0`, not the `v6.0.0` the comments claimed, which the
+  zizmor `ref-version-mismatch` audit reported as a finding.
+
 ### Security
+
+- Allowlisted two historical gitleaks findings for synthetic `SECRET_KEY`
+  fixtures in `backend/tests/scripts/test_start_local_script.py`. The values
+  never authenticated anything and no longer appear in the current file, but
+  the scan walks the full commit history.
 
 ## [1.2.5] - 2026-07-21
 

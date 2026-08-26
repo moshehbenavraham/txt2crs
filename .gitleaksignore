@@ -5,3 +5,9 @@
 442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_auth_models.py:jwt:176
 442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_user_models.py:generic-api-key:454
 442524c394e9f9bbbd0101ddd0ea0e2c79b5599f:backend/tests/models/test_user_models.py:generic-api-key:488
+
+# Historical commit 594834c used a synthetic SECRET_KEY inside the start-local
+# script test fixtures. The value never authenticated anything and the current
+# file no longer contains it, but gitleaks scans the full history.
+594834cc8670efeb195c6c134b72cc109c100f69:backend/tests/scripts/test_start_local_script.py:generic-api-key:38
+594834cc8670efeb195c6c134b72cc109c100f69:backend/tests/scripts/test_start_local_script.py:generic-api-key:244

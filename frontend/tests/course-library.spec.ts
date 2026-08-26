@@ -96,7 +96,10 @@ test.describe("course library", () => {
   test("shows loading and empty recovery with persistent desktop and mobile navigation", async ({
     page,
   }) => {
-    let releaseLibraryResponse = () => {
+    // Annotate the gate explicitly. Without it TypeScript infers `() => never`
+    // from the throwing placeholder, and the later `resolve` assignment (which
+    // returns `void`) becomes a type error.
+    let releaseLibraryResponse: () => void = () => {
       throw new Error("The library response gate was not initialized.")
     }
     const libraryResponseGate = new Promise<void>((resolve) => {
