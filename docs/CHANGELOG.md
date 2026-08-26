@@ -22,6 +22,24 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+## [1.3.1] - 2026-08-26
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Synchronized the responsive setup Playwright assertion with the
+  credential-neutral authentication copy introduced in `1.3.0`, removing the
+  last subscription-only expectation from the active browser suite.
+
+### Security
+
 ## [1.3.0] - 2026-08-26
 
 ### Added

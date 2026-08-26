@@ -35,7 +35,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.3.0 \
+  --expected-version 1.3.1 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```

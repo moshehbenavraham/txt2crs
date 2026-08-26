@@ -8,12 +8,14 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.3.0`. It is a
-backward-compatible feature release that replaces expired event restrictions
-with portable deployment, configurable exact-model selection, ChatGPT or
-Platform API authentication, and operator-controlled public signup. Future
-compatibility decisions follow Semantic Versioning from the stable public API
-boundary established by `1.0.0`.
+The current repository and Python package release is `1.3.1`. It is a
+backward-compatible patch that synchronizes the setup browser regression with
+the credential-neutral copy shipped in `1.3.0`. The `1.3.0` feature release
+replaced expired event restrictions with portable deployment, configurable
+exact-model selection, ChatGPT or Platform API authentication, and
+operator-controlled public signup. Future compatibility decisions follow
+Semantic Versioning from the stable public API boundary established by
+`1.0.0`.
 
 ## Choosing the next version
 

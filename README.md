@@ -16,7 +16,7 @@
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-backend.yml"><img alt="Backend tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-backend.yml?branch=main&style=for-the-badge&label=backend"></a>
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-docker-compose.yml"><img alt="Docker Compose tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-docker-compose.yml?branch=main&style=for-the-badge&label=compose"></a>
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/security.yml"><img alt="Security checks" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/security.yml?branch=main&style=for-the-badge&label=security"></a>
-  <a href="https://github.com/moshehbenavraham/txt2crs/releases/tag/v1.3.0"><img alt="Release 1.3.0" src="https://img.shields.io/badge/release-v1.3.0-235a46?style=for-the-badge"></a>
+  <a href="https://github.com/moshehbenavraham/txt2crs/releases/tag/v1.3.1"><img alt="Release 1.3.1" src="https://img.shields.io/badge/release-v1.3.1-235a46?style=for-the-badge"></a>
 </p>
 
 <p align="center">

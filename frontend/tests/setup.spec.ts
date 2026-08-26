@@ -270,7 +270,7 @@ test("bounded long codes and repeated safe values remain responsive without key 
   ).toBeGreaterThanOrEqual(200)
   expect(
     await page
-      .getByText("Dedicated subscription identity for course generation.", {
+      .getByText("ChatGPT or API-key authentication for course generation.", {
         exact: true,
       })
       .evaluate((element) => element.getBoundingClientRect().width),
