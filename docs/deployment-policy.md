@@ -2,85 +2,88 @@
 
 ## Scope
 
-txt2crs is local-first and local-only for the current project scope.
-Repository-root Docker Compose is the sole deployment source of truth.
+txt2crs is container-first and deployment-platform neutral.
+Docker Compose is the reference deployment source of truth for a complete installation, not a
+restriction to one laptop or one vendor. The same backend and frontend images
+may run on a hosted container platform when its configuration preserves the
+runtime, security, persistence, and health contracts below.
 
 This policy is established by
-[ADR-0008](adr/0008-local-only-deployment-scope.md), which supersedes the
-donor-era hosted-platform decision.
+[ADR-0009](adr/0009-portable-container-deployment.md), which supersedes the
+Build Week local-only decision in
+[ADR-0008](adr/0008-local-only-deployment-scope.md).
 
-## Authoritative Path
+## Reference Path
 
 ```bash
 cp .env.example .env
-# Replace local placeholder secrets and set TAVILY_API_KEY.
+# Replace placeholder secrets and set TAVILY_API_KEY when research is enabled.
 ./scripts/start-local.sh
 ```
 
-The judge-facing assistant performs non-destructive environment, Docker,
-Compose, and port preflight checks, starts PostgreSQL, and reconciles a
-preserved local volume's role password with `.env` without deleting records.
-It then runs the authoritative `docker compose up --detach --build --wait`
-command. The explicit test-only Playwright profile stays outside ordinary
-application startup. The command starts the complete application topology:
+The helper performs non-destructive environment, Docker, Compose, and port
+preflight checks, starts PostgreSQL, and reconciles a preserved local volume's
+role password with `.env` without deleting records. It then runs the reference
+`docker compose up --detach --build --wait` topology:
 
 - PostgreSQL with persistent application data;
 - one non-root FastAPI process hosting the reusable engine;
-- one Nginx-served React frontend;
+- one Nginx-served React frontend; and
 - one private engine-state volume for SQLite jobs, artifacts, and Codex
   credentials.
 
-There is no active staging, hosted production, or platform-specific deployment
-workflow in scope. GitHub Actions validates source and containers; it does not
-deploy an environment.
+## Portable Deployment Contract
+
+A local or hosted deployment must preserve these requirements:
+
+- build the backend and frontend from their checked-in Dockerfiles;
+- provide PostgreSQL 18 and durable storage for `/var/lib/txt2crs`;
+- keep exactly one backend replica while the engine job store is SQLite and
+  runtime ownership is process-local;
+- keep the research MCP listener private on loopback;
+- inject secrets through environment or platform secret storage, never images;
+- configure `DOMAIN`, `FRONTEND_HOST`, and `BACKEND_CORS_ORIGINS` for the real
+  public origins;
+- terminate TLS before authenticated traffic reaches the application;
+- preserve private/no-store artifact delivery and owner authorization; and
+- use the health endpoints below for rollout and recovery decisions.
+
+The repository intentionally does not select a hosting vendor. Operators may
+add platform-specific deployment automation without an architecture waiver as
+long as it implements this contract and documents backup, rollout, rollback,
+TLS, domain, observability, and secret-management choices.
 
 ## Health Contract
-
-Docker Compose waits for:
 
 | Service | Probe | Meaning |
 |---------|-------|---------|
 | Backend | `/api/v1/utils/health/` | FastAPI is responsive and PostgreSQL is healthy |
 | Frontend | `/health` | Nginx returns `{"status":"healthy","service":"frontend"}` |
 
-The backend also exposes liveness at
-`/api/v1/utils/health-check/`. Health checks run inside their containers and
-do not require a browser.
+The backend also exposes liveness at `/api/v1/utils/health-check/`. Health
+checks do not require a browser or provider credentials.
+
+## Registration Policy
+
+Public signup is available in local, staging, and production profiles and is
+enabled in the reference configuration. Set both `ENABLE_PUBLIC_SIGNUP=false`
+and `VITE_ENABLE_PUBLIC_SIGNUP=false` for an invite-only installation. The
+backend setting is always authoritative.
 
 ## Data Safety
 
 `docker compose down` preserves named volumes. Do not add `--volumes` unless
-the operator explicitly intends to delete:
+the operator explicitly intends to delete PostgreSQL records, engine job
+state, rendered artifacts, and the isolated Codex credential store.
 
-- PostgreSQL users and application records;
-- engine job state and rendered artifacts;
-- the locally isolated Codex credential store.
-
-Create one complete owner-only local backup bundle with:
+Create a complete owner-only local backup bundle with:
 
 ```bash
 ./scripts/backup-local-state.sh
 ```
 
-The command briefly stops the backend writer, captures a PostgreSQL
-custom-format dump plus all durable private engine state, validates both
-archives, and writes SHA-256 checksums. The archive intentionally omits
-`codex-home/tmp`, which contains image-specific process-scratch links that
-Codex recreates at startup; credentials and other durable Codex state remain
-included. Restore requires the explicit confirmation documented in
-[Local deployment](local-deploy.md#backup-and-restore). The legacy
-`scripts/backup-db.sh` helper covers PostgreSQL only and is not a complete
-application backup.
-
-Backups contain learner records, generated artifacts, and Codex credentials.
-They are ignored by Git, created with owner-only permissions, and must be
-copied to an operator-controlled encrypted location for protection from host
-loss. Automated off-host retention and hosted disaster recovery remain
-outside the current scope.
-
-## Future Hosting
-
-A future production scope is not assumed. If the owner later chooses to host
-txt2crs, that work must begin with explicit requirements and a new ADR covering
-data residency, secrets, TLS, domains, backups, rollout, rollback,
-observability, cost, and platform choice. No platform is preselected.
+The command captures PostgreSQL plus all durable private engine state and
+writes SHA-256 checksums. Hosted operators must provide an equivalent encrypted
+off-host backup and restore process before accepting production learner data.
+See [local deployment](local-deploy.md#backup-and-restore) for the reference
+bundle contract.

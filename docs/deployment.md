@@ -1,9 +1,10 @@
-# Local Deployment
+# Deployment
 
-## Supported Target
+## Reference Target
 
 The complete txt2crs project deploys locally with Docker Compose. This is the
-only in-scope release, demonstration, and judge execution target.
+reference topology for development, release validation, and portable hosted
+container deployments.
 
 ```bash
 cp .env.example .env
@@ -13,7 +14,7 @@ cp .env.example .env
 ```
 
 See [deployment policy](deployment-policy.md) and
-[ADR-0008](adr/0008-local-only-deployment-scope.md).
+[ADR-0009](adr/0009-portable-container-deployment.md).
 
 ## Verify the Running Application
 
@@ -97,8 +98,8 @@ docker compose config --quiet
 ./scripts/verify-production-baseline.sh
 ```
 
-The baseline script's name refers to the production-like image target, not a
-hosted environment. It builds and validates that image entirely locally.
+The baseline script builds and validates the production images locally before
+they are used by any deployment target.
 
 Tag pushes matching `v*` and manual dispatches also select
 `.github/workflows/release.yml`. That read-only workflow:
@@ -111,11 +112,8 @@ Tag pushes matching `v*` and manual dispatches also select
 - builds and inspects both production images; and
 - retains the inspected artifacts for 14 days.
 
-The workflow does not publish a package, create a release, or deploy an
-environment. GitHub-hosted jobs are currently blocked before scheduling by
-the repository's Actions billing condition; the exact local fallbacks and run
-evidence remain in
-[`../.spec_system/audit/known-issues.md`](../.spec_system/audit/known-issues.md).
+The workflow validates release artifacts but does not select or deploy to a
+hosting vendor.
 
 For an end-to-end stack smoke:
 
@@ -138,15 +136,10 @@ If previous local image IDs were captured before a rebuild,
 It does not roll back PostgreSQL or engine SQLite schemas. Use a reviewed
 complete backup bundle when data rollback is required.
 
-## Out of Scope
+## Hosted Deployments
 
-The repository intentionally has no active:
-
-- hosted deployment platform;
-- staging or hosted-production workflow;
-- domain or TLS automation;
-- platform deployment credentials;
-- remote rollout or managed rollback path.
-
-Any future hosting decision requires explicit owner approval and a new ADR.
-No platform is presumed.
+The repository does not select a vendor, but hosted deployment is supported
+when an operator preserves the portable contract in
+[the deployment policy](deployment-policy.md). Before accepting learner data,
+document the platform's domain and TLS setup, secret storage, persistent volume,
+PostgreSQL, backup/restore, rollout, health, and rollback configuration.

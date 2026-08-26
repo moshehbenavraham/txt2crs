@@ -14,7 +14,8 @@ technical decisions in txt2crs.
 | [0005](0005-opentelemetry-distributed-tracing.md) | OpenTelemetry Distributed Tracing | Accepted | 2026-01-27 |
 | [0006](0006-mcp-integration.md) | MCP Integration | Accepted | 2026-01-27 |
 | [0007](0007-coolify-deployment-platform.md) | Coolify Deployment Platform | Superseded by 0008 | 2026-02-19 |
-| [0008](0008-local-only-deployment-scope.md) | Local-Only Deployment Scope | Accepted | 2026-07-19 |
+| [0008](0008-local-only-deployment-scope.md) | Local-Only Deployment Scope | Superseded by 0009 | 2026-07-19 |
+| [0009](0009-portable-container-deployment.md) | Portable Container Deployment | Accepted | 2026-08-26 |
 
 ## Creating a New ADR
 
@@ -46,4 +47,5 @@ Key decisions documented here:
 - **ADR-0005**: Opt-in OpenTelemetry tracing
 - **ADR-0006**: Read-only administrative MCP integration
 - **ADR-0007**: Historical Coolify decision, superseded
-- **ADR-0008**: Local Docker is the only current deployment target
+- **ADR-0008**: Historical Build Week local-only decision, superseded
+- **ADR-0009**: Portable container deployment contract

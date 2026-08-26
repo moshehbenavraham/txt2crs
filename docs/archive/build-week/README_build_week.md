@@ -1,15 +1,15 @@
-# txt2crs Submission Evidence
+# Archived OpenAI Build Week Evidence
 
-This directory contains the prepared txt2crs OpenAI Build Week Education
-submission assets. YouTube publication and final Devpost submission remain
-human-only.
+This directory preserves the expired txt2crs OpenAI Build Week Education
+submission assets for provenance. The event deadline passed on July 21, 2026.
+Nothing in this directory is a current product requirement, release gate,
+publishing checklist, or deployment restriction.
 
-The repository-root [README](../../README.md) is the judge starting point.
-This directory contains submission evidence, while the existing
-[release evidence](../release/README_release.md), [architecture](../ARCHITECTURE.md),
-[configuration](../CONFIGURATION.md), and
-[deployment policy](../deployment-policy.md) remain the technical sources of
-truth.
+The repository-root [README](../../../README.md) and current
+[product requirements](../../../.spec_system/PRD/PRD.md) are authoritative.
+This directory contains historical evidence only; current technical sources are
+[architecture](../../ARCHITECTURE.md), [configuration](../../CONFIGURATION.md),
+and the [deployment policy](../../deployment-policy.md).
 
 ## Evidence Index
 
@@ -61,9 +61,10 @@ as if it executed from the later commit.
 No tracked edit may follow the final tag without selecting a new SemVer
 release.
 
-## Verification
+## Historical Verification
 
 Use the existing product, release, distribution, image, and smoke checks in
-[`docs/release/README_release.md`](../release/README_release.md). Then follow
+[`docs/release/README_release.md`](../../release/README_release.md). Then follow
 [`HUMAN_PUBLISHING_HANDOFF.md`](HUMAN_PUBLISHING_HANDOFF.md) for the external
-actions that only the human operator may perform.
+actions that were prepared for the event. Do not execute those expired
+publication steps as a current release workflow.

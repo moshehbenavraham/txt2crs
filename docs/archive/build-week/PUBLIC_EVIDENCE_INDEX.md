@@ -1,5 +1,7 @@
 # Public Evidence Index
 
+> Archived Build Week evidence. Current releases do not depend on this index.
+
 This index defines the reviewed public media set for the txt2crs Education
 submission. Every frame uses deterministic synthetic application state. The
 screenshots demonstrate the real React, FastAPI, public engine facade,
@@ -31,11 +33,11 @@ unchanged.
 
 | Evidence | What it proves | Identity boundary |
 |----------|----------------|-------------------|
-| [Deterministic sample](../release/DETERMINISTIC_SAMPLE_1_0_0.md) | Credential-free request, checkpoints, four publications, and sixteen private artifacts | Stable synthetic test scenario |
-| [Live artifact inspection](../release/ARTIFACT_INSPECTION_1_0_0.md) | Alignment, citations, formatting, integrity, private access, and answer separation for all sixteen live pairs | Historical source revision `a80700863e99cdd34bed757873d969236cdf36fa` |
-| [Canonical candidate ledger](../release/RELEASE_CANDIDATE_1_0_0.json) | Synchronized version, builds, evaluation, exact model family, research, and bounded artifact facts | Historical release candidate, never relabeled |
-| [Release index](../release/README_release.md) | Validation commands, private working boundary, known exception, and final tag handoff | Candidate and final-release process |
-| [Session 01 validation](../../.spec_system/specs/phase05-session01-release-hardening-and-live-proof/validation.md) | Exact deterministic, browser, security, distribution, and image results | Reviewed and pushed Session 01 completion |
+| [Deterministic sample](../../release/DETERMINISTIC_SAMPLE_1_0_0.md) | Credential-free request, checkpoints, four publications, and sixteen private artifacts | Stable synthetic test scenario |
+| [Live artifact inspection](../../release/ARTIFACT_INSPECTION_1_0_0.md) | Alignment, citations, formatting, integrity, private access, and answer separation for all sixteen live pairs | Historical source revision `a80700863e99cdd34bed757873d969236cdf36fa` |
+| [Canonical candidate ledger](../../release/RELEASE_CANDIDATE_1_0_0.json) | Synchronized version, builds, evaluation, exact model family, research, and bounded artifact facts | Historical release candidate, never relabeled |
+| [Release index](../../release/README_release.md) | Validation commands, private working boundary, known exception, and final tag handoff | Candidate and final-release process |
+| [Session 01 validation](../../../.spec_system/specs/phase05-session01-release-hardening-and-live-proof/validation.md) | Exact deterministic, browser, security, distribution, and image results | Reviewed and pushed Session 01 completion |
 
 ## Screenshot Redaction Review
 

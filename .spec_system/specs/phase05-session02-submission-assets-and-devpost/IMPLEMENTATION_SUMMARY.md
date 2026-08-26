@@ -27,15 +27,15 @@ and release checks provide the technical proof.
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `docs/submission/README_submission.md` | Judge-asset index and safety boundary | 68 |
-| `docs/submission/DEVPOST_SUBMISSION.md` | Complete Education-category submission copy | 232 |
-| `docs/submission/HUMAN_PUBLISHING_HANDOFF.md` | Exact human-only GitHub, YouTube, and Devpost steps | 112 |
-| `docs/submission/PUBLIC_EVIDENCE_INDEX.md` | Screenshot identity, coverage, and privacy ledger | 66 |
-| `docs/submission/CODEX_FEEDBACK.md` | Primary Codex feedback Session ID and usage explanation | 72 |
-| `docs/submission/VIDEO_STORYBOARD.md` | Narration, scene plan, and upload metadata | 168 |
-| `docs/submission/RELEASE_RECONCILIATION.md` | Historical live proof versus final local package boundary | 59 |
-| `docs/submission/SUBMISSION_CHECKLIST.md` | Prepared-local and human-external checklist | 41 |
-| `docs/submission/screenshots/` | Six reviewed deterministic learner-journey images | Binary |
+| `docs/archive/build-week/README_build_week.md` | Judge-asset index and safety boundary | 68 |
+| `docs/archive/build-week/DEVPOST_SUBMISSION.md` | Complete Education-category submission copy | 232 |
+| `docs/archive/build-week/HUMAN_PUBLISHING_HANDOFF.md` | Exact human-only GitHub, YouTube, and Devpost steps | 112 |
+| `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` | Screenshot identity, coverage, and privacy ledger | 66 |
+| `docs/archive/build-week/CODEX_FEEDBACK.md` | Primary Codex feedback Session ID and usage explanation | 72 |
+| `docs/archive/build-week/VIDEO_STORYBOARD.md` | Narration, scene plan, and upload metadata | 168 |
+| `docs/archive/build-week/RELEASE_RECONCILIATION.md` | Historical live proof versus final local package boundary | 59 |
+| `docs/archive/build-week/SUBMISSION_CHECKLIST.md` | Prepared-local and human-external checklist | 41 |
+| `docs/archive/build-week/screenshots/` | Six reviewed deterministic learner-journey images | Binary |
 | `.release-private/video/txt2crs-demo-1.0.0.mp4` | Ignored human-upload candidate | Binary |
 
 ### Files Modified
@@ -45,7 +45,7 @@ and release checks provide the technical proof.
 | `README.md` | Rebuilt the root guide around learner value, architecture, setup, proof, privacy, and release identity. |
 | `docs/CHANGELOG.md` | Recorded the actual judge assets and handoff. |
 | `docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md` | Reconciled completion with the human-only publishing boundary. |
-| `docs/ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md` | Separated prepared local evidence from external human actions. |
+| `docs/archive/build-week/OPENAI_BUILD_WEEK_REQUIREMENTS.md` | Separated prepared local evidence from external human actions. |
 | `docs/release/README_release.md` and deterministic sample guide | Corrected release and browser reproduction instructions. |
 | `.spec_system/PRD/` and session records | Recorded implementation, repairs, validation, phase completion, and archive state. |
 

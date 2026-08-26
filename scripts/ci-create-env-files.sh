@@ -44,14 +44,8 @@ copy_template_when_missing() {
 copy_template_when_missing ".env.example" ".env"
 copy_template_when_missing "backend/.env.example" "backend/.env"
 
-# The canonical template keeps public signup closed, because the judge-facing
-# deployment provisions accounts by hand. The browser suite, however, exercises
-# the /signup route directly: with the template value, nine Playwright tests in
-# tests/sign-up.spec.ts fail because the route is not mounted at all.
-#
-# Enabling it only in the generated CI file keeps .env.example honest about how
-# the real deployment is configured, while giving the browser tests the route
-# they are written against.
+# The browser suite exercises registration. Keep its generated environment
+# explicit so a future template change cannot silently hide that journey.
 enable_public_signup_for_browser_tests() {
     local environment_file="$REPOSITORY_ROOT/.env"
 

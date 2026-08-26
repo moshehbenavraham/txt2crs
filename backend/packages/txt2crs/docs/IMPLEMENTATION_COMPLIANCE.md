@@ -10,7 +10,8 @@ implementation evidence.
 
 The independently installable `txt2crs` package owns:
 
-- subscription-only Codex execution and safe runtime readiness;
+- Codex execution through ChatGPT or Platform API credentials, with safe
+  exact-model runtime readiness;
 - bounded ingestion, research, evidence, generation, validation, and rendering;
 - durable owner-scoped jobs, quota admission, checkpoints, private artifacts,
   retention, and idempotent delivery;
@@ -31,7 +32,7 @@ reusable library.
 | Citation and provenance integrity | Stable source/evidence IDs and hashes, frozen evidence versions, claim references, conflict disclosure, independent text support, high-risk authority gate | `test_evidence_ledger.py`, `test_generation_quality.py` |
 | Strict structured artifacts | Pydantic contracts reject extra fields, unsupported versions, broken IDs, missing coverage, and cross-artifact drift | `test_domain_models.py`, `test_stage_validation.py` |
 | Untrusted input and output safety | Trusted instructions are separated from delimited data; HTML is escaped and rejects active content, unsafe links, remote media, and private data | `test_runtime.py`, `test_rendering.py`, `test_url_safety.py` |
-| Subscription-only OpenAI use | Exact official SDK/runtime pins, explicit isolated `CODEX_HOME`, delegated credential refresh, ChatGPT account check, API-key rejection, model discovery, schema turns, cancellation, and safe event projection | `test_official_codex_adapter.py`, `test_runtime.py`, live acceptance test |
+| OpenAI runtime authentication | Exact official SDK/runtime pins, explicit isolated `CODEX_HOME`, ChatGPT credential refresh or operator-provided Platform API authentication, exact configured-model discovery, schema turns, cancellation, and safe event projection | `test_official_codex_adapter.py`, `test_runtime.py`, live acceptance test |
 | Hard spend and iteration bounds | Thread-safe per-job limits, prompt-token preflight, finite retries/repairs, repeated-tool guardrails, and atomic per-user/global job, token, and paid-research admission | `test_budgets.py`, `test_tool_guardrails.py`, `test_admission_quotas.py` |
 | Any supported input | Prompt, text, URL, PDF, DOCX, PPTX, image OCR, audio/video transcription, and YouTube transcript adapters with byte/character/page/timestamp boundaries | ingestion unit tests |
 | Staged education generation | Separate research plan, course plan, one turn per module, review pack, assessment blueprint, and assessment/answer-key stages | `test_generation_pipeline.py` |
@@ -69,5 +70,6 @@ uv build --package txt2crs
 
 The default suite is credential-free and network-free. The separately gated
 live test requires an authenticated, isolated ChatGPT `CODEX_HOME`; it verifies
-the real pinned SDK/app-server turn, structured result, allowlisted MCP call,
-safe progress events, and subscription usage.
+that supported authentication path against a real pinned SDK/app-server turn,
+structured result, allowlisted MCP call, safe progress events, and usage. The
+credential-free runtime tests separately verify the Platform API account path.

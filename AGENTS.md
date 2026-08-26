@@ -2,8 +2,8 @@
 
 ## Project
 
-This is an OpenAI + DevPost Hackathon project for the category of Education.
-The goal is to create a solution (agent or app) with a beautiful interface
+This is an education product that originated during OpenAI Build Week.
+The goal is to provide a solution with a beautiful interface
 that accepts any input and will deliver: 1) A full deep-researched course
 based on the input, 2) Create comprehensive review materials on that generated
 course, and 3) Generate a full test with answer sheet.

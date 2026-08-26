@@ -107,16 +107,20 @@ topology remain.
   the latest cached provider/research/storage/worker/input/admission state.
   Browser reads never run the underlying probes.
 
-## Dedicated-System Authentication
+## Codex Authentication
 
-The engine provides `DedicatedSystemAuthenticator` and the temporary
-`txt2crs-system-auth` command. Both use the app-server binary bundled by the
-pinned Python dependency; no separate Codex installation is required.
+The engine accepts Platform API credentials through `OPENAI_API_KEY` or a
+ChatGPT identity stored in its isolated Codex home. No separate Codex
+installation is required.
+
+For ChatGPT device authentication, the engine provides
+`DedicatedSystemAuthenticator` and the `txt2crs-system-auth` recovery command.
+Both use the app-server binary bundled by the pinned Python dependency.
 
 Superusers can call `POST /api/v1/system/auth/start` and poll
 `GET /api/v1/system/auth/status`. The browser receives only the validated
 OpenAI verification URL, short user code, finite state, and safe recovery
-message. The temporary CLI remains the recovery path:
+message. The CLI remains the recovery path:
 
 ```bash
 cd backend/packages/txt2crs

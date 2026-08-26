@@ -3,9 +3,8 @@
 > Runtime differences selected by the required `ENVIRONMENT` setting.
 
 This page documents behavior that actually changes in application code when
-`ENVIRONMENT` is `local`, `staging`, or `production`. Only the `local` profile
-is deployed in the current project scope; the other values are hardened
-runtime profiles retained for validation and possible future requirements.
+`ENVIRONMENT` is `local`, `staging`, or `production`. Local is the reference
+Docker profile; staging and production are supported hosted runtime profiles.
 For the complete
 environment-variable catalog, see [Configuration](CONFIGURATION.md). For local
 service addresses and Docker workflow, see [Development](development.md). For
@@ -38,11 +37,9 @@ ENVIRONMENT=local
 
 Use one value per application process:
 
-- `local` for the supported developer, demonstration, and judge Docker stack.
-- `staging` to exercise non-local validation behavior in tests.
-- `production` to exercise the strictest current validation behavior in tests.
-
-The latter two values do not create or imply remote environments.
+- `local` for developer and reference Docker installations.
+- `staging` for a non-production hosted validation environment.
+- `production` for a production deployment with strict secret validation.
 
 Private development routes are a separate, opt-in local setting:
 
@@ -53,16 +50,15 @@ ENABLE_PRIVATE_DEV_ROUTES=false
 Setting `ENABLE_PRIVATE_DEV_ROUTES=true` outside `local` causes startup
 validation to fail.
 
-Public account creation is also an explicit local-only setting:
+Public account creation is an operator setting in every environment:
 
 ```env
-ENABLE_PUBLIC_SIGNUP=false
+ENABLE_PUBLIC_SIGNUP=true
 ```
 
-The repository-root judge/demo example keeps signup closed. A backend-only
-developer can opt in with `ENABLE_PUBLIC_SIGNUP=true` while
-`ENVIRONMENT=local`; the same value in staging or production fails startup.
-When disabled, the signup route rejects before any account or email lookup.
+The reference configuration enables signup. Set the value false for an
+invite-only installation. When disabled, the signup route rejects before any
+account or email lookup.
 
 ## Runtime Behavior Matrix
 
@@ -70,7 +66,7 @@ When disabled, the signup route rejects before any account or email lookup.
 |----------|-------|---------|------------|
 | Rate limiting | Disabled | Enabled | Enabled |
 | Private `/private/*` routes | Disabled by default; explicit opt-in allowed | Disabled; opt-in rejected | Disabled; opt-in rejected |
-| Public `/users/signup` | Disabled by default; explicit opt-in allowed | Disabled; opt-in rejected | Disabled; opt-in rejected |
+| Public `/users/signup` | Enabled by default; operator configurable | Enabled by default; operator configurable | Enabled by default; operator configurable |
 | Sentry | Disabled | Enabled only when `SENTRY_DSN` is set | Enabled only when `SENTRY_DSN` is set |
 | Application logs | `INFO`, human-readable text | `INFO`, structured JSON | `INFO`, structured JSON |
 | Email delivery | Enabled when SMTP is configured; local Compose supplies Mailcatcher | Enabled when SMTP is configured | Enabled when SMTP is configured |
@@ -129,14 +125,9 @@ during startup rather than silently exposing the routes.
 
 ### Public Signup
 
-`POST /api/v1/users/signup` accepts requests only when both conditions are
-true:
-
-1. `ENVIRONMENT=local`
-2. `ENABLE_PUBLIC_SIGNUP=true`
-
-The setting defaults to `false`. Staging and production reject an enabled flag
-during startup. A disabled request returns the shared insufficient-permission
+`POST /api/v1/users/signup` accepts requests when
+`ENABLE_PUBLIC_SIGNUP=true`, independent of the runtime profile. The setting
+defaults to `true`. A disabled request returns the shared insufficient-permission
 problem before querying whether the submitted email exists, which prevents
 the closed route from becoming an account-enumeration surface.
 
@@ -260,8 +251,8 @@ above. It does not create a deployment or configure:
 - CORS origins
 - Deployment credentials or approvals
 
-The current project does not use a deployment platform. Follow the local-only
-[deployment policy](deployment-policy.md).
+Choose and document these platform responsibilities for each hosted target.
+Follow the portable [deployment policy](deployment-policy.md).
 
 ## Targeted Validation
 

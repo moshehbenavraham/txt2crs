@@ -67,15 +67,15 @@ evidence does not hide or misclassify it.
 | Deliverable | Status |
 |-------------|--------|
 | `README.md` | PASS |
-| `docs/submission/README_submission.md` | PASS |
-| `docs/submission/screenshots/` (six PNG files) | PASS |
-| `docs/submission/PUBLIC_EVIDENCE_INDEX.md` | PASS |
-| `docs/submission/CODEX_FEEDBACK.md` | PASS |
-| `docs/submission/VIDEO_STORYBOARD.md` | PASS |
+| `docs/archive/build-week/README_build_week.md` | PASS |
+| `docs/archive/build-week/screenshots/` (six PNG files) | PASS |
+| `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` | PASS |
+| `docs/archive/build-week/CODEX_FEEDBACK.md` | PASS |
+| `docs/archive/build-week/VIDEO_STORYBOARD.md` | PASS |
 | `.release-private/video/txt2crs-demo-1.0.0.mp4` | PASS |
-| `docs/submission/DEVPOST_SUBMISSION.md` | PASS |
-| `docs/submission/RELEASE_RECONCILIATION.md` | PASS |
-| `docs/submission/HUMAN_PUBLISHING_HANDOFF.md` | PASS |
+| `docs/archive/build-week/DEVPOST_SUBMISSION.md` | PASS |
+| `docs/archive/build-week/RELEASE_RECONCILIATION.md` | PASS |
+| `docs/archive/build-week/HUMAN_PUBLISHING_HANDOFF.md` | PASS |
 
 ## Success Criteria
 

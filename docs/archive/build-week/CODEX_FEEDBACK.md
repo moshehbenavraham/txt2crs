@@ -1,5 +1,7 @@
 # Codex Feedback Reference
 
+> Archived Build Week record. This is not a current product or release requirement.
+
 **Primary Session ID**: `019f7990-e049-7242-9d36-dc1eb4462d69`
 
 ## Why This Session

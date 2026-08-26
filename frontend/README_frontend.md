@@ -108,7 +108,7 @@ npx playwright test
 ```
 
 The default Playwright configuration reads the repository-root `.env` as the
-judge-stack source of truth; host-only `frontend/.env` values do not redirect
+reference-stack source of truth; host-only `frontend/.env` values do not redirect
 its API client. The credential-free learner journey uses
 `playwright.jobs.config.ts`, one fresh run-owned state directory, and a
 run-owned SQLite account database. It exercises production routes, auth,

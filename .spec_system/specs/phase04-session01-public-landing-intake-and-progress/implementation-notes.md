@@ -1,5 +1,8 @@
 # Implementation Notes
 
+> Historical completed-session record. Event-era deployment, judge, and
+> signup assumptions below are not current product restrictions.
+
 **Session ID**: `phase04-session01-public-landing-intake-and-progress`
 **Package**: null
 **Started**: 2026-07-20 03:58

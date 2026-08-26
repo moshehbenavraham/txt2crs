@@ -102,7 +102,7 @@ function SignupForm() {
               Create an account
             </h1>
             <p className="font-body text-[15px] text-muted-foreground">
-              Create access for this local learning studio
+              Create access for this learning studio
             </p>
           </div>
 

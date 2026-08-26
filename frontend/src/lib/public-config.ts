@@ -8,7 +8,10 @@
 export function parsePublicSignupVisibility(
   rawValue: string | undefined,
 ): boolean {
-  return rawValue === "true"
+  // A build with no explicit setting follows the product's open-registration
+  // default. Operators can still hide signup with an exact `false` value; the
+  // backend remains the authorization authority in either case.
+  return rawValue === undefined || rawValue === "true"
 }
 
 export const publicSignupVisible = parsePublicSignupVisibility(

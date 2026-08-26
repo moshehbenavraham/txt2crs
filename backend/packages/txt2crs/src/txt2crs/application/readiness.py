@@ -8,7 +8,7 @@ from typing import Literal, Protocol, Self
 
 from pydantic import Field, field_validator
 
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.ai.runtime_status import (
     CredentialStatus,
     RuntimeReadiness,
@@ -65,10 +65,10 @@ class ApplicationReadiness(StrictContract):
 
     @field_validator("configured_model_id")
     @classmethod
-    def require_reviewed_gpt56_model(cls, configured_model_id: str) -> str:
-        """Prevent readiness from advertising an unreviewed fallback model."""
+    def require_safe_exact_model(cls, configured_model_id: str) -> str:
+        """Prevent readiness from advertising an unsafe or ambiguous model."""
 
-        Gpt56ModelPolicy(configured_model_id=configured_model_id)
+        ExactModelPolicy(configured_model_id=configured_model_id)
         return configured_model_id
 
     @classmethod

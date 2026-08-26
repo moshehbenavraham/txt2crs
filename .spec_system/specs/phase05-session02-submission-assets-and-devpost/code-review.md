@@ -25,30 +25,30 @@ and review repairs
 - `docs/CHANGELOG.md` - submission-package release entry.
 - `docs/ongoing-projects/INPUT_TO_COURSE_SYSTEM_PLAN.md` - human-publishing
   boundary reconciliation.
-- `docs/ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md` - prepared-local
+- `docs/archive/build-week/OPENAI_BUILD_WEEK_REQUIREMENTS.md` - prepared-local
   versus human-external checklist.
 - `docs/release/DETERMINISTIC_SAMPLE_1_0_0.md` - corrected browser command.
 - `docs/release/README_release.md` - human release handoff.
-- `docs/submission/CODEX_FEEDBACK.md` - new bounded Session ID record.
-- `docs/submission/DEVPOST_SUBMISSION.md` - new Education project story.
-- `docs/submission/HUMAN_PUBLISHING_HANDOFF.md` - new external-action handoff.
-- `docs/submission/PUBLIC_EVIDENCE_INDEX.md` - new image identity and safety
+- `docs/archive/build-week/CODEX_FEEDBACK.md` - new bounded Session ID record.
+- `docs/archive/build-week/DEVPOST_SUBMISSION.md` - new Education project story.
+- `docs/archive/build-week/HUMAN_PUBLISHING_HANDOFF.md` - new external-action handoff.
+- `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` - new image identity and safety
   ledger plus review repair.
-- `docs/submission/README_submission.md` - new submission evidence index.
-- `docs/submission/RELEASE_RECONCILIATION.md` - new release identity boundary.
-- `docs/submission/SUBMISSION_CHECKLIST.md` - new prepared-asset checklist.
-- `docs/submission/VIDEO_STORYBOARD.md` - new video record and upload metadata.
-- `docs/submission/screenshots/01-landing.png` - new reviewed PNG.
-- `docs/submission/screenshots/02-create.png` - new reviewed PNG.
-- `docs/submission/screenshots/03-progress.png` - new reviewed PNG.
-- `docs/submission/screenshots/04-results.png` - new reviewed PNG.
-- `docs/submission/screenshots/05-course-preview.png` - new reviewed PNG.
-- `docs/submission/screenshots/06-answer-key.png` - new PNG regenerated during
+- `docs/archive/build-week/README_build_week.md` - new submission evidence index.
+- `docs/archive/build-week/RELEASE_RECONCILIATION.md` - new release identity boundary.
+- `docs/archive/build-week/SUBMISSION_CHECKLIST.md` - new prepared-asset checklist.
+- `docs/archive/build-week/VIDEO_STORYBOARD.md` - new video record and upload metadata.
+- `docs/archive/build-week/screenshots/01-landing.png` - new reviewed PNG.
+- `docs/archive/build-week/screenshots/02-create.png` - new reviewed PNG.
+- `docs/archive/build-week/screenshots/03-progress.png` - new reviewed PNG.
+- `docs/archive/build-week/screenshots/04-results.png` - new reviewed PNG.
+- `docs/archive/build-week/screenshots/05-course-preview.png` - new reviewed PNG.
+- `docs/archive/build-week/screenshots/06-answer-key.png` - new PNG regenerated during
   review.
 
 The six binary PNG files were reviewed at original resolution. Their exact
 dimensions and SHA-256 values are recorded in
-`docs/submission/PUBLIC_EVIDENCE_INDEX.md`; byte-level source inspection is not
+`docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md`; byte-level source inspection is not
 meaningful for rendered evidence. The ignored MP4 was reviewed through
 `ffprobe`, SHA-256, and a ten-frame contact sheet and is not part of Git.
 `code-review.md` was created by this command and self-reviewed with the final
@@ -77,7 +77,7 @@ No findings.
   `/var/lib/txt2crs`. | Fix: Start Compose first, authenticate the Docker
   runtime from `/setup`, and label `auth-codex.sh` as host-only recovery. |
   Status: FIXED
-- `docs/submission/screenshots/06-answer-key.png` - The committed public frame
+- `docs/archive/build-week/screenshots/06-answer-key.png` - The committed public frame
   retained a truncated synthetic test email/account control, contrary to the
   session's public-safety rule. | Fix: Regenerated a focused 1440x900 frame
   from the deterministic browser journey with the account footer and opaque
@@ -137,7 +137,7 @@ No application runtime behavior changed.
 | Deterministic answer-key journey | `TXT2CRS_BROWSER_SCENARIO=complete POSTGRES_SERVER=127.0.0.1 POSTGRES_PORT=55432 npx playwright test --config=playwright.jobs.config.ts --project=chromium --grep "submits one prompt and survives direct progress refresh"` | PASS | Setup, complete learner journey, screenshot capture, and owner cleanup: 3/3 pass. Temporary capture hooks removed. |
 | Repository gate | `POSTGRES_SERVER=127.0.0.1 POSTGRES_PORT=55432 ./scripts/validate-changes.sh --json` | PASS | 9/9 backend, engine, and frontend lint, format, type, and test gates pass. |
 | Screenshot visual review | Original-resolution inspection of all six PNG files, including regenerated `06-answer-key.png` | PASS | Clear learner journey; no credential, email, account menu, private job ID, path, prompt, payload, or diagnostic. |
-| Screenshot identity | `sha256sum docs/submission/screenshots/*.png`; `file docs/submission/screenshots/*.png` | PASS | Six hashes and dimensions match the evidence index; final frame is 1440x900. |
+| Screenshot identity | `sha256sum docs/archive/build-week/screenshots/*.png`; `file docs/archive/build-week/screenshots/*.png` | PASS | Six hashes and dimensions match the evidence index; final frame is 1440x900. |
 | Screenshot OCR safety | `tesseract "$screenshot" stdout \| rg 'browser-.*@|@example\\.com|job-[a-f0-9]{12}|private job reference'` for all six PNG files | PASS | No private-value pattern found. |
 | Video identity | `ffprobe ... .release-private/video/txt2crs-demo-1.0.0.mp4`; `sha256sum .release-private/video/txt2crs-demo-1.0.0.mp4` | PASS | 142.600 seconds, H.264 1920x1080 at 30 fps, AAC, hash `cc78d54...5542f`. |
 | Security/privacy | Security Compliance Checklist plus scoped `gitleaks dir --redact` scans | PASS | No secret or unsupported personal-data/compliance claim; no dependency or runtime change. |

@@ -7,7 +7,7 @@ import {
 
 describe("public signup display configuration", () => {
   it.each([
-    [undefined, false],
+    [undefined, true],
     ["", false],
     ["false", false],
     ["TRUE", false],

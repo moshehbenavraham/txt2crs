@@ -131,7 +131,7 @@ jobs:
             backend
           docker build \
             --build-arg VITE_API_URL=/api \
-            --build-arg VITE_ENABLE_PUBLIC_SIGNUP=false \
+            --build-arg VITE_ENABLE_PUBLIC_SIGNUP=true \
             --build-arg VITE_HTML_PREVIEW_MAX_BYTES=5242880 \
             --label "org.opencontainers.image.version=${release_version}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \

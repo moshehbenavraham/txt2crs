@@ -24,7 +24,7 @@ from txt2crs.ai.job_runtime import (
     JobRuntimeResourcesFactory,
     ManagedProviderSessionFactory,
 )
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.ai.retry import RetryController, RetrySettings
 from txt2crs.ai.runtime import CancellationToken
 from txt2crs.ai.runtime_status import (
@@ -905,5 +905,5 @@ def _managed_real_provider_factory(
         http_client_context_factory=http_client_context,
         research_mcp_context_factory=research_mcp_context,
         codex_adapter_factory=codex_adapter,
-        model_policy=Gpt56ModelPolicy(configured_model_id=execution_profile.model_id),
+        model_policy=ExactModelPolicy(configured_model_id=execution_profile.model_id),
     )

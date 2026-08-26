@@ -1,5 +1,8 @@
 # Task Checklist
 
+> Historical completed-session record. Event-era deployment and signup
+> assumptions below are evidence of completed work, not current requirements.
+
 **Session ID**: `phase04-session01-public-landing-intake-and-progress`
 **Total Tasks**: 25
 **Estimated Duration**: 3-4 hours

@@ -29,7 +29,7 @@ Related current sources of truth:
 - [Architecture](../ARCHITECTURE.md)
 - [Database schema](../database/SCHEMA.md)
 - [Deliverable system](../DELIVERABLE_SYSTEM.md)
-- [Local-only deployment ADR](../adr/0008-local-only-deployment-scope.md)
+- [Portable container deployment ADR](../adr/0009-portable-container-deployment.md)
 
 ## Current Baseline
 
@@ -384,7 +384,8 @@ verified and retention obligations are satisfied.
 
 ## Recommendation
 
-Keep the current filesystem implementation for the present local-only scope.
+Keep the current filesystem implementation for the present persistent
+single-replica container scope.
 Revisit this plan when hosted deployment, multiple backend replicas, or a
 single-database operational requirement becomes concrete.
 

@@ -1,5 +1,7 @@
 # txt2crs - Devpost Submission
 
+> Archived Build Week copy. The event is over; do not use this as a current submission task.
+
 **Status**: Ready for entry after the public YouTube URL is available
 **Category**: Education
 **Project name**: txt2crs
@@ -212,7 +214,7 @@ synthetic demonstrations. The next responsible steps are:
 - Public evidence map:
   [screenshots and release evidence](PUBLIC_EVIDENCE_INDEX.md)
 - Deterministic judge sample:
-  [complete reproducible journey](../release/DETERMINISTIC_SAMPLE_1_0_0.md)
+  [complete reproducible journey](../../release/DETERMINISTIC_SAMPLE_1_0_0.md)
 - Codex feedback reference:
   [bounded Session ID and development summary](CODEX_FEEDBACK.md)
 - Demo publication record:

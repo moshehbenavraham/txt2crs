@@ -98,6 +98,35 @@ class RuntimeUsage(UsageRecord):
             retries=retries,
         )
 
+    @classmethod
+    def for_platform_api(
+        cls,
+        *,
+        model_id: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        latency_ms: int,
+        retries: int = 0,
+    ) -> "RuntimeUsage":
+        """Build API-key usage without inventing provider pricing or quota."""
+
+        token_state = (
+            TokenUsageState.reported
+            if input_tokens is not None and output_tokens is not None
+            else TokenUsageState.unavailable
+        )
+        return cls(
+            billing_source=BillingSource.platform_api,
+            token_usage_state=token_state,
+            subscription_quota_state=SubscriptionQuotaState.unknown,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            estimated_api_cost=None,
+            model_id=model_id,
+            latency_ms=latency_ms,
+            retries=retries,
+        )
+
 
 class AggregateUsage(UsageRecord):
     """Best available totals across heterogeneous workflow stages."""

@@ -1,5 +1,8 @@
 # OpenAI Build Week Requirements
 
+> Archived: the event deadline passed on July 21, 2026. These requirements are
+> retained only as project history and no longer constrain txt2crs.
+
 **Last verified:** July 17, 2026<br>
 **Official event:** [OpenAI Build Week on Devpost](https://openai.devpost.com/)<br>
 **txt2crs track:** Education
@@ -58,8 +61,8 @@ Prepared locally:
 - [x] Upgrade all generated publications with a cohesive cross-format design
   system and inspect responsive HTML, native PDF pages, and LibreOffice-rendered
   DOCX output; see
-  [`DELIVERABLE_SYSTEM.md`](../DELIVERABLE_SYSTEM.md) and the
-  [`1.2.1` publication inspection](../release/PUBLICATION_DESIGN_INSPECTION_1_2_1.md).
+  [`DELIVERABLE_SYSTEM.md`](../../DELIVERABLE_SYSTEM.md) and the
+  [`1.2.1` publication inspection](../../release/PUBLICATION_DESIGN_INSPECTION_1_2_1.md).
 - [x] Provide a concise human publishing handoff.
 
 Human-only external actions:
@@ -72,4 +75,4 @@ Human-only external actions:
 - verify the final platform links and confirmation.
 
 See
-[`docs/submission/HUMAN_PUBLISHING_HANDOFF.md`](../submission/HUMAN_PUBLISHING_HANDOFF.md).
+[`HUMAN_PUBLISHING_HANDOFF.md`](HUMAN_PUBLISHING_HANDOFF.md).

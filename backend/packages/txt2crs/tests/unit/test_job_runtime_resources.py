@@ -15,8 +15,9 @@ from txt2crs.ai.job_runtime import (
     JobRuntimeResourcesFactory,
     ManagedProviderSessionFactory,
 )
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.ai.runtime import CancellationToken, CodexAdapterResult, TurnRequest
+from txt2crs.ai.runtime_status import RuntimeReadinessStatus
 
 
 class RecordingCodexAdapter:
@@ -35,12 +36,12 @@ class RecordingCodexAdapter:
         self._lifecycle_events.append("codex.enter")
 
     def inspect_account_type(self) -> str:
-        """Return the subscription account type required by the runtime."""
+        """Return the configured provider credential type."""
 
         return self._account_type
 
     def list_model_ids(self) -> tuple[str, ...]:
-        """Return the exact configured GPT-5.6 alias."""
+        """Return the exact configured model identifier."""
 
         return ("gpt-5.6-sol",)
 
@@ -143,7 +144,7 @@ def provider_session_factory(
         http_client_context_factory=http_client_context,
         research_mcp_context_factory=research_mcp_context,
         codex_adapter_factory=codex_adapter_factory,
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
 
@@ -228,8 +229,8 @@ def test_provider_session_unwinds_partial_construction_failure(tmp_path: Path) -
     ]
 
 
-def test_provider_session_rejects_not_ready_codex_before_yield(tmp_path: Path) -> None:
-    """A constructed API-key adapter cannot become a subscription session."""
+def test_provider_session_accepts_a_platform_api_account(tmp_path: Path) -> None:
+    """An API-key adapter can own the same complete provider resource graph."""
 
     lifecycle_events: list[str] = []
     resources = JobRuntimeResourcesFactory().create(
@@ -239,6 +240,38 @@ def test_provider_session_rejects_not_ready_codex_before_yield(tmp_path: Path) -
         tmp_path=tmp_path,
         lifecycle_events=lifecycle_events,
         account_type="api_key",
+    )
+
+    with factory.open(resources) as provider_session:
+        assert provider_session.runtime.inspect_readiness().status is (
+            RuntimeReadinessStatus.ready
+        )
+
+    assert lifecycle_events == [
+        "temporary.enter",
+        "http.enter",
+        "mcp.enter",
+        "codex.enter",
+        "codex.exit",
+        "mcp.exit",
+        "http.exit",
+        "temporary.exit",
+    ]
+
+
+def test_provider_session_rejects_unknown_credentials_before_yield(
+    tmp_path: Path,
+) -> None:
+    """A constructed adapter without supported credentials never yields."""
+
+    lifecycle_events: list[str] = []
+    resources = JobRuntimeResourcesFactory().create(
+        valid_generation_request().execution_profile
+    )
+    factory = provider_session_factory(
+        tmp_path=tmp_path,
+        lifecycle_events=lifecycle_events,
+        account_type="unknown",
     )
 
     with pytest.raises(RuntimeError, match="not ready"):

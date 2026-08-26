@@ -81,7 +81,7 @@ function SystemSetupPage() {
       <PageHeader
         eyebrow="Operator workspace"
         title="System setup"
-        description="Connect the dedicated ChatGPT identity and verify every course-system dependency before learner work begins."
+        description="Configure Codex authentication and verify every course-system dependency before learner work begins."
         actions={
           <Button
             type="button"

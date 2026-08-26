@@ -1,5 +1,7 @@
 # txt2crs Demo Video
 
+> Archived Build Week media plan. It is retained only as project history.
+
 **Status**: Ready for human upload
 **Verified render duration**: 02:22.600
 **Maximum duration**: 02:59

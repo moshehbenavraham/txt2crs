@@ -77,17 +77,17 @@ its immutable request and latest accepted checkpoint.
 
 ## Deployment Topology
 
-Repository-root Docker Compose is the only deployment target in the current
-project scope. The backend and frontend remain separate images inside one
-local topology; no hosted platform is selected.
+Repository-root Docker Compose is the reference deployment topology. The
+backend and frontend remain separate portable images; no hosted vendor is
+selected.
 
 | Deployable | Image | Health |
 |------------|-------|--------|
 | Backend | `backend/Dockerfile` | Readiness: `/api/v1/utils/health/`; liveness: `/api/v1/utils/health-check/` |
 | Frontend | `frontend/Dockerfile` | Nginx JSON health: `/health` |
 
-See [deployment policy](deployment-policy.md) for the local source of truth
-and [ADR-0008](adr/0008-local-only-deployment-scope.md) for the scope decision.
+See [deployment policy](deployment-policy.md) for the portable contract and
+[ADR-0009](adr/0009-portable-container-deployment.md) for the scope decision.
 
 ## Runtime Flows
 
@@ -202,9 +202,9 @@ replacement:
 | Tenant-scoped SQLite job store | Multiple writers, replicas, or measured query load require another store | Public facade, ownership, checkpoints, ordering, and replay semantics |
 | One serial worker | Approved concurrent execution or horizontal scale is required | Durable admission, exact recovery, cancellation, and finite budgets |
 | HTTP polling | Measured latency or bandwidth shows push delivery is valuable | Monotonic revisions, private reads, bounded retries, and terminal/permanent-error stop rules |
-| Exact discovered GPT-5.6 variant | A reviewed protocol change and comparative evaluation approve another model | Fail-closed discovery and no silent fallback |
-| Local private artifact filesystem | Hosted or multi-replica scope requires shared object storage | Owner authorization, atomic publication, integrity, deletion, and retention |
-| Local Docker Compose deployment | The owner explicitly approves hosted scope in a new ADR | Non-root runtime, private state, health, backup, and rollback contracts |
+| Exact configured Codex model | An operator selects a different discovered model | Fail-closed discovery and no silent fallback |
+| Private artifact filesystem | Multi-replica scope requires shared object storage | Owner authorization, atomic publication, integrity, deletion, and retention |
+| Portable single-replica container topology | Multiple replicas or serverless execution are required | Non-root runtime, private state, health, backup, and rollback contracts |
 
 The research MCP and disabled-by-default admin MCP are different security
 boundaries regardless of future topology and must never be cross-wired.
@@ -212,7 +212,8 @@ boundaries regardless of future topology and must never be cross-wired.
 ## Decision References
 
 - [ADR index](adr/README_adr.md)
-- [Local-only deployment](adr/0008-local-only-deployment-scope.md)
+- [Portable container deployment](adr/0009-portable-container-deployment.md)
+- [Superseded local-only history](adr/0008-local-only-deployment-scope.md)
 - [Superseded Coolify history](adr/0007-coolify-deployment-platform.md)
 - [Structured logging](adr/0003-structured-json-logging.md)
 - [RFC 9457 errors](adr/0004-rfc9457-error-format.md)

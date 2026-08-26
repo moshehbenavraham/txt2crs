@@ -48,15 +48,15 @@ The submission must clearly distinguish:
 | Deliverable | Location |
 |-------------|----------|
 | Judge-facing product story and run path | `README.md` |
-| Submission asset index | `docs/submission/README_submission.md` |
-| Six reviewed screenshots | `docs/submission/screenshots/` |
-| Screenshot hashes and evidence map | `docs/submission/PUBLIC_EVIDENCE_INDEX.md` |
-| Codex feedback Session ID | `docs/submission/CODEX_FEEDBACK.md` |
-| Demo storyboard, narration, and upload metadata | `docs/submission/VIDEO_STORYBOARD.md` |
+| Submission asset index | `docs/archive/build-week/README_build_week.md` |
+| Six reviewed screenshots | `docs/archive/build-week/screenshots/` |
+| Screenshot hashes and evidence map | `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` |
+| Codex feedback Session ID | `docs/archive/build-week/CODEX_FEEDBACK.md` |
+| Demo storyboard, narration, and upload metadata | `docs/archive/build-week/VIDEO_STORYBOARD.md` |
 | Verified private video candidate | `.release-private/video/txt2crs-demo-1.0.0.mp4` |
-| Devpost project story | `docs/submission/DEVPOST_SUBMISSION.md` |
-| Release identity explanation | `docs/submission/RELEASE_RECONCILIATION.md` |
-| Human publishing steps | `docs/submission/HUMAN_PUBLISHING_HANDOFF.md` |
+| Devpost project story | `docs/archive/build-week/DEVPOST_SUBMISSION.md` |
+| Release identity explanation | `docs/archive/build-week/RELEASE_RECONCILIATION.md` |
+| Human publishing steps | `docs/archive/build-week/HUMAN_PUBLISHING_HANDOFF.md` |
 
 ## Human-Only Publishing Boundary
 

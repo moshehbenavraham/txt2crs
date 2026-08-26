@@ -808,7 +808,7 @@ export type SystemReadinessPublic = {
   /**
    * Configured Model Id
    */
-  configured_model_id: "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna"
+  configured_model_id: string
   /**
    * Enabled Input Modes
    */

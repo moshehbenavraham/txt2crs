@@ -25,12 +25,17 @@ from app.services.txt2crs_readiness import (
 )
 
 SafeStatusText = Annotated[str, Field(min_length=1, max_length=500)]
-ReviewedModelId = Literal[
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
+ConfiguredModelId = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+    ),
 ]
-REVIEWED_MODEL_ID_ADAPTER: TypeAdapter[ReviewedModelId] = TypeAdapter(ReviewedModelId)
+CONFIGURED_MODEL_ID_ADAPTER: TypeAdapter[ConfiguredModelId] = TypeAdapter(
+    ConfiguredModelId
+)
 
 
 class SystemInputMode(StrEnum):
@@ -91,7 +96,7 @@ class SystemReadinessPublic(_StrictPublicModel):
     schema_version: Literal["1.0"]
     status: ReadinessStatus
     accepting_jobs: bool
-    configured_model_id: ReviewedModelId
+    configured_model_id: ConfiguredModelId
     enabled_input_modes: tuple[SystemInputMode, ...] = Field(max_length=20)
     checks: SystemReadinessChecksPublic
     warnings: tuple[SafeStatusText, ...] = Field(max_length=20)
@@ -107,7 +112,7 @@ class SystemReadinessPublic(_StrictPublicModel):
             schema_version="1.0",
             status=snapshot.status,
             accepting_jobs=snapshot.accepting_jobs,
-            configured_model_id=REVIEWED_MODEL_ID_ADAPTER.validate_python(
+            configured_model_id=CONFIGURED_MODEL_ID_ADAPTER.validate_python(
                 snapshot.configured_model_id
             ),
             enabled_input_modes=tuple(

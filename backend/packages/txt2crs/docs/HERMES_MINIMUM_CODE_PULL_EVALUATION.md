@@ -1,5 +1,11 @@
 # Hermes Minimum Code-Pull Evaluation
 
+> **Historical design study:** this document records the constraints selected
+> while the engine was first extracted for Build Week. Its subscription-only,
+> API-key rejection, model-family, and local-deployment statements are no
+> longer product requirements. Current behavior is defined by
+> `IMPLEMENTATION_COMPLIANCE.md`, the package README, and ADR-0009.
+>
 > Status: implemented as a bounded local package. Materially adapted Hermes
 > behavior retains MIT provenance in `THIRD_PARTY_NOTICES.md`; the donor
 > checkout is not a build or runtime dependency.

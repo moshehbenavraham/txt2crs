@@ -46,7 +46,7 @@
 ### Devpost And Feedback
 
 - Complete Education-category project story is in
-  `docs/submission/DEVPOST_SUBMISSION.md`.
+  `docs/archive/build-week/DEVPOST_SUBMISSION.md`.
 - Primary Codex feedback Session ID:
   `019f7990-e049-7242-9d36-dc1eb4462d69`.
 - Submitter type and country remain account-only.
@@ -109,7 +109,7 @@ and release gates verify the app, media, story, release evidence, and handoff.
 **Files Changed**:
 - `README.md` - Corrected the engine license description to its actual scoped
   MIT-0 and Hermes-derived MIT terms.
-- `docs/ongoing-projects/OPENAI_BUILD_WEEK_REQUIREMENTS.md` - Replaced one
+- `docs/archive/build-week/OPENAI_BUILD_WEEK_REQUIREMENTS.md` - Replaced one
   inherited smart-quote pair with ASCII punctuation.
 
 **Verification**:
@@ -151,13 +151,13 @@ and release gates verify the app, media, story, release evidence, and handoff.
 **Duration**: 6 minutes
 
 **Files Changed**:
-- `docs/submission/CODEX_FEEDBACK.md` - Avoided implying that the intended
+- `docs/archive/build-week/CODEX_FEEDBACK.md` - Avoided implying that the intended
   final judge-asset commit or tag already exists remotely.
-- `docs/submission/HUMAN_PUBLISHING_HANDOFF.md` - Directed the human to review
+- `docs/archive/build-week/HUMAN_PUBLISHING_HANDOFF.md` - Directed the human to review
   the final local release commit before any tag or push.
-- `docs/submission/RELEASE_RECONCILIATION.md` - Kept local commit preparation
+- `docs/archive/build-week/RELEASE_RECONCILIATION.md` - Kept local commit preparation
   separate from human-only external release actions.
-- `docs/submission/PUBLIC_EVIDENCE_INDEX.md` - Recorded the regenerated,
+- `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` - Recorded the regenerated,
   privacy-safe answer-key frame exactly.
 
 **Verification**:

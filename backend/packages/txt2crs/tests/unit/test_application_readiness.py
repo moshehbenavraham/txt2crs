@@ -4,9 +4,6 @@
 
 from pathlib import Path
 
-import pytest
-from pydantic import ValidationError
-
 from tests.factories import generous_admission_limits
 from txt2crs.ai.runtime_status import (
     CredentialStatus,
@@ -98,22 +95,23 @@ def test_application_readiness_fails_closed_for_one_required_check() -> None:
     assert readiness.checks.inputs is ApplicationReadinessCheckState.unavailable
 
 
-def test_application_readiness_rejects_non_gpt56_model_identity() -> None:
-    """A safe response cannot advertise an unreviewed fallback model."""
+def test_application_readiness_accepts_a_safe_operator_model_identity() -> None:
+    """Readiness reports the exact configured model without a family allowlist."""
 
-    with pytest.raises(ValidationError):
-        ApplicationReadiness.create(
-            configured_model_id="gpt-5.4",
-            enabled_input_modes=("prompt",),
-            runtime=_runtime_readiness(),
-            research_ready=True,
-            sqlite_ready=True,
-            artifacts_ready=True,
-            inputs_ready=False,
-            admission_ready=True,
-            warnings=[],
-            recovery_actions=[],
-        )
+    readiness = ApplicationReadiness.create(
+        configured_model_id="o4-mini",
+        enabled_input_modes=("prompt",),
+        runtime=_runtime_readiness(),
+        research_ready=True,
+        sqlite_ready=True,
+        artifacts_ready=True,
+        inputs_ready=False,
+        admission_ready=True,
+        warnings=[],
+        recovery_actions=[],
+    )
+
+    assert readiness.configured_model_id == "o4-mini"
 
 
 def test_sqlite_readiness_probe_is_rollback_only_and_checks_admission(

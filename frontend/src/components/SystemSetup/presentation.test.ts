@@ -70,7 +70,7 @@ describe("system setup presentation", () => {
     [
       "signed_out",
       "Not connected",
-      "Connect dedicated ChatGPT",
+      "Connect ChatGPT (optional)",
       "Connect ChatGPT",
     ],
     ["waiting_for_user", "Waiting for approval", "Finish on OpenAI", undefined],
@@ -78,7 +78,7 @@ describe("system setup presentation", () => {
     [
       "failed",
       "Connection failed",
-      "Reconnect dedicated ChatGPT",
+      "Reconnect ChatGPT",
       "Try connection again",
     ],
   ])(

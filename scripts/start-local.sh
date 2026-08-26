@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# start-local.sh - Safe, judge-friendly txt2crs local deployment
+# start-local.sh - Safe txt2crs local deployment
 #
 # This command is the human-friendly wrapper around the repository's
 # authoritative Docker Compose deployment. It validates configuration and
@@ -36,7 +36,7 @@ SHOW_HELP=false
 COLOR_ENABLED=true
 
 # Compose references CI for the optional Playwright service. Exporting an
-# explicit empty value avoids a distracting warning during judge startup.
+# explicit empty value avoids a distracting warning during startup.
 export CI="${CI:-}"
 
 show_usage() {
@@ -116,7 +116,7 @@ EOF
     printf '%s' "$RESET"
     printf '%s\n' \
         "${BOLD}+--------------------------------------------------------------+${RESET}" \
-        "${BOLD}|       INPUT TO COURSE - LOCAL JUDGE DEPLOYMENT               |${RESET}" \
+        "${BOLD}|          INPUT TO COURSE - LOCAL DEPLOYMENT                  |${RESET}" \
         "${BOLD}+--------------------------------------------------------------+${RESET}"
 }
 
@@ -177,7 +177,7 @@ Do not commit .env. It contains local credentials.
 EOF
 }
 
-# Configuration is checked before Docker so a fresh-clone judge gets the most
+# Configuration is checked before Docker so a fresh-clone operator gets the most
 # useful instruction first, even when Docker Desktop is not running yet.
 if [[ ! -f "$ENVIRONMENT_FILE" ]]; then
     print_missing_environment_instructions
@@ -361,14 +361,10 @@ validate_environment_configuration() {
     if ! configured_model="$(read_environment_value "TXT2CRS_MODEL_ID")"; then
         configured_model=""
     fi
-    case "$configured_model" in
-        gpt-5.6-sol|gpt-5.6-terra|gpt-5.6-luna)
-            ;;
-        *)
-            add_configuration_error \
-                "TXT2CRS_MODEL_ID must select an exact reviewed GPT-5.6 model."
-            ;;
-    esac
+    if [[ ! "$configured_model" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+        add_configuration_error \
+            "TXT2CRS_MODEL_ID must be a safe exact provider model identifier."
+    fi
 
     if ! research_enabled="$(read_environment_value "TXT2CRS_RESEARCH_ENABLED")"; then
         research_enabled="true"
@@ -403,7 +399,7 @@ EOF
     BACKEND_DOCUMENTATION_URL="http://localhost:${backend_host_port}/docs"
     SYSTEM_SETUP_URL="${FRONTEND_URL}/setup"
 
-    print_success_line ".env contains the required judge deployment settings."
+    print_success_line ".env contains the required deployment settings."
 }
 
 if validate_environment_configuration; then
@@ -593,7 +589,7 @@ fi
 print_info_line "Compose will preserve existing named volumes."
 
 # PostgreSQL reads POSTGRES_PASSWORD only while initializing an empty data
-# directory. A judge may reasonably change .env and rerun this safe command
+# directory. An operator may change .env and rerun this safe command
 # while keeping the named volume. Start only the database first so we can test
 # the password over its non-loopback address, which exercises the same SCRAM
 # authentication rule used by the backend container.

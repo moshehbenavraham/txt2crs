@@ -1,7 +1,8 @@
 # txt2crs Release Evidence
 
 This directory indexes bounded, public-safe release evidence for the initial
-hackathon release and later inspected improvements. It does not contain raw
+Build Week release and later inspected improvements. That event context is
+historical and does not constrain current releases. The directory does not contain raw
 learner input, artifact bodies, credentials, provider payloads, prompts,
 account identifiers, local paths, or unrestricted private links.
 
@@ -13,9 +14,9 @@ historical live proof is tied to exact source revision
 job completed with exactly sixteen verified artifacts. Every inspection row
 passes and the canonical public ledger passes the strict evidence validator.
 
-All tracked judge assets are complete. The final annotated `v1.2.5` tag
-preserves the exact public judge-facing commit. A tracked change after the tag
-requires a new SemVer release.
+The annotated `v1.2.5` tag preserves the final event-era commit. Later tracked
+changes use normal SemVer releases and do not depend on the archived event
+submission package.
 
 ## Evidence Index
 
@@ -34,7 +35,7 @@ Run the shared standard-library validator from the repository root:
 ```bash
 python scripts/release_evidence.py validate-repository \
   --repository-root . \
-  --expected-version 1.2.5 \
+  --expected-version 1.3.0 \
   --mode candidate \
   --revision <40-character-candidate-commit>
 ```
@@ -86,16 +87,9 @@ the session notes. Remote CodeQL has no exact local replacement and remains an
 open low-severity external finding; this directory does not describe it as
 passing.
 
-## Final Human Release Handoff
+## Historical Event Handoff
 
-All tracked judge assets, local release checks, public repository settings, and
-the immutable release tag are complete. The remaining human publishing steps
-are:
-
-1. verify anonymous access to the public repository and `v1.2.5` tag;
-2. publish and verify the prepared demo video on YouTube; and
-3. complete and submit the Education entry on Devpost.
-
-Exact platform instructions are in
-[`docs/submission/HUMAN_PUBLISHING_HANDOFF.md`](../submission/HUMAN_PUBLISHING_HANDOFF.md).
-No tracked edit is allowed after tagging without selecting a new version.
+The expired Build Week publishing steps are preserved only in the
+[Build Week archive](../archive/build-week/README_build_week.md). Current
+releases follow [`docs/VERSIONING.md`](../VERSIONING.md) and do not require a
+video, Devpost entry, judge access, feedback ID, or event-specific evidence.

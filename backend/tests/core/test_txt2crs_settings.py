@@ -157,28 +157,28 @@ def test_txt2crs_composition_uses_conservative_p0_defaults() -> None:
     assert settings.TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL == 10_000_000
     assert settings.TAVILY_TIMEOUT_SECONDS == 20
     assert settings.TAVILY_API_KEY is None
-    assert settings.ENABLE_PUBLIC_SIGNUP is False
-    assert settings.public_signup_enabled is False
+    assert settings.ENABLE_PUBLIC_SIGNUP is True
+    assert settings.public_signup_enabled is True
 
 
-def test_public_signup_requires_explicit_local_switch() -> None:
-    """Judge/demo defaults closed while an explicit developer mode may open."""
+def test_public_signup_can_be_disabled_explicitly() -> None:
+    """Operators retain an invite-only option without it being the product default."""
 
     local_settings = Settings(
         _env_file=None,
         **_base_settings_payload(),
-        ENABLE_PUBLIC_SIGNUP=True,
+        ENABLE_PUBLIC_SIGNUP=False,
     )
 
-    assert local_settings.ENABLE_PUBLIC_SIGNUP is True
-    assert local_settings.public_signup_enabled is True
+    assert local_settings.ENABLE_PUBLIC_SIGNUP is False
+    assert local_settings.public_signup_enabled is False
 
 
-@pytest.mark.parametrize("environment", ["staging", "production"])
-def test_non_local_configuration_rejects_public_signup(
+@pytest.mark.parametrize("environment", ["local", "staging", "production"])
+def test_public_signup_is_operator_controlled_in_every_environment(
     environment: str,
 ) -> None:
-    """An accidental deployment flag must fail startup instead of opening signup."""
+    """The former local-only Build Week restriction no longer blocks deployment."""
 
     payload = {
         **_base_settings_payload(),
@@ -188,15 +188,16 @@ def test_non_local_configuration_rejects_public_signup(
         "POSTGRES_PASSWORD": "secure-production-database-password",
         "FIRST_SUPERUSER_PASSWORD": "secure-production-superuser-password",
     }
-    with pytest.raises(ValidationError, match="ENABLE_PUBLIC_SIGNUP"):
-        Settings(_env_file=None, **payload)
+    settings = Settings(_env_file=None, **payload)
+
+    assert settings.public_signup_enabled is True
 
 
 @pytest.mark.parametrize(
     "model_id",
-    ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+    ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6", "o4-mini"],
 )
-def test_txt2crs_model_accepts_only_reviewed_gpt56_family(model_id: str) -> None:
+def test_txt2crs_model_accepts_safe_exact_identifiers(model_id: str) -> None:
     settings = Settings(
         _env_file=None,
         **_base_settings_payload(),
@@ -206,11 +207,11 @@ def test_txt2crs_model_accepts_only_reviewed_gpt56_family(model_id: str) -> None
     assert settings.TXT2CRS_MODEL_ID == model_id
 
 
-@pytest.mark.parametrize("model_id", ["gpt-5.6", "gpt-5.4"])
-def test_txt2crs_model_rejects_non_exact_or_non_gpt56_identifier(
-    model_id: str,
-) -> None:
-    """Settings must use one exact app-server identifier, never a family label."""
+@pytest.mark.parametrize(
+    "model_id", ["", "model with spaces", "../private-model", "/absolute-model"]
+)
+def test_txt2crs_model_rejects_unsafe_identifier(model_id: str) -> None:
+    """Settings must keep provider identifiers bounded and unambiguous."""
 
     with pytest.raises(ValidationError, match="TXT2CRS_MODEL_ID"):
         Settings(

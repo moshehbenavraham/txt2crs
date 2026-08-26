@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT-0
 
-"""Subscription-only policy around an official Codex SDK adapter.
+"""Credential-neutral policy around an official Codex SDK adapter.
 
 SDK-specific types stop at the ``CodexAdapter`` boundary. This keeps the course
 pipeline deterministic under tests and makes beta SDK upgrades a focused
@@ -30,7 +30,7 @@ from txt2crs.ai.errors import (
     classify_runtime_error,
 )
 from txt2crs.ai.events import RuntimeEvent, RuntimeEventType, stable_tool_call_id
-from txt2crs.ai.model_policy import Gpt56ModelPolicy, ModelPolicyError
+from txt2crs.ai.model_policy import ExactModelPolicy, ModelPolicyError
 from txt2crs.ai.runtime import (
     CancellationToken,
     CodexAdapter,
@@ -57,7 +57,7 @@ _UNSUPPORTED_PROVIDER_SCHEMA_KEYWORDS = frozenset(
 
 
 class RuntimePolicyError(RuntimeError):
-    """A permanent subscription, model, or schema-policy rejection."""
+    """A permanent credential, model, or schema-policy rejection."""
 
 
 class InvalidModelOutputError(RuntimePolicyError):
@@ -227,13 +227,14 @@ class _StreamedTurnResult:
     usage: object | None
 
 
-class CodexSubscriptionRuntime:
-    """Validate account, model, schema, cancellation, and usage for each turn."""
+class CodexRuntime:
+    """Validate credentials, model, schema, cancellation, and usage per turn."""
 
     _REMOVED_CHILD_ENVIRONMENT_KEYS = frozenset(
         {
-            "OPENAI_API_KEY",
-            "CODEX_API_KEY",
+            # Research credentials belong only to the loopback MCP process.
+            # Codex authentication credentials are intentionally preserved so
+            # operators may choose either ChatGPT OAuth or Platform API mode.
             "TAVILY_API_KEY",
         }
     )
@@ -242,7 +243,7 @@ class CodexSubscriptionRuntime:
         self,
         *,
         adapter: CodexAdapter,
-        model_policy: Gpt56ModelPolicy,
+        model_policy: ExactModelPolicy,
     ) -> None:
         self._adapter = adapter
         self._model_policy = model_policy
@@ -254,7 +255,7 @@ class CodexSubscriptionRuntime:
         *,
         codex_home: Path,
     ) -> dict[str, str]:
-        """Remove secrets and bind the worker to one explicit credential root."""
+        """Isolate provider state and keep research secrets out of the worker."""
 
         if not codex_home.is_absolute():
             raise ValueError("CODEX_HOME must be an absolute path.")
@@ -271,18 +272,16 @@ class CodexSubscriptionRuntime:
 
         try:
             account_type = self._adapter.inspect_account_type()
-            if account_type != "chatgpt":
+            if account_type not in {"chatgpt", "api_key"}:
                 return RuntimeReadiness.create(
                     status=RuntimeReadinessStatus.unavailable,
-                    credential_status=(
-                        CredentialStatus.valid
-                        if account_type == "api_key"
-                        else CredentialStatus.unknown
-                    ),
+                    credential_status=CredentialStatus.unknown,
                     model_entitled=False,
                     subscription_quota_state=SubscriptionQuotaState.unknown,
-                    warnings=["Subscription-only mode requires a ChatGPT account."],
-                    recovery_actions=["Sign in with an eligible ChatGPT account."],
+                    warnings=["Codex authentication is not configured."],
+                    recovery_actions=[
+                        "Connect ChatGPT or configure a Platform API key."
+                    ],
                 )
             available_model_ids = self._adapter.list_model_ids()
         except Exception as readiness_error:
@@ -324,16 +323,21 @@ class CodexSubscriptionRuntime:
             subscription_quota_state=SubscriptionQuotaState.unknown,
             warnings=(
                 [
-                    "Subscription quota is not exposed by the pinned public "
-                    "Codex Python SDK."
+                    (
+                        "Subscription quota is not exposed by the pinned public "
+                        "Codex Python SDK."
+                        if account_type == "chatgpt"
+                        else "Platform API billing and quota are not exposed by "
+                        "the pinned public Codex Python SDK."
+                    )
                 ]
                 if model_entitled
-                else ["The configured GPT-5.6 model is not available for this account."]
+                else ["The configured model is not available for this account."]
             ),
             recovery_actions=(
                 []
                 if model_entitled
-                else ["Review the configured GPT-5.6 model and account access."]
+                else ["Review the configured model and account access."]
             ),
         )
 
@@ -347,10 +351,9 @@ class CodexSubscriptionRuntime:
         """Run one turn and accept output only after exact local validation."""
 
         cancellation.raise_if_cancelled()
-        if self._adapter.inspect_account_type() != "chatgpt":
-            raise RuntimePolicyError(
-                "Subscription-only mode requires an authenticated ChatGPT account."
-            )
+        account_type = self._adapter.inspect_account_type()
+        if account_type not in {"chatgpt", "api_key"}:
+            raise RuntimePolicyError("Codex authentication is required.")
 
         available_model_ids = self._adapter.list_model_ids()
         try:
@@ -379,7 +382,12 @@ class CodexSubscriptionRuntime:
             )
         except ModelPolicyError as model_policy_error:
             raise RuntimePolicyError(str(model_policy_error)) from None
-        usage = RuntimeUsage.for_chatgpt_subscription(
+        usage_factory = (
+            RuntimeUsage.for_chatgpt_subscription
+            if account_type == "chatgpt"
+            else RuntimeUsage.for_platform_api
+        )
+        usage = usage_factory(
             model_id=adapter_result.model_id,
             input_tokens=adapter_result.input_tokens,
             output_tokens=adapter_result.output_tokens,
@@ -399,6 +407,10 @@ class CodexSubscriptionRuntime:
             thread_id=adapter_result.thread_id,
             turn_id=adapter_result.turn_id,
         )
+
+
+# Preserve the pre-1.3 import without retaining its subscription-only behavior.
+CodexSubscriptionRuntime = CodexRuntime
 
 
 class OfficialCodexSdkAdapter:
@@ -460,7 +472,7 @@ class OfficialCodexSdkAdapter:
         worker_directory.chmod(0o700)
         codex_home.mkdir(mode=0o700, parents=True, exist_ok=True)
         codex_home.chmod(0o700)
-        environment = CodexSubscriptionRuntime.build_child_environment(
+        environment = CodexRuntime.build_child_environment(
             parent_environment or os.environ,
             codex_home=codex_home.resolve(strict=True),
         )

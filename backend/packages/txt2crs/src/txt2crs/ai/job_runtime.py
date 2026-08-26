@@ -16,8 +16,8 @@ from types import TracebackType
 from typing import Any, Literal, Protocol
 
 from txt2crs.ai.budgets import RunBudget, RunBudgetLimits
-from txt2crs.ai.codex_runtime import CodexSubscriptionRuntime
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.codex_runtime import CodexRuntime
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.ai.runtime import CancellationToken, CodexAdapter
 from txt2crs.ai.runtime_status import RuntimeReadinessStatus
 from txt2crs.jobs.requests import ExecutionProfile
@@ -120,7 +120,7 @@ class ManagedProviderSession:
     http_client: Any
     research_mcp: Any
     adapter: CloseableCodexAdapter
-    runtime: CodexSubscriptionRuntime
+    runtime: CodexRuntime
 
 
 class ManagedProviderSessionFactory:
@@ -139,7 +139,7 @@ class ManagedProviderSessionFactory:
             [Path, Any],
             CloseableCodexAdapter,
         ],
-        model_policy: Gpt56ModelPolicy,
+        model_policy: ExactModelPolicy,
     ) -> None:
         self._temporary_worker_context_factory = temporary_worker_context_factory
         self._http_client_context_factory = http_client_context_factory
@@ -201,7 +201,7 @@ class ManagedProviderSessionFactory:
             # Register after construction succeeds. ExitStack invokes this
             # before the earlier MCP/HTTP/temporary context exits.
             resource_stack.push(close_adapter_preserving_primary_error)
-            runtime = CodexSubscriptionRuntime(
+            runtime = CodexRuntime(
                 adapter=adapter,
                 model_policy=self._model_policy,
             )

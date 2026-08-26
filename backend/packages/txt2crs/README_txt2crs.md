@@ -13,10 +13,10 @@ the application shell.
 
 - Input normalization for prompts, pasted text, URLs, PDF, DOCX, PPTX, images,
   audio, video, and YouTube transcripts.
-- A subscription-only Codex runtime using the exact pinned official Python SDK
+- A credential-neutral Codex runtime using the exact pinned official Python SDK
   and app-server binary. Each worker receives an explicit isolated
-  `CODEX_HOME`; Platform API credentials are removed, refresh stays inside
-  Codex, and API-key accounts are rejected.
+  `CODEX_HOME`, accepts ChatGPT or Platform API authentication, and never
+  inherits the research-provider secret.
 - A required loopback FastMCP research server exposing only
   `research_search` and `research_extract`, backed by a fixed-origin Tavily
   adapter with URL/DNS/redirect SSRF protection.
@@ -108,12 +108,12 @@ The OCR adapter uses the system Tesseract executable through `pytesseract`.
 
 ## System authentication and CLI recovery
 
-The package does **not** require a separately installed Codex CLI and does not
-expect an end user to prepare `~/.codex`. The official Codex app-server binary
-is already pinned as a Python dependency. The FastAPI shell and protected
-frontend `/setup` route expose the normal operator device-code flow. If that
-browser path is unavailable, the packaged command starts the same app-owned
-flow as a CLI recovery path:
+The package does **not** require a separately installed Codex CLI. The official
+Codex app-server binary is pinned as a Python dependency. Operators may provide
+`OPENAI_API_KEY` through private environment configuration or use the FastAPI
+shell's protected `/setup` ChatGPT device-code flow. If that browser path is
+unavailable, the packaged command starts the same app-owned device flow as a
+CLI recovery path:
 
 ```bash
 uv run --package txt2crs txt2crs-system-auth
@@ -132,9 +132,9 @@ returns its browser-safe snapshot, and polls `current_status()`; the frontend
 owns the URL/code ceremony. This follows the official
 [Codex app-server device-code contract](https://learn.chatgpt.com/docs/app-server#3b-log-in-with-chatgpt-device-code-flow).
 
-This dedicated identity is a temporary, operator-controlled hackathon/demo
-configuration. It must not become an unreviewed multi-tenant pool of one
-personal ChatGPT subscription.
+A personal ChatGPT subscription must not become an unreviewed multi-tenant
+credential pool. Use an authentication and billing arrangement appropriate to
+the installation's users, terms, and deployment.
 
 ## Application assembly
 
@@ -218,10 +218,10 @@ executable public-boundary example is
 
 Important deployment rules:
 
-- The worker must use an explicitly selected ChatGPT/Codex identity. The
-  temporary hackathon bootstrap owns one dedicated demo identity; a production
-  multi-tenant policy must not pool one personal subscription across unrelated
-  users. Pass the exact absolute `codex_home` to `RealApplicationConfig`.
+- The worker must use explicit ChatGPT or Platform API authentication. A
+  multi-tenant deployment must not pool one personal subscription across
+  unrelated users. Pass the exact absolute `codex_home` to
+  `RealApplicationConfig`.
 - The MCP HTTP listener must remain on loopback. Tavily credentials stay in the
   application-owned research process and are not inherited by the Codex
   worker.
@@ -230,10 +230,10 @@ Important deployment rules:
   request.
 - Every new job submission must declare a finite `AdmissionReservation`
   matching its configured run/research limits.
-- The included `FilesystemPrivateArtifactStore` is suitable for the current
-  private local, single-operator scope. If the owner explicitly approves a
-  future hosted scope, any replacement `PrivateArtifactStore` must preserve
-  owner checks, idempotency, integrity, deletion, and retention behavior.
+- The included `FilesystemPrivateArtifactStore` is suitable for a persistent
+  single-replica local or hosted topology. Multi-replica deployments require a
+  replacement `PrivateArtifactStore` that preserves owner checks, idempotency,
+  integrity, deletion, and retention behavior.
 - FastAPI authentication and authorization must establish `user_id` before
   calling the facade. Identifiers alone are never authorization.
 
@@ -256,7 +256,7 @@ The repository-level `scripts/validate-changes.sh` runs the same three
 checks in its engine section (`./scripts/validate-changes.sh engine`).
 
 The default suite is credential-free and network-free. The separately marked
-live subscription acceptance test is skipped unless
+live Codex acceptance test is skipped unless
 `TXT2CRS_RUN_LIVE_CODEX=1` is set.
 
 ## Protocol and provenance controls

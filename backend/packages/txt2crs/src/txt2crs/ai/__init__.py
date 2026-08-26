@@ -23,7 +23,9 @@ _JOB_RUNTIME_EXPORTS = frozenset(
 )
 _MODEL_POLICY_EXPORTS = frozenset(
     {
+        "DEFAULT_MODEL_ID",
         "DEFAULT_GPT56_MODEL_ID",
+        "ExactModelPolicy",
         "REVIEWED_GPT56_MODEL_IDS",
         "Gpt56ModelPolicy",
         "ModelPolicyError",
@@ -47,7 +49,9 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "BudgetExceededError",
+    "DEFAULT_MODEL_ID",
     "DEFAULT_GPT56_MODEL_ID",
+    "ExactModelPolicy",
     "Gpt56ModelPolicy",
     "JobRuntimeResources",
     "JobRuntimeResourcesFactory",

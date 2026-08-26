@@ -1,5 +1,7 @@
 # Release Reconciliation
 
+> Archived Build Week release record. It does not constrain later releases.
+
 **Version**: `1.2.5`
 **Release tag**: `v1.2.5`
 **Repository**: <https://github.com/moshehbenavraham/txt2crs>
@@ -23,9 +25,9 @@ release repairs do not relabel that historical execution.
 
 The supporting records are:
 
-- [candidate ledger](../release/RELEASE_CANDIDATE_1_0_0.json);
-- [sixteen-artifact inspection](../release/ARTIFACT_INSPECTION_1_0_0.md); and
-- [deterministic sample](../release/DETERMINISTIC_SAMPLE_1_0_0.md).
+- [candidate ledger](../../release/RELEASE_CANDIDATE_1_0_0.json);
+- [sixteen-artifact inspection](../../release/ARTIFACT_INSPECTION_1_0_0.md); and
+- [deterministic sample](../../release/DETERMINISTIC_SAMPLE_1_0_0.md).
 
 ## Repository And License
 

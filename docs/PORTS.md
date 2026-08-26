@@ -31,7 +31,7 @@ collision fails visibly.
 | 9327 | Playwright HTML report | Docker Playwright profile | `PLAYWRIGHT_REPORT_PORT` |
 | 16689 | Jaeger UI | Docker observability | `JAEGER_UI_PORT` |
 
-The normal judge path needs the frontend on 5195 and backend on 8016. Docker
+The reference local path needs the frontend on 5195 and backend on 8016. Docker
 also publishes the support services so diagnostics do not require changing
 Compose files.
 

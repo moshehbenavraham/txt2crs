@@ -8,11 +8,12 @@ distribution version is stored in
 
 ## Current stage
 
-The current repository and Python package release is `1.2.5`. It is a
-backward-compatible security release that patches the public repository's
-development-only YAML parser advisory while preserving the submission handoff
-after the stable public API boundary established by `1.0.0`. Future
-compatibility decisions follow Semantic Versioning from that public boundary.
+The current repository and Python package release is `1.3.0`. It is a
+backward-compatible feature release that replaces expired event restrictions
+with portable deployment, configurable exact-model selection, ChatGPT or
+Platform API authentication, and operator-controlled public signup. Future
+compatibility decisions follow Semantic Versioning from the stable public API
+boundary established by `1.0.0`.
 
 ## Choosing the next version
 
@@ -35,7 +36,7 @@ compatibility decisions follow Semantic Versioning from that public boundary.
    heading such as `## [0.1.0] - 2026-07-17`.
 5. Run the complete test suite and required quality checks.
 6. Build both the wheel and source distribution and inspect their contents.
-7. Complete and commit every tracked release and judge-facing asset.
+7. Complete and commit every tracked release note and user-facing asset.
 8. Repeat the immutable version, distribution, image, health, and link checks
    on that exact clean commit.
 9. Create an annotated Git tag named `v<version>`, such as `v1.0.0`.

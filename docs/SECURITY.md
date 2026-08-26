@@ -2,8 +2,7 @@
 
 ## Supported Version
 
-Only the current repository version in [`../VERSION`](../VERSION) is supported
-during the hackathon build.
+Only the current repository version in [`../VERSION`](../VERSION) is supported.
 
 ## Reporting a Vulnerability
 
@@ -11,11 +10,10 @@ Do not send txt2crs reports to the upstream boilerplate maintainer and do not
 open a public issue containing exploit details, credentials, personal data, or
 private generated content.
 
-This private repository does not currently expose a verified project-specific
-security mailbox or GitHub private-vulnerability-reporting endpoint. The
-repository owner must choose and publish that durable private channel before a
-public release. Until then, coordinate privately with the repository owner and
-share only the minimum reproduction material needed.
+Use a private GitHub Security Advisory when that repository feature is
+available. Otherwise, coordinate privately with the repository owner and share
+only the minimum reproduction material needed; never put exploit details in a
+public issue.
 
 This missing organizational contact is tracked in
 [`../.spec_system/docs-audit.md`](../.spec_system/docs-audit.md).
@@ -48,7 +46,8 @@ Repository controls include:
 - Credential-free deterministic validation
 - Owner-only, checksum-validated PostgreSQL and engine-state backups
 
-The current scope is local-only. Do not claim that real learner data is ready
-for unrestricted use while logging, remote-CI, private reporting, and
-privacy-policy findings remain. Backup bundles themselves contain learner data
-and Codex credentials, so keep them encrypted and access controlled.
+Local and hosted deployments must preserve the same security contract. Do not
+claim that real learner data is ready for unrestricted use while logging,
+private reporting, and privacy-policy findings remain. Backup bundles
+themselves contain learner data and Codex credentials, so keep them encrypted
+and access controlled.

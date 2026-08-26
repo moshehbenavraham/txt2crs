@@ -13,6 +13,7 @@ REPOSITORY_ROOT = Path(
     os.getenv("TXT2CRS_REPOSITORY_ROOT", str(DEFAULT_REPOSITORY_ROOT))
 )
 BACKEND_DOCKERFILE = REPOSITORY_ROOT / "backend" / "Dockerfile"
+FRONTEND_DOCKERFILE = REPOSITORY_ROOT / "frontend" / "Dockerfile"
 BACKEND_DOCKERIGNORE = REPOSITORY_ROOT / "backend" / ".dockerignore"
 COMPOSE_FILE = REPOSITORY_ROOT / "docker-compose.yml"
 COMPOSE_OVERRIDE_FILE = REPOSITORY_ROOT / "docker-compose.override.yml"
@@ -23,18 +24,6 @@ DOCKER_COMPOSE_WORKFLOW = (
 LOCAL_DEPLOY_SCRIPTS = (
     REPOSITORY_ROOT / "scripts" / "deploy-smoke-check.sh",
     REPOSITORY_ROOT / "scripts" / "deploy-rollback.sh",
-)
-
-# Hosted deployment is explicitly outside the project scope. Keeping these
-# donor files would silently turn an optional future product decision into an
-# active operational dependency, so their absence is part of the local-first
-# container contract.
-OUT_OF_SCOPE_HOSTED_DEPLOYMENT_FILES = (
-    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-coolify.yml",
-    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-staging.yml",
-    REPOSITORY_ROOT / ".github" / "workflows" / "deploy-production.yml",
-    REPOSITORY_ROOT / ".github" / "workflows" / "backup-db.yml",
-    REPOSITORY_ROOT / "scripts" / "coolify-deploy.sh",
 )
 
 
@@ -246,20 +235,27 @@ def test_development_override_exposes_only_repository_contract_inputs() -> None:
     assert "./backend/htmlcov:/app/htmlcov" not in backend_service
 
 
-def test_project_scope_contains_no_active_hosted_deployment_automation() -> None:
-    """Local Docker is the only deployment target in the current project scope."""
+def test_container_contract_does_not_forbid_hosted_deployment_automation() -> None:
+    """The repository must not encode the expired local-only event policy."""
 
-    unexpected_files = [
-        str(path.relative_to(REPOSITORY_ROOT))
-        for path in OUT_OF_SCOPE_HOSTED_DEPLOYMENT_FILES
-        if path.exists()
-    ]
+    deployment_policy = _read_repository_file(
+        REPOSITORY_ROOT / "docs" / "deployment-policy.md"
+    )
 
-    assert unexpected_files == []
+    assert "hosted container platform" in deployment_policy
+    assert "local-first and local-only" not in deployment_policy
 
 
-def test_local_environment_example_has_no_coolify_configuration() -> None:
-    """The default operator surface must not advertise an out-of-scope host."""
+def test_frontend_image_uses_the_product_signup_default() -> None:
+    """Direct image builds should match the server's usable product default."""
+
+    frontend_dockerfile = _read_repository_file(FRONTEND_DOCKERFILE)
+
+    assert "ARG VITE_ENABLE_PUBLIC_SIGNUP=true" in frontend_dockerfile
+
+
+def test_environment_example_remains_platform_neutral() -> None:
+    """Portable configuration must not depend on one vendor's identifiers."""
 
     environment_example_text = _read_repository_file(ROOT_ENVIRONMENT_EXAMPLE)
 

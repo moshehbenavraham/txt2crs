@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT-0
 
-"""Tests for the subscription-only model-runtime boundary."""
+"""Tests for the Codex model-runtime boundary."""
 
 from collections.abc import Mapping
 from pathlib import Path
@@ -10,11 +10,11 @@ import pytest
 
 from tests.factories import valid_course_data, valid_review_pack_data
 from txt2crs.ai.codex_runtime import (
-    CodexSubscriptionRuntime,
+    CodexRuntime,
     RuntimePolicyError,
 )
 from txt2crs.ai.fake_runtime import FakeRuntime, ScriptedTurn
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.ai.runtime import (
     CancellationReason,
     CancellationToken,
@@ -93,29 +93,31 @@ def course_turn_request(model_id: str = "gpt-5.6-sol") -> TurnRequest:
     )
 
 
-def test_subscription_runtime_rejects_api_key_accounts() -> None:
-    """Subscription mode cannot silently spend a Platform API key."""
+def test_runtime_accepts_api_key_accounts_with_truthful_billing_source() -> None:
+    """Post-event operators may choose Platform API authentication."""
 
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=StubCodexAdapter(account_type="api_key"),
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
-    with pytest.raises(RuntimePolicyError, match="ChatGPT"):
-        runtime.run_validated_turn(
-            request=course_turn_request(),
-            artifact_model=Course,
-            cancellation=CancellationToken(),
-        )
+    result = runtime.run_validated_turn(
+        request=course_turn_request(),
+        artifact_model=Course,
+        cancellation=CancellationToken(),
+    )
+
+    assert result.usage.billing_source == "platform_api"
+    assert result.usage.estimated_api_cost is None
 
 
 def test_subscription_runtime_uses_discovered_models_and_json_schema() -> None:
     """The wrapper transmits a strict-compatible schema for constrained output."""
 
     adapter = StubCodexAdapter()
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=adapter,
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
     result = runtime.run_validated_turn(
@@ -141,9 +143,9 @@ def test_subscription_runtime_uses_local_validation_for_unsupported_schema() -> 
     """Map-shaped fields use a trusted schema prompt and exact local validation."""
 
     adapter = StubCodexAdapter(result_output=valid_review_pack_data())
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=adapter,
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
     result = runtime.run_validated_turn(
@@ -162,9 +164,9 @@ def test_subscription_runtime_uses_local_validation_for_unsupported_schema() -> 
 def test_subscription_runtime_rejects_an_undiscovered_model() -> None:
     """A configured model cannot be guessed when app-server omits it."""
 
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=StubCodexAdapter(models=("gpt-5.4", "gpt-5.6-terra")),
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
     with pytest.raises(RuntimePolicyError, match="not available"):
@@ -178,9 +180,9 @@ def test_subscription_runtime_rejects_an_undiscovered_model() -> None:
 def test_runtime_readiness_keeps_account_model_quota_and_job_state_separate() -> None:
     """A usable provider does not invent quota telemetry or job completion."""
 
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=StubCodexAdapter(),
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
     readiness = runtime.inspect_readiness()
@@ -204,9 +206,9 @@ def test_runtime_readiness_returns_redacted_reauthentication_recovery() -> None:
                 "401 expired credential sk-secret-value at /home/ada/auth.json"
             )
 
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=ExpiredAdapter(),
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
     readiness = runtime.inspect_readiness()
@@ -222,12 +224,12 @@ def test_runtime_readiness_returns_redacted_reauthentication_recovery() -> None:
 def test_subscription_runtime_rejects_adapter_model_substitution() -> None:
     """A provider result cannot silently claim a different or older model."""
 
-    runtime = CodexSubscriptionRuntime(
+    runtime = CodexRuntime(
         adapter=StubCodexAdapter(result_model_id="gpt-5.4"),
-        model_policy=Gpt56ModelPolicy(),
+        model_policy=ExactModelPolicy(),
     )
 
-    with pytest.raises(RuntimePolicyError, match="configured GPT-5.6"):
+    with pytest.raises(RuntimePolicyError, match="configured model"):
         runtime.run_validated_turn(
             request=course_turn_request(),
             artifact_model=Course,
@@ -235,8 +237,10 @@ def test_subscription_runtime_rejects_adapter_model_substitution() -> None:
         )
 
 
-def test_runtime_child_environment_removes_platform_api_credentials() -> None:
-    """Subscription workers must not inherit API keys from the parent process."""
+def test_runtime_child_environment_preserves_codex_auth_but_removes_research_key() -> (
+    None
+):
+    """Codex may authenticate either way without receiving the Tavily secret."""
 
     parent_environment: Mapping[str, str] = {
         "PATH": "/usr/bin",
@@ -248,17 +252,17 @@ def test_runtime_child_environment_removes_platform_api_credentials() -> None:
         "CODEX_HOME": "/home/shared/.codex",
     }
 
-    child_environment = CodexSubscriptionRuntime.build_child_environment(
+    child_environment = CodexRuntime.build_child_environment(
         parent_environment,
         codex_home=Path("/srv/txt2crs/user-1/codex-home"),
     )
 
     assert child_environment["PATH"] == "/usr/bin"
     assert child_environment["HOME"] == "/home/worker"
-    assert "OPENAI_API_KEY" not in child_environment
-    assert "CODEX_API_KEY" not in child_environment
+    assert child_environment["OPENAI_API_KEY"] == "secret-platform-key"
+    assert child_environment["CODEX_API_KEY"] == "secret-codex-key"
     assert "TAVILY_API_KEY" not in child_environment
-    assert "openai_api_key" not in child_environment
+    assert child_environment["openai_api_key"] == "case-variant-secret"
     assert child_environment["CODEX_HOME"] == "/srv/txt2crs/user-1/codex-home"
 
 

@@ -221,7 +221,7 @@ and preserve identical recovery copy for missing and foreign-owned jobs.
 ## Public Signup Visibility
 
 `VITE_ENABLE_PUBLIC_SIGNUP` is a non-secret, build-time display choice and
-defaults false. The backend `ENABLE_PUBLIC_SIGNUP` check is authoritative.
+defaults true. The backend `ENABLE_PUBLIC_SIGNUP` check is authoritative.
 Never infer authorization from frontend visibility or describe the setting as
 a security boundary.
 

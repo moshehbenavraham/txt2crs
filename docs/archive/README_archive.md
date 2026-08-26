@@ -1,8 +1,8 @@
 # Changelog Archive
 
-This directory preserves full changelog snapshots after the active
-`docs/CHANGELOG.md` reaches roughly 20 entries. Archive filenames use the UTC
-date on which the snapshot was created.
+This directory preserves full changelog snapshots and other retired project
+records. Archived material documents history and is not an active product,
+release, deployment, or workflow requirement.
 
 ## Snapshots
 
@@ -11,3 +11,6 @@ date on which the snapshot was created.
   composition, engine-boundary, recovery, and application-shell history.
 - `CHANGELOG_20260720.md` - releases through 1.0.0, including the stable
   public launch and release-evidence history.
+- `CHANGELOG_20260721.md` - releases through 1.2.3.
+- [`build-week/`](build-week/README_build_week.md) - expired event requirements,
+  submission copy, publishing handoff, feedback record, and screenshots.

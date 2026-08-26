@@ -1,8 +1,9 @@
 # Incident Response
 
-Repository-root Docker Compose is the only deployment topology in scope.
+Repository-root Docker Compose is the reference deployment topology. Use the
+equivalent platform logs, health probes, and state controls on a hosted target.
 Record the incident start time, source revision, symptoms, and operator actions
-before changing local state.
+before changing state.
 
 ## Severity
 

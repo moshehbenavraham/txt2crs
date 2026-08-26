@@ -1,5 +1,7 @@
 # Human Publishing Handoff
 
+> Archived Build Week handoff. Its external actions and deadline are expired.
+
 The product and submission assets are prepared. The public GitHub repository,
 security settings, branch, and immutable release tag are complete. YouTube
 upload and the authenticated Devpost form remain human-owned actions.
@@ -9,11 +11,11 @@ upload and the authenticated Devpost form remain human-owned actions.
 | Asset | Location |
 |-------|----------|
 | Demo video | `.release-private/video/txt2crs-demo-1.0.0.mp4` |
-| Video title and description | `docs/submission/VIDEO_STORYBOARD.md` |
-| Devpost project story | `docs/submission/DEVPOST_SUBMISSION.md` |
-| Six reviewed screenshots | `docs/submission/screenshots/` |
-| Evidence map | `docs/submission/PUBLIC_EVIDENCE_INDEX.md` |
-| Codex feedback Session ID | `docs/submission/CODEX_FEEDBACK.md` |
+| Video title and description | `docs/archive/build-week/VIDEO_STORYBOARD.md` |
+| Devpost project story | `docs/archive/build-week/DEVPOST_SUBMISSION.md` |
+| Six reviewed screenshots | `docs/archive/build-week/screenshots/` |
+| Evidence map | `docs/archive/build-week/PUBLIC_EVIDENCE_INDEX.md` |
+| Codex feedback Session ID | `docs/archive/build-week/CODEX_FEEDBACK.md` |
 
 Video identity:
 
@@ -68,9 +70,9 @@ Use:
   PostgreSQL, SQLite, React, TypeScript, TanStack Router, TanStack Query,
   Tailwind CSS, shadcn/ui, Tavily, MCP, Docker, Playwright, and uv;
 - project story: [`DEVPOST_SUBMISSION.md`](DEVPOST_SUBMISSION.md);
-- project thumbnail: `docs/submission/screenshots/06-answer-key.png`, whose
+- project thumbnail: `docs/archive/build-week/screenshots/06-answer-key.png`, whose
   reviewed frame shows all four publications and all four formats;
-- screenshots: the six reviewed files in `docs/submission/screenshots/`;
+- screenshots: the six reviewed files in `docs/archive/build-week/screenshots/`;
 - video: the stable YouTube URL from the previous step; and
 - Codex feedback Session ID:
   `019f7990-e049-7242-9d36-dc1eb4462d69`.

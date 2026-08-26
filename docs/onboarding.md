@@ -27,7 +27,7 @@ cp .env.example .env
 
 Replace at least `SECRET_KEY`, `POSTGRES_PASSWORD`, and
 `FIRST_SUPERUSER_PASSWORD`. Set `TAVILY_API_KEY` for the default
-research-enabled judge journey. Generate independent values:
+research-enabled journey. Generate independent values:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -67,9 +67,10 @@ Log in with `FIRST_SUPERUSER` and the configured
 
 Open <http://localhost:5195/setup> as the initial superuser. The protected
 workspace shows the latest cached storage, worker, research, model, input, and
-admission checks. Use its ChatGPT connection action to authenticate the
-dedicated application identity. Configure `TAVILY_API_KEY` in `.env` when
-research should be ready, then restart the backend so it reads the new secret.
+admission checks. Use its ChatGPT connection action, or configure
+`OPENAI_API_KEY` in `.env`, to authenticate Codex. Configure `TAVILY_API_KEY`
+when research should be ready, then restart the backend so it reads new
+secrets.
 
 If browser device authentication is unavailable, use the short host recovery
 helper shown on the setup page:
@@ -95,12 +96,12 @@ empty-capability sandbox with a restrictive preview-only CSP. No object URL is
 created. The frontend value controls presentation only; backend authorization,
 integrity, and delivery limits remain authoritative.
 
-Public account creation is disabled by default. Set
-`ENABLE_PUBLIC_SIGNUP=true` only for a local installation that should accept
-signup, then rebuild/restart the frontend and backend:
+Public account creation is enabled by default in every environment. Set
+`ENABLE_PUBLIC_SIGNUP=false` for an invite-only installation, then
+rebuild/restart the frontend and backend:
 
 ```bash
-ENABLE_PUBLIC_SIGNUP=true docker compose up -d --build backend frontend
+ENABLE_PUBLIC_SIGNUP=false docker compose up -d --build backend frontend
 ```
 
 The frontend flag controls visible access copy; the backend still authorizes

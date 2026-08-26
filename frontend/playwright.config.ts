@@ -2,7 +2,7 @@ import path from "node:path"
 import { defineConfig, devices } from "@playwright/test"
 import dotenv from "dotenv"
 
-// Browser journeys target the judge-facing stack, whose single source of
+// Browser journeys target the reference stack, whose single source of
 // truth is the repository-root .env. Host-only frontend/.env values belong to
 // direct Vite development and must never redirect the E2E API client.
 const repositoryEnvironmentPath = path.resolve(import.meta.dirname, "../.env")

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted; supersedes ADR-0007
+Superseded by [ADR-0009](0009-portable-container-deployment.md)
 
 ## Date
 
@@ -68,6 +68,13 @@ project scope.
 The static backend container contract rejects active hosted deployment
 workflows, the removed Coolify script, and Coolify variables in
 `.env.example`. Local image and Compose health checks remain required.
+
+## Supersession
+
+Build Week has ended. On 2026-08-26,
+[ADR-0009](0009-portable-container-deployment.md) retained Compose as the
+reference topology while removing the event-only prohibition on hosted
+deployment.
 
 ## References
 

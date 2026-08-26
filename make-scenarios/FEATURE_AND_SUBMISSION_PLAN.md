@@ -13,7 +13,7 @@ The authoritative current-engine summaries are the
 [package overview](../backend/packages/txt2crs/README_txt2crs.md) and
 [implementation compliance matrix](../backend/packages/txt2crs/docs/IMPLEMENTATION_COMPLIANCE.md).
 The current submission package and human publishing handoff live in the
-[submission index](../docs/submission/README_submission.md).
+[submission index](../docs/archive/build-week/README_build_week.md).
 
 ## Product north star
 

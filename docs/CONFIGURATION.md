@@ -43,7 +43,7 @@ production require an explicit non-blank `SECRET_KEY`, and reject
 | `DOMAIN` | `localhost` | Domain for cookie settings and URLs |
 | `STACK_NAME` | `.env.example`: `txt2crs` | Docker Compose stack identifier |
 | `ENABLE_PRIVATE_DEV_ROUTES` | `False` | Register `/private/*` routes; accepted only in `local` |
-| `ENABLE_PUBLIC_SIGNUP` | `False` | Permit unauthenticated `/users/signup`; accepted only in `local` |
+| `ENABLE_PUBLIC_SIGNUP` | `True` | Permit unauthenticated `/users/signup`; set false for invite-only use in any environment |
 
 #### Docker Host Ports
 
@@ -72,6 +72,7 @@ test inventory is documented in [Port allocations](PORTS.md).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FRONTEND_HOST` | `http://localhost:5196` | Frontend URL for CORS and email links; `.env.example` sets `http://localhost:5195` for Docker |
+| `VITE_ENABLE_PUBLIC_SIGNUP` | `True` | Display the signup route; keep synchronized with the authoritative backend setting |
 
 #### Backend CORS
 
@@ -108,7 +109,15 @@ that persistent root.
 | `TXT2CRS_ARTIFACT_ROOT` | `/var/lib/txt2crs/artifacts` | Private rendered-artifact root |
 | `TXT2CRS_CODEX_HOME` | `/var/lib/txt2crs/codex-home` | Isolated dedicated Codex identity home |
 | `TXT2CRS_WORKER_ROOT` | `/tmp/txt2crs-worker` | Ephemeral job workspace outside persistent state |
-| `TXT2CRS_MODEL_ID` | `gpt-5.6-sol` | Reviewed exact model: `gpt-5.6-sol`, `gpt-5.6-terra`, or `gpt-5.6-luna` |
+| `TXT2CRS_MODEL_ID` | `gpt-5.6-sol` | Safe exact Codex model identifier; readiness requires the account to discover the configured value |
+
+#### Codex Authentication
+
+The runtime accepts either ChatGPT device authentication stored under
+`TXT2CRS_CODEX_HOME` or Platform API authentication through
+`OPENAI_API_KEY`. Put API keys only in `.env` or deployment secret storage.
+When both credential types exist, remove the one the installation should not
+use so Codex account selection stays explicit.
 
 The shell owns one facade and one serial worker. These intervals bound durable
 discovery, graceful shutdown, cached readiness, and the in-memory device-login
@@ -137,8 +146,8 @@ monitor:
 | `TAVILY_API_KEY` | (empty) | Optional local secret; absence reports research as unconfigured |
 | `TAVILY_TIMEOUT_SECONDS` | `20` | Timeout per Tavily request |
 
-Secrets remain in `.env`; never commit a real `TAVILY_API_KEY`. Missing
-ChatGPT or Tavily authentication does not prevent startup or OpenAPI
+Secrets remain in `.env`; never commit a real `TAVILY_API_KEY`. Missing Codex
+or Tavily authentication does not prevent startup or OpenAPI
 generation. It truthfully blocks generation admission in cached readiness.
 
 #### Generation Bounds and Retry Policy
@@ -188,10 +197,10 @@ job. Research currency is represented as integer micro-US-dollars.
 | `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_PER_USER` | `4000000` | Per-owner research-cost ceiling |
 | `TXT2CRS_ADMISSION_MAXIMUM_RESEARCH_MICROUSD_GLOBAL` | `10000000` | Global research-cost ceiling |
 
-These are conservative production fallbacks and are exactly twice the original
-P0 limits. The canonical local `.env.example` deliberately overrides them with
-10 jobs per owner and 20 globally, with token and research ceilings scaled to
-the same complete-job reservation count for judge and E2E work.
+These are conservative production fallbacks. The canonical local
+`.env.example` overrides them with 10 jobs per owner and 20 globally, with
+token and research ceilings scaled to the same complete-job reservation count
+for local and E2E work.
 
 #### Email Configuration
 
@@ -251,10 +260,11 @@ both `OTEL_ENABLED=true` and `OTLP_ENDPOINT` are configured.
 
 #### Deployment Scope
 
-No hosted-platform environment variables are supported in the current project
-scope. Repository-root Docker Compose reads the local variables above.
-`ENVIRONMENT=staging` and `ENVIRONMENT=production` select application runtime
-validation behavior; they do not configure or imply a hosted deployment.
+Repository-root Docker Compose reads the local variables above and defines the
+portable reference topology. Hosted platforms may inject the same application
+settings through their environment and secret stores. The platform must also
+provide persistent state, PostgreSQL, TLS, explicit origins, health probes,
+backup, and rollback according to the [deployment policy](deployment-policy.md).
 
 ## Environment-Specific Settings
 
@@ -276,14 +286,12 @@ Behaviors in local:
 - Rate limiting is disabled.
 - Local-only `/private/*` routes are disabled unless
   `ENABLE_PRIVATE_DEV_ROUTES=true`.
-- Public signup is disabled by default. The backend-only developer example
-  opts in with `ENABLE_PUBLIC_SIGNUP=true`; the root judge/demo example keeps
-  it false.
+- Public signup is enabled by default and may be disabled explicitly.
 - Sentry is disabled even when a DSN is present.
 - Logs use level `INFO` and human-readable text.
 - Local Docker Compose routes email to Mailcatcher.
 
-### Staging Runtime Profile (Not Deployed)
+### Staging Runtime Profile
 
 ```env
 ENVIRONMENT=staging
@@ -302,9 +310,9 @@ Behaviors in staging:
 - Logs use level `INFO` and structured JSON.
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
-- `ENABLE_PUBLIC_SIGNUP=true` is rejected during startup.
+- Public signup follows `ENABLE_PUBLIC_SIGNUP`.
 
-### Production Runtime Profile (Not Deployed)
+### Production Runtime Profile
 
 ```env
 ENVIRONMENT=production
@@ -323,7 +331,7 @@ Behaviors in production:
 - Logs use level `INFO` and structured JSON.
 - `SECRET_KEY` must be explicit, and placeholder secrets are rejected.
 - `ENABLE_PRIVATE_DEV_ROUTES=true` is rejected during startup.
-- `ENABLE_PUBLIC_SIGNUP=true` is rejected during startup.
+- Public signup follows `ENABLE_PUBLIC_SIGNUP`.
 
 See [Environment-specific behavior](environments.md) for the source-backed
 runtime matrix.
@@ -342,8 +350,7 @@ runtime matrix.
 
 - Use different credentials per environment
 - Keep the published local database port bound only where needed
-- If a future hosted scope is approved, define TLS and network controls before
-  selecting a database service
+- Define TLS and network controls before selecting a hosted database service
 
 ### CORS Origins
 
@@ -401,6 +408,6 @@ each service's `env_file` and `environment` sections. Values in a service's
 **"Course system is not ready"**
 - Log in as a superuser and inspect `/setup`
 - Add `TAVILY_API_KEY` to `.env` when research is enabled
-- Complete the ChatGPT device-login flow or use the displayed CLI recovery
-  command
+- Complete the ChatGPT device-login flow, use the displayed CLI recovery
+  command, or configure `OPENAI_API_KEY`
 - Restart the backend after changing environment variables

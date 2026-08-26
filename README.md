@@ -16,7 +16,7 @@
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-backend.yml"><img alt="Backend tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-backend.yml?branch=main&style=for-the-badge&label=backend"></a>
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/test-docker-compose.yml"><img alt="Docker Compose tests" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/test-docker-compose.yml?branch=main&style=for-the-badge&label=compose"></a>
   <a href="https://github.com/moshehbenavraham/txt2crs/actions/workflows/security.yml"><img alt="Security checks" src="https://img.shields.io/github/actions/workflow/status/moshehbenavraham/txt2crs/security.yml?branch=main&style=for-the-badge&label=security"></a>
-  <a href="https://github.com/moshehbenavraham/txt2crs/releases/tag/v1.2.5"><img alt="Release 1.2.5" src="https://img.shields.io/badge/release-v1.2.5-235a46?style=for-the-badge"></a>
+  <a href="https://github.com/moshehbenavraham/txt2crs/releases/tag/v1.3.0"><img alt="Release 1.3.0" src="https://img.shields.io/badge/release-v1.3.0-235a46?style=for-the-badge"></a>
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
   <img alt="React 19" src="https://img.shields.io/badge/React-19-20232A?style=flat-square&logo=react&logoColor=61DAFB">
   <img alt="TypeScript 7" src="https://img.shields.io/badge/TypeScript-7-3178C6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="PostgreSQL 18" src="https://img.shields.io/badge/PostgreSQL-18-4169E1?style=flat-square&logo=postgresql&logoColor=white">
-  <img alt="GPT-5.6" src="https://img.shields.io/badge/GPT--5.6-exact_model-412991?style=flat-square&logo=openai&logoColor=white">
+  <img alt="OpenAI Codex" src="https://img.shields.io/badge/OpenAI-Codex-412991?style=flat-square&logo=openai&logoColor=white">
   <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white">
   <img alt="MIT-0 and MIT licensed" src="https://img.shields.io/badge/license-MIT--0_%2B_MIT-c7922c?style=flat-square">
 </p>
@@ -42,10 +42,10 @@ Give txt2crs a topic, pasted text, public URL, YouTube URL, PDF, DOCX, or
 PPTX. It turns that single bounded source into a source-grounded course, review
 pack, student assessment, and separate instructor answer key.
 
-Built for the OpenAI Build Week Education category, txt2crs combines a
-reusable Python generation engine, a durable FastAPI application, and a warm,
-focused React learner experience. The tested release runs locally through
-Docker Compose; it is not presented as a hosted public generation service.
+txt2crs combines a reusable Python generation engine, a durable FastAPI
+application, and a warm, focused React learner experience. Docker Compose is
+the complete reference deployment, and the same images can run on a hosted
+container platform that preserves the documented security and state contract.
 
 ## What It Does
 
@@ -61,7 +61,7 @@ The application then:
 2. ingests and policy-checks the source before provider work;
 3. performs bounded Tavily research through a package-owned loopback MCP
    boundary;
-4. runs exact `gpt-5.6-sol` course generation with no older-model fallback;
+4. runs the operator-selected exact Codex model with no silent fallback;
 5. validates and checkpoints the generated learning structure;
 6. renders four publications in HTML, Markdown, PDF, and DOCX; and
 7. exposes exactly sixteen owner-private, integrity-checked artifacts.
@@ -86,7 +86,7 @@ uses opaque pagination, and reopens every active or completed request on its
 existing durable job URL. The intake page also reads authoritative rolling
 admission capacity before enabling another paid generation.
 
-## Why It Exists
+## Origin Story
 
 Two days after I joined OpenAI Build Week, my Zimbabwean wife asked me:
 "How can we bring AI to Africa?"
@@ -99,7 +99,7 @@ reviewable education material from almost any bounded source.
 
 ## Try The Deterministic Sample
 
-The stable judge sample uses this synthetic request:
+The stable deterministic sample uses this synthetic request:
 
 | Field | Value |
 |-------|-------|
@@ -144,7 +144,8 @@ and the separately identified
 
 - Docker Engine with Compose
 - Git and Bash (Git Bash is sufficient on Windows)
-- A ChatGPT subscription identity for live Codex generation
+- A ChatGPT subscription identity or OpenAI Platform API key for live Codex
+  generation
 - A Tavily API key for live research
 
 Python, Node.js, uv, and npm are needed only for host-side development or
@@ -158,14 +159,15 @@ cp .env.example .env
 
 Replace `SECRET_KEY`, `POSTGRES_PASSWORD`, and
 `FIRST_SUPERUSER_PASSWORD` with independent values. Add the Tavily secret to
-`TAVILY_API_KEY`. Keep exact model selection at:
+`TAVILY_API_KEY`. The established model remains the default; you may replace
+it with any safe exact identifier reported by your Codex account:
 
 ```dotenv
 TXT2CRS_MODEL_ID=gpt-5.6-sol
 ```
 
-Do not commit `.env`. The example intentionally disables public signup for
-the shared judge/demo profile.
+Do not commit `.env`. Public signup is enabled by default; set
+`ENABLE_PUBLIC_SIGNUP=false` for an invite-only installation.
 
 ### 2. Start the complete application
 
@@ -190,15 +192,14 @@ Open:
 - Backend API: <http://localhost:8016>
 - Superuser setup: <http://localhost:5195/setup>
 
-### 3. Connect the ChatGPT subscription
+### 3. Configure Codex authentication
 
-The packaged Codex runtime uses a ChatGPT subscription identity, not API-key
-authentication. Sign in with `FIRST_SUPERUSER` and
-`FIRST_SUPERUSER_PASSWORD`, open the superuser setup page, and start its
-ChatGPT device login. Open the displayed verification URL, enter the one-time
-code, and complete the account flow. The setup page must then report
-authentication, exact model, research, storage, and worker readiness before
-accepting a live course.
+The packaged Codex runtime accepts either a ChatGPT subscription identity or
+Platform API-key authentication. For ChatGPT, sign in with `FIRST_SUPERUSER`
+and `FIRST_SUPERUSER_PASSWORD`, open the superuser setup page, and start its
+device login. For API-key mode, set `OPENAI_API_KEY` in the ignored `.env`
+before starting the stack. The setup page must report authentication, exact
+model, research, storage, and worker readiness before accepting a live course.
 
 For host-only development, the short recovery helper runs the same packaged
 device flow and stores credentials under the ignored
@@ -219,7 +220,7 @@ Stop containers while preserving PostgreSQL and private engine-state volumes:
 
 The authoritative detailed paths are
 [onboarding](docs/onboarding.md), [configuration](docs/CONFIGURATION.md), and
-the [local deployment policy](docs/deployment-policy.md).
+the [deployment policy](docs/deployment-policy.md).
 
 ## Architecture
 
@@ -250,7 +251,7 @@ flowchart TB
         ENGINE --> FILES
     end
 
-    PROVIDERS["Bounded providers<br/>Tavily loopback MCP<br/>Codex · exact GPT-5.6"]
+    PROVIDERS["Bounded providers<br/>Tavily loopback MCP<br/>Codex · exact configured model"]
     OUTPUTS["Course · review pack<br/>student test · answer key<br/>HTML · Markdown · PDF · DOCX"]
 
     SOURCE --> UI
@@ -287,7 +288,7 @@ errors into bounded RFC 9457 responses.
 Read the full [architecture guide](docs/ARCHITECTURE.md) and
 [workspace boundary](docs/TXT2CRS_FOLDER_ARCHITECTURE.md).
 
-## How Codex And GPT-5.6 Are Used
+## How Codex Is Used
 
 Codex helped build and validate the project across the engine, FastAPI shell,
 React application, tests, release tooling, documentation, and production
@@ -295,12 +296,11 @@ Docker path. Specification-driven sessions kept architectural decisions,
 tests-first implementation, code review, security checks, and validation
 evidence tied to exact repository changes.
 
-The shipped application uses GPT-5.6 differently: the package-owned runtime
-discovers and selects an exact reviewed model. The default is
-`gpt-5.6-sol`; `gpt-5.6-terra` and `gpt-5.6-luna` are the other accepted exact
-identifiers. Bare `gpt-5.6` is a family label, not a selectable runtime model.
-Readiness and execution fail closed instead of silently choosing an older or
-first-available model.
+The shipped application's package-owned runtime discovers the exact configured
+model. The compatibility default is `gpt-5.6-sol`, but operators may configure
+another safe exact identifier exposed by their Codex account. Readiness and
+execution fail closed instead of silently choosing a different or first
+available model.
 
 Tavily supplies bounded web research through a two-tool MCP server on
 loopback. The engine owns both provider lifecycles, closes every listener and
@@ -361,23 +361,21 @@ HTML preview is parsed inertly inside an empty sandbox, and normal logs exclude
 source content, prompts, provider payloads, artifact bytes, paths, tokens, and
 email addresses.
 
-The current release is suitable for a synthetic local demonstration, not
-public personal-data processing. Formal legal-basis, provider-transfer,
-retention, log-erasure, backup-erasure, and provider-copy records are not
-complete. The demo and tracked evidence therefore use synthetic nonpersonal
-content and make no GDPR-compliance claim.
+Before a public installation accepts personal data, its operator must define
+legal basis, provider-transfer terms, retention, log erasure, backup erasure,
+and provider-copy handling. The project makes no automatic GDPR-compliance
+claim.
 
 Current product limits:
 
-- local Docker Compose is the only deployment target;
+- Docker Compose is the reference topology; hosted deployments must preserve
+  its single-replica persistence and security contract;
 - exactly one backend process and one serial generation worker are supported;
 - one upload is limited to 20 MiB and normalized input to 200,000 characters;
 - PDF input is limited to 200 pages and a complete bundle to 100 MiB;
-- public signup is disabled in the shared judge/demo configuration;
-- there is no hosted service, LMS export, collaborative editing, automatic
-  grading, public artifact sharing, or concurrent worker pool; and
-- GitHub Actions billing currently prevents remote CodeQL from starting,
-  while every locally executable workflow equivalent passes.
+- public signup is operator-configurable in every environment;
+- there is no bundled LMS export, collaborative editing, automatic grading,
+  public artifact sharing, or concurrent worker pool.
 
 See [security](docs/SECURITY.md), [deployment scope](docs/deployment-policy.md),
 and [configuration](docs/CONFIGURATION.md). The complete collision-free host
@@ -395,7 +393,7 @@ txt2crs/
 |-- scripts/                    # Development and validation commands
 |-- docs/
 |   |-- release/                # Bounded release proof
-|   `-- submission/             # Judge and Devpost evidence
+|   `-- archive/                # Historical project records
 |-- docker-compose.yml
 |-- VERSION
 `-- README.md
@@ -416,12 +414,8 @@ material retains its stated 0BSD or MIT provenance, and the independently
 installable engine retains its own scoped
 [MIT-0 and Hermes-derived MIT terms](backend/packages/txt2crs/LICENSE).
 
-The current synchronized release version is `1.2.5`. The exact public
-judge-facing source is preserved by the annotated `v1.2.5` tag after the
-release passed the existing distribution, production-image, health,
-replacement, and privacy checks.
-
-The complete public-safe judge package is indexed in
-[submission evidence](docs/submission/README_submission.md). The remaining
-YouTube and Devpost actions follow the
-[human publishing handoff](docs/submission/HUMAN_PUBLISHING_HANDOFF.md).
+The current synchronized release version is stored in [`VERSION`](VERSION).
+Each release is preserved by an annotated `v<version>` tag after the engine,
+shell, frontend, distribution, container, and security checks pass. Historical
+Build Week evidence remains non-authoritative project history in
+[`docs/archive/`](docs/archive/README_archive.md).

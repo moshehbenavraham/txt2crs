@@ -5,7 +5,7 @@ This module provides user CRUD operations, authentication, profile management,
 and self-service registration. Includes admin-only endpoints for superusers.
 
 Access Levels:
-- Conditional public: /signup (local opt-in and rate limited)
+- Operator-controlled public: /signup (available in every environment and rate limited)
 - Authenticated: /me endpoints for self-service
 - Superuser: Full user management (list, create, update, delete any user)
 """
@@ -509,15 +509,15 @@ def delete_user_me(
     "/signup",
     response_model=UserPublic,
     status_code=201,
-    summary="Register new user (Local opt-in)",
+    summary="Register new user",
     description="""
 Conditional registration endpoint for new user self-signup.
 
 **Rate Limited:** This endpoint is rate-limited to prevent abuse.
 
-**Local Opt-in:** No authentication is required only when
-`ENVIRONMENT=local` and `ENABLE_PUBLIC_SIGNUP=true`. Signup is disabled by
-default and cannot be enabled in staging or production.
+**Operator controlled:** No authentication is required when
+`ENABLE_PUBLIC_SIGNUP=true`. Operators may disable this endpoint for an
+invite-only installation in any environment.
 
 New users are created with:
 - `is_active = True`
@@ -551,9 +551,8 @@ def register_user(
     user_in: UserRegister,
 ) -> Any:
     """Create new user without the need to be logged in."""
-    # Check the deployment mode before reading the submitted email from the
-    # database. Judge/demo deployments stay invite-only and do not reveal
-    # whether an account already exists.
+    # Check the operator setting before reading the submitted email from the
+    # database. Disabled installations do not reveal whether an account exists.
     if not settings.public_signup_enabled:
         raise AuthorizationError(
             code=ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS,

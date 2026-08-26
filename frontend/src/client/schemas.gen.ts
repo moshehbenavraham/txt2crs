@@ -1292,7 +1292,9 @@ export const SystemReadinessPublicSchema = {
     },
     configured_model_id: {
       type: "string",
-      enum: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+      maxLength: 128,
+      minLength: 1,
+      pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
       title: "Configured Model Id",
     },
     enabled_input_modes: {

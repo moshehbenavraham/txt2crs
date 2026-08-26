@@ -199,20 +199,19 @@ class Settings(BaseSettings):
         """True only when private development routes are explicitly enabled locally."""
         return self.ENVIRONMENT == "local" and self.ENABLE_PRIVATE_DEV_ROUTES
 
-    ENABLE_PUBLIC_SIGNUP: bool = False
+    ENABLE_PUBLIC_SIGNUP: bool = True
     """
-    Enable unauthenticated account registration only for local development.
+    Enable unauthenticated account registration.
 
-    The default remains false for the judge/demo profile, where an operator
-    provisions a bounded account instead of exposing the shared subscription.
+    Operators may disable this in any environment for an invite-only install.
     """
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def public_signup_enabled(self) -> bool:
-        """True only for an explicit local developer-mode selection."""
+        """Return the operator-selected public-registration mode."""
 
-        return self.ENVIRONMENT == "local" and self.ENABLE_PUBLIC_SIGNUP
+        return self.ENABLE_PUBLIC_SIGNUP
 
     # === CORS Configuration ===
     BACKEND_CORS_ORIGINS: Annotated[
@@ -309,12 +308,13 @@ class Settings(BaseSettings):
     # These finite defaults are copied into the immutable execution profile
     # stored with each accepted job. Changing an environment default later
     # therefore cannot reinterpret already-durable work after a restart.
-    TXT2CRS_MODEL_ID: Literal[
-        "gpt-5.6-sol",
-        "gpt-5.6-terra",
-        "gpt-5.6-luna",
-    ] = "gpt-5.6-sol"
-    """Exact reviewed GPT-5.6 family model; no older-model fallback exists."""
+    TXT2CRS_MODEL_ID: str = Field(
+        default="gpt-5.6-sol",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+    )
+    """Exact operator-selected model identifier; never silently substituted."""
 
     TXT2CRS_RESEARCH_ENABLED: bool = True
     """Disable-only operator switch for package-owned Tavily research."""
@@ -932,11 +932,6 @@ class Settings(BaseSettings):
             raise ValueError(
                 "ENABLE_PRIVATE_DEV_ROUTES can only be enabled when "
                 'ENVIRONMENT="local".'
-            )
-
-        if self.ENVIRONMENT != "local" and self.ENABLE_PUBLIC_SIGNUP:
-            raise ValueError(
-                'ENABLE_PUBLIC_SIGNUP can only be enabled when ENVIRONMENT="local".'
             )
 
         return self

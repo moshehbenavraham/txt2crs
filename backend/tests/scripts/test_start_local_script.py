@@ -1,4 +1,4 @@
-"""Regression tests for the judge-facing local startup command.
+"""Regression tests for the canonical local startup command.
 
 The startup script is intentionally tested with a fake Docker executable. This
 keeps the suite credential-free and prevents a unit test from changing the
@@ -207,11 +207,11 @@ def test_startup_script_is_executable_ascii_and_uses_lf() -> None:
 
 
 def test_environment_examples_explain_roles_and_cross_link_each_other() -> None:
-    """Every template must direct judges and host developers to the right file."""
+    """Every template must direct operators and host developers correctly."""
 
     expected_header_markers = {
         ROOT_ENVIRONMENT_EXAMPLE: (
-            "CANONICAL JUDGE AND DOCKER CONFIGURATION",
+            "CANONICAL APPLICATION AND DOCKER CONFIGURATION",
             "backend/.env.example",
             "frontend/.env.example",
         ),
@@ -238,6 +238,24 @@ def test_environment_examples_explain_roles_and_cross_link_each_other() -> None:
                 environment_template,
                 required_marker,
             )
+
+
+def test_start_accepts_a_safe_operator_selected_model(tmp_path: Path) -> None:
+    """The local helper must not retain the Build Week GPT-5.6 allowlist."""
+
+    environment_text = VALID_ENVIRONMENT.replace(
+        "TXT2CRS_MODEL_ID=gpt-5.6-sol",
+        "TXT2CRS_MODEL_ID=gpt-6",
+    )
+    project_root, fake_docker_log, process_environment = _make_test_project(
+        tmp_path,
+        environment_text=environment_text,
+    )
+
+    result = _run_start_script(project_root, process_environment, "--status")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ps --all" in fake_docker_log.read_text(encoding="ascii")
 
 
 def test_missing_environment_aborts_before_docker_with_copy_instructions(
@@ -435,7 +453,7 @@ def test_duplicate_host_ports_abort_before_docker(tmp_path: Path) -> None:
 
 
 def test_start_failure_prints_bounded_diagnostics(tmp_path: Path) -> None:
-    """A failed deployment must leave the judge with immediate recovery evidence."""
+    """A failed deployment must leave the operator with recovery evidence."""
 
     project_root, fake_docker_log, process_environment = _make_test_project(tmp_path)
     process_environment["FAKE_DOCKER_MODE"] = "up-failure"

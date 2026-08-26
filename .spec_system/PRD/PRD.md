@@ -2,11 +2,11 @@
 
 ## Overview
 
-txt2crs is an OpenAI and Devpost Education Hackathon application for learners
-who want to turn a topic or bounded source into a complete, source-grounded
-learning package. One authenticated submission produces a deeply researched
-course, comprehensive review material, a student assessment, and a separate
-instructor answer key in private publication formats.
+txt2crs is an education application for learners who want to turn a topic or
+bounded source into a complete, source-grounded learning package. One
+authenticated submission produces a deeply researched course, comprehensive
+review material, a student assessment, and a separate instructor answer key in
+private publication formats.
 
 The reusable `txt2crs` engine owns generation, research, validation,
 persistence, recovery, policy, artifacts, and rendering. The FastAPI shell
@@ -17,27 +17,26 @@ provider internals or filesystem paths.
 ## Goals
 
 1. Deliver one durable input-to-four-publications learner journey backed by
-   real research and explicit GPT-5.6 execution.
+   real research and an exact operator-selected Codex model.
 2. Preserve exact requests, execution profiles, accepted checkpoints, and
    private artifacts across refreshes and process or container replacement.
 3. Keep authorization, content policy, input bounds, artifact integrity, and
    provider isolation enforceable at the owning package boundaries.
 4. Provide a polished, accessible, responsive "research atelier" interface
    that clearly explains intake, progress, sources, results, and failures.
-5. Ship a reproducible, judge-ready release with deterministic validation,
-   one representative live proof, and complete submission evidence.
+5. Ship reproducible releases with deterministic validation, portable
+   container contracts, and explicit live-provider compatibility checks.
 
 ## Non-Goals
 
 - Reconstruct Make.com, Airtable, Paperform, or Google Drive workflows.
 - Add payments, subscriptions, service tiers, commerce, or public file links.
 - Add LMS export, course editing, collaboration, automatic grading, or a quiz
-  player before the submission gate.
+  player without bounded product requirements and tests.
 - Add multiple concurrent Codex workers, a queue platform, or horizontal
   backend replicas.
-- Add a general model or provider selector.
-- Add hosted deployment, platform-specific CD, public domains, or remote
-  environment operations within the current project scope.
+- Add an end-user model or provider selector; exact model selection remains an
+  operator configuration concern.
 - Add image, audio, or video ingestion before each capability has bounded
   deployment dependencies and representative tests.
 
@@ -49,10 +48,9 @@ provider internals or filesystem paths.
   receives a private, complete learning package.
 - **Instructor or reviewer**: Uses the separate answer key, source disclosure,
   and conflict notes to review assessment quality and course provenance.
-- **System operator**: Connects one dedicated ChatGPT identity, inspects safe
-  readiness, provisions judge access, and runs the release proof.
-- **Hackathon judge**: Evaluates the product story, real workflow, generated
-  artifacts, documented AI usage, privacy boundaries, and reproducibility.
+- **System operator**: Configures ChatGPT or API-key Codex authentication,
+  inspects safe readiness, controls registration, and operates a local or
+  hosted single-replica deployment.
 
 ### Key Use Cases
 
@@ -62,8 +60,9 @@ provider internals or filesystem paths.
    continues from checkpoint-derived state.
 3. A learner previews or downloads the four deliverables in available private
    formats after integrity-checked delivery.
-4. An operator completes dedicated ChatGPT device-code setup and sees truthful
-   readiness without exposing credentials or private provider details.
+4. An operator configures either ChatGPT device-code or Platform API-key
+   authentication and sees truthful readiness without exposing credentials or
+   private provider details.
 5. The application recovers a non-terminal job from its exact stored request,
    execution profile, resolved preferences, and latest accepted checkpoint.
 6. A user account deletion removes engine requests, checkpoints, delivery
@@ -100,10 +99,11 @@ provider internals or filesystem paths.
   and DOCX artifacts when rendering completes.
 - A learner can see bounded source summaries and unresolved-conflict
   disclosures in completed results.
-- A system operator can connect one dedicated ChatGPT subscription identity
-  through a superuser-only browser flow with a documented CLI recovery path.
+- A system operator can connect a ChatGPT subscription through a superuser-only
+  browser flow with a documented CLI recovery path, or configure Platform API
+  credentials through deployment secrets.
 - A system operator can inspect coarse readiness for authentication,
-  discovered GPT-5.6, research, storage, worker health, enabled inputs, and
+  the exact configured model, research, storage, worker health, enabled inputs, and
   admission without triggering destructive or provider work per browser poll.
 - The application can recover accepted and active work from the exact
   immutable request and latest accepted checkpoint after restart.
@@ -114,8 +114,9 @@ provider internals or filesystem paths.
 - A signed-out visitor can understand the product and reach sign-in from a
   public landing page; an authenticated learner can create and revisit work
   on product-specific routes.
-- A hackathon judge can run the documented Docker deployment, deterministic
-  suites, representative sample, and release proof from the tested revision.
+- An operator can run the documented Docker reference deployment,
+  deterministic suites, representative sample, and release proof from the
+  tested revision.
 
 ### Deferred Requirements
 
@@ -153,9 +154,9 @@ provider internals or filesystem paths.
 - **Privacy**: Logs and HTTP responses contain no email, source content,
   prompts, evidence excerpts, tokens, provider payloads, artifact bytes, or
   filesystem paths.
-- **Model policy**: Readiness and execution require a discovered GPT-5.6
-  family model and fail closed instead of falling back to an older or first
-  available model.
+- **Model policy**: Readiness and execution require the exact configured model
+  to be discovered and fail closed instead of falling back to another or the
+  first available model.
 - **Accessibility**: Learner surfaces meet WCAG 2.2 AA contrast, keyboard,
   semantic landmark, focus, status announcement, and reduced-motion
   requirements at 390, 768, 1024, and 1440 pixel target widths.
@@ -167,11 +168,8 @@ provider internals or filesystem paths.
 
 ## Constraints and Dependencies
 
-- Submission deadline: 2026-07-22 00:00 UTC (03:00 Asia/Jerusalem).
-- P0 feature freeze: 2026-07-21 15:00 Asia/Jerusalem; live proof and release
-  evidence target: 2026-07-21 21:00 Asia/Jerusalem.
-- Runtime generation uses one dedicated operator-controlled ChatGPT
-  subscription identity through the official packaged Codex runtime.
+- Runtime generation uses operator-controlled ChatGPT or Platform API
+  authentication through the official packaged Codex runtime.
 - Research uses the package-owned two-tool Tavily MCP boundary on loopback.
 - PostgreSQL owns users; tenant-scoped engine SQLite is the only generation
   job source of truth; the private filesystem owns immutable artifacts.
@@ -181,10 +179,9 @@ provider internals or filesystem paths.
   generation, research, validation, persistence, policy, or rendering logic.
 - PostgreSQL schema changes use Alembic; generated frontend client files are
   updated only through the repository client-generation script.
-- Repository-root Docker Compose is the only deployment target in scope.
-  Runtime `staging` and `production` profiles do not imply a hosted
-  environment, and any future hosting choice requires explicit owner approval
-  and a new ADR.
+- Repository-root Docker Compose is the reference topology. Hosted container
+  deployments must preserve the image, persistence, topology, TLS, health,
+  secret, backup, and authorization contract in ADR-0009.
 - External credentials may be absent during build and OpenAPI generation, but
   readiness must then reject new generation work truthfully.
 
@@ -271,7 +268,10 @@ This system delivers the product via phases. Each phase is implemented through
   erasure, drop the donor item table through Alembic, remove item code and
   admin tools, and regenerate the frontend contract.
 
-## Phase 05: Hardening and Submission
+## Historical Phase 05: Build Week Hardening and Submission
+
+This completed phase is retained as delivery history. Its deadline, judging,
+model-family, and submission rules are not current product requirements.
 
 ### Objectives
 
@@ -306,7 +306,7 @@ This system delivers the product via phases. Each phase is implemented through
 - React 19, TypeScript, Vite, TanStack Router and Query, React Hook Form, Zod,
   Tailwind CSS 4, shadcn/Radix, Biome, and Playwright for the frontend.
 - Docker Compose, Traefik, non-root containers, persistent volumes, and
-  OpenTelemetry for local production-like operation.
+  OpenTelemetry for reference and portable hosted operation.
 
 ## Package Map
 
@@ -323,8 +323,8 @@ This system delivers the product via phases. Each phase is implemented through
   by deterministic tests.
 - [x] New requests are durably committed before `202` and recover from exact
   stored execution state.
-- [x] GPT-5.6 is explicitly selected, discovered, and exercised without
-  silent fallback.
+- [x] The configured exact model is selected, discovered, and exercised
+  without silent fallback.
 - [x] Binary content passes post-ingestion policy before research or Codex.
 - [x] One completed job exposes four deliverables and exactly 16 private,
   owner-scoped, integrity-checked artifacts.
@@ -335,18 +335,13 @@ This system delivers the product via phases. Each phase is implemented through
 - [x] Desktop, mobile, keyboard, contrast, and reduced-motion checks pass.
 - [x] Engine, backend, frontend, acceptance, Compose, and production Docker
   validation are green.
-- [x] The exact SemVer release candidate is synchronized, built, tested, and
-  supported by one inspected live GPT-5.6 plus Tavily course; tag and push
-  steps are reserved for the human operator.
-- [x] Judge-ready README, license/access instructions, private demo upload
-  candidate, Codex feedback Session ID, Education-category fields, and human
-  publishing handoff are complete.
+- [x] The historical Build Week SemVer candidate was synchronized, built,
+  tested, and supported by one inspected live GPT-5.6 plus Tavily course.
 
 ## Risks
 
-- **Deadline compression**: Preserve durability, GPT-5.6, policy, owner
-  authorization, artifact integrity, four deliverables, and submission
-  evidence; drop hosting, extra samples, and nonessential motion first.
+- **Deployment growth**: Preserve single-replica runtime ownership, durable
+  state, TLS, backup, health, and rollback contracts on any hosted target.
 - **Runtime compatibility**: Gate SDK or CLI upgrades behind protocol fixture
   review and the full engine contract suite.
 - **Cross-store consistency**: Keep engine SQLite authoritative for jobs and
@@ -357,14 +352,14 @@ This system delivers the product via phases. Each phase is implemented through
   OOXML protections, two-stage policy, deterministic rendering, and sandboxed
   previews.
 - **External credential availability**: Keep deterministic validation
-  credential-free and fail readiness safely until ChatGPT and Tavily are
+  credential-free and fail readiness safely until Codex and Tavily are
   configured.
 
 ## Assumptions
 
-- **Local Docker is the complete deployment scope**: Repository-root Docker
-  Compose is the release, demonstration, and judge path. Phase planning must
-  not add hosted automation or assume a future platform.
+- **Docker is the reference deployment scope**: Repository-root Docker Compose
+  proves the complete topology; hosted automation may target any platform that
+  preserves ADR-0009.
 - **The repository is a three-package workspace**: Root and side-specific
   agent guidance, the uv workspace, nested engine package, and independent
   React manifest establish distinct backend shell, engine, and frontend
@@ -384,7 +379,7 @@ This system delivers the product via phases. Each phase is implemented through
   restart replay, cross-store erasure, donor removal, migration verification,
   and generated-client regeneration do not fit two bounded sessions. Phase 03
   therefore uses three dependency-ordered sessions without changing scope.
-- **Phase 05 release ordering**: The source implementation plan requires the
+- **Historical Phase 05 release ordering**: The source implementation plan requires the
   judge README before the final release, while the initial phase stubs placed
   the tag in Session 01 and tracked submission assets in Session 02. Session 01
   therefore proves a synchronized `1.0.0` release candidate and Session 02

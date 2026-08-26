@@ -530,15 +530,15 @@ export class UsersService {
   }
 
   /**
-   * Register new user (Local opt-in)
+   * Register new user
    *
    * Conditional registration endpoint for new user self-signup.
    *
    * **Rate Limited:** This endpoint is rate-limited to prevent abuse.
    *
-   * **Local Opt-in:** No authentication is required only when
-   * `ENVIRONMENT=local` and `ENABLE_PUBLIC_SIGNUP=true`. Signup is disabled by
-   * default and cannot be enabled in staging or production.
+   * **Operator controlled:** No authentication is required when
+   * `ENABLE_PUBLIC_SIGNUP=true`. Operators may disable this endpoint for an
+   * invite-only installation in any environment.
    *
    * New users are created with:
    * - `is_active = True`

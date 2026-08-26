@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --nuclear)
             printf '%s\n' \
-                "Destructive reset mode was removed from this judge-safe command." \
+                "Destructive reset mode is not supported by this safe command." \
                 "Use the documented manual reset only when data loss is intended." >&2
             exit 2
             ;;

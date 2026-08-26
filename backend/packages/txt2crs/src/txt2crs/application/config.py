@@ -9,7 +9,7 @@ from typing import Any, Self
 
 from pydantic import ConfigDict, Field, SecretStr, field_validator, model_validator
 
-from txt2crs.ai.model_policy import Gpt56ModelPolicy
+from txt2crs.ai.model_policy import ExactModelPolicy
 from txt2crs.domain.models import Identifier, StrictContract
 from txt2crs.jobs.quota import AdmissionLimits
 from txt2crs.jobs.requests import ExecutionProfile
@@ -344,7 +344,7 @@ class RealApplicationConfig(_BaseApplicationConfig):
         object.__setattr__(self, "worker_directory", worker_directory)
         if not self.tavily_api_key.get_secret_value().strip():
             raise ValueError("tavily_api_key cannot be empty")
-        Gpt56ModelPolicy(configured_model_id=self.default_execution_profile.model_id)
+        ExactModelPolicy(configured_model_id=self.default_execution_profile.model_id)
         return self
 
 

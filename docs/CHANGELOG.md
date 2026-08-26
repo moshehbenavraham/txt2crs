@@ -12,12 +12,35 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [1.3.0] - 2026-08-26
+
+### Added
+
 - Added `scripts/ci-create-env-files.sh`, which recreates the git-ignored
   `.env` and `backend/.env` from their committed templates so continuous
   integration jobs have a complete, secret-free configuration.
+- Added ADR-0009 and a platform-neutral container deployment contract for
+  hosted environments that preserve the documented TLS, persistence, backup,
+  health, security, and single-worker runtime boundaries.
 
 ### Changed
 
+- Expanded Codex execution to support either ChatGPT or Platform API
+  credentials and any safe, exactly configured model exposed by the operator's
+  account, while retaining the established GPT-5.6 default for compatibility.
+- Made public signup an explicit operator setting in every environment,
+  defaulted it on for a usable product installation, and regenerated the
+  browser API client from the updated server contract.
 - Reworked the root project guide around an original, brand-aligned README
   banner, live repository shields, a faster input-to-output tour, and a
   Mermaid architecture diagram that makes the application, engine, provider,
@@ -32,6 +55,10 @@ Archived entries are stored in [`archive/`](archive/).
 ### Deprecated
 
 ### Removed
+
+- Removed expired Build Week deployment, authentication, model-family,
+  signup, judge, deadline, and release gates from active product sources; the
+  event submission package now lives in a clearly non-authoritative archive.
 
 ### Fixed
 
@@ -48,7 +75,8 @@ Archived entries are stored in [`archive/`](archive/).
 - Skipped `tests/admin.spec.ts` "deletes a user" unless
   `TXT2CRS_RUN_LIVE_CODEX=1`, matching the engine suite's existing gate.
   Deleting a user purges owner engine state, which needs an authenticated
-  Codex subscription, so the route answers 503 on any runner without one.
+  Codex runtime, so the route answers 503 on any runner without provider
+  credentials.
 - Fixed a `tsc` failure in `frontend/tests/course-library.spec.ts`, where the
   throwing placeholder made TypeScript infer `() => never` for the library
   response gate and reject the later `resolve` assignment.

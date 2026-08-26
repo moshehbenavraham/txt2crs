@@ -1,5 +1,10 @@
 # Phase 03 Transition CI/CD Pipeline Report
 
+> **Historical validation record:** this report captures the pipeline state on
+> 2026-07-20. ADR-0009 supersedes its local-only operations scope; current
+> releases may target any hosted container platform that preserves the active
+> deployment contract.
+
 **Date:** 2026-07-20
 **Result:** PASS with local fallback
 **Selected bundle:** none - validation only
@@ -56,7 +61,7 @@ local equivalents passed.
 | Build & Test | `quality.yml`, `test-backend.yml`, `test-docker-compose.yml`, `playwright.yml`, `generate-client.yml` | PASS: builds, 473 backend, 470 engine, 33 unit, 65 browser, deterministic client | Push runs rejected before runner; PR-only client workflow not applicable |
 | Security | `security.yml`, `zizmor.yml`, `guard-dependencies.yml` | PASS: history, dependency, syntax, and workflow scans | Runs rejected before runner; CodeQL remains remote-only |
 | Integration | `playwright.yml`, `test-docker-compose.yml`, `detect-conflicts.yml` | PASS: browser, PostgreSQL, migrations, health, production images, and no open PR | Push runs rejected before runner |
-| Operations | Dependabot plus local release/tag and deployment policy | PASS for approved local-only operations | GitHub Actions intentionally does not deploy |
+| Operations | Dependabot plus release/tag and deployment policy | PASS for the then-approved local operations | GitHub Actions intentionally did not deploy at the time |
 
 ## Evidence Ledger
 
@@ -82,8 +87,9 @@ No secret value was created or committed.
 - Same-repository generated-client PR pushes reference the already-documented
   `FULL_STACK_FASTAPI_TEMPLATE_REPO_TOKEN`; fork drift checks do not require
   it.
-- There is no deploy or hosted-backup secret because hosted operations remain
-  outside the approved deployment scope.
+- No deploy or hosted-backup secret was configured for this historical local
+  proof. Hosted operators now supply platform secrets outside Git under the
+  current deployment policy.
 
 ## Known Issues
 

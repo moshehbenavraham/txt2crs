@@ -1,10 +1,16 @@
 # Phase 03 Transition Infrastructure Report
 
+> **Historical validation record:** this report captures the Phase 03
+> infrastructure decision made on 2026-07-20. ADR-0009 now supersedes its
+> local-only scope. The current product supports platform-neutral container
+> hosting under `docs/deployment-policy.md`; statements below describe the old
+> proof environment and are not current deployment restrictions.
+
 **Date:** 2026-07-20
 **Result:** PASS
 **Selected bundle:** none - validation and repair only
 **Platform:** Repository-root Docker Compose
-**Scope:** Local-only backend, frontend, PostgreSQL, and private engine state
+**Scope at time of proof:** Local backend, frontend, PostgreSQL, and private engine state
 
 ## Scope Decision
 

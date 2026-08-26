@@ -1,5 +1,8 @@
 # Implementation Summary
 
+> Historical completed-session record. Judge and Devpost follow-ups below
+> were event tasks and are not current product or release requirements.
+
 **Session ID**: `phase04-session02-results-preview-and-experience-validation`
 **Package**: frontend
 **Completed**: 2026-07-20

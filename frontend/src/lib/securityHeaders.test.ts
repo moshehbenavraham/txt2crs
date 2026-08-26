@@ -51,12 +51,12 @@ describe("frontend container health", () => {
     expect(frontendDockerfile).not.toContain(selfReferentialApiUrlArgument)
   })
 
-  it("documents local-only deployment and both health probe paths", () => {
+  it("documents a portable container baseline and both health probe paths", () => {
     expect(deploymentPolicy).toContain(
-      "Docker Compose is the sole deployment source of truth",
+      "Docker Compose is the reference deployment source of truth",
     )
     expect(deploymentPolicy).toContain("`/api/v1/utils/health/`")
     expect(deploymentPolicy).toContain("`/health`")
-    expect(deploymentPolicy).not.toContain("Coolify")
+    expect(deploymentPolicy).toContain("hosted container platform")
   })
 })

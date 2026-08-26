@@ -49,6 +49,8 @@ live under `backend/packages/txt2crs/docs/`.
 - [File organization](FILE_ORGANIZATION.md) maps repository ownership.
 - [Folder architecture](TXT2CRS_FOLDER_ARCHITECTURE.md) explains the
   library-first workspace and dependency rules.
+- [Archive](archive/README_archive.md) preserves retired changelogs and the
+  non-authoritative Build Week submission record.
 
 ## Engine Research and Design
 

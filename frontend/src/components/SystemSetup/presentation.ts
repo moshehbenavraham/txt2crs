@@ -52,13 +52,13 @@ export const SYSTEM_CHECK_DEFINITIONS: readonly SystemCheckDefinition[] = [
   {
     key: "authentication",
     index: "01",
-    label: "ChatGPT identity",
-    description: "Dedicated subscription identity for course generation.",
+    label: "Codex credentials",
+    description: "ChatGPT or API-key authentication for course generation.",
   },
   {
     key: "model",
     index: "02",
-    label: "GPT-5.6 model",
+    label: "Configured model",
     description: "Configured generation model for the provider runtime.",
   },
   {
@@ -177,9 +177,9 @@ export function getAuthenticationDisplay(
     case "signed_out":
       return {
         label: "Not connected",
-        title: "Connect dedicated ChatGPT",
+        title: "Connect ChatGPT (optional)",
         description:
-          "Start a short device ceremony for the operator-controlled subscription.",
+          "Use device login when this installation does not authenticate with an API key.",
         badgeVariant: "secondary",
         alertVariant: "info",
         actionLabel: "Connect ChatGPT",
@@ -197,15 +197,14 @@ export function getAuthenticationDisplay(
       return {
         label: "Connected",
         title: "ChatGPT connected",
-        description:
-          "The dedicated subscription identity is available to the course runtime.",
+        description: "The ChatGPT identity is available to the course runtime.",
         badgeVariant: "success",
         alertVariant: "success",
       }
     case "failed":
       return {
         label: "Connection failed",
-        title: "Reconnect dedicated ChatGPT",
+        title: "Reconnect ChatGPT",
         description:
           "The previous ceremony ended safely. Start a new attempt when the runtime is available.",
         badgeVariant: "destructive",

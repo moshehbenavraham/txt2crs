@@ -1,5 +1,7 @@
 # Submission Asset Checklist
 
+> Archived Build Week checklist. All event tasks and deadlines are inactive.
+
 This checklist covers the repository and prepared submission assets. YouTube
 publication and final Devpost submission remain human-only actions documented in
 [`HUMAN_PUBLISHING_HANDOFF.md`](HUMAN_PUBLISHING_HANDOFF.md).

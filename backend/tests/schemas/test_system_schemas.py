@@ -113,14 +113,24 @@ def test_readiness_projection_rejects_unknown_input_and_naive_time() -> None:
         )
 
 
-def test_readiness_projection_rejects_a_bare_model_family_label() -> None:
-    """The browser contract exposes only exact app-server model identifiers."""
+def test_readiness_projection_accepts_a_safe_configured_model_identifier() -> None:
+    """The browser contract no longer freezes the Build Week model family."""
 
+    payload = SystemReadinessPublic.from_snapshot(_readiness_snapshot()).model_dump()
+
+    public = SystemReadinessPublic.model_validate(
+        {**payload, "configured_model_id": "gpt-6"}
+    )
+
+    assert public.configured_model_id == "gpt-6"
+
+
+def test_readiness_projection_rejects_an_unsafe_model_identifier() -> None:
     payload = SystemReadinessPublic.from_snapshot(_readiness_snapshot()).model_dump()
 
     with pytest.raises(ValidationError, match="configured_model_id"):
         SystemReadinessPublic.model_validate(
-            {**payload, "configured_model_id": "gpt-5.6"}
+            {**payload, "configured_model_id": "../private-model"}
         )
 
 

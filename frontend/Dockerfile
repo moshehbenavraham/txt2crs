@@ -15,7 +15,7 @@ COPY ./ /app/
 # for relative/local API configurations and avoids an undefined self-default.
 ARG VITE_API_URL
 # Non-secret display configuration. Authorization remains backend-owned.
-ARG VITE_ENABLE_PUBLIC_SIGNUP=false
+ARG VITE_ENABLE_PUBLIC_SIGNUP=true
 # Non-secret preview presentation bound; private delivery remains backend-owned.
 ARG VITE_HTML_PREVIEW_MAX_BYTES=5242880
 

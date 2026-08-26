@@ -1,5 +1,9 @@
 # Session Specification
 
+> Historical completed-session record. Any local-only, judge, model-family, or
+> signup-default statement below records the July 2026 implementation context;
+> it is superseded by the current PRD, ADR-0009, and application configuration.
+
 **Session ID**: `phase04-session01-public-landing-intake-and-progress`
 **Phase**: 04 - Learner Experience
 **Status**: Complete

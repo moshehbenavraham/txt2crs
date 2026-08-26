@@ -33,10 +33,10 @@ sessions complete. The master PRD and state file define no later phase.
 | `INPUT_TO_COURSE_SYSTEM_PLAN.md` | Package ownership, resource lifetimes, recovery semantics, current requirements, and explicit evolution triggers | `docs/ARCHITECTURE.md`, `.spec_system/PRD/PRD.md`, package READMEs, runbook | Durable rules promoted; stale phase statuses and superseded limits were rejected |
 | `JOB_job-16a288f24f554c188e11c2aceb8d7df7_MONITORING_NOTES.md` | Checkpoint-versus-heartbeat diagnosis and safe stalled-job response | `docs/runbooks/incident-response.md`, API/frontend docs, `.spec_system/CONSIDERATIONS.md` | Operational lesson promoted; one-run timings are not an SLA |
 | `JOB_job-dc80a8c30f994603a3e525f0eb2f80c6_MONITORING_NOTES.md` | Host-computed claim hashes, independent citation support, module pedagogy gates, research source floors/diversity, deduplication, community classification, and Codex instruction-layer lesson | Engine README and `.spec_system/CONSIDERATIONS.md` | Remediated quality boundaries promoted; failed-run transcript remains historical |
-| `OPENAI_BUILD_WEEK_REQUIREMENTS.md` | No unique enduring content; the dated submission constraints remain release history | Existing `.spec_system/PRD/PRD.md` and `docs/submission/` package | Existing canonical coverage retained; no duplicate promoted |
+| `OPENAI_BUILD_WEEK_REQUIREMENTS.md` | No unique enduring content; the dated submission constraints remain release history | Existing `.spec_system/PRD/PRD.md` and `docs/archive/build-week/` package | Existing canonical coverage retained; no duplicate promoted |
 | `TODO.md` | None; only empty section placeholders | `.spec_system` task state and `docs/CHANGELOG.md` already own planning/completion | Nothing promoted |
 | `maxs-notes.md` | Beginner-readable code, subscription runtime, and boilerplate provenance | Existing `AGENTS.md`, root README, architecture, notices, and package docs | No unique current content |
-| `txt2crs-01.png` | None suitable for the current product | Current reviewed submission media remains under `docs/submission/` | Not promoted: it advertises unsupported application image input and obsolete product visuals |
+| `txt2crs-01.png` | None suitable for the current product | Current reviewed submission media remains under `docs/archive/build-week/` | Not promoted: it advertises unsupported application image input and obsolete product visuals |
 
 ## Durable Content Promoted
 
@@ -110,7 +110,7 @@ YouTube, Devpost, or owner data.
 | Learner interaction and accessibility | PASS | `frontend/README_frontend.md` and `docs/dashboard-design.md` |
 | Local setup, testing, and operations | PASS | onboarding, development, backend README, and incident runbook |
 | Security, privacy, and unresolved compliance | PASS | `.spec_system/SECURITY-COMPLIANCE.md` and `docs/SECURITY.md` |
-| Release and submission evidence | PASS | `docs/release/` and `docs/submission/` indexes |
+| Release and submission evidence | PASS | `docs/release/` and `docs/archive/build-week/` indexes |
 | Repository history | PASS | `docs/CHANGELOG.md`, archived changelogs, ADRs, and git history |
 
 ## Explicit External Gaps

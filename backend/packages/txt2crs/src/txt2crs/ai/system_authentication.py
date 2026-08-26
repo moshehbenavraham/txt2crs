@@ -26,7 +26,7 @@ from openai_codex import Codex, CodexConfig
 from pydantic import Field
 
 from txt2crs.ai.codex_runtime import (
-    CodexSubscriptionRuntime,
+    CodexRuntime,
     OfficialCodexSdkAdapter,
 )
 from txt2crs.domain.models import StrictContract
@@ -133,9 +133,9 @@ class DedicatedSystemAuthenticator:
 
         ``CODEX_HOME`` is explicit and file-backed so a dedicated application
         identity cannot silently reuse a developer's OS keyring or personal
-        Codex configuration. API-key variables are overwritten with empty
-        values because the SDK merges its configured environment over the
-        parent process environment when it launches app-server.
+        Codex configuration. This method specifically builds the optional
+        ChatGPT device-login flow, so it clears ambient API keys even though
+        normal course generation supports Platform API authentication.
         """
 
         if worker_directory.is_symlink() or codex_home.is_symlink():
@@ -151,29 +151,32 @@ class DedicatedSystemAuthenticator:
         supplied_environment = dict(
             os.environ if parent_environment is None else parent_environment
         )
-        sdk_environment = CodexSubscriptionRuntime.build_child_environment(
+        sdk_environment = CodexRuntime.build_child_environment(
             supplied_environment,
             codex_home=resolved_codex_home,
         )
 
         # CodexConfig.env is merged over os.environ rather than replacing it.
-        # Blank every observed spelling plus the canonical names so no ambient
-        # Platform or research key can select a different billing/auth path.
+        # Blank every observed spelling plus the canonical names so an ambient
+        # Platform or research key cannot alter this ChatGPT-only ceremony.
+        device_login_removed_environment_keys = {
+            "OPENAI_API_KEY",
+            "CODEX_API_KEY",
+            *CodexRuntime._REMOVED_CHILD_ENVIRONMENT_KEYS,
+        }
         environment_key_candidates = {
             *os.environ,
             *supplied_environment,
-            *CodexSubscriptionRuntime._REMOVED_CHILD_ENVIRONMENT_KEYS,
+            *device_login_removed_environment_keys,
         }
         for environment_key in environment_key_candidates:
-            if (
-                environment_key.upper()
-                in CodexSubscriptionRuntime._REMOVED_CHILD_ENVIRONMENT_KEYS
-            ):
+            if environment_key.upper() in device_login_removed_environment_keys:
                 sdk_environment[environment_key] = ""
 
         authentication_overrides = (
             *OfficialCodexSdkAdapter.build_config_overrides(research_mcp=None),
-            # This app accepts only the ChatGPT subscription path.
+            # This one setup ceremony intentionally selects ChatGPT. Operators
+            # using OPENAI_API_KEY do not need to run the ceremony.
             'forced_login_method="chatgpt"',
             # A dedicated on-disk store under CODEX_HOME is portable into the
             # future standalone deployment and never shares an OS keyring.
