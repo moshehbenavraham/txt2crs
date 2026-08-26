@@ -94,9 +94,7 @@ test("superuser navigation opens the complete safe setup workspace", async ({
   await expect(
     page.getByRole("heading", { name: "System setup" }),
   ).toBeVisible()
-  await expect(
-    page.getByText("Ready for course work", { exact: true }),
-  ).toBeVisible()
+  await expect(page.getByText("Platform ready", { exact: true })).toBeVisible()
   await expect(page.getByText("gpt-5.6-sol", { exact: true })).toBeVisible()
   await expect(page.getByText("Image", { exact: true })).toBeVisible()
   await expect(page.getByText("Audio", { exact: true })).toBeVisible()
@@ -265,7 +263,7 @@ test("bounded long codes and repeated safe values remain responsive without key 
   expect(
     await page
       .getByText(
-        "Every required dependency is ready and the worker can accept another course.",
+        "Core services and shared admission capacity are operational. Learner-specific availability appears in Create course.",
         { exact: true },
       )
       .evaluate((element) => element.getBoundingClientRect().width),

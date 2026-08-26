@@ -93,6 +93,21 @@ test.describe("Admin user management", () => {
   })
 
   test("deletes a user", async ({ page }) => {
+    // Deleting a user calls `_purge_user_engine_state`, so the request only
+    // succeeds while the txt2crs engine is ready. Readiness requires an
+    // authenticated Codex subscription, which lives in the `txt2crs-state`
+    // volume that `scripts/auth-codex.sh` writes. A CI runner has no such
+    // credential, so the route answers 503 SYSTEM_6001 there no matter what
+    // the browser does.
+    //
+    // This mirrors the engine suite, which gates its subscription tests on the
+    // same variable. Add `TXT2CRS_RUN_LIVE_CODEX=1` to the repository-root
+    // .env (playwright.config.ts loads it) to run this locally.
+    test.skip(
+      process.env.TXT2CRS_RUN_LIVE_CODEX !== "1",
+      "Set TXT2CRS_RUN_LIVE_CODEX=1 to run tests that need an authenticated Codex subscription.",
+    )
+
     await page.goto("/admin")
 
     const email = randomEmail()
