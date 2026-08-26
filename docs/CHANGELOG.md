@@ -18,6 +18,13 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Changed
 
+- Migrated both MCP servers to MCP SDK 2.0, where `FastMCP` is renamed
+  `MCPServer` and every transport setting moves off the constructor onto the
+  call that starts a transport. `ResearchMcpApplication` now owns
+  `create_streamable_http_application()`, so the loopback host, the `/mcp`
+  path, and `stateless_http` are declared in exactly one place instead of
+  being reached through the managed listener.
+
 ### Deprecated
 
 ### Removed

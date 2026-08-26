@@ -1,7 +1,7 @@
 """
 MCP server exposing tools for AI agent access.
 
-This module implements an MCP server using FastMCP that provides:
+This module implements an MCP server using MCPServer that provides:
 - Database introspection tools (read-only)
 - Code validation tools (linting, type checking)
 - Schema discovery tools (OpenAPI, endpoints)
@@ -28,7 +28,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from sqlmodel import Session, func, select
 
 from app.core.config import settings
@@ -36,7 +36,7 @@ from app.core.db import engine
 from app.models import User
 
 # Initialize MCP server
-mcp = FastMCP(name="txt2crs-admin")
+mcp = MCPServer(name="txt2crs-admin")
 BACKEND_ROOT = str(Path(__file__).resolve().parents[2])
 
 

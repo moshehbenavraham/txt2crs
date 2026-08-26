@@ -57,7 +57,7 @@ def test_fastmcp_application_registers_only_two_static_tools() -> None:
     application = create_research_mcp_application(StubResearchService())
 
     assert application.tool_names == ("research_search", "research_extract")
-    assert type(application.fastmcp).__module__.startswith("mcp.")
+    assert type(application.mcpserver).__module__.startswith("mcp.")
     assert application.streamable_http_url == "http://127.0.0.1:8765/mcp"
 
 

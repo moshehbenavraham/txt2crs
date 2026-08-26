@@ -34,7 +34,7 @@ class ResearchMcpReadinessTimeoutError(ResearchMcpLifecycleError):
 
 
 class ResearchMcpToolContractError(ResearchMcpLifecycleError):
-    """The ready FastMCP registry differs from the reviewed two-tool set."""
+    """The ready MCP registry differs from the reviewed two-tool set."""
 
 
 class ResearchMcpShutdownError(ResearchMcpLifecycleError):
@@ -122,7 +122,7 @@ class ManagedResearchMcpServer:
 
     @property
     def registered_tool_names(self) -> tuple[str, ...]:
-        """Return the verified actual FastMCP registry while ready."""
+        """Return the verified actual MCP registry while ready."""
 
         with self._lock:
             if self._published_url is None:
@@ -149,7 +149,9 @@ class ManagedResearchMcpServer:
 
             listener_socket = self._bind_listener()
             try:
-                asgi_application = self._application.fastmcp.streamable_http_app()
+                asgi_application = (
+                    self._application.create_streamable_http_application()
+                )
                 controller = self._server_controller_factory(asgi_application)
             except BaseException as construction_error:
                 listener_socket.close()
