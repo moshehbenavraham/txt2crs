@@ -46,6 +46,10 @@ Archived entries are stored in [`archive/`](archive/).
 
 ### Security
 
+- Restored `cryptography` to a patched release in `backend/uv.lock`. The
+  python-packages group lock was resolved before the standalone `cryptography`
+  security bump landed, so merging it reverted the pin to 49.0.0 and brought
+  PYSEC-2026-3552 back. Re-resolved to 50.0.1.
 - Allowlisted two historical gitleaks findings for synthetic `SECRET_KEY`
   fixtures in `backend/tests/scripts/test_start_local_script.py`. The values
   never authenticated anything and no longer appear in the current file, but
