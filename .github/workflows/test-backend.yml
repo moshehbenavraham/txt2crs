@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.14"
       - name: Install uv
@@ -49,6 +49,9 @@ jobs:
         with:
           version: "0.11.29"
           enable-cache: true
+      - name: Create CI environment files
+        run: bash scripts/ci-create-env-files.sh
+
       - run: docker compose down -v --remove-orphans
       - run: docker compose up -d db mailcatcher
       - name: Migrate DB

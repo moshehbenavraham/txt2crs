@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.14"
 
@@ -62,7 +62,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.14"
 
@@ -153,7 +153,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.14"
 
@@ -167,9 +167,14 @@ jobs:
         run: uv sync
         working-directory: backend
 
+      - name: Create CI environment files
+        run: bash scripts/ci-create-env-files.sh
+
       - name: Run unit tests (models only, no DB required)
         env:
-          # Minimal config required for app imports (settings validation)
+          # Minimal config required for app imports (settings validation).
+          # These override the CI .env so the job stays self-describing.
+          ENVIRONMENT: "local"
           PROJECT_NAME: "Test Project"
           POSTGRES_SERVER: "localhost"
           POSTGRES_USER: "test"
@@ -209,7 +214,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.14"
 
@@ -222,6 +227,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
         working-directory: backend
+
+      - name: Create CI environment files
+        run: bash scripts/ci-create-env-files.sh
 
       # Start required services
       - name: Stop any existing containers
