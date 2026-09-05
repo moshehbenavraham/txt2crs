@@ -6,7 +6,7 @@ services:
   # etc. To enable it, update .env, set:
   # DOMAIN=localhost.tiangolo.com
   proxy:
-    image: traefik:v3.7.10
+    image: traefik:v3.7.13
     # Note: Docker provider disabled for local dev due to API version incompatibility
     # Services are accessed directly through the registered txt2crs host ports.
     volumes:
@@ -49,7 +49,7 @@ services:
       - "${POSTGRES_PORT?Variable not set}:5432"
 
   adminer:
-    image: adminer:5.5.1
+    image: adminer:6.0.1
     restart: "no"
     networks:
       - traefik-public
@@ -120,7 +120,7 @@ services:
       TXT2CRS_REPOSITORY_ROOT: "/workspace"
 
   mailcatcher:
-    image: sj26/mailcatcher:v0.10.0
+    image: sj26/mailcatcher:v0.11.0
     ports:
       - "${MAILCATCHER_WEB_PORT?Variable not set}:1080"
       - "${MAILCATCHER_SMTP_PORT?Variable not set}:1025"
