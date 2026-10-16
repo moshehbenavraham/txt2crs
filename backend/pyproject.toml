@@ -33,7 +33,7 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.65b0,<1.0.0",
     "opentelemetry-instrumentation-httpx>=0.65b0,<1.0.0",
     # MCP (Model Context Protocol) for AI agent tool access
-    "mcp>=2.0.0,<3.0.0",
+    "mcp>=2.2.0,<3.0.0",
     # The txt2crs education engine (workspace package)
     "txt2crs",
 ]
