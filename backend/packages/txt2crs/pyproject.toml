@@ -26,7 +26,7 @@ dependencies = [
     "mcp>=2.2.0,<3",
     "openai-codex==0.144.4",
     "openai-codex-cli-bin==0.144.4",
-    "pillow>=11,<13",
+    "pillow>=13.0.0,<14",
     "pydantic>=2.12,<3",
     "pymupdf>=1.26,<2",
     "pytesseract>=0.3.13,<1",
