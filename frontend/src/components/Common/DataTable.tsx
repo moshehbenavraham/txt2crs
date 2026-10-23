@@ -1,9 +1,8 @@
 import {
   type ColumnDef,
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
+  type RowData,
+  useTable,
 } from "@tanstack/react-table"
 import {
   ChevronLeft,
@@ -30,9 +29,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { type DataTableFeatures, dataTableFeatures } from "./dataTableFeatures"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData extends RowData> {
+  columns: ColumnDef<DataTableFeatures, TData>[]
   data: TData[]
   /**
    * Feature-specific mobile representation rendered below `md` from the same
@@ -41,17 +41,17 @@ interface DataTableProps<TData, TValue> {
   renderMobileRow?: (item: TData) => ReactNode
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
   columns,
   data,
   renderMobileRow,
-}: DataTableProps<TData, TValue>) {
-  const table = useReactTable({
+}: DataTableProps<TData>) {
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
   })
+  const { pagination } = table.state
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,14 +122,9 @@ export function DataTable<TData, TValue>({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-t bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              Showing{" "}
-              {table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
-                1}{" "}
-              to{" "}
+              Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
               {Math.min(
-                (table.getState().pagination.pageIndex + 1) *
-                  table.getState().pagination.pageSize,
+                (pagination.pageIndex + 1) * pagination.pageSize,
                 data.length,
               )}{" "}
               of{" "}
@@ -139,15 +134,13 @@ export function DataTable<TData, TValue>({
             <div className="flex items-center gap-x-2">
               <p className="text-sm text-muted-foreground">Rows per page</p>
               <Select
-                value={`${table.getState().pagination.pageSize}`}
+                value={`${pagination.pageSize}`}
                 onValueChange={(value) => {
                   table.setPageSize(Number(value))
                 }}
               >
                 <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
+                  <SelectValue placeholder={pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
                   {[5, 10, 25, 50].map((pageSize) => (
@@ -164,7 +157,7 @@ export function DataTable<TData, TValue>({
             <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
               <span>Page</span>
               <span className="font-medium text-foreground">
-                {table.getState().pagination.pageIndex + 1}
+                {pagination.pageIndex + 1}
               </span>
               <span>of</span>
               <span className="font-medium text-foreground">
