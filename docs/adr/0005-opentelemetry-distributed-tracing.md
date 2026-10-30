@@ -80,7 +80,7 @@ Files:
 # Add to docker-compose.override.yml
 services:
   jaeger:
-    image: jaegertracing/jaeger:2.19.0
+    image: jaegertracing/jaeger:2.22.0
     ports:
       - "16689:16686"  # Jaeger UI
       - "4324:4317"    # OTLP gRPC
