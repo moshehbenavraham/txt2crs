@@ -1,4 +1,22 @@
 version: 2
+
+# Keep the Playwright test runner (npm @playwright/test) and the Playwright
+# Docker image (frontend/Dockerfile.playwright) on the same version. A
+# mismatch makes every e2e shard fail because the runner looks for browser
+# builds the image does not ship (see #35). Dependabot's per-ecosystem
+# `groups` cannot span npm and docker, so this uses a multi-ecosystem group;
+# the regular npm and docker entries below ignore these two dependencies so
+# they are only ever bumped together here.
+multi-ecosystem-groups:
+  playwright:
+    schedule:
+      interval: weekly
+    labels: [dependencies, internal]
+    # commit-message is group-only for multi-ecosystem groups; setting it on
+    # the member `updates` entries is a Dependabot configuration error.
+    commit-message:
+      prefix: deps
+
 updates:
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -40,6 +58,9 @@ updates:
     commit-message:
       prefix: deps
     labels: [dependencies, internal]
+    ignore:
+      # Bumped together with the Playwright image (multi-ecosystem group).
+      - dependency-name: "@playwright/test"
     groups:
       npm-packages:
         patterns:
@@ -67,6 +88,9 @@ updates:
         update-types:
           - version-update:semver-major
           - version-update:semver-minor
+      # Bumped together with @playwright/test (multi-ecosystem group).
+      - dependency-name: playwright
+      - dependency-name: mcr.microsoft.com/playwright
     groups:
       docker-images:
         patterns:
@@ -86,3 +110,18 @@ updates:
       compose-images:
         patterns:
           - "*"
+
+  # Playwright runner + image, bumped together in one PR
+  - package-ecosystem: npm
+    directory: /frontend
+    cooldown:
+      default-days: 7
+    patterns: ["@playwright/test"]
+    multi-ecosystem-group: playwright
+
+  - package-ecosystem: docker
+    directory: /frontend
+    cooldown:
+      default-days: 7
+    patterns: ["playwright", "mcr.microsoft.com/playwright"]
+    multi-ecosystem-group: playwright

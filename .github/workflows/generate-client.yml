@@ -73,17 +73,27 @@ jobs:
           git config --local user.name "github-actions"
           git add frontend/src/client
 
-      - name: Push generated client
+      - name: Commit and push generated client
         if: github.secret_source == 'Actions'
         env:
           PUSH_TOKEN: ${{ secrets.FULL_STACK_FASTAPI_TEMPLATE_REPO_TOKEN }}
+          ACTOR: ${{ github.actor }}
         run: |
+          if git diff --staged --quiet; then
+            echo "Generated client is up to date; nothing to commit or push."
+            exit 0
+          fi
+          if [ -z "${PUSH_TOKEN}" ] || [ "${ACTOR}" = "dependabot[bot]" ]; then
+            echo "::error::Generated client is stale, and this run cannot push a fix (PUSH_TOKEN is empty or the actor is ${ACTOR}). Run scripts/generate-client.sh and commit the changes."
+            git diff --staged --stat
+            exit 1
+          fi
           trap 'git config --local --unset-all credential.helper || true' EXIT
           # Keep the token reference literal until Git invokes the helper.
           # shellcheck disable=SC2016
           git config --local credential.helper \
             '!f() { echo username=x-access-token; echo "password=${PUSH_TOKEN}"; }; f'
-          git diff --staged --quiet || git commit -m "Autogenerate frontend client"
+          git commit -m "Autogenerate frontend client"
           git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Check generated-client drift
