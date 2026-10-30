@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: base - shared dependency installation
 # =============================================================================
-FROM python:3.14.7 AS base
+FROM python:3.14.9 AS base
 
 ENV PYTHONUNBUFFERED=1
 
