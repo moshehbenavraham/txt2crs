@@ -12,6 +12,10 @@ multi-ecosystem-groups:
     schedule:
       interval: weekly
     labels: [dependencies, internal]
+    # commit-message is group-only for multi-ecosystem groups; setting it on
+    # the member `updates` entries is a Dependabot configuration error.
+    commit-message:
+      prefix: deps
 
 updates:
   # GitHub Actions
@@ -112,8 +116,6 @@ updates:
     directory: /frontend
     cooldown:
       default-days: 7
-    commit-message:
-      prefix: deps
     patterns: ["@playwright/test"]
     multi-ecosystem-group: playwright
 
@@ -121,7 +123,5 @@ updates:
     directory: /frontend
     cooldown:
       default-days: 7
-    commit-message:
-      prefix: deps
     patterns: ["playwright", "mcr.microsoft.com/playwright"]
     multi-ecosystem-group: playwright
