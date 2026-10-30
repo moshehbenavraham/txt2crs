@@ -342,6 +342,10 @@ def test_upload_rejects_extra_or_duplicate_multipart_fields(
             ErrorCode.JOB_PAYLOAD_TOO_LARGE,
         ),
     ],
+    # Explicit ids: the default id embeds the 1.1 MB payload, and `pytest -v`
+    # then prints a 1.1 MB line that stalls GitHub Actions log processing for
+    # 20-30+ minutes (the Backend Integration Tests timeouts).
+    ids=["unsupported-media-415", "payload-too-large-413"],
 )
 def test_upload_transport_errors_are_problem_details_and_skip_service(
     client: TestClient,
