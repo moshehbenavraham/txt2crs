@@ -1,6 +1,6 @@
 FROM node:26.8.1 AS node-runtime
 
-FROM mcr.microsoft.com/playwright:v1.63.0-noble
+FROM mcr.microsoft.com/playwright:v1.64.1-noble
 
 COPY --from=node-runtime /usr/local/ /usr/local/
 
